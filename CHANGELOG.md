@@ -187,6 +187,18 @@ Cambiado:
   oficialmente las metricas duras de cierre de Fase 1 (throughput,
   p99, memoria idle, arranque) cumpliendo la regla 17. RFC-0002 PR 10
   de 11.
+- Rustdoc enriquecido de `ag-core` con introduccion crate-level
+  ampliada (tabla de capas, features, ejemplos de uso con
+  `Shield::serve` y `ShieldConfig::from_path`, lista de tipos
+  publicos clave y enlaces cruzados a maestro y manual). Dos
+  doctests compilan en CI.
+- Capitulo 1 del manual de usuario: `docs/manual/01-shield-as-library.md`
+  con once secciones cubriendo instalacion como dependencia git,
+  servidor minimo, carga de configuracion desde TOML, orden de
+  capas, activacion de TLS / JWT / CSRF / rate-limit, extractor
+  `Claims<T>` y `ValidatedJson<T>`, errores y observabilidad,
+  recomendaciones de despliegue y referencias cruzadas. Cierra el
+  ultimo entregable en-repo de Fase 1. RFC-0002 PR 11 de 11.
 
 Cambiado:
 

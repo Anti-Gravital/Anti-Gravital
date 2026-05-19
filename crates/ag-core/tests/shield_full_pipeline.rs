@@ -118,8 +118,6 @@ fn sign_jwt(claims: &AppClaims, signing_pem: &str) -> String {
 }
 
 async fn start_full_pipeline() -> TestFixture {
-    let _ = rustls::crypto::ring::default_provider().install_default();
-
     let (public_pem, signing_pem) = generate_ed25519_keypair();
     let (cert_path, key_path) = generate_tls_cert();
 

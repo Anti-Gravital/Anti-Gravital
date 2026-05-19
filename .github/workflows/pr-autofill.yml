@@ -1,0 +1,66 @@
+name: pr-autofill
+
+# Cuando se abre o se reabre una pull request, este workflow busca un
+# descriptor pre-rellenado en `docs/pr-drafts/<rama-aplanada>.md` y, si
+# existe, sobreescribe el cuerpo del PR con su contenido. Si no existe,
+# comenta el PR avisando y deja un warning en el job.
+#
+# Convencion de nombre del descriptor: el nombre de la rama del PR
+# (`github.head_ref`) con `/` reemplazado por `-`. Ejemplo: la rama
+# `phase-1/shield-mvp` busca el descriptor
+# `docs/pr-drafts/phase-1-shield-mvp.md`.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  autofill:
+    name: descriptor pre-rellenado
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false || github.event.action == 'ready_for_review'
+    steps:
+      - name: Checkout de la rama del PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Buscar y aplicar descriptor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          slug="$(printf '%s' "$PR_BRANCH" | tr '/' '-')"
+
+          candidates=(
+            "docs/pr-drafts/${slug}.md"
+            "docs/pr-drafts/${PR_BRANCH}.md"
+          )
+
+          for candidate in "${candidates[@]}"; do
+            if [ -f "$candidate" ]; then
+              echo "Descriptor encontrado: $candidate"
+              gh pr edit "$PR_NUMBER" --repo "$REPO" --body-file "$candidate"
+              echo "::notice title=PR autocompletado::Cuerpo reemplazado desde $candidate."
+              exit 0
+            fi
+          done
+
+          echo "::warning title=Sin descriptor::No hay descriptor para la rama $PR_BRANCH."
+          tmpfile="$(mktemp)"
+          {
+            printf 'Esta pull request no trae descriptor pre-rellenado.\n\n'
+            printf 'Cree el archivo `docs/pr-drafts/%s.md` en la rama `%s` con el resumen, fase afectada, tipo de cambio, documentos relacionados, plan de prueba, criterios de salida y checklist marcados.\n\n' "$slug" "$PR_BRANCH"
+            printf 'Vease `docs/pr-drafts/README.md` para la convencion completa. Tras pushear el descriptor, cierre y reabra esta pull request (o marquela como ready-for-review) para que el cuerpo se autocomplete.\n'
+          } > "$tmpfile"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file "$tmpfile"
+          rm -f "$tmpfile"
+          exit 1

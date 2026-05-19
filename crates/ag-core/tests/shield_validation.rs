@@ -38,10 +38,8 @@ async fn handler(ValidatedJson(project): ValidatedJson<NewProject>) -> String {
 }
 
 async fn start_server() -> (SocketAddr, tokio::task::JoinHandle<()>) {
-    let shield = Shield::new(ShieldConfig::default());
-    let app = Router::new()
-        .route("/projects", post(handler))
-        .layer(shield.layer());
+    let shield = Shield::try_new(ShieldConfig::default()).unwrap();
+    let app = shield.apply(Router::new().route("/projects", post(handler)));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

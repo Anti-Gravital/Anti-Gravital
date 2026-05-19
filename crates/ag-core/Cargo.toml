@@ -25,7 +25,7 @@ workspace = true
 default = ["validation", "cors", "csrf", "logging", "rate-limit"]
 tls = []
 auth-jwt = []
-rate-limit = []
+rate-limit = ["dep:governor"]
 validation = []
 cors = []
 csrf = []
@@ -34,6 +34,7 @@ logging = []
 [dependencies]
 axum = { workspace = true }
 bytes = { workspace = true }
+governor = { workspace = true, optional = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }

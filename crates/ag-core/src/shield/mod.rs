@@ -1,16 +1,22 @@
 //! Capa Shield: pipeline Tower de middleware que protege el Core.
 //!
-//! En el bootstrap de Fase 1 (este PR) la pipeline solo aplica la
-//! capa de logging estructurado. Las capas restantes (TLS, JWT, rate
-//! limiting, validacion, CORS, CSRF) se anaden capa por capa en PRs
-//! posteriores. Vease `docs/rfc/RFC-0002-diseno-shield-mvp.md`.
+//! En Fase 1 la pipeline crece capa por capa segun el orden de
+//! `docs/rfc/RFC-0002-diseno-shield-mvp.md`. La API publica es
+//! `Shield::apply(router)` que recibe un `axum::Router` y devuelve el
+//! mismo router con todas las capas configuradas activas.
 
-use tower::layer::util::{Identity, Stack};
-use tower::ServiceBuilder;
+use axum::Router;
 
 use crate::config::ShieldConfig;
+use crate::error::AgResult;
 
+#[cfg(feature = "cors")]
+mod cors;
+#[cfg(feature = "csrf")]
+mod csrf;
 mod logging;
+#[cfg(feature = "rate-limit")]
+mod rate_limit;
 #[cfg(feature = "validation")]
 pub mod validation;
 
@@ -18,16 +24,60 @@ pub mod validation;
 pub use validation::{FieldError, Validate, ValidatedJson, ValidationErrors};
 
 /// Pipeline Shield configurable.
+///
+/// La construccion valida la configuracion (por ejemplo, formato de
+/// origenes CORS). Si la configuracion es invalida, `try_new` devuelve
+/// el error correspondiente y `new` entra en panic. Por convencion el
+/// arranque del proceso usa `try_new` para fallar rapido y limpio.
 #[derive(Debug, Clone)]
 pub struct Shield {
     config: ShieldConfig,
+    #[cfg(feature = "cors")]
+    cors_layer: Option<tower_http::cors::CorsLayer>,
+    #[cfg(feature = "rate-limit")]
+    rate_limit_layer: Option<rate_limit::RateLimitLayer>,
 }
 
 impl Shield {
-    /// Construye un Shield desde la configuracion declarativa.
+    /// Construye un Shield validando la configuracion declarativa.
+    ///
+    /// # Errores
+    ///
+    /// Devuelve `AgError` si alguna seccion de la configuracion es
+    /// invalida en el momento del arranque.
+    pub fn try_new(config: ShieldConfig) -> AgResult<Self> {
+        #[cfg(feature = "cors")]
+        let cors_layer = if config.cors.enabled {
+            Some(cors::build_layer(&config.cors)?)
+        } else {
+            None
+        };
+
+        #[cfg(feature = "rate-limit")]
+        let rate_limit_layer = if config.rate_limit.enabled {
+            Some(rate_limit::RateLimitLayer::new(&config.rate_limit)?)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            config,
+            #[cfg(feature = "cors")]
+            cors_layer,
+            #[cfg(feature = "rate-limit")]
+            rate_limit_layer,
+        })
+    }
+
+    /// Construye un Shield sin verificar la configuracion.
+    ///
+    /// # Panicos
+    ///
+    /// Entra en panic si la configuracion es invalida. Use `try_new`
+    /// si necesita manejar el error de forma estructurada.
     #[must_use]
     pub fn new(config: ShieldConfig) -> Self {
-        Self { config }
+        Self::try_new(config).expect("invalid shield configuration")
     }
 
     /// Construye un Shield con la configuracion por defecto.
@@ -42,15 +92,33 @@ impl Shield {
         &self.config
     }
 
-    /// Devuelve la capa Tower que se compone con un router Axum.
+    /// Aplica todas las capas configuradas al router.
     ///
-    /// La capa actual incluye unicamente logging estructurado. Las
-    /// siguientes capas se agregaran en orden definido por RFC-0002.
-    #[must_use]
-    pub fn layer(&self) -> Stack<logging::LoggingLayer, Identity> {
-        ServiceBuilder::new()
-            .layer(logging::LoggingLayer)
-            .into_inner()
+    /// El orden de aplicacion es relevante: la primera capa en
+    /// agregarse es la mas interna; la ultima es la mas externa, es
+    /// decir la primera en ver el request entrante. La capa de
+    /// logging es la mas externa para que todo request quede
+    /// trazado, incluso si es rechazado por otra capa.
+    pub fn apply(&self, router: Router) -> Router {
+        let mut router = router;
+
+        #[cfg(feature = "csrf")]
+        if self.config.csrf.enabled {
+            router = router.layer(csrf::CsrfLayer::new(self.config.csrf.clone()));
+        }
+
+        #[cfg(feature = "cors")]
+        if let Some(cors) = self.cors_layer.clone() {
+            router = router.layer(cors);
+        }
+
+        #[cfg(feature = "rate-limit")]
+        if let Some(rl) = self.rate_limit_layer.clone() {
+            router = router.layer(rl);
+        }
+
+        router = router.layer(logging::LoggingLayer);
+        router
     }
 }
 
@@ -65,8 +133,34 @@ mod tests {
     }
 
     #[test]
-    fn shield_layer_is_constructible() {
+    fn shield_apply_is_callable() {
         let shield = Shield::with_defaults();
-        let _layer = shield.layer();
+        let router = Router::<()>::new();
+        let _routed = shield.apply(router);
+    }
+
+    #[cfg(feature = "cors")]
+    #[test]
+    fn try_new_with_invalid_cors_fails() {
+        use crate::config::CorsConfig;
+        let cfg = ShieldConfig {
+            cors: CorsConfig {
+                enabled: true,
+                allow_origins: vec!["https://example.com".into()],
+                allow_methods: vec!["NOT A METHOD".into()],
+                allow_headers: vec![],
+                allow_credentials: false,
+            },
+            ..ShieldConfig::default()
+        };
+        let err = Shield::try_new(cfg).unwrap_err();
+        assert_eq!(err.code(), "cors_error");
+    }
+
+    #[cfg(feature = "cors")]
+    #[test]
+    fn try_new_with_disabled_cors_succeeds() {
+        let shield = Shield::try_new(ShieldConfig::default()).unwrap();
+        assert!(!shield.config().cors.enabled);
     }
 }

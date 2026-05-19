@@ -21,6 +21,18 @@ pub struct ShieldConfig {
     /// Configuracion del runtime Tokio.
     #[serde(default)]
     pub runtime: RuntimeConfig,
+
+    /// Configuracion CORS.
+    #[serde(default)]
+    pub cors: CorsConfig,
+
+    /// Configuracion CSRF.
+    #[serde(default)]
+    pub csrf: CsrfConfig,
+
+    /// Configuracion de rate limiting por IP.
+    #[serde(default)]
+    pub rate_limit: RateLimitConfig,
 }
 
 impl Default for ShieldConfig {
@@ -28,8 +40,117 @@ impl Default for ShieldConfig {
         Self {
             bind: default_bind_addr(),
             runtime: RuntimeConfig::default(),
+            cors: CorsConfig::default(),
+            csrf: CsrfConfig::default(),
+            rate_limit: RateLimitConfig::default(),
         }
     }
+}
+
+/// Configuracion CORS.
+///
+/// Por defecto la capa esta deshabilitada para no permitir cross-origin
+/// implicito. Para habilitarla declare `enabled = true` y al menos un
+/// origen.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CorsConfig {
+    /// Activa la capa CORS.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Origenes permitidos. Ej: `["https://app.example.com"]`.
+    #[serde(default)]
+    pub allow_origins: Vec<String>,
+
+    /// Metodos HTTP permitidos. Ej: `["GET", "POST"]`.
+    #[serde(default)]
+    pub allow_methods: Vec<String>,
+
+    /// Headers permitidos. Ej: `["content-type", "authorization"]`.
+    #[serde(default)]
+    pub allow_headers: Vec<String>,
+
+    /// Si se permiten credenciales en peticiones cross-origin.
+    #[serde(default)]
+    pub allow_credentials: bool,
+}
+
+/// Configuracion CSRF.
+///
+/// Por defecto deshabilitada. Cuando se activa, las peticiones que mutan
+/// estado deben presentar el header y la cookie configurados con
+/// valores identicos (patron double-submit cookie).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CsrfConfig {
+    /// Activa la capa CSRF.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Nombre del header que transporta el token. Por defecto
+    /// `X-CSRF-Token`. Se compara en minusculas.
+    #[serde(default = "default_csrf_header")]
+    pub token_header: String,
+
+    /// Nombre de la cookie que transporta el token. Por defecto
+    /// `ag_csrf`.
+    #[serde(default = "default_csrf_cookie")]
+    pub token_cookie: String,
+}
+
+impl Default for CsrfConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            token_header: default_csrf_header(),
+            token_cookie: default_csrf_cookie(),
+        }
+    }
+}
+
+fn default_csrf_header() -> String {
+    "x-csrf-token".to_owned()
+}
+
+fn default_csrf_cookie() -> String {
+    "ag_csrf".to_owned()
+}
+
+/// Configuracion de rate limiting por IP.
+///
+/// Por defecto deshabilitada. Cuando se activa aplica un token bucket
+/// por direccion IP de origen con `per_ip_rps` peticiones por segundo
+/// como tasa sostenida y `burst` peticiones como pico instantaneo.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    /// Activa la capa de rate limiting.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Peticiones por segundo permitidas por IP en regimen sostenido.
+    #[serde(default = "default_per_ip_rps")]
+    pub per_ip_rps: u32,
+
+    /// Capacidad maxima del token bucket por IP.
+    #[serde(default = "default_burst")]
+    pub burst: u32,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            per_ip_rps: default_per_ip_rps(),
+            burst: default_burst(),
+        }
+    }
+}
+
+const fn default_per_ip_rps() -> u32 {
+    100
+}
+
+const fn default_burst() -> u32 {
+    200
 }
 
 impl ShieldConfig {

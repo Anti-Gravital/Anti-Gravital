@@ -10,10 +10,8 @@ use axum::Router;
 use std::net::SocketAddr;
 
 async fn start_server() -> (SocketAddr, tokio::task::JoinHandle<()>) {
-    let shield = Shield::new(ShieldConfig::default());
-    let app = Router::new()
-        .route("/hello", get(|| async { "hello, shield" }))
-        .layer(shield.layer());
+    let shield = Shield::try_new(ShieldConfig::default()).unwrap();
+    let app = shield.apply(Router::new().route("/hello", get(|| async { "hello, shield" })));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

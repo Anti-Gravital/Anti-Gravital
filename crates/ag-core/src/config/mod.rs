@@ -25,6 +25,10 @@ pub struct ShieldConfig {
     /// Configuracion CORS.
     #[serde(default)]
     pub cors: CorsConfig,
+
+    /// Configuracion CSRF.
+    #[serde(default)]
+    pub csrf: CsrfConfig,
 }
 
 impl Default for ShieldConfig {
@@ -33,6 +37,7 @@ impl Default for ShieldConfig {
             bind: default_bind_addr(),
             runtime: RuntimeConfig::default(),
             cors: CorsConfig::default(),
+            csrf: CsrfConfig::default(),
         }
     }
 }
@@ -63,6 +68,46 @@ pub struct CorsConfig {
     /// Si se permiten credenciales en peticiones cross-origin.
     #[serde(default)]
     pub allow_credentials: bool,
+}
+
+/// Configuracion CSRF.
+///
+/// Por defecto deshabilitada. Cuando se activa, las peticiones que mutan
+/// estado deben presentar el header y la cookie configurados con
+/// valores identicos (patron double-submit cookie).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CsrfConfig {
+    /// Activa la capa CSRF.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Nombre del header que transporta el token. Por defecto
+    /// `X-CSRF-Token`. Se compara en minusculas.
+    #[serde(default = "default_csrf_header")]
+    pub token_header: String,
+
+    /// Nombre de la cookie que transporta el token. Por defecto
+    /// `ag_csrf`.
+    #[serde(default = "default_csrf_cookie")]
+    pub token_cookie: String,
+}
+
+impl Default for CsrfConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            token_header: default_csrf_header(),
+            token_cookie: default_csrf_cookie(),
+        }
+    }
+}
+
+fn default_csrf_header() -> String {
+    "x-csrf-token".to_owned()
+}
+
+fn default_csrf_cookie() -> String {
+    "ag_csrf".to_owned()
 }
 
 impl ShieldConfig {

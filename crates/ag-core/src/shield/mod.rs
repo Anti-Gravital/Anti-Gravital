@@ -12,6 +12,8 @@ use crate::error::AgResult;
 
 #[cfg(feature = "cors")]
 mod cors;
+#[cfg(feature = "csrf")]
+mod csrf;
 mod logging;
 #[cfg(feature = "validation")]
 pub mod validation;
@@ -86,6 +88,11 @@ impl Shield {
     /// trazado, incluso si es rechazado por otra capa.
     pub fn apply(&self, router: Router) -> Router {
         let mut router = router;
+
+        #[cfg(feature = "csrf")]
+        if self.config.csrf.enabled {
+            router = router.layer(csrf::CsrfLayer::new(self.config.csrf.clone()));
+        }
 
         #[cfg(feature = "cors")]
         if let Some(cors) = self.cors_layer.clone() {

@@ -93,6 +93,13 @@ Anadido:
   (status 403). 4 unit tests sobre construccion y 4 tests E2E sobre
   preflight, origenes listados y rechazados.
 - Tower-http feature `cors` activada en el workspace.
+- Capa CSRF (`shield::csrf`) detras de la feature `csrf` activa por
+  defecto. Patron double-submit cookie apatrida: en peticiones que
+  mutan estado (POST, PUT, PATCH, DELETE) se exige que el header y la
+  cookie configurados lleven el mismo valor opaco. Configuracion via
+  `CsrfConfig` con header por defecto `x-csrf-token` y cookie
+  `ag_csrf`. CSRF deshabilitado por defecto. 7 unit tests sobre
+  parsing de cookies y validacion y 6 tests E2E sobre flujo completo.
 
 Cambiado:
 

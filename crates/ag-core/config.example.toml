@@ -1,0 +1,75 @@
+# Anti-Gravital Shield - Ejemplo completo de configuracion TOML
+#
+# Cada seccion es opcional. Si se omite, se usan los defaults seguros
+# documentados aqui. Las claves desconocidas se rechazan al cargar el
+# archivo con `AgError::Config`. Toda ruta es relativa al directorio
+# desde el que se ejecuta el binario salvo que se especifique absoluta.
+
+# Direccion del listener TCP (default: "0.0.0.0:8080").
+bind = "0.0.0.0:8080"
+
+[runtime]
+# Numero de workers del runtime Tokio. Omitir o dejar como cadena
+# vacia para que se asigne uno por CPU. Acepta entero positivo.
+# workers = 4
+# Maximo de threads bloqueantes que Tokio puede mantener en su pool
+# secundario (default: 512).
+blocking_threads = 512
+
+[cors]
+# Activa la capa CORS (default: false). Por seguridad se mantiene
+# deshabilitada hasta que el operador la declare explicitamente.
+enabled = false
+# Origenes permitidos. Si CORS esta activo y la lista esta vacia,
+# ninguna peticion cross-origin sera autorizada.
+allow_origins = [
+  # "https://app.example.com",
+]
+# Metodos HTTP permitidos.
+allow_methods = ["GET", "POST"]
+# Headers permitidos en peticiones cross-origin.
+allow_headers = ["content-type", "authorization"]
+# Si se aceptan credenciales (cookies, Authorization) en cross-origin.
+allow_credentials = false
+
+[csrf]
+# Activa la proteccion CSRF apatrida via double-submit cookie
+# (default: false). Cuando esta activa, peticiones que mutan estado
+# (POST, PUT, PATCH, DELETE) deben presentar el header y la cookie
+# configurados con el mismo valor opaco.
+enabled = false
+# Nombre del header que el cliente envia.
+token_header = "x-csrf-token"
+# Nombre de la cookie en la que el cliente trae el mismo valor.
+token_cookie = "ag_csrf"
+
+[rate_limit]
+# Activa la capa de rate limiting por IP (default: false).
+enabled = false
+# Peticiones por segundo permitidas por IP en regimen sostenido.
+per_ip_rps = 100
+# Tamano del token bucket por IP (pico instantaneo).
+burst = 200
+
+[auth]
+# Activa la verificacion JWT Ed25519 sobre `Authorization: Bearer`
+# (default: false). Cuando esta activa hay que declarar la clave
+# publica por contenido inline o por ruta, no ambas.
+enabled = false
+# public_key_pem = """-----BEGIN PUBLIC KEY-----
+# MCowBQYDK2VwAyEA... -----END PUBLIC KEY-----"""
+# public_key_path = "/etc/anti-gravital/jwt.public.pem"
+# Validacion opcional del claim `iss`. Si se omite, no se exige iss.
+# expected_issuer = "https://auth.example.com/"
+# Validacion opcional del claim `aud`. Si se omite, no se exige aud.
+# expected_audience = "anti-gravital"
+
+[tls]
+# Activa terminacion TLS 1.3 con rustls (default: false). Cuando se
+# delega TLS a un balanceador externo (Cloudflare, ALB, Nginx), esta
+# seccion se deja deshabilitada y el proxy hace la terminacion.
+enabled = false
+# Ruta al certificado PEM (cadena completa).
+# cert_path = "/etc/anti-gravital/tls.cert.pem"
+# Ruta a la clave privada PEM (PKCS#8, RSA o EC).
+# key_path = "/etc/anti-gravital/tls.key.pem"

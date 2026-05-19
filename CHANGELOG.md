@@ -141,6 +141,16 @@ Cambiado:
 - Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
   trait `PemObject` de `rustls-pki-types`. La superficie de API
   publica no se altera.
+- Benchmark Hello World del Shield con criterion en
+  `crates/ag-core/benches/shield_hello_world.rs`. Tres grupos
+  comparables a nivel Tower: `bare_axum_hello` (linea base),
+  `shield_default_hello` (Shield con solo logging) y
+  `shield_full_default_hello` (Shield con CORS, CSRF y rate-limit
+  activas). Documentado en `crates/ag-core/benches/README.md` con la
+  regla 17 (hardware, OS, version Rust, commit, configuracion,
+  metodologia, ejecuciones, desviacion estandar). Dev-dependency
+  `criterion = 0.5`. RFC-0002 PR 9 de 11.
+
 - Configuracion TOML completa del Shield: `ShieldConfig::from_path`
   carga la configuracion desde un archivo, `to_toml_string` permite
   round-trip estable, y todas las structs llevan

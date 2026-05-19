@@ -124,6 +124,23 @@ Anadido:
   incluyendo expiracion, firma incorrecta y issuer no esperado.
 - Dev-dependencies `ed25519-dalek = 2` y `rand_core = 0.6` para
   generar pares de claves Ed25519 en tests.
+- Capa TLS 1.3 (`shield::tls`) detras de la feature `tls` activa por
+  defecto. Construye un `tokio_rustls::TlsAcceptor` desde cert/key
+  PEM declarados en `TlsConfig`. Provider criptografico: `ring`.
+  Cuando la feature `tls` esta presente y `TlsConfig.enabled` es
+  cierto, `Shield::serve(listener, router)` opera el accept loop
+  envolviendo cada conexion con TLS; en otro caso delega a
+  `axum::serve`. Errores de carga mapeados a `AgError::Tls`.
+  Dependencias opcionales `rustls = 0.23`, `rustls-pki-types = 1.10`,
+  `tokio-rustls = 0.26`. Dev-dependency `rcgen = 0.13` para generar
+  certificados auto-firmados en tests. 4 unit tests sobre carga de
+  PEM y 3 tests E2E incluyendo handshake HTTPS real con reqwest.
+
+Cambiado:
+
+- Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
+  trait `PemObject` de `rustls-pki-types`. La superficie de API
+  publica no se altera.
 
 Cambiado:
 

@@ -11,6 +11,11 @@ use tower::ServiceBuilder;
 use crate::config::ShieldConfig;
 
 mod logging;
+#[cfg(feature = "validation")]
+pub mod validation;
+
+#[cfg(feature = "validation")]
+pub use validation::{FieldError, Validate, ValidatedJson, ValidationErrors};
 
 /// Pipeline Shield configurable.
 #[derive(Debug, Clone)]

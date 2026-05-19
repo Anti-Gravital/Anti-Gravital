@@ -79,5 +79,11 @@ Anadido:
 - Tests: 12 unit tests por modulo, 2 tests E2E con servidor real, 1
   doctest. Todos en verde con `cargo fmt`, `cargo clippy -D warnings`
   y `cargo doc --no-deps` limpios.
+- Capa de validacion de payload (`shield::validation`) detras de la
+  feature `validation` activa por defecto. Trait `Validate`, agregado
+  `ValidationErrors` con `FieldError` serializable y extractor
+  `ValidatedJson<T>` que mapea fallos a `AgError::Validation` con
+  detalle estructurado por campo (status 422). 4 unit tests
+  adicionales y 3 tests E2E sobre `/projects`.
 
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

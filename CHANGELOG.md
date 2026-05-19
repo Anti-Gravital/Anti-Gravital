@@ -141,6 +141,35 @@ Cambiado:
 - Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
   trait `PemObject` de `rustls-pki-types`. La superficie de API
   publica no se altera.
+- Tests E2E del pipeline Shield completo en
+  `crates/ag-core/tests/shield_full_pipeline.rs`. Arrancan un servidor
+  con TODAS las capas activas simultaneamente (TLS, auth-jwt, csrf,
+  cors, rate-limit, validation, logging) sobre HTTPS real con cert
+  auto-firmado y par Ed25519 generados en setup. 6 tests cubren:
+  request valido pasa por toda la pipeline (GET y POST), JWT invalido
+  bloqueado por auth (401), CSRF ausente bloqueado en POST (403),
+  payload invalido bloqueado por validation (422), origen no listado
+  no recibe header allow-origin.
+- Ejemplo binario release-ready
+  `crates/ag-core/examples/hello_world.rs` para correr con
+  `cargo run --release -p ag-core --example hello_world` y medir con
+  `oha`, `wrk` o equivalente.
+- Plantilla `docs/benchmarks/measurement-template.md` para registrar
+  oficialmente las metricas duras de cierre de Fase 1 (throughput,
+  p99, memoria idle, arranque) cumpliendo la regla 17. RFC-0002 PR 10
+  de 11.
+
+Cambiado:
+
+- `Shield::serve` inyecta `ConnectInfo<SocketAddr>` en cada request
+  tanto en transporte plano como TLS. En el camino plano se usa
+  `Router::into_make_service_with_connect_info::<SocketAddr>()`; en
+  el camino TLS se captura `peer_addr` antes del handshake y se
+  inyecta como extension del request. Antes de este fix, la capa
+  rate-limit pasaba transparente sobre cualquier servicio arrancado
+  via `Shield::serve` porque la IP del cliente no llegaba al
+  middleware. La firma publica de `Shield::serve` no cambia.
+
 - Benchmark Hello World del Shield con criterion en
   `crates/ag-core/benches/shield_hello_world.rs`. Tres grupos
   comparables a nivel Tower: `bare_axum_hello` (linea base),

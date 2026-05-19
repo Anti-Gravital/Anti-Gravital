@@ -48,7 +48,7 @@ Estado: En curso.
 - [ ] Discord oficial del proyecto con canales requeridos.
 - [ ] Cuenta del proyecto en X o Bluesky para anuncios.
 - [ ] Dominio `antigravital.dev` registrado y apuntando a landing page.
-- [ ] Email institucional `hello@antigravital.dev` operativo.
+- [x] Email institucional `anti@gravitalcloud.com` operativo (correo raiz). Respaldo del BDFL: `angelnereira@gravitalcloud.com`.
 - [ ] Calendario publico de releases publicado en el sitio.
 
 Detalle y owner sugerido en `docs/governance/external-deliverables.md`.

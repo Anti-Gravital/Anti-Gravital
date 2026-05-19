@@ -68,10 +68,10 @@ o presencial.
 
 Los casos de comportamiento abusivo, acosador o de otra manera
 inaceptable se pueden reportar a los lideres de la comunidad
-responsables de la aplicacion del codigo en
-`security@gravital.io` durante Fase 0; este canal se complementara con
-otro especifico (`conduct@gravital.io`) cuando se habilite. Todas las
-quejas se revisaran e investigaran de forma rapida y justa.
+responsables de la aplicacion del codigo en `anti@gravitalcloud.com`
+durante Fase 0, con respaldo directo al BDFL inicial en
+`angelnereira@gravitalcloud.com` cuando el reporte requiera escalado.
+Todas las quejas se revisaran e investigaran de forma rapida y justa.
 
 Todos los lideres estan obligados a respetar la privacidad y seguridad
 de quienes reporten incidentes.

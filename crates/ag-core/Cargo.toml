@@ -55,9 +55,14 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 ed25519-dalek = { workspace = true }
 rand_core = { workspace = true }
 rcgen = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 tokio-test = { workspace = true }
+
+[[bench]]
+name = "shield_hello_world"
+harness = false

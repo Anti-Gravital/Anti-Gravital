@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Pregunta general / General question
+    url: https://github.com/anti-gravital/anti-gravital/discussions
+    about: Para preguntas abiertas, use Discussions / Use Discussions for open questions.
+  - name: Reporte de seguridad / Security report
+    url: https://github.com/anti-gravital/anti-gravital/security/advisories/new
+    about: Reporte privado y coordinado. Vease SECURITY.md.

@@ -117,6 +117,18 @@ construido desde cert/key PEM. Helper `Shield::serve(listener, router)`
 que decide entre transporte plano o TLS segun config. Migracion de
 `rustls-pemfile` (RUSTSEC-2025-0134) a `rustls-pki-types::PemObject`.
 
+### Flujo de descriptores y autofill (commits posteriores)
+
+Introduccion del flujo de descriptor pre-rellenado bajo
+`docs/pr-drafts/<rama-aplanada>.md` y del workflow
+`.github/workflows/pr-autofill.yml`. Al abrir o reabrir una PR, el
+workflow busca el descriptor por nombre de rama (con `/` aplanada a
+`-`) y reemplaza automaticamente el cuerpo del PR con su contenido.
+Si falta, comenta el PR pidiendo crearlo y deja warning en el job.
+Plantilla `.github/PULL_REQUEST_TEMPLATE.md` queda como aviso
+visible solo cuando no hay descriptor. Regla incorporada a
+`CLAUDE.md` y `CONTRIBUTING.md`.
+
 ## Plan de prueba
 
 Desde la raiz del repositorio, sobre la rama

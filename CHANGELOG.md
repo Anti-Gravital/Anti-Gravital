@@ -141,13 +141,17 @@ Cambiado:
 - Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
   trait `PemObject` de `rustls-pki-types`. La superficie de API
   publica no se altera.
-- Flujo de pull requests: cada rama trae su descriptor pre-rellenado
-  bajo `docs/pr-drafts/<rama>.md` con resumen, fase, plan de prueba y
-  criterios de salida ya completos. La plantilla
-  `.github/PULL_REQUEST_TEMPLATE.md` se convierte en fallback de
-  emergencia. Regla incorporada a `CLAUDE.md` y `CONTRIBUTING.md`.
-  Descriptor de la rama `phase-0/foundations-and-governance` publicado
-  en `docs/pr-drafts/phase-0-foundations-and-governance.md`.
+- Flujo de pull requests con autofill automatizado: cada rama trae su
+  descriptor pre-rellenado bajo `docs/pr-drafts/<rama-aplanada>.md`
+  (las `/` de la rama se convierten en `-`). El nuevo workflow
+  `.github/workflows/pr-autofill.yml` se dispara al abrir o reabrir
+  la pull request, busca el descriptor y reemplaza el cuerpo del PR
+  con su contenido completo. Si no encuentra descriptor, comenta el
+  PR avisando. La plantilla `.github/PULL_REQUEST_TEMPLATE.md` queda
+  como aviso visible solo en ese caso. Regla incorporada a
+  `CLAUDE.md` y `CONTRIBUTING.md`. Descriptor de la rama
+  `phase-0/foundations-and-governance` publicado en
+  `docs/pr-drafts/phase-0-foundations-and-governance.md`.
 
 Cambiado:
 

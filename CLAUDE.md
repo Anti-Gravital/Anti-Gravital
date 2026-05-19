@@ -879,23 +879,28 @@ una herramienta IA. Esto incluye:
 El trabajo se atribuye unicamente a personas humanas y a la
 organizacion responsable.
 
-### Descriptor pre-rellenado por PR
+### Descriptor pre-rellenado y autofill por PR
 
 Toda rama que vaya a producir una pull request acompana sus commits
 con un descriptor pre-rellenado bajo
-`docs/pr-drafts/<nombre-de-rama>.md`. El descriptor contiene el
-resumen final (titulo del PR), fase afectada, tipo de cambio,
-documentos relacionados, plan de prueba, criterios de salida que
-avanza y checklist final, todo con valores concretos en lugar de los
-placeholders de la plantilla.
+`docs/pr-drafts/<rama-aplanada>.md` (las `/` del nombre de la rama se
+convierten en `-`). El descriptor contiene el resumen final (titulo
+del PR), fase afectada, tipo de cambio, documentos relacionados,
+plan de prueba, criterios de salida que avanza y checklist final,
+todo con valores concretos en lugar de los placeholders de la
+plantilla.
 
-La plantilla en `.github/PULL_REQUEST_TEMPLATE.md` es un fallback
-para casos excepcionales. En operacion normal, el cuerpo del PR es la
-copia del descriptor pre-rellenado. Esta regla evita PRs sin contexto
-y deja trazabilidad permanente del razonamiento del cambio.
+El workflow `.github/workflows/pr-autofill.yml` se dispara al abrir
+o reabrir la pull request, busca el descriptor por nombre de rama
+aplanada y reemplaza el cuerpo del PR con su contenido completo. Si
+no encuentra descriptor, comenta el PR avisando y marca el job como
+warning.
 
-Si un agente o colaborador commitea sin actualizar el descriptor
-correspondiente, la PR no se acepta.
+La plantilla en `.github/PULL_REQUEST_TEMPLATE.md` es solo un aviso
+que aparece cuando el autofill no encuentra descriptor.
+
+Si un agente o colaborador commitea sin crear o actualizar el
+descriptor correspondiente, la PR no se acepta.
 
 ### Prohibicion absoluta de emojis
 

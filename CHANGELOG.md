@@ -109,6 +109,21 @@ Anadido:
   deshabilitada por defecto, configuracion validada al construir
   Shield. Dependencia opcional `governor = 0.7`. 6 unit tests y 3
   tests E2E.
+- Capa de autenticacion JWT Ed25519 (`shield::auth`) detras de la
+  feature `auth-jwt` activa por defecto. Verifica el header
+  `Authorization: Bearer <token>` contra una clave publica Ed25519
+  cargada al arranque desde `AuthConfig.public_key_pem` o
+  `public_key_path`. Valida firma, expiracion, issuer opcional y
+  audience opcional. Leeway forzado a 0 para evitar tolerancia
+  silenciosa a deriva de reloj. Inyecta `AuthContext` en las
+  extensiones del request; expone el extractor `Claims<T>` que
+  deserializa los claims al tipo de la aplicacion. Fallos mapeados a
+  `AgError::Auth` (status 401). Dependencia opcional
+  `jsonwebtoken = 9` con feature `use_pem`. 6 unit tests sobre
+  parsing y carga de claves y 6 tests E2E sobre flujo completo,
+  incluyendo expiracion, firma incorrecta y issuer no esperado.
+- Dev-dependencies `ed25519-dalek = 2` y `rand_core = 0.6` para
+  generar pares de claves Ed25519 en tests.
 
 Cambiado:
 

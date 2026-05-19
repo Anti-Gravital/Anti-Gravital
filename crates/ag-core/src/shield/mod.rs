@@ -10,6 +10,8 @@ use axum::Router;
 use crate::config::ShieldConfig;
 use crate::error::AgResult;
 
+#[cfg(feature = "auth-jwt")]
+pub mod auth;
 #[cfg(feature = "cors")]
 mod cors;
 #[cfg(feature = "csrf")]
@@ -19,6 +21,9 @@ mod logging;
 mod rate_limit;
 #[cfg(feature = "validation")]
 pub mod validation;
+
+#[cfg(feature = "auth-jwt")]
+pub use auth::{AuthContext, Claims};
 
 #[cfg(feature = "validation")]
 pub use validation::{FieldError, Validate, ValidatedJson, ValidationErrors};
@@ -36,6 +41,8 @@ pub struct Shield {
     cors_layer: Option<tower_http::cors::CorsLayer>,
     #[cfg(feature = "rate-limit")]
     rate_limit_layer: Option<rate_limit::RateLimitLayer>,
+    #[cfg(feature = "auth-jwt")]
+    auth_layer: Option<auth::AuthLayer>,
 }
 
 impl Shield {
@@ -60,12 +67,21 @@ impl Shield {
             None
         };
 
+        #[cfg(feature = "auth-jwt")]
+        let auth_layer = if config.auth.enabled {
+            Some(auth::AuthLayer::new(&config.auth)?)
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             #[cfg(feature = "cors")]
             cors_layer,
             #[cfg(feature = "rate-limit")]
             rate_limit_layer,
+            #[cfg(feature = "auth-jwt")]
+            auth_layer,
         })
     }
 
@@ -102,9 +118,20 @@ impl Shield {
     pub fn apply(&self, router: Router) -> Router {
         let mut router = router;
 
+        // Orden de adicion (de mas interno a mas externo): la primera
+        // capa anadida envuelve al handler; la ultima ve el request
+        // primero. Por seguridad, rate-limit y auth vienen antes que
+        // las capas de proteccion semantica (CORS, CSRF), y logging
+        // queda al borde para trazar absolutamente todo.
+
         #[cfg(feature = "csrf")]
         if self.config.csrf.enabled {
             router = router.layer(csrf::CsrfLayer::new(self.config.csrf.clone()));
+        }
+
+        #[cfg(feature = "auth-jwt")]
+        if let Some(layer) = self.auth_layer.clone() {
+            router = router.layer(layer);
         }
 
         #[cfg(feature = "cors")]

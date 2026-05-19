@@ -22,9 +22,9 @@ workspace = true
 # Las capas TLS, JWT y rate-limit llegan en PRs posteriores y por ahora
 # las features simplemente reservan los nombres y compilan vacias.
 [features]
-default = ["validation", "cors", "csrf", "logging", "rate-limit"]
+default = ["validation", "cors", "csrf", "logging", "rate-limit", "auth-jwt"]
 tls = []
-auth-jwt = []
+auth-jwt = ["dep:jsonwebtoken"]
 rate-limit = ["dep:governor"]
 validation = []
 cors = []
@@ -36,6 +36,7 @@ axum = { workspace = true }
 bytes = { workspace = true }
 governor = { workspace = true, optional = true }
 http = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
 hyper-util = { workspace = true }
@@ -51,6 +52,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
+ed25519-dalek = { workspace = true }
+rand_core = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 tokio-test = { workspace = true }

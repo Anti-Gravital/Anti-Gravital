@@ -54,9 +54,6 @@ async fn tls_disabled_serves_plain_http() {
 
 #[tokio::test]
 async fn tls_enabled_serves_https() {
-    // rustls requiere un crypto provider instalado por proceso.
-    let _ = rustls::crypto::ring::default_provider().install_default();
-
     let (cert_path, key_path) = generate_cert_pair();
     let config = ShieldConfig {
         tls: TlsConfig {

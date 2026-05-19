@@ -100,6 +100,15 @@ Anadido:
   `CsrfConfig` con header por defecto `x-csrf-token` y cookie
   `ag_csrf`. CSRF deshabilitado por defecto. 7 unit tests sobre
   parsing de cookies y validacion y 6 tests E2E sobre flujo completo.
+- Capa rate-limit (`shield::rate_limit`) detras de la feature
+  `rate-limit` activa por defecto. Token bucket por IP con `governor`
+  (dashmap storage). Cuando una IP excede `per_ip_rps`/`burst`, las
+  peticiones rebotan con `AgError::RateLimit` (status 429, codigo
+  `rate_limit_exceeded`). Sin `ConnectInfo` la capa pasa transparente
+  (compatibilidad con tests sin transporte). `RateLimitConfig`
+  deshabilitada por defecto, configuracion validada al construir
+  Shield. Dependencia opcional `governor = 0.7`. 6 unit tests y 3
+  tests E2E.
 
 Cambiado:
 

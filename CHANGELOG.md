@@ -85,5 +85,41 @@ Anadido:
   `ValidatedJson<T>` que mapea fallos a `AgError::Validation` con
   detalle estructurado por campo (status 422). 4 unit tests
   adicionales y 3 tests E2E sobre `/projects`.
+- Capa CORS (`shield::cors`) detras de la feature `cors` activa por
+  defecto. Wraps `tower_http::cors::CorsLayer` con configuracion
+  declarativa via `CorsConfig` en `ShieldConfig`. Defaults seguros:
+  CORS deshabilitado salvo declaracion explicita. Errores de
+  configuracion mapeados a `AgError::Cors` con codigo `cors_error`
+  (status 403). 4 unit tests sobre construccion y 4 tests E2E sobre
+  preflight, origenes listados y rechazados.
+- Tower-http feature `cors` activada en el workspace.
+- Capa CSRF (`shield::csrf`) detras de la feature `csrf` activa por
+  defecto. Patron double-submit cookie apatrida: en peticiones que
+  mutan estado (POST, PUT, PATCH, DELETE) se exige que el header y la
+  cookie configurados lleven el mismo valor opaco. Configuracion via
+  `CsrfConfig` con header por defecto `x-csrf-token` y cookie
+  `ag_csrf`. CSRF deshabilitado por defecto. 7 unit tests sobre
+  parsing de cookies y validacion y 6 tests E2E sobre flujo completo.
+- Capa rate-limit (`shield::rate_limit`) detras de la feature
+  `rate-limit` activa por defecto. Token bucket por IP con `governor`
+  (dashmap storage). Cuando una IP excede `per_ip_rps`/`burst`, las
+  peticiones rebotan con `AgError::RateLimit` (status 429, codigo
+  `rate_limit_exceeded`). Sin `ConnectInfo` la capa pasa transparente
+  (compatibilidad con tests sin transporte). `RateLimitConfig`
+  deshabilitada por defecto, configuracion validada al construir
+  Shield. Dependencia opcional `governor = 0.7`. 6 unit tests y 3
+  tests E2E.
+
+Cambiado:
+
+- API publica de `Shield`: `Shield::layer()` reemplazado por
+  `Shield::apply(router)`. La nueva firma oculta la complejidad de
+  tipos de la pipeline y permite agregar capas sin romper la
+  superficie publica en cada PR.
+- `Shield::try_new(config)` valida la configuracion en construccion
+  (origenes, metodos y headers de CORS); `Shield::new(config)` mantiene
+  semantica de panic para casos de prototipado.
+- Workflow `quality.yml`: `cargo deny` ya pasa tras anadir
+  `Unicode-3.0` a `deny.toml` (commit anterior).
 
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

@@ -8,6 +8,15 @@ use axum::routing::get;
 use axum::Router;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static TMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+fn unique_temp(prefix: &str) -> PathBuf {
+    let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
+    std::env::temp_dir().join(format!("{prefix}-{pid}-{n}.pem"))
+}
 
 fn generate_cert_pair() -> (PathBuf, PathBuf) {
     let subject_alt_names = vec!["localhost".to_owned(), "127.0.0.1".to_owned()];
@@ -15,13 +24,8 @@ fn generate_cert_pair() -> (PathBuf, PathBuf) {
     let cert_pem = cert.cert.pem();
     let key_pem = cert.key_pair.serialize_pem();
 
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir();
-    let cert_path = dir.join(format!("ag-tls-cert-{nanos}.pem"));
-    let key_path = dir.join(format!("ag-tls-key-{nanos}.pem"));
+    let cert_path = unique_temp("ag-tls-cert");
+    let key_path = unique_temp("ag-tls-key");
 
     let mut cf = std::fs::File::create(&cert_path).unwrap();
     cf.write_all(cert_pem.as_bytes()).unwrap();

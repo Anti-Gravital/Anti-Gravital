@@ -84,14 +84,14 @@ fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, AgError> {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static TMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
     fn tmpfile(contents: &[u8]) -> std::path::PathBuf {
-        let mut path = std::env::temp_dir();
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        path.push(format!("ag-core-tls-{nanos}.pem"));
+        let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let pid = std::process::id();
+        let path = std::env::temp_dir().join(format!("ag-core-tls-{pid}-{n}.pem"));
         let mut f = std::fs::File::create(&path).unwrap();
         f.write_all(contents).unwrap();
         path

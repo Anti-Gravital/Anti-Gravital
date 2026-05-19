@@ -27,7 +27,16 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+static TMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+fn unique_temp(prefix: &str) -> PathBuf {
+    let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
+    std::env::temp_dir().join(format!("{prefix}-{pid}-{n}.pem"))
+}
 
 const ALLOWED_ORIGIN: &str = "https://app.example.com";
 const CSRF_TOKEN: &str = "csrf-token-abc";
@@ -93,13 +102,8 @@ fn generate_tls_cert() -> (PathBuf, PathBuf) {
     let cert =
         rcgen::generate_simple_self_signed(vec!["localhost".to_owned(), "127.0.0.1".to_owned()])
             .unwrap();
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir();
-    let cert_path = dir.join(format!("ag-fp-cert-{nanos}.pem"));
-    let key_path = dir.join(format!("ag-fp-key-{nanos}.pem"));
+    let cert_path = unique_temp("ag-fp-cert");
+    let key_path = unique_temp("ag-fp-key");
     std::fs::File::create(&cert_path)
         .unwrap()
         .write_all(cert.cert.pem().as_bytes())

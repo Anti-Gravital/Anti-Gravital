@@ -63,7 +63,7 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 - [ ] Archivo `README.md` bilingüe (español + inglés) con propuesta de valor.
 - [ ] Archivo `CONTRIBUTING.md` con guía de contribución, convenciones de código, proceso de pull request.
 - [ ] Archivo `CODE_OF_CONDUCT.md` adoptando Contributor Covenant 2.1.
-- [ ] Archivo `SECURITY.md` con política de divulgación responsable y dirección `security@gravital.io`.
+- [ ] Archivo `SECURITY.md` con política de divulgación responsable y dirección `anti@gravitalcloud.com` (respaldo: `angelnereira@gravitalcloud.com`).
 - [ ] Archivo `GOVERNANCE.md` describiendo modelo BDFL inicial y plan de transición.
 - [ ] Configuración de CI con GitHub Actions: build en Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
 - [ ] Plantillas de issue (bug report, feature request, RFC) y plantilla de pull request.
@@ -71,7 +71,7 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 - [ ] Discord oficial del proyecto con canales `#español`, `#english`, `#announcements`, `#help`.
 - [ ] Cuenta del proyecto en X/Bluesky para anuncios.
 - [ ] Dominio `antigravital.dev` registrado y apuntando a una landing page mínima.
-- [ ] Email institucional `hello@antigravital.dev` operativo.
+- [ ] Email institucional `anti@gravitalcloud.com` operativo (correo raíz del proyecto).
 - [ ] Calendario público de releases publicado.
 
 ### 0.3 Criterios de salida (puerta antes de Fase 1)

@@ -35,10 +35,23 @@ Anadido:
 - Plantillas de issue, pull request y RFC en `.github/`.
 - ADRs iniciales: `0001-monorepo-workspace.md`,
   `0002-bilingual-documentation.md`, `0003-bdfl-governance.md`,
-  `0004-descomposicion-de-maestros.md`.
+  `0004-descomposicion-de-maestros.md`,
+  `0005-contact-identities.md`.
 - Tablero vivo del proyecto en `docs/roadmap/STATUS.md`.
 - Lista de entregables externos pendientes en
   `docs/governance/external-deliverables.md`.
+
+Cambiado:
+
+- Identidades de contacto oficiales del proyecto. Los placeholders
+  `security@gravital.io` y `hello@antigravital.dev` de los maestros se
+  reemplazan por `anti@gravitalcloud.com` (correo raiz) y
+  `angelnereira@gravitalcloud.com` (BDFL inicial) en
+  `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` (15.3) y
+  `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md` (Fase 0). Hashes
+  recomputados en `docs/master/VERSION.md` con entrada de historial.
+  Derivados verbatim regenerados. Registrado en
+  `docs/adr/0005-contact-identities.md`.
 
 Sin codigo funcional. El primer hito tecnico (Shield MVP) se entrega
 en Fase 1.

@@ -141,6 +141,13 @@ Cambiado:
 - Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
   trait `PemObject` de `rustls-pki-types`. La superficie de API
   publica no se altera.
+- Flujo de pull requests: cada rama trae su descriptor pre-rellenado
+  bajo `docs/pr-drafts/<rama>.md` con resumen, fase, plan de prueba y
+  criterios de salida ya completos. La plantilla
+  `.github/PULL_REQUEST_TEMPLATE.md` se convierte en fallback de
+  emergencia. Regla incorporada a `CLAUDE.md` y `CONTRIBUTING.md`.
+  Descriptor de la rama `phase-0/foundations-and-governance` publicado
+  en `docs/pr-drafts/phase-0-foundations-and-governance.md`.
 
 Cambiado:
 

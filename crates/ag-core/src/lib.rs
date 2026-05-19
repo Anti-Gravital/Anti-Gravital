@@ -13,10 +13,10 @@
 //!
 //! # async fn run() -> Result<(), ag_core::AgError> {
 //! let config = ShieldConfig::default();
-//! let shield = Shield::new(config);
+//! let shield = Shield::try_new(config)?;
 //! let app = axum::Router::new()
-//!     .route("/", axum::routing::get(|| async { "hello, shield" }))
-//!     .layer(shield.layer());
+//!     .route("/", axum::routing::get(|| async { "hello, shield" }));
+//! let app = shield.apply(app);
 //!
 //! let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
 //! axum::serve(listener, app).await?;

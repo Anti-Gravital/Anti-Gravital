@@ -90,7 +90,7 @@ externas de Fase 0. El diseno de Shield esta fijado en
 - [x] Middleware de rate limiting con governor. Token bucket por IP en `shield::rate_limit`.
 - [x] Middleware CORS y CSRF con defaults seguros. CORS en `shield::cors` y CSRF en `shield::csrf` (double-submit cookie apatrida).
 - [ ] Middleware de logging estructurado con `tracing`.
-- [ ] Configuracion minima desde archivo TOML.
+- [x] Configuracion minima desde archivo TOML. `ShieldConfig::from_path` y `from_toml_str` con `deny_unknown_fields`; ejemplo en `crates/ag-core/config.example.toml`.
 - [ ] Tests unitarios con cobertura >= 80% del crate.
 - [ ] Tests de integracion end-to-end del pipeline Shield.
 - [ ] Benchmark Hello World ejecutable.

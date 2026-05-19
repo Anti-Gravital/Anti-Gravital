@@ -1,11 +1,16 @@
 //! Configuracion publica del Shield.
 //!
 //! La configuracion se deserializa desde un archivo TOML descrito en
-//! `docs/rfc/RFC-0002-diseno-shield-mvp.md` seccion 4.5. Esta version
-//! cubre los campos minimos del bootstrap; el resto de campos llegan
-//! con sus respectivas capas.
+//! `docs/rfc/RFC-0002-diseno-shield-mvp.md` seccion 4.5. Todas las
+//! secciones aceptan defaults seguros: omitir una seccion en TOML es
+//! equivalente a usar `Default`. Las claves desconocidas se rechazan
+//! con `AgError::Config` para evitar typos silenciosos.
+//!
+//! Un ejemplo documentado con todas las secciones esta en
+//! `crates/ag-core/config.example.toml`.
 
 use std::net::SocketAddr;
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +18,7 @@ use crate::error::{AgError, AgResult};
 
 /// Configuracion completa del Shield.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShieldConfig {
     /// Direccion de escucha.
     #[serde(default = "default_bind_addr")]
@@ -66,6 +72,7 @@ impl Default for ShieldConfig {
 /// balanceador que termina TLS (Cloudflare, AWS ALB, Nginx) la capa
 /// se deja deshabilitada.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TlsConfig {
     /// Activa la capa TLS.
     #[serde(default)]
@@ -86,6 +93,7 @@ pub struct TlsConfig {
 /// implicito. Para habilitarla declare `enabled = true` y al menos un
 /// origen.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CorsConfig {
     /// Activa la capa CORS.
     #[serde(default)]
@@ -114,6 +122,7 @@ pub struct CorsConfig {
 /// estado deben presentar el header y la cookie configurados con
 /// valores identicos (patron double-submit cookie).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CsrfConfig {
     /// Activa la capa CSRF.
     #[serde(default)]
@@ -154,6 +163,7 @@ fn default_csrf_cookie() -> String {
 /// por direccion IP de origen con `per_ip_rps` peticiones por segundo
 /// como tasa sostenida y `burst` peticiones como pico instantaneo.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RateLimitConfig {
     /// Activa la capa de rate limiting.
     #[serde(default)]
@@ -196,6 +206,7 @@ const fn default_burst() -> u32 {
 /// Opcionalmente se valida que el claim `iss` coincida con
 /// `expected_issuer` y que `aud` contenga `expected_audience`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AuthConfig {
     /// Activa la capa de autenticacion JWT.
     #[serde(default)]
@@ -227,15 +238,40 @@ impl ShieldConfig {
     ///
     /// # Errores
     ///
-    /// Devuelve `AgError::Config` si el TOML no parsea o contiene claves
-    /// desconocidas.
+    /// Devuelve `AgError::Config` si el TOML no parsea o contiene
+    /// claves desconocidas.
     pub fn from_toml_str(toml_text: &str) -> AgResult<Self> {
         toml::from_str(toml_text).map_err(|e| AgError::Config(e.to_string()))
+    }
+
+    /// Carga la configuracion desde un archivo TOML en disco.
+    ///
+    /// # Errores
+    ///
+    /// Devuelve `AgError::Config` si el archivo no existe, no se puede
+    /// leer, o el contenido no es un TOML valido.
+    pub fn from_path(path: impl AsRef<Path>) -> AgResult<Self> {
+        let path = path.as_ref();
+        let bytes = std::fs::read_to_string(path).map_err(|e| {
+            AgError::Config(format!("cannot read config at {}: {e}", path.display()))
+        })?;
+        Self::from_toml_str(&bytes)
+    }
+
+    /// Serializa la configuracion a cadena TOML.
+    ///
+    /// # Errores
+    ///
+    /// Devuelve `AgError::Config` en el caso extremadamente improbable
+    /// de que la serializacion falle (tipos no representables en TOML).
+    pub fn to_toml_string(&self) -> AgResult<String> {
+        toml::to_string(self).map_err(|e| AgError::Config(e.to_string()))
     }
 }
 
 /// Configuracion del runtime Tokio.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RuntimeConfig {
     /// Numero de workers. `None` significa uno por CPU disponible.
     #[serde(default)]
@@ -281,8 +317,27 @@ mod tests {
     }
 
     #[test]
-    fn from_toml_rejects_invalid() {
+    fn from_toml_rejects_invalid_syntax() {
         let err = ShieldConfig::from_toml_str("not valid toml [").unwrap_err();
+        assert_eq!(err.code(), "config_error");
+    }
+
+    #[test]
+    fn from_toml_rejects_unknown_top_level_key() {
+        let err = ShieldConfig::from_toml_str("totally_invented_field = 1").unwrap_err();
+        assert_eq!(err.code(), "config_error");
+    }
+
+    #[test]
+    fn from_toml_rejects_unknown_nested_key() {
+        let err = ShieldConfig::from_toml_str(
+            r#"
+            [cors]
+            enabled = true
+            unknown_typo = "oops"
+            "#,
+        )
+        .unwrap_err();
         assert_eq!(err.code(), "config_error");
     }
 
@@ -291,5 +346,142 @@ mod tests {
         let rt = RuntimeConfig::default();
         assert_eq!(rt.blocking_threads, 512);
         assert!(rt.workers.is_none());
+    }
+
+    #[test]
+    fn empty_toml_yields_default_config() {
+        let cfg = ShieldConfig::from_toml_str("").unwrap();
+        let expected = ShieldConfig::default();
+        assert_eq!(cfg.bind, expected.bind);
+        assert_eq!(
+            cfg.runtime.blocking_threads,
+            expected.runtime.blocking_threads
+        );
+        assert_eq!(cfg.cors.enabled, expected.cors.enabled);
+        assert_eq!(cfg.csrf.enabled, expected.csrf.enabled);
+        assert_eq!(cfg.rate_limit.enabled, expected.rate_limit.enabled);
+        assert_eq!(cfg.auth.enabled, expected.auth.enabled);
+        assert_eq!(cfg.tls.enabled, expected.tls.enabled);
+    }
+
+    #[test]
+    fn from_toml_parses_full_cors_section() {
+        let cfg = ShieldConfig::from_toml_str(
+            r#"
+            [cors]
+            enabled = true
+            allow_origins = ["https://a.example", "https://b.example"]
+            allow_methods = ["GET", "POST"]
+            allow_headers = ["content-type"]
+            allow_credentials = true
+            "#,
+        )
+        .unwrap();
+        assert!(cfg.cors.enabled);
+        assert_eq!(cfg.cors.allow_origins.len(), 2);
+        assert_eq!(cfg.cors.allow_methods, vec!["GET", "POST"]);
+        assert!(cfg.cors.allow_credentials);
+    }
+
+    #[test]
+    fn from_toml_parses_csrf_with_custom_names() {
+        let cfg = ShieldConfig::from_toml_str(
+            r#"
+            [csrf]
+            enabled = true
+            token_header = "x-my-csrf"
+            token_cookie = "my_csrf_cookie"
+            "#,
+        )
+        .unwrap();
+        assert!(cfg.csrf.enabled);
+        assert_eq!(cfg.csrf.token_header, "x-my-csrf");
+        assert_eq!(cfg.csrf.token_cookie, "my_csrf_cookie");
+    }
+
+    #[test]
+    fn from_toml_parses_rate_limit_section() {
+        let cfg = ShieldConfig::from_toml_str(
+            r#"
+            [rate_limit]
+            enabled = true
+            per_ip_rps = 200
+            burst = 500
+            "#,
+        )
+        .unwrap();
+        assert!(cfg.rate_limit.enabled);
+        assert_eq!(cfg.rate_limit.per_ip_rps, 200);
+        assert_eq!(cfg.rate_limit.burst, 500);
+    }
+
+    #[test]
+    fn from_toml_parses_auth_with_inline_pem() {
+        let cfg = ShieldConfig::from_toml_str(
+            r#"
+            [auth]
+            enabled = true
+            public_key_pem = "PEM CONTENT"
+            expected_issuer = "https://issuer.example/"
+            "#,
+        )
+        .unwrap();
+        assert!(cfg.auth.enabled);
+        assert_eq!(cfg.auth.public_key_pem.as_deref(), Some("PEM CONTENT"));
+        assert_eq!(
+            cfg.auth.expected_issuer.as_deref(),
+            Some("https://issuer.example/")
+        );
+        assert!(cfg.auth.public_key_path.is_none());
+    }
+
+    #[test]
+    fn from_toml_parses_tls_section() {
+        let cfg = ShieldConfig::from_toml_str(
+            r#"
+            [tls]
+            enabled = true
+            cert_path = "/etc/ag/cert.pem"
+            key_path = "/etc/ag/key.pem"
+            "#,
+        )
+        .unwrap();
+        assert!(cfg.tls.enabled);
+        assert_eq!(
+            cfg.tls.cert_path.as_deref(),
+            Some(std::path::Path::new("/etc/ag/cert.pem"))
+        );
+    }
+
+    #[test]
+    fn round_trip_serialize_deserialize_default() {
+        let cfg = ShieldConfig::default();
+        let toml_text = cfg.to_toml_string().unwrap();
+        let reparsed = ShieldConfig::from_toml_str(&toml_text).unwrap();
+        assert_eq!(cfg.bind, reparsed.bind);
+        assert_eq!(cfg.cors.enabled, reparsed.cors.enabled);
+        assert_eq!(cfg.csrf.token_header, reparsed.csrf.token_header);
+        assert_eq!(
+            cfg.runtime.blocking_threads,
+            reparsed.runtime.blocking_threads
+        );
+    }
+
+    #[test]
+    fn from_path_loads_example_config() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("config.example.toml");
+        let cfg = ShieldConfig::from_path(&path).expect("config.example.toml must parse cleanly");
+        // El ejemplo trae defaults seguros: todas las capas deshabilitadas.
+        assert!(!cfg.cors.enabled);
+        assert!(!cfg.csrf.enabled);
+        assert!(!cfg.rate_limit.enabled);
+        assert!(!cfg.auth.enabled);
+        assert!(!cfg.tls.enabled);
+    }
+
+    #[test]
+    fn from_path_returns_config_error_when_missing() {
+        let err = ShieldConfig::from_path("/does/not/exist/anti-gravital.toml").unwrap_err();
+        assert_eq!(err.code(), "config_error");
     }
 }

@@ -1,0 +1,18 @@
+[package]
+name = "ag-migrate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Importadores: OpenAPI, Prisma, Django, FastAPI, Sequelize, GraphQL SDL"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

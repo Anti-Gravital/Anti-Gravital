@@ -1,0 +1,78 @@
+name: Bug report
+description: Reporte de un defecto reproducible / Report a reproducible defect
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de abrir un bug, verifique que su problema no esta cubierto
+        por un issue existente. Para vulnerabilidades de seguridad, NO
+        use este formulario; vease `SECURITY.md`.
+  - type: input
+    id: version
+    attributes:
+      label: Version o commit
+      description: Commit hash o version del workspace afectada.
+      placeholder: ej. main @ abc1234 o v0.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Fase del proyecto
+      options:
+        - Fase 0 - Fundaciones y Gobernanza
+        - Fase 1 - Shield MVP
+        - Fase 2 - Core MVP
+        - Fase 3 - Anti-DSL alpha
+        - Fase 4 - Modulos estandar
+        - Fase 5 - ag-cloud
+        - Fase 6 - ag-ai
+        - Fase 7 - ag-migrate
+        - Fase 8 - ag-mobile
+        - Fase 9 - Plugins WASI
+        - Fase 10 - Endurecimiento y 1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma
+      options:
+        - Linux x86-64
+        - Linux ARM64
+        - macOS ARM64
+        - macOS x86-64
+        - Windows x64
+        - Otro / Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Pasos para reproducir
+      description: Comandos exactos, archivos de configuracion, schema.ag si aplica.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento observado
+      description: Incluya logs y mensajes de error completos.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Verificaciones
+      options:
+        - label: He buscado issues existentes y este reporte no esta duplicado.
+          required: true
+        - label: Mi reporte no contiene secretos ni datos sensibles.
+          required: true

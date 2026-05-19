@@ -1,0 +1,64 @@
+name: ci
+
+# Construye el workspace en las cuatro plataformas objetivo de Fase 0:
+# Linux x86-64, Linux ARM64, macOS ARM64 y Windows x64. Cumple criterio
+# de salida 0.3 sobre CI en workspace vacio.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  build:
+    name: build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x86-64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - label: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - label: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+          - label: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-
+
+      - name: cargo build
+        run: cargo build --workspace --all-targets --target ${{ matrix.target }}
+
+      - name: cargo test
+        run: cargo test --workspace --all-targets --target ${{ matrix.target }}

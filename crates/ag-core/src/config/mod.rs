@@ -33,6 +33,10 @@ pub struct ShieldConfig {
     /// Configuracion de rate limiting por IP.
     #[serde(default)]
     pub rate_limit: RateLimitConfig,
+
+    /// Configuracion de autenticacion JWT Ed25519.
+    #[serde(default)]
+    pub auth: AuthConfig,
 }
 
 impl Default for ShieldConfig {
@@ -43,6 +47,7 @@ impl Default for ShieldConfig {
             cors: CorsConfig::default(),
             csrf: CsrfConfig::default(),
             rate_limit: RateLimitConfig::default(),
+            auth: AuthConfig::default(),
         }
     }
 }
@@ -151,6 +156,42 @@ const fn default_per_ip_rps() -> u32 {
 
 const fn default_burst() -> u32 {
     200
+}
+
+/// Configuracion de autenticacion JWT Ed25519.
+///
+/// Por defecto deshabilitada. Cuando se activa, la pipeline exige un
+/// header `Authorization: Bearer <token>` valido en todas las
+/// peticiones que la capa Auth cubre. La clave publica se entrega como
+/// PEM inline (`public_key_pem`) o como ruta (`public_key_path`).
+///
+/// Opcionalmente se valida que el claim `iss` coincida con
+/// `expected_issuer` y que `aud` contenga `expected_audience`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AuthConfig {
+    /// Activa la capa de autenticacion JWT.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Clave publica Ed25519 en formato PEM. Mutuamente excluyente con
+    /// `public_key_path`.
+    #[serde(default)]
+    pub public_key_pem: Option<String>,
+
+    /// Ruta a un archivo PEM con la clave publica Ed25519. Mutuamente
+    /// excluyente con `public_key_pem`.
+    #[serde(default)]
+    pub public_key_path: Option<std::path::PathBuf>,
+
+    /// Issuer esperado en el claim `iss`. `None` desactiva la
+    /// verificacion.
+    #[serde(default)]
+    pub expected_issuer: Option<String>,
+
+    /// Audience esperado en el claim `aud`. `None` desactiva la
+    /// verificacion.
+    #[serde(default)]
+    pub expected_audience: Option<String>,
 }
 
 impl ShieldConfig {

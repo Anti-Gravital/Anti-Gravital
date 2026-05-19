@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Hotfix de Fase 1 (segundo)
+
+Cambiado:
+
+- Generacion de rutas temporales en tests TLS (`tests/shield_full_pipeline.rs`,
+  `tests/shield_tls.rs`, `src/shield/tls.rs::tests`) usa `AtomicUsize`
+  + pid del proceso en lugar de `SystemTime::now().as_nanos()`. El
+  timestamp en Windows tiene resolucion de ~15ms, lo que producia
+  colisiones de archivo entre tests paralelos: dos tests escribian
+  cert/key en el mismo path y uno sobreescribia al otro mid-test.
+  Sintoma: 3 de 6 tests de `shield_full_pipeline` fallaban
+  intermitentemente en `build (windows-x64)`. Verificado con
+  `RUST_TEST_THREADS=16`.
+
 ### Hotfix de Fase 1
 
 Cambiado:

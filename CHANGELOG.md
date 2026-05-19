@@ -141,6 +141,17 @@ Cambiado:
 - Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
   trait `PemObject` de `rustls-pki-types`. La superficie de API
   publica no se altera.
+- Configuracion TOML completa del Shield: `ShieldConfig::from_path`
+  carga la configuracion desde un archivo, `to_toml_string` permite
+  round-trip estable, y todas las structs llevan
+  `#[serde(deny_unknown_fields)]` para rechazar typos con
+  `AgError::Config` en vez de ignorarlos silenciosamente. Ejemplo
+  documentado en `crates/ag-core/config.example.toml` con todas las
+  secciones (`bind`, `runtime`, `cors`, `csrf`, `rate_limit`, `auth`,
+  `tls`) y sus defaults explicados. 14 unit tests sobre parsing por
+  seccion, rechazo de claves desconocidas, round-trip y carga desde
+  disco. RFC-0002 PR 8 de 11.
+
 - Flujo de pull requests con autofill automatizado: cada rama trae su
   descriptor pre-rellenado bajo `docs/pr-drafts/<rama-aplanada>.md`
   (las `/` de la rama se convierten en `-`). El nuevo workflow

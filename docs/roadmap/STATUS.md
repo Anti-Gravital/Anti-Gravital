@@ -92,7 +92,7 @@ externas de Fase 0. El diseno de Shield esta fijado en
 - [ ] Middleware de logging estructurado con `tracing`.
 - [x] Configuracion minima desde archivo TOML. `ShieldConfig::from_path` y `from_toml_str` con `deny_unknown_fields`; ejemplo en `crates/ag-core/config.example.toml`.
 - [ ] Tests unitarios con cobertura >= 80% del crate.
-- [ ] Tests de integracion end-to-end del pipeline Shield.
+- [x] Tests de integracion end-to-end del pipeline Shield. `tests/shield_full_pipeline.rs` arranca el Shield con todas las capas activas sobre HTTPS y valida flujo legitimo y rechazos por capa.
 - [x] Benchmark Hello World ejecutable. `cargo bench -p ag-core --bench shield_hello_world` con tres grupos criterion. Metricas duras de cierre (>=300K req/s, p99 <=1ms) se miden en PR 10 con carga real.
 - [ ] Documentacion API generada con `cargo doc`.
 - [ ] Capitulo del manual de usuario sobre uso de Shield como libreria.

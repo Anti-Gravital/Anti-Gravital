@@ -119,18 +119,24 @@ impl Shield {
         if let Some(acceptor) = self.tls_acceptor.clone() {
             serve_tls(listener, acceptor, router).await
         } else {
-            axum::serve(listener, router.into_make_service())
-                .await
-                .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
+            axum::serve(
+                listener,
+                router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await
+            .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
         }
     }
 
     /// Variante de `serve` cuando la feature `tls` no esta activa.
     #[cfg(not(feature = "tls"))]
     pub async fn serve(&self, listener: tokio::net::TcpListener, router: Router) -> AgResult<()> {
-        axum::serve(listener, router.into_make_service())
-            .await
-            .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        )
+        .await
+        .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
     }
 
     /// Construye un Shield sin verificar la configuracion.
@@ -203,13 +209,14 @@ async fn serve_tls(
     acceptor: tokio_rustls::TlsAcceptor,
     router: Router,
 ) -> AgResult<()> {
+    use axum::extract::connect_info::ConnectInfo;
     use hyper_util::rt::{TokioExecutor, TokioIo};
     use hyper_util::server::conn::auto::Builder;
     use tower::Service;
 
     let make_service = router.into_make_service();
     loop {
-        let (stream, _addr) = listener
+        let (stream, peer_addr) = listener
             .accept()
             .await
             .map_err(crate::error::AgError::from)?;
@@ -231,11 +238,17 @@ async fn serve_tls(
                     return;
                 }
             };
-            let hyper_service =
-                hyper::service::service_fn(move |req: hyper::Request<hyper::body::Incoming>| {
+            // Inyecta ConnectInfo en cada request para que rate-limit
+            // y cualquier otra capa que requiera la IP del cliente
+            // funcione tambien sobre TLS. peer_addr viene del
+            // TcpStream original aceptado antes del handshake.
+            let hyper_service = hyper::service::service_fn(
+                move |mut req: hyper::Request<hyper::body::Incoming>| {
+                    req.extensions_mut().insert(ConnectInfo(peer_addr));
                     let mut service = service.clone();
                     async move { service.call(req).await }
-                });
+                },
+            );
 
             let io = TokioIo::new(tls_stream);
             if let Err(err) = Builder::new(TokioExecutor::new())

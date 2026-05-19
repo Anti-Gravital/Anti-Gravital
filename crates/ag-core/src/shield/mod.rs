@@ -19,6 +19,8 @@ mod csrf;
 mod logging;
 #[cfg(feature = "rate-limit")]
 mod rate_limit;
+#[cfg(feature = "tls")]
+mod tls;
 #[cfg(feature = "validation")]
 pub mod validation;
 
@@ -34,7 +36,7 @@ pub use validation::{FieldError, Validate, ValidatedJson, ValidationErrors};
 /// origenes CORS). Si la configuracion es invalida, `try_new` devuelve
 /// el error correspondiente y `new` entra en panic. Por convencion el
 /// arranque del proceso usa `try_new` para fallar rapido y limpio.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Shield {
     config: ShieldConfig,
     #[cfg(feature = "cors")]
@@ -43,6 +45,16 @@ pub struct Shield {
     rate_limit_layer: Option<rate_limit::RateLimitLayer>,
     #[cfg(feature = "auth-jwt")]
     auth_layer: Option<auth::AuthLayer>,
+    #[cfg(feature = "tls")]
+    tls_acceptor: Option<tokio_rustls::TlsAcceptor>,
+}
+
+impl std::fmt::Debug for Shield {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Shield")
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Shield {
@@ -74,6 +86,13 @@ impl Shield {
             None
         };
 
+        #[cfg(feature = "tls")]
+        let tls_acceptor = if config.tls.enabled {
+            Some(tls::build_acceptor(&config.tls)?)
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             #[cfg(feature = "cors")]
@@ -82,7 +101,36 @@ impl Shield {
             rate_limit_layer,
             #[cfg(feature = "auth-jwt")]
             auth_layer,
+            #[cfg(feature = "tls")]
+            tls_acceptor,
         })
+    }
+
+    /// Sirve la aplicacion sobre el listener dado. Si TLS esta
+    /// activado en la configuracion, envuelve cada conexion con
+    /// rustls; en caso contrario delega en `axum::serve`.
+    ///
+    /// # Errores
+    ///
+    /// Propaga errores de I/O y de TLS. Las desconexiones individuales
+    /// se logean y no detienen el accept loop.
+    #[cfg(feature = "tls")]
+    pub async fn serve(&self, listener: tokio::net::TcpListener, router: Router) -> AgResult<()> {
+        if let Some(acceptor) = self.tls_acceptor.clone() {
+            serve_tls(listener, acceptor, router).await
+        } else {
+            axum::serve(listener, router.into_make_service())
+                .await
+                .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
+        }
+    }
+
+    /// Variante de `serve` cuando la feature `tls` no esta activa.
+    #[cfg(not(feature = "tls"))]
+    pub async fn serve(&self, listener: tokio::net::TcpListener, router: Router) -> AgResult<()> {
+        axum::serve(listener, router.into_make_service())
+            .await
+            .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
     }
 
     /// Construye un Shield sin verificar la configuracion.
@@ -146,6 +194,57 @@ impl Shield {
 
         router = router.layer(logging::LoggingLayer);
         router
+    }
+}
+
+#[cfg(feature = "tls")]
+async fn serve_tls(
+    listener: tokio::net::TcpListener,
+    acceptor: tokio_rustls::TlsAcceptor,
+    router: Router,
+) -> AgResult<()> {
+    use hyper_util::rt::{TokioExecutor, TokioIo};
+    use hyper_util::server::conn::auto::Builder;
+    use tower::Service;
+
+    let make_service = router.into_make_service();
+    loop {
+        let (stream, _addr) = listener
+            .accept()
+            .await
+            .map_err(crate::error::AgError::from)?;
+        let acceptor = acceptor.clone();
+        let mut make = make_service.clone();
+        tokio::spawn(async move {
+            let tls_stream = match acceptor.accept(stream).await {
+                Ok(s) => s,
+                Err(err) => {
+                    tracing::warn!(error = %err, "tls handshake failed");
+                    return;
+                }
+            };
+
+            let service = match make.call(()).await {
+                Ok(s) => s,
+                Err(err) => {
+                    tracing::error!(error = %err, "service factory failed");
+                    return;
+                }
+            };
+            let hyper_service =
+                hyper::service::service_fn(move |req: hyper::Request<hyper::body::Incoming>| {
+                    let mut service = service.clone();
+                    async move { service.call(req).await }
+                });
+
+            let io = TokioIo::new(tls_stream);
+            if let Err(err) = Builder::new(TokioExecutor::new())
+                .serve_connection_with_upgrades(io, hyper_service)
+                .await
+            {
+                tracing::warn!(error = %err, "connection serving failed");
+            }
+        });
     }
 }
 

@@ -37,6 +37,10 @@ pub struct ShieldConfig {
     /// Configuracion de autenticacion JWT Ed25519.
     #[serde(default)]
     pub auth: AuthConfig,
+
+    /// Configuracion TLS 1.3.
+    #[serde(default)]
+    pub tls: TlsConfig,
 }
 
 impl Default for ShieldConfig {
@@ -48,8 +52,32 @@ impl Default for ShieldConfig {
             csrf: CsrfConfig::default(),
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),
+            tls: TlsConfig::default(),
         }
     }
+}
+
+/// Configuracion TLS 1.3.
+///
+/// Por defecto deshabilitada para no exigir certificado en
+/// desarrollo. Cuando se activa, `cert_path` y `key_path` deben
+/// apuntar a archivos PEM con la cadena de certificados y la clave
+/// privada respectivamente. Cuando el server vive detras de un
+/// balanceador que termina TLS (Cloudflare, AWS ALB, Nginx) la capa
+/// se deja deshabilitada.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TlsConfig {
+    /// Activa la capa TLS.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Ruta al archivo PEM con la cadena de certificados.
+    #[serde(default)]
+    pub cert_path: Option<std::path::PathBuf>,
+
+    /// Ruta al archivo PEM con la clave privada (PKCS#8, RSA o EC).
+    #[serde(default)]
+    pub key_path: Option<std::path::PathBuf>,
 }
 
 /// Configuracion CORS.

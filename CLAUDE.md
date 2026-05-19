@@ -879,6 +879,24 @@ una herramienta IA. Esto incluye:
 El trabajo se atribuye unicamente a personas humanas y a la
 organizacion responsable.
 
+### Descriptor pre-rellenado por PR
+
+Toda rama que vaya a producir una pull request acompana sus commits
+con un descriptor pre-rellenado bajo
+`docs/pr-drafts/<nombre-de-rama>.md`. El descriptor contiene el
+resumen final (titulo del PR), fase afectada, tipo de cambio,
+documentos relacionados, plan de prueba, criterios de salida que
+avanza y checklist final, todo con valores concretos en lugar de los
+placeholders de la plantilla.
+
+La plantilla en `.github/PULL_REQUEST_TEMPLATE.md` es un fallback
+para casos excepcionales. En operacion normal, el cuerpo del PR es la
+copia del descriptor pre-rellenado. Esta regla evita PRs sin contexto
+y deja trazabilidad permanente del razonamiento del cambio.
+
+Si un agente o colaborador commitea sin actualizar el descriptor
+correspondiente, la PR no se acepta.
+
 ### Prohibicion absoluta de emojis
 
 No se usan emojis en ningun lugar del proyecto: ni en documentacion, ni

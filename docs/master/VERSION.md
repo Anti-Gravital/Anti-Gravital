@@ -23,8 +23,15 @@ desde el origen autorizado antes de continuar.
 | Archivo | Tamano (bytes) | SHA-256 |
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 88015 | `2b0847522af804df7feeccb3fd64341f1ecf7b34ca6f915db7d775932919304c` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 28358 | `d1cb15bc943be6c4e87c33bd59aa6056bb8e580a52a03b1a4306aa636f2ee31e` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 88066 | `c6f16879cd8c4d7772dbe2911043e31cce9196a31f75a235fdd8bcf72afd67ae` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 28433 | `534f15ac103cdd45fdca7e91f1c5bd0e3a81527d72c59b0a25eb0425a02a80d4` |
+
+## Historial de revisiones de maestros
+
+| Fecha | Cambio | Origen |
+| --- | --- | --- |
+| 2026-05-19 | Instalacion inicial de los tres maestros v4.0. | Aporte directo de Gravital Labs. |
+| 2026-05-19 | Reemplazo de placeholders de email: `security@gravital.io` y `hello@antigravital.dev` por `anti@gravitalcloud.com` (raiz) con `angelnereira@gravitalcloud.com` como respaldo de seguridad. Registrado en `docs/adr/0005-contact-identities.md`. | Decision del BDFL inicial. |
 
 ## Verificación local
 

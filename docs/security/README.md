@@ -18,7 +18,7 @@ Las primitivas criptográficas se importan del crate `ring`, mantenido por miemb
 
 ### 15.3 Política de divulgación responsable
 
-El repositorio mantiene un archivo `SECURITY.md` con una dirección de contacto (`security@gravital.io`) y una política clara: las vulnerabilidades se reportan privadamente, el equipo confirma recepción en 48 horas, publica un parche en 30 días para vulnerabilidades críticas, y un CVE con crédito al reportero.
+El repositorio mantiene un archivo `SECURITY.md` con direcciones de contacto (primario `anti@gravitalcloud.com`, respaldo `angelnereira@gravitalcloud.com`) y una política clara: las vulnerabilidades se reportan privadamente, el equipo confirma recepción en 48 horas, publica un parche en 30 días para vulnerabilidades críticas, y un CVE con crédito al reportero.
 
 ### 15.4 Auditorías
 

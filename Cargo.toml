@@ -39,6 +39,7 @@ publish = false
 [workspace.dependencies]
 axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path"] }
 bytes = "1"
+governor = "0.7"
 http = "1"
 http-body-util = "0.1"
 hyper = { version = "1.4", features = ["http1", "http2"] }

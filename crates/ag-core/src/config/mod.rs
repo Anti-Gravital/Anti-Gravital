@@ -29,6 +29,10 @@ pub struct ShieldConfig {
     /// Configuracion CSRF.
     #[serde(default)]
     pub csrf: CsrfConfig,
+
+    /// Configuracion de rate limiting por IP.
+    #[serde(default)]
+    pub rate_limit: RateLimitConfig,
 }
 
 impl Default for ShieldConfig {
@@ -38,6 +42,7 @@ impl Default for ShieldConfig {
             runtime: RuntimeConfig::default(),
             cors: CorsConfig::default(),
             csrf: CsrfConfig::default(),
+            rate_limit: RateLimitConfig::default(),
         }
     }
 }
@@ -108,6 +113,44 @@ fn default_csrf_header() -> String {
 
 fn default_csrf_cookie() -> String {
     "ag_csrf".to_owned()
+}
+
+/// Configuracion de rate limiting por IP.
+///
+/// Por defecto deshabilitada. Cuando se activa aplica un token bucket
+/// por direccion IP de origen con `per_ip_rps` peticiones por segundo
+/// como tasa sostenida y `burst` peticiones como pico instantaneo.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    /// Activa la capa de rate limiting.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Peticiones por segundo permitidas por IP en regimen sostenido.
+    #[serde(default = "default_per_ip_rps")]
+    pub per_ip_rps: u32,
+
+    /// Capacidad maxima del token bucket por IP.
+    #[serde(default = "default_burst")]
+    pub burst: u32,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            per_ip_rps: default_per_ip_rps(),
+            burst: default_burst(),
+        }
+    }
+}
+
+const fn default_per_ip_rps() -> u32 {
+    100
+}
+
+const fn default_burst() -> u32 {
+    200
 }
 
 impl ShieldConfig {

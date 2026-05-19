@@ -15,6 +15,8 @@ mod cors;
 #[cfg(feature = "csrf")]
 mod csrf;
 mod logging;
+#[cfg(feature = "rate-limit")]
+mod rate_limit;
 #[cfg(feature = "validation")]
 pub mod validation;
 
@@ -32,6 +34,8 @@ pub struct Shield {
     config: ShieldConfig,
     #[cfg(feature = "cors")]
     cors_layer: Option<tower_http::cors::CorsLayer>,
+    #[cfg(feature = "rate-limit")]
+    rate_limit_layer: Option<rate_limit::RateLimitLayer>,
 }
 
 impl Shield {
@@ -49,10 +53,19 @@ impl Shield {
             None
         };
 
+        #[cfg(feature = "rate-limit")]
+        let rate_limit_layer = if config.rate_limit.enabled {
+            Some(rate_limit::RateLimitLayer::new(&config.rate_limit)?)
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             #[cfg(feature = "cors")]
             cors_layer,
+            #[cfg(feature = "rate-limit")]
+            rate_limit_layer,
         })
     }
 
@@ -97,6 +110,11 @@ impl Shield {
         #[cfg(feature = "cors")]
         if let Some(cors) = self.cors_layer.clone() {
             router = router.layer(cors);
+        }
+
+        #[cfg(feature = "rate-limit")]
+        if let Some(rl) = self.rate_limit_layer.clone() {
+            router = router.layer(rl);
         }
 
         router = router.layer(logging::LoggingLayer);

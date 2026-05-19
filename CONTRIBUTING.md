@@ -36,16 +36,24 @@ Contributions in Spanish and English are equally welcome.
    `claude/...`, `gpt/...`, `ai/...`.
 2. Mantenga el cambio pequeno y enfocado. Una unidad logica por pull
    request. Si hace falta dividir, divida.
-3. Asegurese de que pasa `cargo fmt --all -- --check`,
+3. Cree o actualice el descriptor pre-rellenado del PR en
+   `docs/pr-drafts/<nombre-de-rama>.md`. Sin descriptor, el PR no se
+   acepta. Vease `docs/pr-drafts/README.md` para la convencion. La
+   plantilla en `.github/PULL_REQUEST_TEMPLATE.md` es un fallback;
+   el contenido real vive en el descriptor.
+4. Asegurese de que pasa `cargo fmt --all -- --check`,
    `cargo clippy --workspace --all-targets -- -D warnings`,
    `cargo test --workspace`, `cargo audit` y `cargo deny check`.
-4. Actualice la documentacion en el mismo pull request. Codigo y
+5. Actualice la documentacion en el mismo pull request. Codigo y
    documentacion evolucionan juntos.
-5. Actualice `CHANGELOG.md` bajo la seccion `[Unreleased]`.
-6. Verifique las casillas de la `docs/roadmap/STATUS.md` que su pull
+6. Actualice `CHANGELOG.md` bajo la seccion `[Unreleased]`.
+7. Verifique las casillas de la `docs/roadmap/STATUS.md` que su pull
    request afecta.
-7. Abra el pull request con titulo de 256 caracteres o menos.
-8. En el cuerpo del PR enlace a la RFC o ADR relacionada cuando aplique.
+8. Al abrir el pull request, copie el contenido de
+   `docs/pr-drafts/<nombre-de-rama>.md` al cuerpo del PR en GitHub,
+   reemplazando el fallback de la plantilla. El titulo del PR es el
+   campo "Resumen" del descriptor (256 caracteres o menos).
+9. En el cuerpo del PR enlace a la RFC o ADR relacionada cuando aplique.
 
 ## Convenciones de mensajes
 

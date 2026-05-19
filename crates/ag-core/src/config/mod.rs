@@ -21,6 +21,10 @@ pub struct ShieldConfig {
     /// Configuracion del runtime Tokio.
     #[serde(default)]
     pub runtime: RuntimeConfig,
+
+    /// Configuracion CORS.
+    #[serde(default)]
+    pub cors: CorsConfig,
 }
 
 impl Default for ShieldConfig {
@@ -28,8 +32,37 @@ impl Default for ShieldConfig {
         Self {
             bind: default_bind_addr(),
             runtime: RuntimeConfig::default(),
+            cors: CorsConfig::default(),
         }
     }
+}
+
+/// Configuracion CORS.
+///
+/// Por defecto la capa esta deshabilitada para no permitir cross-origin
+/// implicito. Para habilitarla declare `enabled = true` y al menos un
+/// origen.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CorsConfig {
+    /// Activa la capa CORS.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Origenes permitidos. Ej: `["https://app.example.com"]`.
+    #[serde(default)]
+    pub allow_origins: Vec<String>,
+
+    /// Metodos HTTP permitidos. Ej: `["GET", "POST"]`.
+    #[serde(default)]
+    pub allow_methods: Vec<String>,
+
+    /// Headers permitidos. Ej: `["content-type", "authorization"]`.
+    #[serde(default)]
+    pub allow_headers: Vec<String>,
+
+    /// Si se permiten credenciales en peticiones cross-origin.
+    #[serde(default)]
+    pub allow_credentials: bool,
 }
 
 impl ShieldConfig {

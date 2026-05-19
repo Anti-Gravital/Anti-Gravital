@@ -1,0 +1,18 @@
+[package]
+name = "ag-mobile"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Generador Dart para Flutter y clientes nativos"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

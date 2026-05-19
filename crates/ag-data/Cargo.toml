@@ -1,0 +1,18 @@
+[package]
+name = "ag-data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Capa de datos sqlx con verificacion compile-time y migraciones"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

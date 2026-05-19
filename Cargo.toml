@@ -1,0 +1,54 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ag-core",
+    "crates/ag-dsl",
+    "crates/ag-cli",
+    "crates/ag-auth",
+    "crates/ag-data",
+    "crates/ag-realtime",
+    "crates/ag-cache",
+    "crates/ag-storage",
+    "crates/ag-observe",
+    "crates/ag-ui",
+    "crates/ag-cloud",
+    "crates/ag-ai",
+    "crates/ag-mobile",
+    "crates/ag-migrate",
+    "crates/ag-wasm-host",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.79"
+license = "Apache-2.0"
+authors = ["Gravital Labs - Nereira Technology and Business Solutions"]
+repository = "https://github.com/anti-gravital/anti-gravital"
+homepage = "https://github.com/anti-gravital/anti-gravital"
+documentation = "https://github.com/anti-gravital/anti-gravital/tree/main/docs"
+readme = "README.md"
+keywords = ["framework", "rust", "backend", "anti-gravital"]
+categories = ["web-programming", "asynchronous"]
+publish = false
+
+[workspace.lints.rust]
+# Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.
+# Para sobreescribir en un crate concreto, anada un `#[allow(unsafe_code)]`
+# con un comentario `// TECH-DEBT:` o un enlace a la RFC autorizadora.
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+opt-level = 3
+
+[profile.dev]
+opt-level = 0
+debug = true

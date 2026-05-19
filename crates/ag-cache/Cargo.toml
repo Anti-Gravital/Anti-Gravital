@@ -1,0 +1,18 @@
+[package]
+name = "ag-cache"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Cache L1 con moka y L2 con Redis"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

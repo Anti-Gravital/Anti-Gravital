@@ -60,6 +60,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 
 # Dev-dependencies compartidas.
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
 ed25519-dalek = { version = "2", features = ["pkcs8", "pem"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"

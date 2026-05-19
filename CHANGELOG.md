@@ -7,6 +7,21 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Hotfix de Fase 1
+
+Cambiado:
+
+- `shield::tls::build_acceptor` deja de depender del provider rustls
+  global del proceso. Construye `ServerConfig` con
+  `ServerConfig::builder_with_provider(ring::default_provider())` y
+  `with_safe_default_protocol_versions()`. Cada `TlsAcceptor` lleva
+  su propio provider via Arc. Cierra una race observada en CI
+  macos-arm64 cuando varios tests E2E inicializaban TLS en paralelo:
+  un test podia leer el provider global antes de que otro terminara
+  de instalarlo. Los tests E2E ya no necesitan llamar
+  `install_default()`; se eliminaron las llamadas en
+  `tests/shield_full_pipeline.rs` y `tests/shield_tls.rs`.
+
 ### Fase 0 - Fundaciones y gobernanza
 
 Anadido:

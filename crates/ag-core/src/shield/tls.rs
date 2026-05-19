@@ -22,6 +22,11 @@ use crate::error::AgError;
 
 /// Construye un `TlsAcceptor` desde la configuracion declarativa.
 ///
+/// El provider criptografico (`ring`) se inyecta explicitamente en el
+/// `ServerConfig`. No se depende del `CryptoProvider` global de
+/// rustls, que estaria sujeto a una race entre instalacion y lectura
+/// cuando varios componentes del proceso tocan TLS en paralelo.
+///
 /// # Errores
 ///
 /// Devuelve `AgError::Tls` si los archivos no existen, no se pueden
@@ -40,7 +45,10 @@ pub fn build_acceptor(config: &TlsConfig) -> Result<TlsAcceptor, AgError> {
     let certs = load_certs(cert_path)?;
     let key = load_private_key(key_path)?;
 
-    let server_config = ServerConfig::builder()
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let server_config = ServerConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|e| AgError::Tls(format!("invalid TLS protocol versions: {e}")))?
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .map_err(|e| AgError::Tls(format!("invalid server certificate: {e}")))?;

@@ -94,8 +94,8 @@ externas de Fase 0. El diseno de Shield esta fijado en
 - [ ] Tests unitarios con cobertura >= 80% del crate.
 - [x] Tests de integracion end-to-end del pipeline Shield. `tests/shield_full_pipeline.rs` arranca el Shield con todas las capas activas sobre HTTPS y valida flujo legitimo y rechazos por capa.
 - [x] Benchmark Hello World ejecutable. `cargo bench -p ag-core --bench shield_hello_world` con tres grupos criterion. Metricas duras de cierre (>=300K req/s, p99 <=1ms) se miden en PR 10 con carga real.
-- [ ] Documentacion API generada con `cargo doc`.
-- [ ] Capitulo del manual de usuario sobre uso de Shield como libreria.
+- [x] Documentacion API generada con `cargo doc`. Rustdoc crate-level ampliado con tabla de capas, features, ejemplos y enlaces cruzados.
+- [x] Capitulo del manual de usuario sobre uso de Shield como libreria. `docs/manual/01-shield-as-library.md`.
 
 ### Criterios de salida (1.3)
 

@@ -109,6 +109,45 @@ Anadido:
   deshabilitada por defecto, configuracion validada al construir
   Shield. Dependencia opcional `governor = 0.7`. 6 unit tests y 3
   tests E2E.
+- Capa de autenticacion JWT Ed25519 (`shield::auth`) detras de la
+  feature `auth-jwt` activa por defecto. Verifica el header
+  `Authorization: Bearer <token>` contra una clave publica Ed25519
+  cargada al arranque desde `AuthConfig.public_key_pem` o
+  `public_key_path`. Valida firma, expiracion, issuer opcional y
+  audience opcional. Leeway forzado a 0 para evitar tolerancia
+  silenciosa a deriva de reloj. Inyecta `AuthContext` en las
+  extensiones del request; expone el extractor `Claims<T>` que
+  deserializa los claims al tipo de la aplicacion. Fallos mapeados a
+  `AgError::Auth` (status 401). Dependencia opcional
+  `jsonwebtoken = 9` con feature `use_pem`. 6 unit tests sobre
+  parsing y carga de claves y 6 tests E2E sobre flujo completo,
+  incluyendo expiracion, firma incorrecta y issuer no esperado.
+- Dev-dependencies `ed25519-dalek = 2` y `rand_core = 0.6` para
+  generar pares de claves Ed25519 en tests.
+- Capa TLS 1.3 (`shield::tls`) detras de la feature `tls` activa por
+  defecto. Construye un `tokio_rustls::TlsAcceptor` desde cert/key
+  PEM declarados en `TlsConfig`. Provider criptografico: `ring`.
+  Cuando la feature `tls` esta presente y `TlsConfig.enabled` es
+  cierto, `Shield::serve(listener, router)` opera el accept loop
+  envolviendo cada conexion con TLS; en otro caso delega a
+  `axum::serve`. Errores de carga mapeados a `AgError::Tls`.
+  Dependencias opcionales `rustls = 0.23`, `rustls-pki-types = 1.10`,
+  `tokio-rustls = 0.26`. Dev-dependency `rcgen = 0.13` para generar
+  certificados auto-firmados en tests. 4 unit tests sobre carga de
+  PEM y 3 tests E2E incluyendo handshake HTTPS real con reqwest.
+
+Cambiado:
+
+- Migracion de `rustls-pemfile` (archivado, RUSTSEC-2025-0134) al
+  trait `PemObject` de `rustls-pki-types`. La superficie de API
+  publica no se altera.
+- Flujo de pull requests: cada rama trae su descriptor pre-rellenado
+  bajo `docs/pr-drafts/<rama>.md` con resumen, fase, plan de prueba y
+  criterios de salida ya completos. La plantilla
+  `.github/PULL_REQUEST_TEMPLATE.md` se convierte en fallback de
+  emergencia. Regla incorporada a `CLAUDE.md` y `CONTRIBUTING.md`.
+  Descriptor de la rama `phase-0/foundations-and-governance` publicado
+  en `docs/pr-drafts/phase-0-foundations-and-governance.md`.
 
 Cambiado:
 

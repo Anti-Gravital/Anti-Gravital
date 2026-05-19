@@ -84,9 +84,9 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 - [/] Crate `ag-core` con modulo `shield` operativo. (En bootstrap.)
 - [ ] Soporte de HTTP/1.1 y HTTP/2 via Axum + Tokio.
-- [ ] Terminacion TLS 1.3 con rustls.
+- [x] Terminacion TLS 1.3 con rustls. `shield::tls` + helper `Shield::serve(listener, router)` que despacha a TLS o plain segun config.
 - [x] Middleware de validacion de payload basico. Trait `Validate` y extractor `ValidatedJson<T>` bajo `shield::validation`.
-- [ ] Middleware de autenticacion JWT con verificacion Ed25519.
+- [x] Middleware de autenticacion JWT con verificacion Ed25519. `shield::auth` con `AuthLayer`, `AuthContext` y extractor `Claims<T>`.
 - [x] Middleware de rate limiting con governor. Token bucket por IP en `shield::rate_limit`.
 - [x] Middleware CORS y CSRF con defaults seguros. CORS en `shield::cors` y CSRF en `shield::csrf` (double-submit cookie apatrida).
 - [ ] Middleware de logging estructurado con `tracing`.

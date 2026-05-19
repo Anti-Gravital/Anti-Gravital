@@ -56,4 +56,16 @@ Cambiado:
 Sin codigo funcional. El primer hito tecnico (Shield MVP) se entrega
 en Fase 1.
 
+### Fase 1 - The Shield MVP (en curso)
+
+Anadido:
+
+- RFC-0001 que autoriza la paralelizacion de las puertas externas de
+  Fase 0 con la implementacion de Fase 1 mientras el BDFL trabaja en
+  solitario.
+- RFC-0002 con el diseno detallado del Shield MVP: stack, modulos,
+  features Cargo, configuracion TOML, sistema de errores y plan de
+  implementacion en 11 PRs incrementales.
+- Estado vivo de Fase 1 reflejado en `docs/roadmap/STATUS.md`.
+
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

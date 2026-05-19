@@ -66,8 +66,49 @@ Detalle y owner sugerido en `docs/governance/external-deliverables.md`.
 
 ## Fase 1 - The Shield MVP
 
-Estado: Pendiente. Todos los criterios de entrada y entregables en
-`docs/roadmap/fase-01-shield-mvp.md` permanecen sin marcar.
+Estado: En curso bajo excepcion documentada en
+`docs/rfc/RFC-0001-paralelizar-fase-0-externa-y-fase-1.md`. La
+implementacion avanza en paralelo con el cierre de las puertas
+externas de Fase 0. El diseno de Shield esta fijado en
+`docs/rfc/RFC-0002-diseno-shield-mvp.md`.
+
+### Criterios de entrada (1.1)
+
+- [/] Fase 0 completada con todos sus criterios de salida marcados.
+  (Excepcion: tres casillas externas siguen pendientes; vease RFC-0001.)
+- [ ] Al menos un contribuidor adicional al mantenedor principal esta
+  activo en el repositorio. (Excepcion: BDFL en modo solo; vease
+  RFC-0001.)
+
+### Entregables (1.2)
+
+- [/] Crate `ag-core` con modulo `shield` operativo. (En bootstrap.)
+- [ ] Soporte de HTTP/1.1 y HTTP/2 via Axum + Tokio.
+- [ ] Terminacion TLS 1.3 con rustls.
+- [ ] Middleware de validacion de payload basico.
+- [ ] Middleware de autenticacion JWT con verificacion Ed25519.
+- [ ] Middleware de rate limiting con governor.
+- [ ] Middleware CORS y CSRF con defaults seguros.
+- [ ] Middleware de logging estructurado con `tracing`.
+- [ ] Configuracion minima desde archivo TOML.
+- [ ] Tests unitarios con cobertura >= 80% del crate.
+- [ ] Tests de integracion end-to-end del pipeline Shield.
+- [ ] Benchmark Hello World ejecutable.
+- [ ] Documentacion API generada con `cargo doc`.
+- [ ] Capitulo del manual de usuario sobre uso de Shield como libreria.
+
+### Criterios de salida (1.3)
+
+- [ ] Benchmark Hello World >= 300K req/s en hardware de referencia.
+- [ ] Latencia p99 del pipeline Shield <= 1 ms a 100K req/s.
+- [ ] Memoria del proceso idle <= 15 MB.
+- [ ] Tiempo de arranque <= 100 ms.
+- [ ] CI pasa en las cuatro plataformas objetivo.
+- [ ] Clippy sin warnings.
+- [ ] `cargo audit` sin vulnerabilidades conocidas.
+- [ ] Cero bloques `unsafe` no documentados.
+- [ ] Al menos un blog post tecnico sobre la arquitectura de Shield.
+- [ ] Al menos diez stars en el repositorio.
 
 ## Fase 2 - The Core MVP
 

@@ -35,12 +35,49 @@ Anadido:
 - Plantillas de issue, pull request y RFC en `.github/`.
 - ADRs iniciales: `0001-monorepo-workspace.md`,
   `0002-bilingual-documentation.md`, `0003-bdfl-governance.md`,
-  `0004-descomposicion-de-maestros.md`.
+  `0004-descomposicion-de-maestros.md`,
+  `0005-contact-identities.md`.
 - Tablero vivo del proyecto en `docs/roadmap/STATUS.md`.
 - Lista de entregables externos pendientes en
   `docs/governance/external-deliverables.md`.
 
+Cambiado:
+
+- Identidades de contacto oficiales del proyecto. Los placeholders
+  `security@gravital.io` y `hello@antigravital.dev` de los maestros se
+  reemplazan por `anti@gravitalcloud.com` (correo raiz) y
+  `angelnereira@gravitalcloud.com` (BDFL inicial) en
+  `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` (15.3) y
+  `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md` (Fase 0). Hashes
+  recomputados en `docs/master/VERSION.md` con entrada de historial.
+  Derivados verbatim regenerados. Registrado en
+  `docs/adr/0005-contact-identities.md`.
+
 Sin codigo funcional. El primer hito tecnico (Shield MVP) se entrega
 en Fase 1.
+
+### Fase 1 - The Shield MVP (en curso)
+
+Anadido:
+
+- RFC-0001 que autoriza la paralelizacion de las puertas externas de
+  Fase 0 con la implementacion de Fase 1 mientras el BDFL trabaja en
+  solitario.
+- RFC-0002 con el diseno detallado del Shield MVP: stack, modulos,
+  features Cargo, configuracion TOML, sistema de errores y plan de
+  implementacion en 11 PRs incrementales.
+- Estado vivo de Fase 1 reflejado en `docs/roadmap/STATUS.md`.
+- Bootstrap del crate `ag-core` con HTTP/1.1 y HTTP/2 funcionales via
+  Axum + Tokio (sin TLS aun): modulos `error`, `config`, `runtime`,
+  `shield` (capa de logging estructurado), `core` (placeholder).
+- `AgError` y `AgResult` con mapeo automatico a respuestas HTTP via
+  `IntoResponse`.
+- `ShieldConfig` deserializable desde TOML con defaults seguros.
+- Dependencias compartidas del workspace declaradas en
+  `[workspace.dependencies]` (axum, tokio, tower, tower-http, tracing,
+  serde, thiserror, hyper, http, bytes, toml, pin-project-lite).
+- Tests: 12 unit tests por modulo, 2 tests E2E con servidor real, 1
+  doctest. Todos en verde con `cargo fmt`, `cargo clippy -D warnings`
+  y `cargo doc --no-deps` limpios.
 
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

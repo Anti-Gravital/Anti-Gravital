@@ -23,21 +23,21 @@ matriz de soporte por release.
 
 Reporte privado y coordinado. NO abra un issue publico.
 
-Mientras los canales oficiales de la organizacion estan en proceso de
-habilitacion, los reportes se envian al mantenedor inicial a traves
-del mecanismo de divulgacion privada de GitHub Security Advisories del
-repositorio:
+Reporte por orden de preferencia:
 
 1. Abra una nueva advisory privada en la pestana Security del
    repositorio.
-2. Describa: version o commit afectado, plataforma, pasos de
+2. Si no puede usar GitHub Security Advisories, envie el reporte por
+   correo:
+   - Primario: `anti@gravitalcloud.com`.
+   - Respaldo (BDFL inicial): `angelnereira@gravitalcloud.com`.
+3. Describa: version o commit afectado, plataforma, pasos de
    reproduccion, impacto observado o estimado.
-3. Si dispone de un parche, adjuntelo.
+4. Si dispone de un parche, adjuntelo.
 
-Direccion de correo de respaldo: `security@gravital.io`. Esta
-direccion aparece como pendiente de habilitacion en
-`docs/governance/external-deliverables.md`. Mientras no este activa,
-la divulgacion privada de GitHub es la via primaria.
+No abra issues publicos para vulnerabilidades. Vease tambien
+`docs/governance/external-deliverables.md` para el estado de los
+canales operativos.
 
 ## SLA inicial
 

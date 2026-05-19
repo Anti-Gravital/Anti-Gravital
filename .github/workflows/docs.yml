@@ -36,8 +36,8 @@ jobs:
         run: |
           set -euo pipefail
           expected_blueprint="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
-          expected_arch="2b0847522af804df7feeccb3fd64341f1ecf7b34ca6f915db7d775932919304c"
-          expected_road="d1cb15bc943be6c4e87c33bd59aa6056bb8e580a52a03b1a4306aa636f2ee31e"
+          expected_arch="c6f16879cd8c4d7772dbe2911043e31cce9196a31f75a235fdd8bcf72afd67ae"
+          expected_road="534f15ac103cdd45fdca7e91f1c5bd0e3a81527d72c59b0a25eb0425a02a80d4"
           got_blueprint="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"
           got_road="$(sha256sum docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md | awk '{print $1}')"

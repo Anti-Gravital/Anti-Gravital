@@ -28,3 +28,4 @@ Consecuencias, Alternativas, Estado.
 | 0002 | Documentacion bilingue espanol e ingles | aceptado | `0002-bilingual-documentation.md` |
 | 0003 | Modelo de gobernanza BDFL inicial con transicion a comite | aceptado | `0003-bdfl-governance.md` |
 | 0004 | Descomposicion verbatim de los documentos maestros | aceptado | `0004-descomposicion-de-maestros.md` |
+| 0005 | Identidades de contacto oficiales del proyecto | aceptado | `0005-contact-identities.md` |

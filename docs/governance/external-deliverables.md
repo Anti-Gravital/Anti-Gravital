@@ -1,11 +1,21 @@
 # Entregables externos pendientes de Fase 0
 
-> Estado a 2026-05-19.
+> Ultima actualizacion: 2026-05-19.
 
 La Fase 0 de la Hoja de Ruta incluye varios entregables que no viven
 en el repositorio sino en servicios externos. Esta tabla los enumera,
 indica su estado actual y senala que puerta de criterio de salida
 desbloquean. Cada item se mantiene aqui hasta que se completa.
+
+## Identidades de contacto oficiales
+
+- Correo raiz del proyecto: `anti@gravitalcloud.com`.
+- Mantenedor inicial (BDFL): Angel Nereira, `angelnereira@gravitalcloud.com`,
+  con alternativo `contact@angelnereira.com`.
+
+Estos correos figuran como contactos primario y de respaldo en
+`SECURITY.md`, `CODE_OF_CONDUCT.md` y en el maestro de Arquitectura
+Tecnica (seccion 15.3).
 
 ## Tabla de entregables
 
@@ -16,9 +26,9 @@ desbloquean. Cada item se mantiene aqui hasta que se completa.
 | Cuenta en X o Bluesky para anuncios | Pendiente | BDFL inicial | Acompana anuncios de releases. |
 | Dominio `antigravital.dev` registrado | Pendiente | Gravital Labs - Operaciones | Apunta a landing page. |
 | Landing page minima en `antigravital.dev` | Pendiente | Gravital Labs - Diseno | Criterio 0.3: describe que es y donde esta en el roadmap. |
-| Email institucional `hello@antigravital.dev` | Pendiente | Gravital Labs - Operaciones | Canal de contacto general. |
-| Email de seguridad `security@gravital.io` | Pendiente | BDFL inicial | Canal en SECURITY.md y CODE_OF_CONDUCT.md. |
-| Email de conducta `conduct@gravital.io` | Pendiente | BDFL inicial | Canal alternativo en CODE_OF_CONDUCT.md. |
+| Email institucional `anti@gravitalcloud.com` (correo raiz del proyecto) | Completado 2026-05-19 | Gravital Labs | Canal de contacto general y de seguridad primario. |
+| Email de respaldo del BDFL `angelnereira@gravitalcloud.com` | Completado 2026-05-19 | Angel Nereira | Canal de seguridad de respaldo y escalado de conducta. |
+| Email del desarrollador (alternativo) `contact@angelnereira.com` | Completado 2026-05-19 | Angel Nereira | Canal personal de contacto del BDFL. |
 | Calendario publico de releases publicado en el sitio | Pendiente | BDFL inicial | Mirror externo del `docs/roadmap/calendar.md`. |
 
 ## Procedimiento de cierre

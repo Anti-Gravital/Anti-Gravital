@@ -1,0 +1,81 @@
+name: docs
+
+# Valida la documentacion del workspace: cargo doc, integridad de los
+# documentos maestros y ausencia de evidencia de herramientas IA en el
+# repositorio.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-doc:
+    name: cargo doc
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo doc --workspace --no-deps
+
+  masters-integrity:
+    name: masters integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SHA-256 of master documents
+        run: |
+          set -euo pipefail
+          expected_blueprint="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
+          expected_arch="2b0847522af804df7feeccb3fd64341f1ecf7b34ca6f915db7d775932919304c"
+          expected_road="d1cb15bc943be6c4e87c33bd59aa6056bb8e580a52a03b1a4306aa636f2ee31e"
+          got_blueprint="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
+          got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"
+          got_road="$(sha256sum docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md | awk '{print $1}')"
+          test "$got_blueprint" = "$expected_blueprint"
+          test "$got_arch" = "$expected_arch"
+          test "$got_road" = "$expected_road"
+          echo "Maestros validos."
+
+  prohibited-content:
+    name: prohibited content scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject AI tool evidence outside allowed files
+        run: |
+          set -euo pipefail
+          # Solo CLAUDE.md puede mencionar el nombre, porque la regla 2 del
+          # propio CLAUDE.md fija ese nombre de archivo.
+          if grep -RIE "Co-Authored-By: (Claude|GPT|Copilot)" \
+                --exclude-dir=target --exclude-dir=.git . ; then
+            echo "Encontrada atribucion IA en commits o archivos."
+            exit 1
+          fi
+          if grep -RIE "claude\\.ai/code/session_" \
+                --exclude-dir=target --exclude-dir=.git . ; then
+            echo "Encontrada URL de sesion IA en el repositorio."
+            exit 1
+          fi
+          echo "Sin evidencia prohibida de herramientas IA."
+
+      - name: Reject emojis in tracked files
+        run: |
+          set -euo pipefail
+          if grep -RIPn "[\\x{1F300}-\\x{1FAFF}]|[\\x{2600}-\\x{27BF}]|[\\x{1F000}-\\x{1F2FF}]" \
+                --include='*.md' --include='*.rs' --include='*.toml' \
+                --include='*.yml' --include='*.yaml' --include='*.sh' \
+                --exclude-dir=target --exclude-dir=.git . ; then
+            echo "Encontrados emojis en archivos del proyecto."
+            exit 1
+          fi
+          echo "Sin emojis."

@@ -1,0 +1,40 @@
+name: RFC seed
+description: Punto de partida para una RFC formal. El cuerpo final vive en docs/rfc/.
+labels: ["rfc", "needs-discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este issue es solo el punto de partida. La RFC formal se redacta
+        como archivo `docs/rfc/RFC-XXXX-titulo.md` en una pull request.
+        Vease `CLAUDE.md` reglas 22 y 28 y `docs/rfc/template.md`.
+  - type: input
+    id: title
+    attributes:
+      label: Titulo provisional
+      placeholder: ej. Adopcion de QUIC para HTTP/3
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivacion
+      description: Que problema arquitectonico se busca resolver.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Alcance preliminar
+      description: Modulos afectados, fase objetivo, riesgos visibles.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Verificaciones
+      options:
+        - label: He leido CLAUDE.md, en particular las reglas 22, 28, 35.
+          required: true
+        - label: Acepto redactar la RFC bajo docs/rfc/ en una pull request.
+          required: true

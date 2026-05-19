@@ -1,0 +1,18 @@
+[package]
+name = "ag-observe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Observabilidad: tracing, OpenTelemetry, Prometheus, tokio-console"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

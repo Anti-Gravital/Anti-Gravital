@@ -1,0 +1,15 @@
+# Mantenedores designados por el BDFL durante Fase 0.
+# Todo cambio al repositorio requiere revision del mantenedor.
+
+* @anti-gravital/maintainers
+
+/docs/master/                          @anti-gravital/maintainers
+/CLAUDE.md                             @anti-gravital/maintainers
+/GOVERNANCE.md                         @anti-gravital/maintainers
+/SECURITY.md                           @anti-gravital/maintainers
+/.github/                              @anti-gravital/maintainers
+
+/crates/ag-core/                       @anti-gravital/maintainers
+/crates/ag-dsl/                        @anti-gravital/maintainers
+/crates/ag-cli/                        @anti-gravital/maintainers
+/crates/ag-wasm-host/                  @anti-gravital/maintainers

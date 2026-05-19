@@ -67,5 +67,17 @@ Anadido:
   features Cargo, configuracion TOML, sistema de errores y plan de
   implementacion en 11 PRs incrementales.
 - Estado vivo de Fase 1 reflejado en `docs/roadmap/STATUS.md`.
+- Bootstrap del crate `ag-core` con HTTP/1.1 y HTTP/2 funcionales via
+  Axum + Tokio (sin TLS aun): modulos `error`, `config`, `runtime`,
+  `shield` (capa de logging estructurado), `core` (placeholder).
+- `AgError` y `AgResult` con mapeo automatico a respuestas HTTP via
+  `IntoResponse`.
+- `ShieldConfig` deserializable desde TOML con defaults seguros.
+- Dependencias compartidas del workspace declaradas en
+  `[workspace.dependencies]` (axum, tokio, tower, tower-http, tracing,
+  serde, thiserror, hyper, http, bytes, toml, pin-project-lite).
+- Tests: 12 unit tests por modulo, 2 tests E2E con servidor real, 1
+  doctest. Todos en verde con `cargo fmt`, `cargo clippy -D warnings`
+  y `cargo doc --no-deps` limpios.
 
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

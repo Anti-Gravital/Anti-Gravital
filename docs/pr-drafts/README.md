@@ -35,9 +35,24 @@ subrama tiene su archivo.
 - Antes o durante el commit, no despues.
 - Si los detalles cambian en commits subsiguientes, se actualiza el
   archivo en el mismo commit que introduce el cambio.
-- Al abrir el PR en GitHub, el contenido del archivo se copia al
-  cuerpo del PR. Los `<!-- comentarios -->` del template no aparecen
-  porque ya estan reemplazados por texto concreto.
+- Al abrir el PR en GitHub, el workflow
+  `.github/workflows/pr-autofill.yml` se dispara automaticamente:
+  busca el descriptor por nombre de rama aplanada (las `/` se
+  convierten en `-`), y si lo encuentra reemplaza el cuerpo del PR
+  con su contenido completo. Si no existe, comenta el PR avisando y
+  marca el job como warning.
+
+## Convencion de nombre del archivo (importante para el autofill)
+
+El workflow busca dos rutas, en este orden:
+
+1. `docs/pr-drafts/<rama-aplanada>.md` donde la rama del PR tiene sus
+   `/` reemplazadas por `-`. Ejemplo: para la rama
+   `phase-1/shield-mvp` el archivo es
+   `docs/pr-drafts/phase-1-shield-mvp.md`.
+2. `docs/pr-drafts/<rama-literal>.md` como respaldo, conservando las
+   `/` (lo que crearia subdirectorios). Se recomienda usar la forma
+   aplanada para evitar subdirectorios y simplificar la navegacion.
 
 ## Que debe contener cada descriptor
 

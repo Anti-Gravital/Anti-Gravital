@@ -37,10 +37,13 @@ Contributions in Spanish and English are equally welcome.
 2. Mantenga el cambio pequeno y enfocado. Una unidad logica por pull
    request. Si hace falta dividir, divida.
 3. Cree o actualice el descriptor pre-rellenado del PR en
-   `docs/pr-drafts/<nombre-de-rama>.md`. Sin descriptor, el PR no se
-   acepta. Vease `docs/pr-drafts/README.md` para la convencion. La
-   plantilla en `.github/PULL_REQUEST_TEMPLATE.md` es un fallback;
-   el contenido real vive en el descriptor.
+   `docs/pr-drafts/<rama-aplanada>.md` (las `/` se convierten en
+   `-`). Sin descriptor, el PR no se acepta. Vease
+   `docs/pr-drafts/README.md` para la convencion. Al abrir la PR en
+   GitHub, el workflow `pr-autofill` reemplaza automaticamente el
+   cuerpo con el contenido del descriptor. La plantilla en
+   `.github/PULL_REQUEST_TEMPLATE.md` queda como aviso para casos en
+   que el descriptor no exista.
 4. Asegurese de que pasa `cargo fmt --all -- --check`,
    `cargo clippy --workspace --all-targets -- -D warnings`,
    `cargo test --workspace`, `cargo audit` y `cargo deny check`.
@@ -49,10 +52,13 @@ Contributions in Spanish and English are equally welcome.
 6. Actualice `CHANGELOG.md` bajo la seccion `[Unreleased]`.
 7. Verifique las casillas de la `docs/roadmap/STATUS.md` que su pull
    request afecta.
-8. Al abrir el pull request, copie el contenido de
-   `docs/pr-drafts/<nombre-de-rama>.md` al cuerpo del PR en GitHub,
-   reemplazando el fallback de la plantilla. El titulo del PR es el
-   campo "Resumen" del descriptor (256 caracteres o menos).
+8. Al abrir el pull request en GitHub, el workflow `pr-autofill`
+   reemplaza automaticamente el cuerpo con el descriptor de
+   `docs/pr-drafts/`. Si abre la PR y el cuerpo sigue siendo la
+   plantilla de aviso, significa que falta el descriptor: cree el
+   archivo, pushee, y reabra la PR (o marquela ready-for-review)
+   para que se autocomplete. El titulo del PR es el campo "Resumen"
+   del descriptor (256 caracteres o menos).
 9. En el cuerpo del PR enlace a la RFC o ADR relacionada cuando aplique.
 
 ## Convenciones de mensajes

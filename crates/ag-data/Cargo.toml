@@ -16,3 +16,11 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+ag-core = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

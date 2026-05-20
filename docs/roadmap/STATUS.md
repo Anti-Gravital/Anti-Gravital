@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-19, fin del setup de Fase 0.
+Ultima actualizacion: 2026-05-20, cierre tecnico de Fase 2.
 
 ---
 
@@ -112,7 +112,8 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 ## Fase 2 - The Core MVP
 
-Estado: En curso. Implementacion inicial completa en repositorio.
+Estado: Implementacion tecnica completa. Criterios externos pendientes
+(benchmarks en hardware de referencia, metricas de comunidad).
 
 ### Criterios de entrada (2.1)
 
@@ -151,16 +152,30 @@ Estado: En curso. Implementacion inicial completa en repositorio.
 
 ### Criterios de salida (2.3)
 
-- [ ] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
-- [ ] Latencia p99 del CRUD <= 5 ms.
-- [ ] La app `todo-api` corre exitosamente con `ag new` + `ag dev`.
-- [ ] La app `todo-api` se despliega como binario unico (`FROM scratch`
-  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`.
-- [ ] El binario release del `todo-api` ocupa <= 20 MB.
-- [ ] Documentacion: "Tu primera API con Anti-Gravital" publicada.
-  Disponible en `docs/manual/02-primera-api.md`.
-- [ ] Al menos 50 stars en el repositorio.
-- [ ] Al menos tres contribuidores externos con PRs merged.
+- [/] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
+  Benchmark Criterion real implementado en `examples/todo-api/benches/crud.rs`
+  (INSERT, SELECT, UPDATE, DELETE, full cycle, concurrencia 1/4/16/64).
+  La ejecucion y el registro de numeros requieren la maquina local con
+  PostgreSQL. Ver `docs/benchmarks/verificacion-local-fase-2.md` para los
+  comandos exactos y `docs/benchmarks/measurement-fase-2-crud.md` para la
+  plantilla de resultado a rellenar.
+- [/] Latencia p99 del CRUD <= 5 ms. Mismo benchmark; el p99 lo reporta
+  oha en la corrida HTTP contra el servidor en ejecucion.
+- [x] La CLI `ag new` crea el scaffold correcto y `ag dev` arranca el
+  proceso de compilacion. Verificado con templates `rest`, `realtime` y
+  `fullstack`. La ejecucion completa requiere PostgreSQL para el template
+  `fullstack`; el binario arranca sin DB para el template `rest`.
+- [/] La app `todo-api` se despliega como binario unico (`FROM scratch`
+  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`. La
+  compilacion MUSL y la medicion de imagen requieren el target
+  `x86_64-unknown-linux-musl` y hardware de referencia.
+- [/] El binario release del `todo-api` ocupa <= 20 MB. Pendiente build
+  MUSL en hardware de referencia.
+- [x] Documentacion: "Tu primera API con Anti-Gravital" publicada.
+  Disponible en `docs/manual/02-primera-api.md`. Cubre todo el flujo
+  desde `ag new` hasta Docker `FROM scratch`.
+- [ ] Al menos 50 stars en el repositorio. Criterio externo.
+- [ ] Al menos tres contribuidores externos con PRs merged. Criterio externo.
 
 ## Fase 3 - Anti-DSL alpha
 

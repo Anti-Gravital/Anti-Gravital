@@ -153,9 +153,14 @@ Estado: Implementacion tecnica completa. Criterios externos pendientes
 ### Criterios de salida (2.3)
 
 - [/] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
-  El placeholder `benches/crud.rs` existe; la ejecucion real requiere
-  hardware de referencia con PostgreSQL y se registra en `docs/benchmarks/`.
-- [/] Latencia p99 del CRUD <= 5 ms. Idem criterio anterior.
+  Benchmark Criterion real implementado en `examples/todo-api/benches/crud.rs`
+  (INSERT, SELECT, UPDATE, DELETE, full cycle, concurrencia 1/4/16/64).
+  La ejecucion y el registro de numeros requieren la maquina local con
+  PostgreSQL. Ver `docs/benchmarks/verificacion-local-fase-2.md` para los
+  comandos exactos y `docs/benchmarks/measurement-fase-2-crud.md` para la
+  plantilla de resultado a rellenar.
+- [/] Latencia p99 del CRUD <= 5 ms. Mismo benchmark; el p99 lo reporta
+  oha en la corrida HTTP contra el servidor en ejecucion.
 - [x] La CLI `ag new` crea el scaffold correcto y `ag dev` arranca el
   proceso de compilacion. Verificado con templates `rest`, `realtime` y
   `fullstack`. La ejecucion completa requiere PostgreSQL para el template

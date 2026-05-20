@@ -1,0 +1,24 @@
+use ag_core::{Shield, ShieldConfig};
+use axum::{routing::get, Router};
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new().route("/", get(root_handler));
+    let app = shield.apply(router);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    tracing::info!("escuchando en http://0.0.0.0:8080");
+    shield.serve(listener, app).await
+}
+
+async fn root_handler() -> &'static str {
+    "{{name}} corriendo con Anti-Gravital"
+}

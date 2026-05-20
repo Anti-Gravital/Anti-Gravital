@@ -1,0 +1,37 @@
+use ag_core::{Shield, ShieldConfig};
+use axum::{
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    routing::get,
+    Router,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new().route("/ws", get(ws_handler));
+    let app = shield.apply(router);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    tracing::info!("WebSocket en ws://0.0.0.0:8080/ws");
+    shield.serve(listener, app).await
+}
+
+async fn ws_handler(upgrade: WebSocketUpgrade) -> impl axum::response::IntoResponse {
+    upgrade.on_upgrade(handle_socket)
+}
+
+async fn handle_socket(mut socket: WebSocket) {
+    while let Some(Ok(msg)) = socket.recv().await {
+        if let Message::Text(text) = msg {
+            tracing::info!(msg = %text, "mensaje recibido");
+            let _ = socket.send(Message::Text(format!("echo: {text}"))).await;
+        }
+    }
+}

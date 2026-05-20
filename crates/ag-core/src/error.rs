@@ -45,6 +45,22 @@ pub enum AgError {
     #[error("csrf error: {0}")]
     Csrf(String),
 
+    /// Recurso no encontrado.
+    #[error("not found: {0}")]
+    NotFound(String),
+
+    /// Solicitud incorrecta (parametros invalidos, semantica incorrecta).
+    #[error("bad request: {0}")]
+    BadRequest(String),
+
+    /// Conflicto de estado (duplicado, restriccion de unicidad, etc.).
+    #[error("conflict: {0}")]
+    Conflict(String),
+
+    /// Error de capa de datos (base de datos, migraciones).
+    #[error("database error: {0}")]
+    Database(String),
+
     /// Error de I/O.
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -66,6 +82,10 @@ impl AgError {
             Self::Validation(_) => "validation_error",
             Self::Cors(_) => "cors_error",
             Self::Csrf(_) => "csrf_error",
+            Self::NotFound(_) => "not_found",
+            Self::BadRequest(_) => "bad_request",
+            Self::Conflict(_) => "conflict",
+            Self::Database(_) => "database_error",
             Self::Io(_) => "io_error",
             Self::Other(_) => "internal_error",
         }
@@ -80,7 +100,10 @@ impl AgError {
             Self::RateLimit => StatusCode::TOO_MANY_REQUESTS,
             Self::Validation(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::Cors(_) | Self::Csrf(_) => StatusCode::FORBIDDEN,
-            Self::Io(_) | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::BadRequest(_) => StatusCode::BAD_REQUEST,
+            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::Database(_) | Self::Io(_) | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -123,5 +146,33 @@ mod tests {
     fn auth_maps_to_401() {
         let err = AgError::Auth("missing token".into());
         assert_eq!(err.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn not_found_maps_to_404() {
+        let err = AgError::NotFound("todo 42".into());
+        assert_eq!(err.status(), StatusCode::NOT_FOUND);
+        assert_eq!(err.code(), "not_found");
+    }
+
+    #[test]
+    fn bad_request_maps_to_400() {
+        let err = AgError::BadRequest("invalid id".into());
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.code(), "bad_request");
+    }
+
+    #[test]
+    fn conflict_maps_to_409() {
+        let err = AgError::Conflict("email already exists".into());
+        assert_eq!(err.status(), StatusCode::CONFLICT);
+        assert_eq!(err.code(), "conflict");
+    }
+
+    #[test]
+    fn database_maps_to_500() {
+        let err = AgError::Database("connection refused".into());
+        assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(err.code(), "database_error");
     }
 }

@@ -1,11 +1,3 @@
 # Configuracion de cargo-audit para Anti-Gravital.
-# Ignorar advisories sin parche disponible en dependencias transitivas.
-
 [advisories]
-ignore = [
-    # RUSTSEC-2023-0071: Marvin Attack (timing oracle en RSA decryption).
-    # Afecta `rsa` 0.9.x, arrastrado transitivamente por sqlx (auth postgres).
-    # No existe version parcheada del crate rsa. Se revisa en cada actualizacion
-    # de sqlx. Issue de seguimiento: https://github.com/RustCrypto/RSA/issues/19
-    "RUSTSEC-2023-0071",
-]
+ignore = []

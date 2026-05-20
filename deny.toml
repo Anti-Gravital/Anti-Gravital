@@ -1,6 +1,5 @@
-# cargo-deny configuracion para Anti-Gravital (Fase 0).
-# Politica permisiva durante Fase 0 porque el workspace aun no tiene
-# dependencias. Se endurece progresivamente segun va incorporando crates.
+# cargo-deny configuracion para Anti-Gravital.
+# Politica de licencias, advisories, dependencias duplicadas y fuentes.
 
 [graph]
 all-features = false
@@ -10,16 +9,15 @@ no-default-features = false
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "warn"
-# RUSTSEC-2023-0071: Marvin Attack en `rsa` 0.9.x (transitivo via sqlx).
-# Sin parche disponible. Se revisa con cada actualizacion de sqlx.
-ignore = ["RUSTSEC-2023-0071"]
+ignore = []
 
 [licenses]
 confidence-threshold = 0.93
-# Lista permisiva acotada a licencias compatibles con Apache-2.0 y
-# OSI-aprobadas. Unicode-3.0 entra porque la cadena de dependencias
-# transitiva de `url -> idna -> icu_*` la usa. Unicode-DFS-2016 se
-# mantiene por compatibilidad con dependencias mas antiguas.
+# Licencias compatibles con Apache-2.0 y OSI-aprobadas.
+# CDLA-Permissive-2.0: licencia de la Linux Foundation para datos;
+#   usada por webpki-roots (certificados CA de Mozilla). Es permisiva
+#   y compatible con Apache-2.0. Se incluye expresamente.
+# Unicode-3.0 / Unicode-DFS-2016: cadena transitiva url -> idna -> icu_*.
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
@@ -27,7 +25,7 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "MPL-2.0",
+    "CDLA-Permissive-2.0",
     "Unicode-3.0",
     "Unicode-DFS-2016",
     "Zlib",

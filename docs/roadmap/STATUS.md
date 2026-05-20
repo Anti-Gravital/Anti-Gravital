@@ -59,7 +59,7 @@ Detalle y owner sugerido en `docs/governance/external-deliverables.md`.
 - [ ] Al menos cinco personas externas se han unido al Discord.
 - [x] La estructura de carpetas del monorepo esta definida y commiteada.
 - [x] El workspace Cargo esta inicializado con los crates vacios listados en CLAUDE.md.
-- [x] El CI construye exitosamente el workspace vacio en las cuatro plataformas objetivo. (Pendiente de verificacion del primer run.)
+- [x] El CI construye exitosamente el workspace vacio en las cuatro plataformas objetivo. Verificado en multiples runs del workflow `ci.yml` sobre Linux x86-64, Linux ARM64, macOS ARM64 y Windows x64.
 - [ ] La landing page describe en un parrafo que es el proyecto, que no es, y donde esta en el roadmap.
 
 ---
@@ -82,16 +82,16 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 ### Entregables (1.2)
 
-- [/] Crate `ag-core` con modulo `shield` operativo. (En bootstrap.)
-- [ ] Soporte de HTTP/1.1 y HTTP/2 via Axum + Tokio.
+- [x] Crate `ag-core` con modulo `shield` operativo. Pipeline completa con logging, validation, CORS, CSRF, rate-limit, auth-jwt y TLS, ademas del helper `Shield::serve(listener, router)`.
+- [x] Soporte de HTTP/1.1 y HTTP/2 via Axum + Tokio. Negociacion por ALPN bajo TLS y upgrade sobre plain.
 - [x] Terminacion TLS 1.3 con rustls. `shield::tls` + helper `Shield::serve(listener, router)` que despacha a TLS o plain segun config.
 - [x] Middleware de validacion de payload basico. Trait `Validate` y extractor `ValidatedJson<T>` bajo `shield::validation`.
 - [x] Middleware de autenticacion JWT con verificacion Ed25519. `shield::auth` con `AuthLayer`, `AuthContext` y extractor `Claims<T>`.
 - [x] Middleware de rate limiting con governor. Token bucket por IP en `shield::rate_limit`.
 - [x] Middleware CORS y CSRF con defaults seguros. CORS en `shield::cors` y CSRF en `shield::csrf` (double-submit cookie apatrida).
-- [ ] Middleware de logging estructurado con `tracing`.
+- [x] Middleware de logging estructurado con `tracing`. `shield::logging` emite un evento por request con metodo, path, status y latencia.
 - [x] Configuracion minima desde archivo TOML. `ShieldConfig::from_path` y `from_toml_str` con `deny_unknown_fields`; ejemplo en `crates/ag-core/config.example.toml`.
-- [ ] Tests unitarios con cobertura >= 80% del crate.
+- [/] Tests unitarios con cobertura >= 80% del crate. 56 unit + 27 E2E + 1 doctest = 84 tests verde con `cargo test --workspace`. La medicion oficial de cobertura con `cargo-llvm-cov` esta pendiente.
 - [x] Tests de integracion end-to-end del pipeline Shield. `tests/shield_full_pipeline.rs` arranca el Shield con todas las capas activas sobre HTTPS y valida flujo legitimo y rechazos por capa.
 - [x] Benchmark Hello World ejecutable. `cargo bench -p ag-core --bench shield_hello_world` con tres grupos criterion. Metricas duras de cierre (>=300K req/s, p99 <=1ms) se miden en PR 10 con carga real.
 - [x] Documentacion API generada con `cargo doc`. Rustdoc crate-level ampliado con tabla de capas, features, ejemplos y enlaces cruzados.
@@ -103,10 +103,10 @@ externas de Fase 0. El diseno de Shield esta fijado en
 - [ ] Latencia p99 del pipeline Shield <= 1 ms a 100K req/s.
 - [ ] Memoria del proceso idle <= 15 MB.
 - [ ] Tiempo de arranque <= 100 ms.
-- [ ] CI pasa en las cuatro plataformas objetivo.
-- [ ] Clippy sin warnings.
-- [ ] `cargo audit` sin vulnerabilidades conocidas.
-- [ ] Cero bloques `unsafe` no documentados.
+- [/] CI pasa en las cuatro plataformas objetivo. Linux x86-64, Linux ARM64 y macOS ARM64 verde de forma estable. Windows x64 verde tras el hotfix `tls-test-tmp-collisions`. Pendiente la verificacion del primer run completamente verde post-merge.
+- [x] Clippy sin warnings. `cargo clippy --workspace --all-targets -- -D warnings` limpio en local y en el job `quality/clippy`.
+- [/] `cargo audit` sin vulnerabilidades conocidas. El job `quality/audit` corre `rustsec/audit-check` en cada PR y push. `cargo deny check` (advisories) pasa localmente.
+- [x] Cero bloques `unsafe` no documentados. `unsafe_code = "deny"` en `[workspace.lints.rust]` y ningun `#[allow(unsafe_code)]` en el codigo del workspace.
 - [ ] Al menos un blog post tecnico sobre la arquitectura de Shield.
 - [ ] Al menos diez stars en el repositorio.
 

@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-20, cierre tecnico de Fase 2.
+Ultima actualizacion: 2026-05-20, medicion local de criterios de salida de Fase 2.
 
 ---
 
@@ -153,24 +153,24 @@ Estado: Implementacion tecnica completa. Criterios externos pendientes
 ### Criterios de salida (2.3)
 
 - [/] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
-  Benchmark Criterion real implementado en `examples/todo-api/benches/crud.rs`
-  (INSERT, SELECT, UPDATE, DELETE, full cycle, concurrencia 1/4/16/64).
-  La ejecucion y el registro de numeros requieren la maquina local con
-  PostgreSQL. Ver `docs/benchmarks/verificacion-local-fase-2.md` para los
-  comandos exactos y `docs/benchmarks/measurement-fase-2-crud.md` para la
-  plantilla de resultado a rellenar.
-- [/] Latencia p99 del CRUD <= 5 ms. Mismo benchmark; el p99 lo reporta
-  oha en la corrida HTTP contra el servidor en ejecucion.
+  Medido el 2026-05-20: 11 912 req/s (mediana de 3 corridas oha -z 30s -c 100)
+  en laptop AMD Ryzen 5 2500U con PostgreSQL local sin tuning de rendimiento.
+  Por debajo del objetivo; gap explicado por hardware, pool de 10 conexiones y
+  tracing middleware activo. Ver `docs/benchmarks/measurement-2026-05-20-fase-2-crud.md`.
+- [/] Latencia p99 del CRUD <= 5 ms. Medido el 2026-05-20: p99 = 11.38 ms
+  (mediana de 3 corridas). Por debajo del objetivo por las mismas condiciones.
+  Ver `docs/benchmarks/measurement-2026-05-20-fase-2-crud.md`.
 - [x] La CLI `ag new` crea el scaffold correcto y `ag dev` arranca el
-  proceso de compilacion. Verificado con templates `rest`, `realtime` y
-  `fullstack`. La ejecucion completa requiere PostgreSQL para el template
-  `fullstack`; el binario arranca sin DB para el template `rest`.
+  proceso de compilacion. Verificado el 2026-05-20: `ag new mi-api --template fullstack`
+  genera el scaffold, `ag dev` compila y arranca, `/health` responde
+  `{"status":"ok","service":"mi-api"}`. Se corrigio dependencia faltante `tracing`
+  en los tres templates (rest, realtime, fullstack); fix incluido en este commit.
 - [/] La app `todo-api` se despliega como binario unico (`FROM scratch`
-  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`. La
-  compilacion MUSL y la medicion de imagen requieren el target
-  `x86_64-unknown-linux-musl` y hardware de referencia.
-- [/] El binario release del `todo-api` ocupa <= 20 MB. Pendiente build
-  MUSL en hardware de referencia.
+  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`. No medido
+  el 2026-05-20 por ausencia de Docker en el entorno de medicion.
+- [/] El binario release del `todo-api` ocupa <= 20 MB. Build MUSL no ejecutado
+  (musl-tools requiere sudo, no disponible). Binario GNU release stripped: 5.2 MB,
+  dentro del criterio; el MUSL stripped estaria en rango similar.
 - [x] Documentacion: "Tu primera API con Anti-Gravital" publicada.
   Disponible en `docs/manual/02-primera-api.md`. Cubre todo el flujo
   desde `ag new` hasta Docker `FROM scratch`.

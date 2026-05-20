@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Alineacion documental de Fase 1
+
+Cambiado:
+
+- `docs/roadmap/STATUS.md` sincronizado con el estado real de Fase 1
+  tras el cierre tecnico de los 11 PRs de RFC-0002 mas los dos
+  hotfixes. Marcadas como `[x]` las casillas de `ag-core` operativo,
+  HTTP/1.1+HTTP/2, logging estructurado, clippy sin warnings y
+  ausencia de `unsafe`. Marcadas como `[/]` con explicacion las
+  casillas de cobertura >=80%, CI verde en las cuatro plataformas y
+  `cargo audit`, pendientes de validacion oficial. Las metricas
+  duras (300K req/s, p99, idle, arranque), blog post y stars siguen
+  `[ ]` por requerir hardware de referencia o eventos de comunidad.
+
 ### Hotfix de Fase 1 (segundo)
 
 Cambiado:

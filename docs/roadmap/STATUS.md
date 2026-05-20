@@ -112,7 +112,55 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 ## Fase 2 - The Core MVP
 
-Estado: Pendiente. Vease `docs/roadmap/fase-02-core-mvp.md`.
+Estado: En curso. Implementacion inicial completa en repositorio.
+
+### Criterios de entrada (2.1)
+
+- [x] Fase 1 completada con todos sus criterios de salida marcados.
+  (Excepcion: criterios externos de Fase 0/1 siguen pendientes; la
+  implementacion avanza bajo la misma excepcion documentada en RFC-0001.)
+- [x] El crate `ag-data` ha sido iniciado con sqlx como dependencia.
+
+### Entregables (2.2)
+
+- [x] Crate `ag-core` con modulo `core` operativo. Reexporta `State<T>`,
+  `Path<T>`, `Query<T>`, `ValidatedBody<T>`, `Claims<T>` y el modulo
+  `response` con `Json`, `PlainText` y `BodyStream`.
+- [x] Router Axum integrado con la Shield. `Shield::apply(router)` acepta
+  cualquier `Router<()>` con estado ya registrado via `with_state`.
+- [x] Extractores: `State<T>`, `ValidatedBody<T>`, `Claims<T>`, `Path<T>`,
+  `Query<T>` disponibles desde `ag_core::core`.
+- [x] Sistema de errores `AgError` expandido: `NotFound` (404),
+  `BadRequest` (400), `Conflict` (409), `Database` (500).
+- [x] Sistema de respuestas: JSON (`axum::Json`), plaintext (`PlainText`),
+  streams (`BodyStream = axum::body::Body`).
+- [x] Crate `ag-data` con pool PostgreSQL via sqlx. `DataConfig`,
+  `DbPool`, `connect()`, `run_migrations()`, conversion `DataError ->
+  AgError`.
+- [x] Sistema de migraciones embebido con `sqlx::migrate!` demostrado
+  en `examples/todo-api/`.
+- [x] Example app `todo-api` en `examples/` con CRUD completo: cinco
+  handlers GET/POST/PUT/DELETE contra PostgreSQL real.
+- [/] Benchmark CRUD + DB ejecutable. El archivo `benches/crud.rs` existe
+  en `examples/todo-api/`. Las metricas duras (>= 40K req/s, p99 <= 5ms)
+  requieren hardware de referencia con PostgreSQL y se registran en
+  `docs/benchmarks/` segun la plantilla.
+- [x] Crate `ag-cli` con comandos `new`, `dev`, `build`.
+- [x] Tres templates: `rest`, `realtime`, `fullstack` embebidos en el
+  binario `ag` via `include_str!`.
+
+### Criterios de salida (2.3)
+
+- [ ] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
+- [ ] Latencia p99 del CRUD <= 5 ms.
+- [ ] La app `todo-api` corre exitosamente con `ag new` + `ag dev`.
+- [ ] La app `todo-api` se despliega como binario unico (`FROM scratch`
+  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`.
+- [ ] El binario release del `todo-api` ocupa <= 20 MB.
+- [ ] Documentacion: "Tu primera API con Anti-Gravital" publicada.
+  Disponible en `docs/manual/02-primera-api.md`.
+- [ ] Al menos 50 stars en el repositorio.
+- [ ] Al menos tres contribuidores externos con PRs merged.
 
 ## Fase 3 - Anti-DSL alpha
 

@@ -1,0 +1,60 @@
+use ag_core::{Shield, ShieldConfig};
+use ag_data::{DataConfig, DbPool};
+use axum::{
+    extract::State,
+    routing::get,
+    Json, Router,
+};
+use serde::Serialize;
+
+#[derive(Clone)]
+struct AppState {
+    db: DbPool,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let db_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgresql://localhost/{{name}}".into());
+
+    let config = DataConfig {
+        url: db_url,
+        ..DataConfig::default()
+    };
+    let pool = ag_data::connect(&config).await?;
+
+    static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+    ag_data::run_migrations(&pool, &MIGRATOR).await?;
+
+    let state = AppState { db: pool };
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/health", get(health_handler))
+        .with_state(state);
+
+    let app = shield.apply(router);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    tracing::info!("escuchando en http://0.0.0.0:8080");
+    shield.serve(listener, app).await?;
+    Ok(())
+}
+
+#[derive(Serialize)]
+struct Health {
+    status: &'static str,
+    service: &'static str,
+}
+
+async fn health_handler(State(_state): State<AppState>) -> Json<Health> {
+    Json(Health {
+        status: "ok",
+        service: "{{name}}",
+    })
+}

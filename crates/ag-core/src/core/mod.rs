@@ -18,7 +18,7 @@
 //! # Sistema de respuestas
 //!
 //! El modulo [`response`] reexporta los tipos de respuesta de Axum y
-//! agrega [`PlainText`] para respuestas de texto plano.
+//! agrega [`response::PlainText`] para respuestas de texto plano.
 //!
 //! # Estado de la aplicacion
 //!
@@ -52,8 +52,8 @@ pub use crate::shield::Claims;
 ///
 /// Reexporta los tipos de respuesta de Axum y agrega variantes
 /// convenientes para texto plano. Los handlers que devuelven JSON
-/// usan [`Json<T>`] directamente; los que devuelven texto plano
-/// usan [`PlainText`].
+/// usan [`response::Json`] directamente; los que devuelven texto plano
+/// usan [`response::PlainText`].
 pub mod response {
     pub use axum::http::StatusCode;
     pub use axum::response::{IntoResponse, Response};

@@ -107,5 +107,6 @@ pub mod runtime;
 pub mod shield;
 
 pub use crate::config::ShieldConfig;
+pub use crate::core::AppState;
 pub use crate::error::{AgError, AgResult};
 pub use crate::shield::Shield;

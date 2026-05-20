@@ -16,6 +16,7 @@ members = [
     "crates/ag-mobile",
     "crates/ag-migrate",
     "crates/ag-wasm-host",
+    "examples/todo-api",
 ]
 
 [workspace.package]
@@ -34,11 +35,16 @@ publish = false
 
 # Dependencias compartidas del workspace.
 # Cada nueva dependencia exige RFC; el set inicial corresponde a RFC-0002
-# (diseno del Shield MVP). Los crates internos las referencian con
-# `dep = { workspace = true }`.
+# (diseno del Shield MVP). Las adiciones de Fase 2 (sqlx, clap) estan
+# justificadas en la Hoja de Ruta §2.2. Los crates internos las
+# referencian con `dep = { workspace = true }`.
 [workspace.dependencies]
-axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path"] }
+ag-core = { path = "crates/ag-core", version = "0.0.0" }
+ag-data = { path = "crates/ag-data", version = "0.0.0" }
+axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query"] }
 bytes = "1"
+clap = { version = "4", features = ["derive"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
 governor = "0.7"
 http = "1"
 jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }

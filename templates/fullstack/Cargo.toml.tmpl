@@ -1,0 +1,17 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "{{name}}"
+path = "src/main.rs"
+
+[dependencies]
+ag-core = { git = "https://github.com/anti-gravital/anti-gravital" }
+ag-data = { git = "https://github.com/anti-gravital/anti-gravital" }
+axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path"] }
+serde = { version = "1", features = ["derive"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/health", get(health))
         .route("/todos", get(list_todos).post(create_todo))
         .route(
-            "/todos/{id}",
+            "/todos/:id",
             get(get_todo).put(update_todo).delete(delete_todo),
         )
         .with_state(state);

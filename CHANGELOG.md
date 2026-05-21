@@ -7,6 +7,31 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Benchmarks reales Fase 2 y correccion de routing (2026-05-21)
+
+Corregido:
+
+- `examples/todo-api/src/main.rs`: ruta parametrizada corregida de
+  `"/todos/{id}"` (sintaxis Axum 0.8) a `"/todos/:id"` (sintaxis Axum 0.7,
+  version en uso). El bug causaba que GET, PUT y DELETE /todos/:id devolvieran
+  404 sin tocar la base de datos. Todas las mediciones previas de throughput
+  para esas rutas eran invalidas (median velocidad de respuestas 404, no
+  operaciones DB reales).
+
+Documentado:
+
+- `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`:
+  primera medicion valida de CRUD con PostgreSQL real. Hardware: AMD Ryzen 5
+  2500U, 4C/8T, PostgreSQL 18.4 nativo. Resultados: GET /todos/:id = 14 478
+  req/s mediana (c=100); POST /todos = 8 934 req/s (c=50, synchronous_commit
+  off); stack HTTP sin DB = 88 930 req/s. Los criterios de 40K req/s y p99
+  <= 5 ms no se alcanzan en este hardware con configuracion estandar de
+  PostgreSQL; el cuello de botella es el scheduler de OS con el modelo
+  proceso-por-conexion de PG sobre 4 nucleos fisicos.
+
+- `docs/roadmap/STATUS.md`: criterios 2.3 de benchmark y latencia actualizados
+  a `[ ]` con numeros reales y nota explicativa del bug de routing invalidado.
+
 ### Verificacion y cierre tecnico de Fase 2 (2026-05-21)
 
 Corregido:

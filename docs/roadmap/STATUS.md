@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-21, verificacion Docker, binario MUSL, benchmark con pool=50 y fix de seguridad jsonwebtoken.
+Ultima actualizacion: 2026-05-21, medicion real CRUD con PostgreSQL nativo, correccion bug de routing Axum 0.7 ({id} -> :id).
 
 ---
 
@@ -112,8 +112,10 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 ## Fase 2 - The Core MVP
 
-Estado: Implementacion tecnica completa. Criterios externos pendientes
-(benchmarks en hardware de referencia, metricas de comunidad).
+Estado: Implementacion tecnica completa. Benchmarks medidos en hardware
+real (Ryzen 5 2500U). Los criterios de throughput y latencia no se
+alcanzan en este hardware con PostgreSQL estandar; requieren hardware
+mas potente o pgbouncer. Criterios externos de comunidad pendientes.
 
 ### Criterios de entrada (2.1)
 
@@ -142,27 +144,33 @@ Estado: Implementacion tecnica completa. Criterios externos pendientes
   en `examples/todo-api/`.
 - [x] Example app `todo-api` en `examples/` con CRUD completo: cinco
   handlers GET/POST/PUT/DELETE contra PostgreSQL real.
-- [/] Benchmark CRUD + DB ejecutable. El archivo `benches/crud.rs` existe
-  en `examples/todo-api/`. Las metricas duras (>= 40K req/s, p99 <= 5ms)
-  requieren hardware de referencia con PostgreSQL y se registran en
-  `docs/benchmarks/` segun la plantilla.
+- [x] Benchmark CRUD + DB ejecutable. Ejecutado el 2026-05-21 en Ryzen 5 2500U
+  con PostgreSQL 18.4 nativo. Criterion: select_one_by_id = 352 us, insert = 1.90 ms,
+  full_cycle = 6.17 ms. HTTP (oha): GET /todos/:id = 14 478 req/s mediana (c=100,
+  pool=100). POST /todos = 8 934 req/s (c=50, synchronous_commit=off). Resultados
+  completos en `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+  Nota: bug de routing corregido en esta sesion (ver criterios de salida).
 - [x] Crate `ag-cli` con comandos `new`, `dev`, `build`.
 - [x] Tres templates: `rest`, `realtime`, `fullstack` embebidos en el
   binario `ag` via `include_str!`.
 
 ### Criterios de salida (2.3)
 
-- [/] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
-  Medido el 2026-05-21 con pool=50 y Docker PostgreSQL: GET /todos/:id = 82 233 req/s
-  (supera el objetivo); POST /todos = 7 004 req/s (limitado por throughput de escritura
-  de PostgreSQL en Docker sobre laptop AMD Ryzen 5 2500U). El objetivo de 40K req/s en
-  reads esta cumplido en hardware informativo; pendiente verificacion en hardware de
-  referencia (Ryzen 9 7950X) para writes. La variable DATABASE_MAX_CONNECTIONS permite
-  ajustar el pool sin recompilar.
-- [/] Latencia p99 del CRUD <= 5 ms. Medido el 2026-05-21: GET /todos/:id p99.9 = 4.89 ms
-  (p99 estimado ~3-4 ms, dentro del objetivo). POST /todos p99.9 = 58 ms por throughput
-  de escritura en Docker. Ver medicion en hardware informativo. Pendiente hardware de
-  referencia.
+- [ ] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
+  Medicion real del 2026-05-21 (Ryzen 5 2500U, PostgreSQL 18.4 nativo, c=100, pool=100):
+  GET /todos/:id = 14 478 req/s mediana. No alcanza el objetivo de 40K req/s. El numero
+  previo de "82 233 req/s" era INVALIDO: el binario tenia un bug de routing
+  (Axum 0.7 usa `:id`, no `{id}`) y todas las requests a /todos/:id devolvian 404
+  sin consultar la DB, midiendo efectivamente el throughput de respuestas 404 del stack
+  HTTP (~89K req/s). Bug corregido en esta sesion. El cuello de botella real es
+  PostgreSQL (modelo proceso-por-conexion, 4 nucleos fisicos). Para alcanzar 40K req/s
+  se requiere hardware con >= 8 nucleos fisicos o uso de pgbouncer en transaction mode.
+  Ver analisis completo en `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+- [ ] Latencia p99 del CRUD <= 5 ms. Medido el 2026-05-21: GET /todos/:id p99 = 14.6 ms
+  (mediana de 2 corridas, c=100, pool=100, PostgreSQL nativo). No cumple el objetivo
+  de 5 ms. La causa es la misma que el criterio de throughput: saturacion del scheduler
+  de OS con 100 procesos PostgreSQL en 4 nucleos. Ver documento de benchmarks citado
+  en el criterio anterior.
 - [x] La CLI `ag new` crea el scaffold correcto y `ag dev` arranca el
   proceso de compilacion. Verificado el 2026-05-21: los tres templates (rest, realtime,
   fullstack) generan scaffold correcto y compilan sin warnings. `ag build` produce

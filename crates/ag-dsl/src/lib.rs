@@ -88,6 +88,25 @@ pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
     }
 }
 
+/// Analiza el fuente DSL y retorna todos los diagnosticos (errores y warnings).
+///
+/// A diferencia de `compile()`, siempre retorna la lista completa: no descarta
+/// warnings cuando no hay errores. Usar en el servidor LSP y en `ag schema lint`.
+pub fn lint(source: &str) -> Vec<Diagnostic> {
+    let (tokens, lex_spans) = lexer::tokenize(source);
+    let mut all_diags: Vec<Diagnostic> =
+        lex_spans.into_iter().map(Diagnostic::lex_error).collect();
+
+    let (ast, parse_diags) = parser::parse_tokens(tokens, source.len());
+    all_diags.extend(parse_diags);
+
+    if let Some(schema) = ast {
+        all_diags.extend(semantic::analyze(&schema));
+    }
+
+    all_diags
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,5 +227,40 @@ model Post {
             .map(|(_, c)| c.as_str())
             .unwrap_or("");
         assert!(sql.contains("FOREIGN KEY"), "should have FK in SQL");
+    }
+
+    #[test]
+    fn lint_returns_warnings_for_model_without_primary() {
+        let src = "model Tag { name String }";
+        let diags = lint(src);
+        assert!(
+            !diags.is_empty(),
+            "lint debe retornar warnings aunque compile() retorne Ok"
+        );
+        assert!(
+            diags.iter().all(|d| !d.is_error()),
+            "para este schema solo deben ser warnings, no errores"
+        );
+    }
+
+    #[test]
+    fn lint_returns_errors_for_invalid_schema() {
+        let src = "model Bad { id UUID @primary @auto @min(1) }";
+        let diags = lint(src);
+        assert!(diags.iter().any(|d| d.is_error()));
+    }
+
+    #[test]
+    fn lint_returns_empty_for_clean_schema() {
+        let src = r#"
+model User {
+    id    UUID   @primary @auto
+    email String @unique @email @max(255)
+    name  String @min(2)
+}
+"#;
+        let diags = lint(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(errors.is_empty(), "schema limpio no debe tener errores");
     }
 }

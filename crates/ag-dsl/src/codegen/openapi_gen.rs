@@ -231,6 +231,26 @@ fn model_schema(model: &ModelDef, create_only: bool) -> Value {
         }
 
         let fname = &field.name.value;
+
+        // v0.4: campos virtuales usan $ref en lugar de type+format
+        if field.virtual_field {
+            let prop = match &field.ty.value {
+                crate::ast::FieldType::ModelRef(m) => {
+                    json!({ "$ref": format!("#/components/schemas/{m}") })
+                }
+                crate::ast::FieldType::ModelRefList(m) => {
+                    json!({
+                        "type": "array",
+                        "items": { "$ref": format!("#/components/schemas/{m}") }
+                    })
+                }
+                _ => continue,
+            };
+            properties.insert(fname.clone(), prop);
+            // Campos virtuales son opcionales (pueden no estar cargados)
+            continue;
+        }
+
         let (ts_type, format) = field.ty.value.openapi_type();
 
         let mut prop = serde_json::Map::new();
@@ -247,7 +267,7 @@ fn model_schema(model: &ModelDef, create_only: bool) -> Value {
 
         properties.insert(fname.clone(), Value::Object(prop));
 
-        if !(field.optional || create_only && is_auto_generated(field)) {
+        if !(field.optional || (create_only && is_auto_generated(field))) {
             required.push(json!(fname));
         }
     }
@@ -340,6 +360,48 @@ model Post {
             "id should be excluded from CreateRequest"
         );
         assert!(create["title"].is_object());
+    }
+
+    // ---- Tests DSL v0.4 ----
+
+    #[test]
+    fn v04_openapi_ref_schemas() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID   @primary @auto
+    posts Post[] @relation(post.author_id)
+}
+model Post {
+    id        UUID @primary @auto
+    title     String
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#,
+        );
+        let json_str = generate_openapi(&schema);
+        let doc: serde_json::Value = serde_json::from_str(&json_str).expect("valid JSON");
+
+        let author_prop = &doc["components"]["schemas"]["Post"]["properties"]["author"];
+        assert_eq!(
+            author_prop["$ref"], "#/components/schemas/User",
+            "N:1 field should use $ref to User"
+        );
+
+        let posts_prop = &doc["components"]["schemas"]["User"]["properties"]["posts"];
+        assert_eq!(
+            posts_prop["type"], "array",
+            "1:N field should be array type"
+        );
+        assert_eq!(
+            posts_prop["items"]["$ref"], "#/components/schemas/Post",
+            "1:N items should use $ref to Post"
+        );
+
+        let author_id_prop = &doc["components"]["schemas"]["Post"]["properties"]["author_id"];
+        assert_eq!(author_id_prop["type"], "string");
+        assert_eq!(author_id_prop["format"], "uuid");
     }
 
     #[test]

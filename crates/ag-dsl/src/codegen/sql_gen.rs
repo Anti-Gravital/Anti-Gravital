@@ -40,19 +40,20 @@ fn generate_table(model: &ModelDef) -> String {
     let table_name = to_snake_case(&model.name.value);
     let mut out = String::new();
 
-    // Recopila CHECK constraints de validaciones v0.3
-    let checks: Vec<String> = model
-        .fields
+    // Solo campos no-virtuales tienen columna SQL
+    let real_fields: Vec<_> = model.fields.iter().filter(|f| !f.virtual_field).collect();
+
+    let checks: Vec<String> = real_fields
         .iter()
         .flat_map(|f| field_check_constraints(&table_name, f))
         .collect();
 
     out.push_str(&format!("CREATE TABLE IF NOT EXISTS \"{table_name}\" (\n"));
 
-    let total_items = model.fields.len() + checks.len();
+    let total_items = real_fields.len() + checks.len();
     let mut item_idx = 0;
 
-    for field in &model.fields {
+    for field in &real_fields {
         let col = generate_column(field);
         item_idx += 1;
         if item_idx < total_items {
@@ -72,8 +73,8 @@ fn generate_table(model: &ModelDef) -> String {
 
     out.push_str(");\n");
 
-    // Indices UNIQUE separados (mas flexibles que UNIQUE inline).
-    for field in &model.fields {
+    // Indices UNIQUE separados (solo campos no-virtuales)
+    for field in &real_fields {
         if field
             .annotations
             .iter()
@@ -92,6 +93,38 @@ fn generate_table(model: &ModelDef) -> String {
         }
     }
 
+    // FOREIGN KEY constraints (v0.4)
+    out.push_str(&generate_fk_constraints(model, &table_name));
+
+    out
+}
+
+/// Genera clausulas ALTER TABLE ... ADD CONSTRAINT FOREIGN KEY para campos @references.
+fn generate_fk_constraints(model: &ModelDef, table_name: &str) -> String {
+    let mut out = String::new();
+
+    for field in &model.fields {
+        if field.virtual_field {
+            continue;
+        }
+        for ann in &field.annotations {
+            if let Annotation::References {
+                model: ref_model,
+                field: ref_field,
+            } = &ann.value
+            {
+                let col_name = to_snake_case(&field.name.value);
+                let ref_table = to_snake_case(ref_model);
+                let ref_col = to_snake_case(ref_field);
+                let constraint_name = format!("fk_{table_name}_{col_name}_{ref_table}_{ref_col}");
+                out.push_str(&format!(
+                    "ALTER TABLE \"{table_name}\" ADD CONSTRAINT \"{constraint_name}\" \
+                     FOREIGN KEY (\"{col_name}\") REFERENCES \"{ref_table}\" (\"{ref_col}\") \
+                     ON DELETE RESTRICT;\n"
+                ));
+            }
+        }
+    }
     out
 }
 
@@ -311,6 +344,80 @@ model Thing {
         );
         let sql = generate_migration(&schema);
         assert!(sql.contains("CREATE EXTENSION IF NOT EXISTS \"pgcrypto\""));
+    }
+
+    // ---- Tests DSL v0.4 ----
+
+    #[test]
+    fn v04_virtual_field_not_in_sql() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID @primary @auto
+    email String @unique
+}
+model Post {
+    id        UUID @primary @auto
+    title     String
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            !sql.contains("\"author\" "),
+            "virtual field should not be a column. SQL:\n{sql}"
+        );
+        assert!(sql.contains("\"author_id\""), "FK field must be present");
+    }
+
+    #[test]
+    fn v04_fk_generates_constraint() {
+        let schema = schema_from(
+            r#"
+model User {
+    id UUID @primary @auto
+}
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.id)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("FOREIGN KEY (\"author_id\") REFERENCES \"user\" (\"id\")"),
+            "should generate FOREIGN KEY. SQL:\n{sql}"
+        );
+        assert!(
+            sql.contains("fk_post_author_id_user_id"),
+            "should use naming convention. SQL:\n{sql}"
+        );
+    }
+
+    #[test]
+    fn v04_one_to_one_unique_fk() {
+        let schema = schema_from(
+            r#"
+model User {
+    id UUID @primary @auto
+}
+model Profile {
+    id      UUID @primary @auto
+    user_id UUID @unique @references(User.id)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("idx_profile_user_id_unique"),
+            "1:1 FK should have unique index. SQL:\n{sql}"
+        );
+        assert!(
+            sql.contains("FOREIGN KEY (\"user_id\") REFERENCES \"user\" (\"id\")"),
+            "should also have FK constraint. SQL:\n{sql}"
+        );
     }
 
     #[test]

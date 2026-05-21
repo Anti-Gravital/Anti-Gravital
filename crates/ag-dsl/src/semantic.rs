@@ -70,6 +70,13 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
+    // v0.4 validaciones de relaciones
+    check_references_model_exists(schema, &mut diags);
+    check_references_to_primary(schema, &mut diags);
+    check_model_ref_has_relation(schema, &mut diags);
+    check_relation_fk_field_exists(schema, &mut diags);
+    check_circular_fk(schema, &mut diags);
+
     diags
 }
 
@@ -425,6 +432,243 @@ fn check_validation_annotations(
     let _ = (string_only, Bool, Timestamp, Uuid);
 }
 
+// ---- Validaciones DSL v0.4 — relaciones ---------------------------------
+
+fn check_references_model_exists(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let model_names: HashSet<&str> = schema
+        .models
+        .iter()
+        .map(|m| m.name.value.as_str())
+        .collect();
+
+    for model in &schema.models {
+        for field in &model.fields {
+            for ann in &field.annotations {
+                if let Annotation::References {
+                    model: ref_model, ..
+                } = &ann.value
+                {
+                    if !model_names.contains(ref_model.as_str()) {
+                        diags.push(Diagnostic::semantic_error_with_hint(
+                            ann.span.clone(),
+                            format!(
+                                "el modelo '{}' referenciado en @references no esta definido",
+                                ref_model
+                            ),
+                            format!("define 'model {} {{ ... }}' en el schema", ref_model),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn check_references_to_primary(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let primary_fields: HashMap<&str, HashSet<&str>> = schema
+        .models
+        .iter()
+        .map(|m| {
+            let primaries = m
+                .fields
+                .iter()
+                .filter(|f| f.annotations.iter().any(|a| a.value == Annotation::Primary))
+                .map(|f| f.name.value.as_str())
+                .collect();
+            (m.name.value.as_str(), primaries)
+        })
+        .collect();
+
+    for model in &schema.models {
+        for field in &model.fields {
+            for ann in &field.annotations {
+                if let Annotation::References {
+                    model: ref_model,
+                    field: ref_field,
+                } = &ann.value
+                {
+                    if let Some(primaries) = primary_fields.get(ref_model.as_str()) {
+                        if !primaries.contains(ref_field.as_str()) {
+                            diags.push(Diagnostic::warning(
+                                ann.span.clone(),
+                                format!(
+                                    "se recomienda referenciar el campo @primary de '{}', no '{}'",
+                                    ref_model, ref_field
+                                ),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn check_model_ref_has_relation(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    for model in &schema.models {
+        for field in &model.fields {
+            let is_model_ref = matches!(
+                field.ty.value,
+                FieldType::ModelRef(_) | FieldType::ModelRefList(_)
+            );
+            if is_model_ref {
+                let has_relation = field
+                    .annotations
+                    .iter()
+                    .any(|a| matches!(a.value, Annotation::Relation { .. }));
+                if !has_relation {
+                    diags.push(Diagnostic::semantic_error_with_hint(
+                        field.name.span.clone(),
+                        format!(
+                            "campo '{}' de tipo relacion requiere anotacion @relation",
+                            field.name.value
+                        ),
+                        "agrega @relation(campo_fk) para campos de tipo modelo",
+                    ));
+                }
+            }
+        }
+    }
+}
+
+fn check_relation_fk_field_exists(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let model_fk_fields: HashMap<&str, HashSet<&str>> = schema
+        .models
+        .iter()
+        .map(|m| {
+            let fks = m
+                .fields
+                .iter()
+                .filter(|f| {
+                    !f.virtual_field
+                        && f.annotations
+                            .iter()
+                            .any(|a| matches!(a.value, Annotation::References { .. }))
+                })
+                .map(|f| f.name.value.as_str())
+                .collect();
+            (m.name.value.as_str(), fks)
+        })
+        .collect();
+
+    let all_model_names: HashSet<&str> = schema
+        .models
+        .iter()
+        .map(|m| m.name.value.as_str())
+        .collect();
+
+    for model in &schema.models {
+        for field in &model.fields {
+            for ann in &field.annotations {
+                if let Annotation::Relation { path } = &ann.value {
+                    if !path.contains('.') {
+                        let fks = model_fk_fields
+                            .get(model.name.value.as_str())
+                            .cloned()
+                            .unwrap_or_default();
+                        if !fks.contains(path.as_str()) {
+                            diags.push(Diagnostic::semantic_error_with_hint(
+                                ann.span.clone(),
+                                format!(
+                                    "el campo '{}' en @relation no existe o no tiene @references en el modelo '{}'",
+                                    path, model.name.value
+                                ),
+                                format!(
+                                    "agrega '{path} UUID @references(Modelo.id)' al modelo '{}'",
+                                    model.name.value
+                                ),
+                            ));
+                        }
+                    } else {
+                        let ref_model = path.split('.').next().unwrap_or("");
+                        if !ref_model.is_empty() && !all_model_names.contains(ref_model) {
+                            diags.push(Diagnostic::semantic_error_with_hint(
+                                ann.span.clone(),
+                                format!("el modelo '{}' en @relation no esta definido", ref_model),
+                                format!("define 'model {} {{ ... }}' en el schema", ref_model),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn check_circular_fk(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let mut fk_targets: HashMap<&str, HashSet<&str>> = HashMap::new();
+
+    for model in &schema.models {
+        let entry = fk_targets.entry(model.name.value.as_str()).or_default();
+        for field in &model.fields {
+            if field.virtual_field {
+                continue;
+            }
+            for ann in &field.annotations {
+                if let Annotation::References {
+                    model: ref_model, ..
+                } = &ann.value
+                {
+                    entry.insert(ref_model.as_str());
+                }
+            }
+        }
+    }
+
+    let model_names: Vec<&str> = schema
+        .models
+        .iter()
+        .map(|m| m.name.value.as_str())
+        .collect();
+
+    let mut reported: HashSet<(&str, &str)> = HashSet::new();
+
+    for &a in &model_names {
+        for &b in &model_names {
+            if a == b {
+                continue;
+            }
+            let a_to_b = fk_targets.get(a).is_some_and(|s| s.contains(b));
+            let b_to_a = fk_targets.get(b).is_some_and(|s| s.contains(a));
+
+            if a_to_b && b_to_a && !reported.contains(&(b, a)) {
+                reported.insert((a, b));
+
+                let span = schema
+                    .models
+                    .iter()
+                    .find(|m| m.name.value == a)
+                    .and_then(|m| {
+                        m.fields.iter().find(|f| {
+                            !f.virtual_field
+                                && f.annotations.iter().any(|ann| {
+                                    matches!(&ann.value,
+                                        Annotation::References { model, .. } if model == b)
+                                })
+                        })
+                    })
+                    .and_then(|f| {
+                        f.annotations.iter().find(|ann| {
+                            matches!(&ann.value,
+                                Annotation::References { model, .. } if model == b)
+                        })
+                    })
+                    .map(|ann| ann.span.clone())
+                    .unwrap_or(0..0);
+
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    span,
+                    format!(
+                        "referencia circular entre modelos '{}' y '{}': ambos tienen FK hacia el otro",
+                        a, b
+                    ),
+                    "elimina una de las FKs o convierte una en campo virtual con @relation",
+                ));
+            }
+        }
+    }
+}
+
 fn annotation_name(ann: &Annotation) -> &'static str {
     match ann {
         Annotation::Email => "@email",
@@ -718,6 +962,107 @@ model Bad {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("@length")));
+    }
+
+    // ---- Tests DSL v0.4 ----
+
+    #[test]
+    fn v04_references_to_undefined_model_is_error() {
+        let src = r#"
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(Ghost.id)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("Ghost")),
+            "should error: model Ghost not defined. Got: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn v04_references_to_non_primary_field_is_warning() {
+        let src = r#"
+model User {
+    id    UUID   @primary @auto
+    email String @unique
+}
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.email)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| !d.is_error() && d.message.contains("@primary")),
+            "should warn: email is not @primary. Got: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn v04_model_ref_without_relation_is_error() {
+        let src = r#"
+model User {
+    id UUID @primary @auto
+}
+model Post {
+    id     UUID @primary @auto
+    author User
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("@relation")),
+            "should error: ModelRef without @relation. Got: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn v04_relation_with_missing_fk_field_is_error() {
+        let src = r#"
+model User {
+    id UUID @primary @auto
+}
+model Post {
+    id     UUID @primary @auto
+    author User @relation(nonexistent_id)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("nonexistent_id")),
+            "should error: FK field nonexistent_id does not exist. Got: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn v04_circular_fk_is_error() {
+        let src = r#"
+model A {
+    id UUID @primary @auto
+    b_id UUID @references(B.id)
+}
+model B {
+    id UUID @primary @auto
+    a_id UUID @references(A.id)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("circular")),
+            "should error: circular FK between A and B. Got: {diags:?}"
+        );
     }
 
     #[test]

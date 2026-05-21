@@ -64,12 +64,18 @@ fn generate_model_struct(model: &ModelDef) -> String {
     out.push_str(&format!("pub struct {name} {{\n"));
 
     for field in &model.fields {
-        let rust_ty = rust_field_type(field);
         let fname = &field.name.value;
-        // UUID usa serde rename cuando el nombre de campo es 'id'
-        if field.ty.value == FieldType::Uuid && fname == "id" {
+        if field.virtual_field {
+            let rust_ty = match &field.ty.value {
+                FieldType::ModelRef(m) => format!("Option<{m}>"),
+                FieldType::ModelRefList(m) => format!("Vec<{m}>"),
+                _ => continue,
+            };
+            out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
+        } else if field.ty.value == FieldType::Uuid && fname == "id" {
             out.push_str("    pub id: Uuid,\n");
         } else {
+            let rust_ty = rust_field_type(field);
             out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
         }
     }
@@ -84,7 +90,7 @@ fn generate_create_request(model: &ModelDef) -> String {
     let create_fields: Vec<_> = model
         .fields
         .iter()
-        .filter(|f| !is_auto_generated(f))
+        .filter(|f| !is_auto_generated(f) && !f.virtual_field)
         .collect();
 
     if create_fields.is_empty() {
@@ -116,7 +122,7 @@ fn generate_update_request(model: &ModelDef) -> String {
     let update_fields: Vec<_> = model
         .fields
         .iter()
-        .filter(|f| !is_auto_generated(f) && !is_primary(f))
+        .filter(|f| !is_auto_generated(f) && !is_primary(f) && !f.virtual_field)
         .collect();
 
     if update_fields.is_empty() {
@@ -477,6 +483,84 @@ model Item {
         );
         let out = generate_models(&schema);
         assert!(out.contains("use uuid::Uuid;"));
+    }
+
+    // ---- Tests DSL v0.4 ----
+
+    #[test]
+    fn v04_model_ref_generates_option() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID @primary @auto
+    email String
+}
+model Post {
+    id        UUID @primary @auto
+    title     String
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#,
+        );
+        let out = generate_models(&schema);
+        assert!(
+            out.contains("pub author: Option<User>"),
+            "N:1 virtual field should be Option<User>. Output:\n{out}"
+        );
+        assert!(
+            out.contains("pub author_id:"),
+            "FK field must be in struct. Output:\n{out}"
+        );
+    }
+
+    #[test]
+    fn v04_model_ref_list_generates_vec() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID   @primary @auto
+    posts Post[] @relation(post.author_id)
+}
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.id)
+}
+"#,
+        );
+        let out = generate_models(&schema);
+        assert!(
+            out.contains("pub posts: Vec<Post>"),
+            "1:N virtual field should be Vec<Post>. Output:\n{out}"
+        );
+    }
+
+    #[test]
+    fn v04_virtual_field_excluded_from_create_request() {
+        let schema = schema_from(
+            r#"
+model Post {
+    id        UUID @primary @auto
+    title     String
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+model User {
+    id UUID @primary @auto
+}
+"#,
+        );
+        let out = generate_models(&schema);
+        let create_start = out.find("pub struct CreatePostRequest").unwrap_or(0);
+        let create_end = out[create_start..]
+            .find('}')
+            .unwrap_or(out.len() - create_start)
+            + create_start;
+        let create_body = &out[create_start..create_end];
+        assert!(
+            !create_body.contains("author:"),
+            "virtual field should not appear in CreateRequest. Body:\n{create_body}"
+        );
     }
 
     #[test]

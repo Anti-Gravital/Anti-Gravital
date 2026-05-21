@@ -209,7 +209,8 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 - [x] DSL version 0.1: modelos basicos (@primary, @unique, @auto). Commit 5aa442d.
 - [x] DSL version 0.2: endpoints (metodo, path, body, response, errors). Commit 7d41930.
 - [x] DSL version 0.3: validaciones (@min, @max, @email, @regex, @length). Commit 47ae623.
-- [ ] DSL version 0.4: relaciones entre modelos (1:1, 1:N, N:M).
+- [x] DSL version 0.4: relaciones entre modelos (1:1, 1:N, N:M). @references/@relation,
+  SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TypeScript tipos opcionales, OpenAPI $ref. Commit 9a541cd..HEAD.
 - [x] Generador Rust: structs con serde (v0.1), types.rs + handlers.rs + router.rs (v0.2).
 - [x] Generador SQL: migraciones idempotentes (v0.1).
 - [x] Generador TypeScript: tipos y cliente HTTP (v0.1+v0.2).

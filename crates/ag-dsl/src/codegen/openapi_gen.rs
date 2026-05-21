@@ -1,0 +1,194 @@
+//! Generador OpenAPI 3.1 para DSL v0.1.
+//!
+//! Produce el bloque `components/schemas` del documento OpenAPI en formato
+//! JSON. La salida puede convertirse a YAML con herramientas externas.
+//! En DSL v0.2 se añadiran los bloques `paths` y `operations`.
+
+use serde_json::{json, Value};
+
+use crate::ast::{Annotation, FieldDef, ModelDef, Schema};
+
+/// Genera el documento OpenAPI 3.1 con solo `components/schemas`.
+///
+/// Retorna JSON formateado con indentacion de dos espacios.
+pub fn generate_openapi(schema: &Schema) -> String {
+    let mut schemas = serde_json::Map::new();
+
+    for model in &schema.models {
+        let name = &model.name.value;
+        schemas.insert(name.clone(), model_schema(model, false));
+        schemas.insert(format!("Create{name}Request"), model_schema(model, true));
+    }
+
+    let project_name = schema
+        .config
+        .as_ref()
+        .and_then(|c| c.project_name.as_deref())
+        .unwrap_or("anti-gravital-api");
+
+    let doc = json!({
+        "openapi": "3.1.0",
+        "info": {
+            "title": project_name,
+            "version": "0.1.0",
+            "description": "API generada por Anti-Gravital ag-dsl v0.1"
+        },
+        "components": {
+            "schemas": schemas
+        }
+    });
+
+    serde_json::to_string_pretty(&doc).expect("serde_json serialization is infallible")
+}
+
+/// Genera el schema JSON Schema de un modelo.
+///
+/// Si `create_only` es true, omite los campos @auto para el CreateRequest.
+fn model_schema(model: &ModelDef, create_only: bool) -> Value {
+    let mut properties = serde_json::Map::new();
+    let mut required: Vec<Value> = Vec::new();
+
+    for field in &model.fields {
+        // Omitir campos @auto en el schema de creacion
+        if create_only && is_auto_generated(field) {
+            continue;
+        }
+
+        let fname = &field.name.value;
+        let (ts_type, format) = field.ty.value.openapi_type();
+
+        let mut prop = serde_json::Map::new();
+        prop.insert("type".to_owned(), json!(ts_type));
+        if let Some(fmt) = format {
+            prop.insert("format".to_owned(), json!(fmt));
+        }
+        if field.optional {
+            // OpenAPI 3.1 usa nullable via type array
+            prop.insert("type".to_owned(), json!([ts_type, "null"]));
+        }
+
+        properties.insert(fname.clone(), Value::Object(prop));
+
+        if !(field.optional || create_only && is_auto_generated(field)) {
+            required.push(json!(fname));
+        }
+    }
+
+    let mut schema = serde_json::Map::new();
+    schema.insert("type".to_owned(), json!("object"));
+    if !required.is_empty() {
+        schema.insert("required".to_owned(), Value::Array(required));
+    }
+    schema.insert("properties".to_owned(), Value::Object(properties));
+
+    Value::Object(schema)
+}
+
+fn is_auto_generated(field: &FieldDef) -> bool {
+    field
+        .annotations
+        .iter()
+        .any(|a| matches!(a.value, Annotation::Auto | Annotation::AutoUpdate))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexer::tokenize;
+    use crate::parser::parse_tokens;
+
+    fn schema_from(src: &str) -> Schema {
+        let (tokens, _) = tokenize(src);
+        let (ast, _) = parse_tokens(tokens, src.len());
+        ast.expect("valid schema")
+    }
+
+    #[test]
+    fn generates_openapi_json() {
+        let schema = schema_from(
+            r#"
+config {
+    project_name "test-api"
+    database "postgres"
+}
+
+model User {
+    id    UUID   @primary @auto
+    email String @unique
+    name  String
+}
+"#,
+        );
+        let json_str = generate_openapi(&schema);
+        let doc: serde_json::Value = serde_json::from_str(&json_str).expect("valid JSON");
+
+        assert_eq!(doc["openapi"], "3.1.0");
+        assert_eq!(doc["info"]["title"], "test-api");
+        assert!(doc["components"]["schemas"]["User"].is_object());
+        assert!(doc["components"]["schemas"]["CreateUserRequest"].is_object());
+    }
+
+    #[test]
+    fn uuid_has_format() {
+        let schema = schema_from(
+            r#"
+model Item {
+    id UUID @primary @auto
+    v  Int
+}
+"#,
+        );
+        let json_str = generate_openapi(&schema);
+        let doc: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        let id_prop = &doc["components"]["schemas"]["Item"]["properties"]["id"];
+        assert_eq!(id_prop["format"], "uuid");
+    }
+
+    #[test]
+    fn auto_field_excluded_from_create_schema() {
+        let schema = schema_from(
+            r#"
+model Post {
+    id    UUID @primary @auto
+    title String
+}
+"#,
+        );
+        let json_str = generate_openapi(&schema);
+        let doc: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        let create = &doc["components"]["schemas"]["CreatePostRequest"]["properties"];
+        assert!(
+            create["id"].is_null(),
+            "id should be excluded from CreateRequest"
+        );
+        assert!(create["title"].is_object());
+    }
+
+    #[test]
+    fn required_fields_listed() {
+        let schema = schema_from(
+            r#"
+model Product {
+    id   UUID   @primary @auto
+    name String
+    desc String?
+}
+"#,
+        );
+        let json_str = generate_openapi(&schema);
+        let doc: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        let required = &doc["components"]["schemas"]["Product"]["required"];
+        let required_list: Vec<&str> = required
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert!(required_list.contains(&"id"));
+        assert!(required_list.contains(&"name"));
+        assert!(
+            !required_list.contains(&"desc"),
+            "optional field should not be required"
+        );
+    }
+}

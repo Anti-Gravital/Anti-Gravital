@@ -223,7 +223,8 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 - [ ] Plugin VS Code.
 - [/] Cobertura tests >= 85%. 73 tests verdes; cobertura formal pendiente.
 - [ ] Fuzzing 24h sin crashes.
-- [ ] Documentacion de referencia del DSL.
+- [x] Documentacion de referencia del DSL. `docs/dsl/referencia-v01-v04.md` — cubre tipos,
+  anotaciones v0.1–v0.4, generacion de codigo, diagnostics y limitaciones conocidas.
 
 ### Criterios de salida (3.3)
 

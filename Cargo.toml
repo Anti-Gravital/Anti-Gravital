@@ -36,15 +36,19 @@ publish = false
 # Dependencias compartidas del workspace.
 # Cada nueva dependencia exige RFC; el set inicial corresponde a RFC-0002
 # (diseno del Shield MVP). Las adiciones de Fase 2 (sqlx, clap) estan
-# justificadas en la Hoja de Ruta §2.2. Los crates internos las
-# referencian con `dep = { workspace = true }`.
+# justificadas en la Hoja de Ruta §2.2. Las adiciones de Fase 3 (logos,
+# chumsky) estan justificadas en RFC-0003 (compilador ag-dsl).
+# Los crates internos las referencian con `dep = { workspace = true }`.
 [workspace.dependencies]
 ag-core = { path = "crates/ag-core", version = "0.0.0" }
 ag-data = { path = "crates/ag-data", version = "0.0.0" }
+ag-dsl = { path = "crates/ag-dsl", version = "0.0.0" }
 axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query"] }
 bytes = "1"
 clap = { version = "4", features = ["derive"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
+chumsky = "0.9"
+logos = "0.14"
 governor = "0.7"
 http = "1"
 jsonwebtoken = { version = "10", default-features = false, features = ["use_pem", "rust_crypto"] }

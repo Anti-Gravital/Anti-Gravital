@@ -9,10 +9,17 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Lexer, parser, analisis semantico y codegen del Anti-DSL"
+description = "Compilador del Anti-DSL: lexer, parser, AST, analisis semantico y generadores de codigo"
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+# Fase 3 — RFC-0003: logos (lexer), chumsky (parser), serde_json (OpenAPI)
+logos = { workspace = true }
+chumsky = { workspace = true }
+thiserror = { workspace = true }
+serde_json = { workspace = true }

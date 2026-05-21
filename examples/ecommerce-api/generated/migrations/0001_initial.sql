@@ -1,0 +1,67 @@
+-- Migracion generada por Anti-Gravital ag-dsl v0.1.
+-- NO editar manualmente. Regenerar con `ag generate`.
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS "user" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    "email" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT "chk_user_email_email" CHECK ("email" ~ '^[^@]+@[^@]+\.[^@]+$'),
+    CONSTRAINT "chk_user_email_max" CHECK (char_length("email") <= 255),
+    CONSTRAINT "chk_user_email_min" CHECK (char_length("email") >= 5),
+    CONSTRAINT "chk_user_name_min" CHECK (char_length("name") >= 2),
+    CONSTRAINT "chk_user_name_max" CHECK (char_length("name") <= 100)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_user_email_unique" ON "user" ("email");
+
+CREATE TABLE IF NOT EXISTS "category" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    CONSTRAINT "chk_category_name_min" CHECK (char_length("name") >= 2),
+    CONSTRAINT "chk_category_name_max" CHECK (char_length("name") <= 100)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_category_name_unique" ON "category" ("name");
+
+CREATE TABLE IF NOT EXISTS "product" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" NUMERIC NOT NULL,
+    "stock" BIGINT NOT NULL,
+    "category_id" UUID NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT "chk_product_name_min" CHECK (char_length("name") >= 2),
+    CONSTRAINT "chk_product_name_max" CHECK (char_length("name") <= 200),
+    CONSTRAINT "chk_product_price_min" CHECK ("price" >= 0),
+    CONSTRAINT "chk_product_stock_min" CHECK ("stock" >= 0)
+);
+ALTER TABLE "product" ADD CONSTRAINT "fk_product_category_id_category_id" FOREIGN KEY ("category_id") REFERENCES "category" ("id") ON DELETE RESTRICT;
+
+CREATE TABLE IF NOT EXISTS "order" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    "user_id" UUID NOT NULL,
+    "total" NUMERIC NOT NULL,
+    "status" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT "chk_order_total_min" CHECK ("total" >= 0),
+    CONSTRAINT "chk_order_status_min" CHECK (char_length("status") >= 3),
+    CONSTRAINT "chk_order_status_max" CHECK (char_length("status") <= 20)
+);
+ALTER TABLE "order" ADD CONSTRAINT "fk_order_user_id_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE RESTRICT;
+
+CREATE TABLE IF NOT EXISTS "order_item" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    "order_id" UUID NOT NULL,
+    "product_id" UUID NOT NULL,
+    "quantity" BIGINT NOT NULL,
+    "unit_price" NUMERIC NOT NULL,
+    CONSTRAINT "chk_order_item_quantity_min" CHECK ("quantity" >= 1),
+    CONSTRAINT "chk_order_item_unit_price_min" CHECK ("unit_price" >= 0)
+);
+ALTER TABLE "order_item" ADD CONSTRAINT "fk_order_item_order_id_order_id" FOREIGN KEY ("order_id") REFERENCES "order" ("id") ON DELETE RESTRICT;
+ALTER TABLE "order_item" ADD CONSTRAINT "fk_order_item_product_id_product_id" FOREIGN KEY ("product_id") REFERENCES "product" ("id") ON DELETE RESTRICT;
+

@@ -1,0 +1,126 @@
+//! Tipos de API generados por Anti-Gravital ag-dsl v0.2.
+//! NO editar manualmente. Regenerar con `ag generate`.
+
+#![allow(dead_code)]
+
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+/// Cuerpo de peticion para `CreateUserRequest`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateUserRequest {
+    pub email: String,
+    pub name: String,
+}
+
+impl CreateUserRequest {
+/// Valida todas las restricciones declaradas en el schema DSL.
+/// Retorna la lista de errores; vacio significa valido.
+pub fn validate(&self) -> Vec<String> {
+let mut errors: Vec<String> = Vec::new();
+    {
+let s = &self.email;
+let valid = s.contains('@') && s.rfind('@')
+.map(|i| s[i+1..].contains('.'))
+.unwrap_or(false);
+if !valid {
+errors.push("email: formato de email invalido".to_owned());
+}
+}
+    if self.email.len() > 255 {
+errors.push(format!("email: longitud maxima es 255, encontrado {} caracteres", self.email.len()));
+}
+    if self.email.len() < 5 {
+errors.push(format!("email: longitud minima es 5, encontrado {} caracteres", self.email.len()));
+}
+    if self.name.len() < 2 {
+errors.push(format!("name: longitud minima es 2, encontrado {} caracteres", self.name.len()));
+}
+    if self.name.len() > 100 {
+errors.push(format!("name: longitud maxima es 100, encontrado {} caracteres", self.name.len()));
+}
+    errors
+}
+}
+
+/// Cuerpo de peticion para `CreateProductRequest`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateProductRequest {
+    pub name: String,
+    pub price: rust_decimal::Decimal,
+    pub stock: i64,
+    pub category_id: uuid::Uuid,
+}
+
+impl CreateProductRequest {
+/// Valida todas las restricciones declaradas en el schema DSL.
+/// Retorna la lista de errores; vacio significa valido.
+pub fn validate(&self) -> Vec<String> {
+let mut errors: Vec<String> = Vec::new();
+    if self.name.len() < 2 {
+errors.push(format!("name: longitud minima es 2, encontrado {} caracteres", self.name.len()));
+}
+    if self.name.len() > 200 {
+errors.push(format!("name: longitud maxima es 200, encontrado {} caracteres", self.name.len()));
+}
+    if (self.price as i64) < 0 {
+errors.push("price: valor minimo es 0".to_owned());
+}
+    if (self.stock as i64) < 0 {
+errors.push("stock: valor minimo es 0".to_owned());
+}
+    errors
+}
+}
+
+/// Cuerpo de peticion para `CreateOrderRequest`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOrderRequest {
+    pub user_id: uuid::Uuid,
+    pub items: String,
+}
+
+/// Cuerpo de respuesta para `UserResponse`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserResponse {
+    pub id: uuid::Uuid,
+    pub email: String,
+    pub name: String,
+}
+
+/// Cuerpo de respuesta para `ProductResponse`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductResponse {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub price: rust_decimal::Decimal,
+    pub stock: i64,
+    pub category_id: uuid::Uuid,
+}
+
+/// Cuerpo de respuesta para `OrderResponse`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderResponse {
+    pub id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub total: rust_decimal::Decimal,
+    pub status: String,
+    pub created_at: uuid::Uuid,
+}
+
+/// Error HTTP 404: Recurso no encontrado
+pub const NOT_FOUND_STATUS: u16 = 404;
+pub const NOT_FOUND_MESSAGE: &str = "Recurso no encontrado";
+
+/// Error HTTP 409: El email ya esta registrado
+pub const EMAIL_TAKEN_STATUS: u16 = 409;
+pub const EMAIL_TAKEN_MESSAGE: &str = "El email ya esta registrado";
+
+/// Error HTTP 422: Stock insuficiente para completar el pedido
+pub const INSUFFICIENT_STOCK_STATUS: u16 = 422;
+pub const INSUFFICIENT_STOCK_MESSAGE: &str = "Stock insuficiente para completar el pedido";
+
+/// Error HTTP 400: Datos de entrada invalidos
+pub const INVALID_INPUT_STATUS: u16 = 400;
+pub const INVALID_INPUT_MESSAGE: &str = "Datos de entrada invalidos";
+

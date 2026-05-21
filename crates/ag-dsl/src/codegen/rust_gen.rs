@@ -1,13 +1,12 @@
-//! Generador Rust para DSL v0.1.
+//! Generador Rust para DSL v0.1–v0.2.
 //!
-//! Produce structs Rust con serde::{Serialize, Deserialize} a partir de
-//! los modelos del schema. Por cada modelo genera:
-//!
-//! - `NombreModel` — struct completo (para respuestas y persistencia).
-//! - `CreateNombreRequest` — sin campos @auto (para POST).
-//! - `UpdateNombreRequest` — todos los campos no-@auto como `Option<T>` (para PUT/PATCH).
+//! Produce structs Rust con serde a partir de los modelos del schema (v0.1),
+//! y tipos API + handler stubs + router a partir de endpoints (v0.2).
 
-use crate::ast::{Annotation, FieldDef, FieldType, ModelDef, Schema};
+use crate::ast::{
+    extract_path_params, to_snake_case, Annotation, EndpointDef, FieldDef, FieldType, HttpMethod,
+    ModelDef, RequestDef, ResponseDef, Schema,
+};
 
 /// Genera el contenido del archivo `src/models.rs` para el schema dado.
 pub fn generate_models(schema: &Schema) -> String {
@@ -161,6 +160,176 @@ fn is_primary(field: &FieldDef) -> bool {
         .annotations
         .iter()
         .any(|a| a.value == Annotation::Primary)
+}
+
+// ---- Generadores DSL v0.2 -------------------------------------------
+
+/// Genera el contenido de `src/types.rs`: structs para request, response y error.
+///
+/// Retorna cadena vacia si el schema no define ningun tipo API.
+pub fn generate_types(schema: &Schema) -> String {
+    if schema.requests.is_empty() && schema.responses.is_empty() && schema.errors.is_empty() {
+        return String::new();
+    }
+    let mut out = String::new();
+    out.push_str("//! Tipos de API generados por Anti-Gravital ag-dsl v0.2.\n");
+    out.push_str("//! NO editar manualmente. Regenerar con `ag generate`.\n\n");
+    out.push_str("#![allow(dead_code)]\n\n");
+    out.push_str("use serde::{Deserialize, Serialize};\n");
+
+    let needs_uuid = schema
+        .requests
+        .iter()
+        .any(|r| r.fields.iter().any(|f| f.ty.value == FieldType::Uuid))
+        || schema
+            .responses
+            .iter()
+            .any(|r| r.fields.iter().any(|f| f.ty.value == FieldType::Uuid));
+    if needs_uuid {
+        out.push_str("use uuid::Uuid;\n");
+    }
+    out.push('\n');
+
+    for req in &schema.requests {
+        out.push_str(&generate_request_struct(req));
+        out.push('\n');
+    }
+    for resp in &schema.responses {
+        out.push_str(&generate_response_struct(resp));
+        out.push('\n');
+    }
+    for err in &schema.errors {
+        out.push_str(&format!(
+            "/// Error HTTP {}: {}\n",
+            err.status.value, err.message.value
+        ));
+        out.push_str(&format!(
+            "pub const {}_STATUS: u16 = {};\n",
+            to_snake_case(&err.name.value).to_uppercase(),
+            err.status.value
+        ));
+        out.push_str(&format!(
+            "pub const {}_MESSAGE: &str = \"{}\";\n\n",
+            to_snake_case(&err.name.value).to_uppercase(),
+            err.message.value
+        ));
+    }
+    out
+}
+
+fn generate_request_struct(req: &RequestDef) -> String {
+    let name = &req.name.value;
+    let mut out = String::new();
+    out.push_str(&format!("/// Cuerpo de peticion para `{name}`.\n"));
+    out.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
+    out.push_str(&format!("pub struct {name} {{\n"));
+    for field in &req.fields {
+        let rust_ty = field.ty.value.rust_type(field.optional);
+        let fname = &field.name.value;
+        out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
+    }
+    out.push_str("}\n");
+    out
+}
+
+fn generate_response_struct(resp: &ResponseDef) -> String {
+    let name = &resp.name.value;
+    let mut out = String::new();
+    out.push_str(&format!("/// Cuerpo de respuesta para `{name}`.\n"));
+    out.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
+    out.push_str(&format!("pub struct {name} {{\n"));
+    for field in &resp.fields {
+        let rust_ty = field.ty.value.rust_type(field.optional);
+        let fname = &field.name.value;
+        out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
+    }
+    out.push_str("}\n");
+    out
+}
+
+/// Genera el contenido de `src/handlers.rs`: stubs de handlers Axum.
+pub fn generate_handlers(schema: &Schema) -> String {
+    if schema.endpoints.is_empty() {
+        return String::new();
+    }
+    let mut out = String::new();
+    out.push_str("//! Handler stubs generados por Anti-Gravital ag-dsl v0.2.\n");
+    out.push_str("//! Implementa el cuerpo de cada funcion para completar la API.\n\n");
+    out.push_str("#![allow(unused_variables, clippy::unused_async)]\n\n");
+    out.push_str("use axum::{extract::{Path, State}, Json};\n\n");
+    for ep in &schema.endpoints {
+        out.push_str(&generate_handler_stub(ep));
+        out.push('\n');
+    }
+    out
+}
+
+fn generate_handler_stub(ep: &EndpointDef) -> String {
+    let fn_name = to_snake_case(&ep.name.value);
+    let method_str = ep.method.value.as_str();
+    let path_str = &ep.path.value;
+    let path_params = extract_path_params(path_str);
+
+    let mut params = vec!["State(state): State<AppState>".to_owned()];
+    for param in &path_params {
+        params.push(format!("Path({param}): Path<String>"));
+    }
+    if let Some(body) = &ep.body {
+        params.push(format!("Json(body): Json<{}>", body.value));
+    }
+
+    let return_ty = if let Some(resp) = &ep.response {
+        format!("Result<Json<{}>, axum::http::StatusCode>", resp.value)
+    } else {
+        "axum::http::StatusCode".to_owned()
+    };
+
+    let mut out = String::new();
+    out.push_str(&format!(
+        "/// {method_str} {path_str} — {}\n",
+        ep.name.value
+    ));
+    out.push_str(&format!(
+        "pub async fn {fn_name}(\n    {}\n) -> {return_ty} {{\n",
+        params.join(",\n    ")
+    ));
+    out.push_str("    todo!()\n}\n");
+    out
+}
+
+/// Genera el contenido de `src/router.rs`: registro de rutas Axum.
+pub fn generate_router(schema: &Schema) -> String {
+    if schema.endpoints.is_empty() {
+        return String::new();
+    }
+    use crate::ast::dsl_path_to_axum;
+
+    let mut out = String::new();
+    out.push_str("//! Router generado por Anti-Gravital ag-dsl v0.2.\n\n");
+    out.push_str("use axum::routing;\n");
+    out.push_str("use super::handlers;\n\n");
+    out.push_str("/// Placeholder para el estado de la aplicacion.\n");
+    out.push_str("pub type AppState = ();\n\n");
+    out.push_str("/// Crea el router Axum con todas las rutas definidas en el schema.\n");
+    out.push_str("pub fn api_router() -> axum::Router<AppState> {\n");
+    out.push_str("    axum::Router::new()\n");
+
+    for ep in &schema.endpoints {
+        let fn_name = to_snake_case(&ep.name.value);
+        let axum_path = dsl_path_to_axum(&ep.path.value);
+        let axum_method = match ep.method.value {
+            HttpMethod::Get => "get",
+            HttpMethod::Post => "post",
+            HttpMethod::Put => "put",
+            HttpMethod::Patch => "patch",
+            HttpMethod::Delete => "delete",
+        };
+        out.push_str(&format!(
+            "        .route(\"{axum_path}\", routing::{axum_method}(handlers::{fn_name}))\n"
+        ));
+    }
+    out.push_str("}\n");
+    out
 }
 
 #[cfg(test)]

@@ -1,16 +1,17 @@
-//! Generador TypeScript para DSL v0.1.
+//! Generador TypeScript para DSL v0.1–v0.2.
 //!
-//! Produce interfaces TypeScript con tipos precisos para cada modelo.
-//! Los campos @auto se incluyen como requeridos en la interfaz completa
-//! y se excluyen en la interfaz de creacion.
+//! Produce interfaces TypeScript para modelos, request/response types y
+//! un cliente HTTP tipado por cada endpoint.
 
-use crate::ast::{Annotation, FieldDef, ModelDef, Schema};
+use crate::ast::{extract_path_params, Annotation, EndpointDef, FieldDef, ModelDef, Schema};
 
 /// Genera el contenido del archivo `clients/typescript/types.ts`.
+///
+/// Incluye interfaces para modelos (v0.1) y para request/response/error types (v0.2).
 pub fn generate_types(schema: &Schema) -> String {
     let mut out = String::new();
 
-    out.push_str("// Tipos generados por Anti-Gravital ag-dsl v0.1.\n");
+    out.push_str("// Tipos generados por Anti-Gravital ag-dsl v0.1-v0.2.\n");
     out.push_str("// NO editar manualmente. Regenerar con `ag generate`.\n\n");
 
     for model in &schema.models {
@@ -22,7 +23,115 @@ pub fn generate_types(schema: &Schema) -> String {
         out.push('\n');
     }
 
+    for req in &schema.requests {
+        out.push_str(&generate_simple_interface(&req.name.value, &req.fields));
+        out.push('\n');
+    }
+    for resp in &schema.responses {
+        out.push_str(&generate_simple_interface(&resp.name.value, &resp.fields));
+        out.push('\n');
+    }
+
     out
+}
+
+/// Genera el contenido del archivo `clients/typescript/client.ts`.
+///
+/// Produce funciones tipadas para cada endpoint del schema.
+pub fn generate_client(schema: &Schema) -> String {
+    if schema.endpoints.is_empty() {
+        return String::new();
+    }
+    let mut out = String::new();
+    out.push_str("// Cliente HTTP generado por Anti-Gravital ag-dsl v0.2.\n");
+    out.push_str("// NO editar manualmente. Regenerar con `ag generate`.\n\n");
+    out.push_str("const BASE_URL = '';\n\n");
+    for ep in &schema.endpoints {
+        out.push_str(&generate_api_function(ep));
+        out.push('\n');
+    }
+    out
+}
+
+fn generate_api_function(ep: &EndpointDef) -> String {
+    let fn_name = to_camel_case(&ep.name.value);
+    let method = ep.method.value.as_str();
+    let path = &ep.path.value;
+    let path_params = extract_path_params(path);
+
+    // Parametros de la funcion
+    let mut params: Vec<String> = path_params.iter().map(|p| format!("{p}: string")).collect();
+    if let Some(body) = &ep.body {
+        params.push(format!("body: {}", body.value));
+    }
+
+    let return_ty = if let Some(resp) = &ep.response {
+        format!("Promise<{}>", resp.value)
+    } else {
+        "Promise<void>".to_owned()
+    };
+
+    // Construye la URL con interpolacion de path params
+    let url = if path_params.is_empty() {
+        format!("`${{BASE_URL}}{path}`")
+    } else {
+        let mut url = format!("`${{BASE_URL}}{path}");
+        // Reemplaza {param} por ${param} en la template string
+        for p in &path_params {
+            url = url.replace(&format!("{{{p}}}"), &format!("${{{p}}}"));
+        }
+        url.push('`');
+        url
+    };
+
+    let needs_json = ep.body.is_some();
+    let method_lower = method.to_lowercase();
+
+    let mut out = String::new();
+    out.push_str(&format!("/** {method} {path} */\n"));
+    out.push_str(&format!(
+        "export async function {fn_name}({}) : {return_ty} {{\n",
+        params.join(", ")
+    ));
+    out.push_str(&format!("  const resp = await fetch({url}, {{\n"));
+    out.push_str(&format!("    method: '{method_lower}',\n"));
+    if needs_json {
+        out.push_str("    headers: { 'Content-Type': 'application/json' },\n");
+        out.push_str("    body: JSON.stringify(body),\n");
+    }
+    out.push_str("  });\n");
+    out.push_str(&format!(
+        "  if (!resp.ok) throw new Error(`{fn_name} failed: ${{resp.status}}`);\n"
+    ));
+    if ep.response.is_some() {
+        out.push_str("  return resp.json();\n");
+    }
+    out.push_str("}\n");
+    out
+}
+
+/// Interfaz simple sin variantes Create/Update (para request/response types).
+fn generate_simple_interface(name: &str, fields: &[FieldDef]) -> String {
+    let mut out = String::new();
+    out.push_str(&format!("/** API type `{name}`. */\n"));
+    out.push_str(&format!("export interface {name} {{\n"));
+    for field in fields {
+        let ts_ty = ts_field_type(field);
+        let fname = &field.name.value;
+        let opt = if field.optional { "?" } else { "" };
+        out.push_str(&format!("  {fname}{opt}: {ts_ty};\n"));
+    }
+    out.push_str("}\n");
+    out
+}
+
+/// Convierte PascalCase a camelCase para nombres de funcion TypeScript.
+fn to_camel_case(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_lowercase().collect::<String>() + chars.as_str(),
+    }
 }
 
 /// Interfaz completa del modelo.

@@ -1,23 +1,31 @@
-//! Generador OpenAPI 3.1 para DSL v0.1.
+//! Generador OpenAPI 3.1 para DSL v0.1–v0.2.
 //!
-//! Produce el bloque `components/schemas` del documento OpenAPI en formato
-//! JSON. La salida puede convertirse a YAML con herramientas externas.
-//! En DSL v0.2 se añadiran los bloques `paths` y `operations`.
+//! Produce `components/schemas` (v0.1) y `paths` con operaciones (v0.2).
+//! La salida esta en formato JSON; puede convertirse a YAML con herramientas externas.
 
 use serde_json::{json, Value};
 
-use crate::ast::{Annotation, FieldDef, ModelDef, Schema};
+use crate::ast::{Annotation, EndpointDef, FieldDef, HttpMethod, ModelDef, Schema};
 
-/// Genera el documento OpenAPI 3.1 con solo `components/schemas`.
+/// Genera el documento OpenAPI 3.1 completo.
 ///
 /// Retorna JSON formateado con indentacion de dos espacios.
 pub fn generate_openapi(schema: &Schema) -> String {
     let mut schemas = serde_json::Map::new();
 
+    // Schemas de modelos (v0.1)
     for model in &schema.models {
         let name = &model.name.value;
         schemas.insert(name.clone(), model_schema(model, false));
         schemas.insert(format!("Create{name}Request"), model_schema(model, true));
+    }
+
+    // Schemas de request/response types (v0.2)
+    for req in &schema.requests {
+        schemas.insert(req.name.value.clone(), simple_type_schema(&req.fields));
+    }
+    for resp in &schema.responses {
+        schemas.insert(resp.name.value.clone(), simple_type_schema(&resp.fields));
     }
 
     let project_name = schema
@@ -26,19 +34,141 @@ pub fn generate_openapi(schema: &Schema) -> String {
         .and_then(|c| c.project_name.as_deref())
         .unwrap_or("anti-gravital-api");
 
+    // Paths (v0.2)
+    let paths = if schema.endpoints.is_empty() {
+        Value::Object(serde_json::Map::new())
+    } else {
+        build_paths(schema)
+    };
+
     let doc = json!({
         "openapi": "3.1.0",
         "info": {
             "title": project_name,
             "version": "0.1.0",
-            "description": "API generada por Anti-Gravital ag-dsl v0.1"
+            "description": "API generada por Anti-Gravital ag-dsl v0.2"
         },
+        "paths": paths,
         "components": {
             "schemas": schemas
         }
     });
 
     serde_json::to_string_pretty(&doc).expect("serde_json serialization is infallible")
+}
+
+/// Construye el objeto `paths` para todos los endpoints del schema.
+fn build_paths(schema: &Schema) -> Value {
+    let mut paths: serde_json::Map<String, Value> = serde_json::Map::new();
+
+    // Agrupa endpoints por path
+    let mut by_path: std::collections::BTreeMap<&str, Vec<&EndpointDef>> =
+        std::collections::BTreeMap::new();
+    for ep in &schema.endpoints {
+        by_path.entry(ep.path.value.as_str()).or_default().push(ep);
+    }
+
+    for (path, endpoints) in by_path {
+        let mut path_item = serde_json::Map::new();
+        for ep in endpoints {
+            let method_key = ep.method.value.as_str().to_lowercase();
+            let operation = build_operation(ep, schema);
+            path_item.insert(method_key, operation);
+        }
+        // Convierte path DSL {id} a OpenAPI {id} (misma sintaxis)
+        paths.insert(path.to_owned(), Value::Object(path_item));
+    }
+
+    Value::Object(paths)
+}
+
+fn build_operation(ep: &EndpointDef, schema: &Schema) -> Value {
+    let mut op = serde_json::Map::new();
+    op.insert("operationId".to_owned(), json!(ep.name.value));
+
+    // Request body
+    if let Some(body) = &ep.body {
+        let rb = json!({
+            "required": true,
+            "content": {
+                "application/json": {
+                    "schema": { "$ref": format!("#/components/schemas/{}", body.value) }
+                }
+            }
+        });
+        op.insert("requestBody".to_owned(), rb);
+    }
+
+    // Responses
+    let mut responses = serde_json::Map::new();
+    let success_code = match ep.method.value {
+        HttpMethod::Post => "201",
+        HttpMethod::Delete => "204",
+        _ => "200",
+    };
+    if let Some(resp) = &ep.response {
+        responses.insert(
+            success_code.to_owned(),
+            json!({
+                "description": "Respuesta exitosa",
+                "content": {
+                    "application/json": {
+                        "schema": { "$ref": format!("#/components/schemas/{}", resp.value) }
+                    }
+                }
+            }),
+        );
+    } else {
+        responses.insert(success_code.to_owned(), json!({ "description": "Exito" }));
+    }
+
+    // Error responses desde ErrorDef del schema
+    for err_ref in &ep.errors {
+        if let Some(err_def) = schema.errors.iter().find(|e| e.name.value == err_ref.value) {
+            let code = err_def.status.value.to_string();
+            responses.insert(
+                code,
+                json!({
+                    "description": err_def.message.value
+                }),
+            );
+        }
+    }
+    op.insert("responses".to_owned(), Value::Object(responses));
+
+    Value::Object(op)
+}
+
+/// Schema para campos de request/response types simples (sin @auto).
+fn simple_type_schema(fields: &[FieldDef]) -> Value {
+    let mut properties = serde_json::Map::new();
+    let mut required: Vec<Value> = Vec::new();
+
+    for field in fields {
+        let fname = &field.name.value;
+        let (ts_type, format) = field.ty.value.openapi_type();
+        let mut prop = serde_json::Map::new();
+        if field.optional {
+            prop.insert("type".to_owned(), json!([ts_type, "null"]));
+        } else {
+            prop.insert("type".to_owned(), json!(ts_type));
+        }
+        if let Some(fmt) = format {
+            prop.insert("format".to_owned(), json!(fmt));
+        }
+        properties.insert(fname.clone(), Value::Object(prop));
+        if !field.optional {
+            required.push(json!(fname));
+        }
+    }
+
+    let mut schema = serde_json::Map::new();
+    schema.insert("type".to_owned(), json!("object"));
+    if !required.is_empty() {
+        schema.insert("required".to_owned(), Value::Array(required));
+    }
+    schema.insert("properties".to_owned(), Value::Object(properties));
+    Value::Object(schema)
 }
 
 /// Genera el schema JSON Schema de un modelo.

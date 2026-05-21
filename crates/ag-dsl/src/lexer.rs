@@ -11,7 +11,7 @@ use std::ops::Range;
 /// Rango de bytes en el texto fuente (byte offset, no char offset).
 pub type Span = Range<usize>;
 
-/// Tokens del Anti-DSL v0.1.
+/// Tokens del Anti-DSL v0.1–v0.2.
 ///
 /// Los `#[token(...)]` tienen prioridad sobre los `#[regex(...)]`, por lo que
 /// las palabras clave siempre se reconocen antes que el identificador generico.
@@ -53,6 +53,37 @@ pub enum Token {
     #[token("Decimal")]
     TyDecimal,
 
+    // ---- Palabras clave DSL v0.2 ----
+    /// `endpoint` — define un endpoint HTTP: metodo, path, body, response, errores.
+    #[token("endpoint")]
+    Endpoint,
+    /// `request` — define el cuerpo de una peticion HTTP.
+    #[token("request")]
+    Request,
+    /// `response` — define el cuerpo de una respuesta HTTP.
+    #[token("response")]
+    Response,
+    /// `error` — define un tipo de error con codigo HTTP y mensaje.
+    #[token("error")]
+    ErrorKw,
+
+    // ---- Metodos HTTP (DSL v0.2) ----
+    /// Metodo HTTP GET.
+    #[token("GET")]
+    HttpGet,
+    /// Metodo HTTP POST.
+    #[token("POST")]
+    HttpPost,
+    /// Metodo HTTP PUT.
+    #[token("PUT")]
+    HttpPut,
+    /// Metodo HTTP PATCH.
+    #[token("PATCH")]
+    HttpPatch,
+    /// Metodo HTTP DELETE.
+    #[token("DELETE")]
+    HttpDelete,
+
     // ---- Anotaciones DSL v0.1 ----
     /// `@primary` — clave primaria de la tabla.
     #[token("@primary")]
@@ -74,6 +105,11 @@ pub enum Token {
     /// Literal entero: `42`, `255`, `0`.
     #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLit(i64),
+
+    /// Literal de path HTTP: `/users`, `/users/{id}`, `/a/b/{c}`.
+    /// Empieza siempre con `/`; captura letras, digitos, `_`, `-`, `{`, `}`, `.`.
+    #[regex(r"/[a-zA-Z0-9_\-{}/\.]*", |lex| lex.slice().to_owned())]
+    PathLit(String),
 
     /// Literal string entre comillas dobles: `"hola"`.
     /// Los escapes basicos (`\"`, `\\`) estan soportados en el regex;
@@ -279,5 +315,65 @@ model User {
         assert!(kinds.contains(&Token::AtPrimary));
         assert!(kinds.contains(&Token::AtAuto));
         assert!(kinds.contains(&Token::AtUnique));
+    }
+
+    // ---- Tests DSL v0.2 ----
+
+    #[test]
+    fn v02_structure_keywords() {
+        let toks = lex("endpoint request response error");
+        assert_eq!(
+            toks,
+            vec![
+                Token::Endpoint,
+                Token::Request,
+                Token::Response,
+                Token::ErrorKw,
+            ]
+        );
+    }
+
+    #[test]
+    fn v02_http_methods() {
+        let toks = lex("GET POST PUT PATCH DELETE");
+        assert_eq!(
+            toks,
+            vec![
+                Token::HttpGet,
+                Token::HttpPost,
+                Token::HttpPut,
+                Token::HttpPatch,
+                Token::HttpDelete,
+            ]
+        );
+    }
+
+    #[test]
+    fn v02_path_literals() {
+        let toks = lex("/users /users/{id} /a/b/c");
+        assert_eq!(
+            toks,
+            vec![
+                Token::PathLit("/users".to_owned()),
+                Token::PathLit("/users/{id}".to_owned()),
+                Token::PathLit("/a/b/c".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
+    fn v02_root_path() {
+        let toks = lex("/");
+        assert_eq!(toks, vec![Token::PathLit("/".to_owned())]);
+    }
+
+    #[test]
+    fn v02_keywords_not_captured_as_ident() {
+        let (toks, errs) = tokenize("endpoint GET /users");
+        assert!(errs.is_empty());
+        let kinds: Vec<_> = toks.into_iter().map(|(t, _)| t).collect();
+        assert!(kinds.contains(&Token::Endpoint));
+        assert!(kinds.contains(&Token::HttpGet));
+        assert!(kinds.contains(&Token::PathLit("/users".to_owned())));
     }
 }

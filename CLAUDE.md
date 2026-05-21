@@ -910,6 +910,39 @@ en mensajes de commit, ni en titulos de PR, ni en issues, ni en
 plantillas. Los iconos se manejan como SVG o glifos tipograficos cuando
 sea estrictamente necesario.
 
+### Sincronizacion obligatoria del README
+
+El `README.md` es la ventana publica del proyecto. Cualquier cambio que
+altere el estado observable del proyecto debe actualizar el README en el
+mismo commit o PR. No se acepta un README desfasado de la realidad.
+
+Cambia que obligan a actualizar el README de forma inmediata:
+
+- Avance de fase o cambio del estado de una fase (de "proxima" a "en
+  curso", de "en curso" a "completada", etc.).
+- Nuevo comando de la CLI operativo (`ag generate`, `ag schema lint`, etc.).
+- Nueva version del DSL implementada (v0.1, v0.2, v0.3...).
+- Nuevo crate publicado o promovido a estado funcional.
+- Nuevo ejemplo disponible en `examples/`.
+- Nuevos benchmarks medidos en hardware real.
+- Cambio en los requisitos de instalacion (version minima de Rust,
+  nueva dependencia de sistema, etc.).
+- Cualquier cambio que haga que la seccion "Estado del proyecto" o
+  la tabla "Calendario" queden incorrectos.
+
+Que NO requiere actualizar el README:
+
+- Correcciones de bugs internos sin efecto en la API publica.
+- Mejoras de tests, cobertura o CI.
+- Cambios en documentacion tecnica interna (`docs/architecture/`, `docs/adr/`, etc.).
+- Actualizaciones de dependencias sin cambio de comportamiento visible.
+
+El README se actualiza en el mismo commit que el cambio que lo provoca.
+Nunca en un commit separado posterior. Nunca "lo actualizo despues".
+
+Un README que dice "Fase 3 proxima" cuando el codigo ya implementa el
+compilador DSL es una mentira tecnica y viola esta regla.
+
 ### Cierre
 
 Esta es la constitucion tecnica del repositorio. Primero documentacion,

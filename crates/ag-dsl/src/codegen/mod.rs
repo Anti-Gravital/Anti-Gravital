@@ -47,21 +47,49 @@ impl GeneratedFiles {
 pub fn generate(schema: &Schema) -> GeneratedFiles {
     let mut files = GeneratedFiles::default();
 
+    // v0.1: modelos DB
     files.insert(
         PathBuf::from("src/models.rs"),
         rust_gen::generate_models(schema),
     );
 
+    // v0.1: migracion SQL
     files.insert(
         PathBuf::from("migrations/0001_initial.sql"),
         sql_gen::generate_migration(schema),
     );
 
+    // v0.2: tipos API (request/response/error)
+    let types_rs = rust_gen::generate_types(schema);
+    if !types_rs.is_empty() {
+        files.insert(PathBuf::from("src/types.rs"), types_rs);
+    }
+
+    // v0.2: handler stubs
+    let handlers_rs = rust_gen::generate_handlers(schema);
+    if !handlers_rs.is_empty() {
+        files.insert(PathBuf::from("src/handlers.rs"), handlers_rs);
+    }
+
+    // v0.2: router Axum
+    let router_rs = rust_gen::generate_router(schema);
+    if !router_rs.is_empty() {
+        files.insert(PathBuf::from("src/router.rs"), router_rs);
+    }
+
+    // TypeScript: interfaces (v0.1+v0.2)
     files.insert(
         PathBuf::from("clients/typescript/types.ts"),
         ts_gen::generate_types(schema),
     );
 
+    // TypeScript: cliente HTTP (v0.2)
+    let client_ts = ts_gen::generate_client(schema);
+    if !client_ts.is_empty() {
+        files.insert(PathBuf::from("clients/typescript/client.ts"), client_ts);
+    }
+
+    // OpenAPI 3.1 completo (schemas + paths en v0.2)
     files.insert(
         PathBuf::from("openapi.json"),
         openapi_gen::generate_openapi(schema),

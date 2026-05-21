@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 2 completada (implementacion tecnica). Fase 3 — Anti-DSL alpha, proxima.
-> Status: Phase 2 complete (technical implementation). Phase 3 — Anti-DSL alpha, next.
+> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1 (modelos) y v0.2 (endpoints) operativos.
+> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1 (models) and v0.2 (endpoints) operational.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -56,8 +56,12 @@ CRUD con PostgreSQL 14.5K req/s de lectura (cuello de botella en PG,
 no en el framework). Los criterios de throughput y latencia de la fase
 (40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
 
-**Fase 3 — Anti-DSL alpha:** proxima. El DSL genera codigo Rust, SQL,
-migraciones y OpenAPI desde archivos `.ag`.
+**Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). El compilador
+`ag-dsl` esta operativo con DSL v0.1 y v0.2. Define modelos, endpoints,
+tipos de peticion y respuesta en un archivo `.ag` y genera
+automaticamente structs Rust con serde, migraciones SQL, interfaces
+TypeScript, un cliente HTTP tipado y documentacion OpenAPI 3.1 completa.
+La CLI expone `ag generate`, `ag schema lint` y `ag schema diff`.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 
@@ -86,6 +90,53 @@ Para el ejemplo completo CRUD con PostgreSQL:
 ```sh
 export DATABASE_URL="postgresql://usuario:clave@localhost/mi_db"
 cargo run -p todo-api
+```
+
+**Flujo DSL (Fase 3, operativo desde v0.1+v0.2):**
+
+Define tu API en un archivo `schema.ag`:
+
+```ag
+config {
+    project_name "mi-api"
+    database "postgres"
+}
+
+model User {
+    id    UUID   @primary @auto
+    email String @unique
+    name  String
+}
+
+request CreateUserRequest { email String  name String }
+response UserResponse     { id UUID  email String  name String }
+error EmailTaken { status 409 message "Email ya registrado" }
+
+endpoint CreateUser {
+    method   POST
+    path     /users
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken]
+}
+```
+
+Genera todos los artefactos con un comando:
+
+```sh
+ag generate --schema schema.ag --output ./generated
+```
+
+Produce: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
+`src/router.rs`, `migrations/0001_initial.sql`,
+`clients/typescript/types.ts`, `clients/typescript/client.ts`,
+`openapi.json`.
+
+Valida el schema sin generar:
+
+```sh
+ag schema lint --schema schema.ag
+ag schema diff schema-anterior.ag --schema schema.ag
 ```
 
 ### Rendimiento medido
@@ -182,8 +233,12 @@ CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
 not the framework). Phase throughput and latency targets (40K req/s,
 p99 <= 5 ms) require hardware with more cores or pgbouncer.
 
-**Phase 3 — Anti-DSL alpha:** next. The DSL generates Rust code, SQL,
-migrations, and OpenAPI from `.ag` files.
+**Phase 3 — Anti-DSL alpha:** in progress (branch `fase-3`). The
+`ag-dsl` compiler is operational with DSL v0.1 and v0.2. Define models,
+endpoints, request and response types in a `.ag` file and automatically
+generate Rust structs with serde, SQL migrations, TypeScript interfaces,
+a typed HTTP client, and a full OpenAPI 3.1 document. The CLI exposes
+`ag generate`, `ag schema lint`, and `ag schema diff`.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -212,6 +267,26 @@ For the full CRUD example with PostgreSQL:
 ```sh
 export DATABASE_URL="postgresql://user:pass@localhost/my_db"
 cargo run -p todo-api
+```
+
+**DSL workflow (Phase 3, operational since v0.1+v0.2):**
+
+Define your API in a `schema.ag` file and generate all artifacts:
+
+```sh
+ag generate --schema schema.ag --output ./generated
+```
+
+Produces: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
+`src/router.rs`, `migrations/0001_initial.sql`,
+`clients/typescript/types.ts`, `clients/typescript/client.ts`,
+`openapi.json`.
+
+Validate and diff schemas:
+
+```sh
+ag schema lint --schema schema.ag
+ag schema diff old-schema.ag --schema schema.ag
 ```
 
 ### Measured performance
@@ -276,7 +351,7 @@ maintainer: Angel Nereira.
 | 0            | Fundaciones y gobernanza      | En curso (externos pendientes) / In progress (externals pending) |
 | 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
-| 3            | Anti-DSL alpha                | Proxima / Next                                          |
+| 3            | Anti-DSL alpha                | En curso / In progress — DSL v0.1+v0.2 operativos       |
 | 4            | Modulos estandar              | Pendiente / Pending                                     |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |

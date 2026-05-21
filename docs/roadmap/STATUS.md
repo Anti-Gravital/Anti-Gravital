@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-20, medicion local de criterios de salida de Fase 2.
+Ultima actualizacion: 2026-05-21, verificacion Docker, binario MUSL, benchmark con pool=50 y fix de seguridad jsonwebtoken.
 
 ---
 
@@ -153,24 +153,29 @@ Estado: Implementacion tecnica completa. Criterios externos pendientes
 ### Criterios de salida (2.3)
 
 - [/] Benchmark CRUD + PostgreSQL >= 40K req/s en hardware de referencia.
-  Medido el 2026-05-20: 11 912 req/s (mediana de 3 corridas oha -z 30s -c 100)
-  en laptop AMD Ryzen 5 2500U con PostgreSQL local sin tuning de rendimiento.
-  Por debajo del objetivo; gap explicado por hardware, pool de 10 conexiones y
-  tracing middleware activo. Ver `docs/benchmarks/measurement-2026-05-20-fase-2-crud.md`.
-- [/] Latencia p99 del CRUD <= 5 ms. Medido el 2026-05-20: p99 = 11.38 ms
-  (mediana de 3 corridas). Por debajo del objetivo por las mismas condiciones.
-  Ver `docs/benchmarks/measurement-2026-05-20-fase-2-crud.md`.
+  Medido el 2026-05-21 con pool=50 y Docker PostgreSQL: GET /todos/:id = 82 233 req/s
+  (supera el objetivo); POST /todos = 7 004 req/s (limitado por throughput de escritura
+  de PostgreSQL en Docker sobre laptop AMD Ryzen 5 2500U). El objetivo de 40K req/s en
+  reads esta cumplido en hardware informativo; pendiente verificacion en hardware de
+  referencia (Ryzen 9 7950X) para writes. La variable DATABASE_MAX_CONNECTIONS permite
+  ajustar el pool sin recompilar.
+- [/] Latencia p99 del CRUD <= 5 ms. Medido el 2026-05-21: GET /todos/:id p99.9 = 4.89 ms
+  (p99 estimado ~3-4 ms, dentro del objetivo). POST /todos p99.9 = 58 ms por throughput
+  de escritura en Docker. Ver medicion en hardware informativo. Pendiente hardware de
+  referencia.
 - [x] La CLI `ag new` crea el scaffold correcto y `ag dev` arranca el
-  proceso de compilacion. Verificado el 2026-05-20: `ag new mi-api --template fullstack`
-  genera el scaffold, `ag dev` compila y arranca, `/health` responde
-  `{"status":"ok","service":"mi-api"}`. Se corrigio dependencia faltante `tracing`
-  en los tres templates (rest, realtime, fullstack); fix incluido en este commit.
-- [/] La app `todo-api` se despliega como binario unico (`FROM scratch`
-  Docker). Dockerfile preparado en `examples/todo-api/Dockerfile`. No medido
-  el 2026-05-20 por ausencia de Docker en el entorno de medicion.
-- [/] El binario release del `todo-api` ocupa <= 20 MB. Build MUSL no ejecutado
-  (musl-tools requiere sudo, no disponible). Binario GNU release stripped: 5.2 MB,
-  dentro del criterio; el MUSL stripped estaria en rango similar.
+  proceso de compilacion. Verificado el 2026-05-21: los tres templates (rest, realtime,
+  fullstack) generan scaffold correcto y compilan sin warnings. `ag build` produce
+  binario release funcional. Se elimino import no usado `ShieldConfig` en los tres
+  templates. `ag dev` responde en la ruta raiz con el nombre del proyecto.
+- [x] La app `todo-api` se despliega como binario unico (`FROM scratch` Docker).
+  Verificado el 2026-05-21: `docker build` exitoso tras corregir base image
+  (rust:1.79 -> rust:1.95) y orden de capas (rust-toolchain.toml antes de
+  rustup target add). Contenedor arranca, se conecta a PostgreSQL y responde
+  /health 200 OK.
+- [x] El binario release del `todo-api` ocupa <= 20 MB. Verificado el 2026-05-21:
+  binario MUSL estatico stripped = 5.3 MB. Binario GNU release stripped = 5.2 MB.
+  Ambos dentro del criterio. Imagen Docker FROM scratch = 2.49 MB.
 - [x] Documentacion: "Tu primera API con Anti-Gravital" publicada.
   Disponible en `docs/manual/02-primera-api.md`. Cubre todo el flujo
   desde `ag new` hasta Docker `FROM scratch`.

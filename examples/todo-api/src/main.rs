@@ -46,9 +46,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost/todos".into());
 
-    tracing::info!("conectando a la base de datos");
+    let max_connections: u32 = std::env::var("DATABASE_MAX_CONNECTIONS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(10);
+
+    tracing::info!(max_connections, "conectando a la base de datos");
     let config = DataConfig {
         url: db_url,
+        max_connections,
         ..DataConfig::default()
     };
     let pool = ag_data::connect(&config).await?;

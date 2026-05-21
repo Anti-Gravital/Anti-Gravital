@@ -7,6 +7,44 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Verificacion y cierre tecnico de Fase 2 (2026-05-21)
+
+Corregido:
+
+- `examples/todo-api/Dockerfile`: base image actualizada de `rust:1.79-slim` a
+  `rust:1.95-slim` para coincidir con `rust-toolchain.toml`. `rust-toolchain.toml`
+  ahora se copia antes de `rustup target add` para que rustup instale el target
+  MUSL contra el canal correcto (1.95.0). Build verificado: binario MUSL estatico
+  5.3 MB, imagen `FROM scratch` 2.49 MB, `/health` 200 OK con PostgreSQL.
+
+- `templates/rest/src/main.rs.tmpl`, `templates/realtime/src/main.rs.tmpl`,
+  `templates/fullstack/src/main.rs.tmpl`: eliminado import no usado `ShieldConfig`.
+  Los tres templates compilan sin warnings con la nueva version del binario `ag`.
+
+- `deny.toml`: restaurado ignore de RUSTSEC-2023-0071 (`rsa` dep transitiva de
+  `jsonwebtoken`). El advisory fue reactivado al actualizar jsonwebtoken a v10.
+  Anti-Gravital usa exclusivamente EdDSA; el timing attack de RSA no aplica.
+
+Anadido:
+
+- `examples/todo-api/src/main.rs`: soporte de variable de entorno
+  `DATABASE_MAX_CONNECTIONS` para ajustar el pool sin recompilar (por defecto 10).
+  Con pool=50 el throughput de GET /todos/:id llega a 82K req/s en hardware
+  informativo (Ryzen 5 2500U, Docker PostgreSQL).
+
+Seguridad:
+
+- `jsonwebtoken` actualizado de 9.3.1 a 10.4.0. Cierra CVE-2026-25537 /
+  GHSA-h395-gr6q-cpjc (Type Confusion en validacion de claims nbf/exp que permite
+  bypass de restricciones temporales). Feature `rust_crypto` anadida para activar
+  el backend criptografico puro Rust requerido por v10 con default-features = false.
+  Sin cambios en src/shield/auth.rs: la API publica de v10 es compatible con v9.
+
+Documentacion:
+
+- `docs/roadmap/STATUS.md` actualizado: criterios de Docker y binario marcados `[x]`,
+  benchmarks actualizados con mediciones del 2026-05-21 (pool=50, Docker PostgreSQL).
+
 ### Alineacion documental de Fase 1
 
 Cambiado:

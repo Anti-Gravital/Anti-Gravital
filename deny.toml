@@ -9,7 +9,15 @@ no-default-features = false
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "warn"
-ignore = []
+ignore = [
+    # RUSTSEC-2023-0071: timing side-channel (Marvin Attack) en rsa v0.9.x.
+    # rsa es una dep transitiva de jsonwebtoken (rust_crypto feature).
+    # Anti-Gravital usa exclusivamente EdDSA (Algorithm::EdDSA); ningun
+    # codigo del proyecto invoca operaciones RSA. El riesgo del timing
+    # attack no aplica a nuestro uso. Se revisara cuando rsa publique
+    # una version parcheada.
+    { id = "RUSTSEC-2023-0071" },
+]
 
 [licenses]
 confidence-threshold = 0.93

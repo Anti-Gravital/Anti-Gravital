@@ -1,0 +1,69 @@
+//! Handler stubs generados por Anti-Gravital ag-dsl v0.2.
+//! Implementa el cuerpo de cada funcion para completar la API.
+
+#![allow(unused_variables, clippy::unused_async)]
+
+use axum::{extract::{Path, State}, Json};
+
+/// GET /users — ListUsers
+pub async fn list_users(
+    State(state): State<AppState>
+) -> Result<Json<UserResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// GET /users/{id} — GetUser
+pub async fn get_user(
+    State(state): State<AppState>,
+    Path(id): Path<String>
+) -> Result<Json<UserResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// POST /users — CreateUser
+pub async fn create_user(
+    State(state): State<AppState>,
+    Json(body): Json<CreateUserRequest>
+) -> Result<Json<UserResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// GET /products — ListProducts
+pub async fn list_products(
+    State(state): State<AppState>
+) -> Result<Json<ProductResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// GET /products/{id} — GetProduct
+pub async fn get_product(
+    State(state): State<AppState>,
+    Path(id): Path<String>
+) -> Result<Json<ProductResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// POST /products — CreateProduct
+pub async fn create_product(
+    State(state): State<AppState>,
+    Json(body): Json<CreateProductRequest>
+) -> Result<Json<ProductResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// POST /orders — CreateOrder
+pub async fn create_order(
+    State(state): State<AppState>,
+    Json(body): Json<CreateOrderRequest>
+) -> Result<Json<OrderResponse>, axum::http::StatusCode> {
+    todo!()
+}
+
+/// GET /orders/{id} — GetOrder
+pub async fn get_order(
+    State(state): State<AppState>,
+    Path(id): Path<String>
+) -> Result<Json<OrderResponse>, axum::http::StatusCode> {
+    todo!()
+}
+

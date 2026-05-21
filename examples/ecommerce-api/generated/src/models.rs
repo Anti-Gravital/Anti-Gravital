@@ -1,0 +1,153 @@
+//! Modelos generados por Anti-Gravital ag-dsl v0.1.
+//! NO editar manualmente. Regenerar con `ag generate`.
+
+#![allow(dead_code)]
+
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+
+/// Modelo completo (incluye campos generados automaticamente).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct User {
+    pub id: Uuid,
+    pub email: String,
+    pub name: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub orders: Vec<Order>,
+}
+
+/// Cuerpo de la peticion POST para crear un nuevo registro.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateUserRequest {
+    pub email: String,
+    pub name: String,
+}
+
+/// Cuerpo de la peticion PUT/PATCH para actualizar un registro.
+/// Los campos son opcionales: solo se actualizan los presentes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateUserRequest {
+    pub email: Option<String>,
+    pub name: Option<String>,
+}
+
+/// Modelo completo (incluye campos generados automaticamente).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Category {
+    pub id: Uuid,
+    pub name: String,
+    pub products: Vec<Product>,
+}
+
+/// Cuerpo de la peticion POST para crear un nuevo registro.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCategoryRequest {
+    pub name: String,
+}
+
+/// Cuerpo de la peticion PUT/PATCH para actualizar un registro.
+/// Los campos son opcionales: solo se actualizan los presentes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateCategoryRequest {
+    pub name: Option<String>,
+}
+
+/// Modelo completo (incluye campos generados automaticamente).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Product {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub price: rust_decimal::Decimal,
+    pub stock: i64,
+    pub category_id: uuid::Uuid,
+    pub category: Option<Category>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub order_items: Vec<OrderItem>,
+}
+
+/// Cuerpo de la peticion POST para crear un nuevo registro.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateProductRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub price: rust_decimal::Decimal,
+    pub stock: i64,
+    pub category_id: uuid::Uuid,
+}
+
+/// Cuerpo de la peticion PUT/PATCH para actualizar un registro.
+/// Los campos son opcionales: solo se actualizan los presentes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateProductRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub price: Option<rust_decimal::Decimal>,
+    pub stock: Option<i64>,
+    pub category_id: Option<uuid::Uuid>,
+}
+
+/// Modelo completo (incluye campos generados automaticamente).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Order {
+    pub id: Uuid,
+    pub user_id: uuid::Uuid,
+    pub user: Option<User>,
+    pub total: rust_decimal::Decimal,
+    pub status: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub items: Vec<OrderItem>,
+}
+
+/// Cuerpo de la peticion POST para crear un nuevo registro.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOrderRequest {
+    pub user_id: uuid::Uuid,
+    pub total: rust_decimal::Decimal,
+    pub status: String,
+}
+
+/// Cuerpo de la peticion PUT/PATCH para actualizar un registro.
+/// Los campos son opcionales: solo se actualizan los presentes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateOrderRequest {
+    pub user_id: Option<uuid::Uuid>,
+    pub total: Option<rust_decimal::Decimal>,
+    pub status: Option<String>,
+}
+
+/// Modelo completo (incluye campos generados automaticamente).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderItem {
+    pub id: Uuid,
+    pub order_id: uuid::Uuid,
+    pub product_id: uuid::Uuid,
+    pub order: Option<Order>,
+    pub product: Option<Product>,
+    pub quantity: i64,
+    pub unit_price: rust_decimal::Decimal,
+}
+
+/// Cuerpo de la peticion POST para crear un nuevo registro.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOrderItemRequest {
+    pub order_id: uuid::Uuid,
+    pub product_id: uuid::Uuid,
+    pub quantity: i64,
+    pub unit_price: rust_decimal::Decimal,
+}
+
+/// Cuerpo de la peticion PUT/PATCH para actualizar un registro.
+/// Los campos son opcionales: solo se actualizan los presentes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateOrderItemRequest {
+    pub order_id: Option<uuid::Uuid>,
+    pub product_id: Option<uuid::Uuid>,
+    pub quantity: Option<i64>,
+    pub unit_price: Option<rust_decimal::Decimal>,
+}
+

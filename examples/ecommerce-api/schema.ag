@@ -1,0 +1,165 @@
+config {
+    project_name "ecommerce-api"
+    database "postgres"
+}
+
+# ---- Usuarios ----
+
+model User {
+    id         UUID      @primary @auto
+    email      String    @unique @email @max(255) @min(5)
+    name       String    @min(2) @max(100)
+    created_at Timestamp @auto
+    updated_at Timestamp @auto_update
+    orders     Order[]   @relation(Order.user_id)
+}
+
+# ---- Catalogo ----
+
+model Category {
+    id       UUID   @primary @auto
+    name     String @unique @min(2) @max(100)
+    products Product[] @relation(Product.category_id)
+}
+
+model Product {
+    id          UUID     @primary @auto
+    name        String   @min(2) @max(200)
+    description String?
+    price       Decimal  @min(0)
+    stock       Int      @min(0)
+    category_id UUID     @references(Category.id)
+    category    Category @relation(category_id)
+    created_at  Timestamp @auto
+    order_items OrderItem[] @relation(OrderItem.product_id)
+}
+
+# ---- Pedidos ----
+
+model Order {
+    id         UUID      @primary @auto
+    user_id    UUID      @references(User.id)
+    user       User      @relation(user_id)
+    total      Decimal   @min(0)
+    status     String    @min(3) @max(20)
+    created_at Timestamp @auto
+    updated_at Timestamp @auto_update
+    items      OrderItem[] @relation(OrderItem.order_id)
+}
+
+model OrderItem {
+    id         UUID    @primary @auto
+    order_id   UUID    @references(Order.id)
+    product_id UUID    @references(Product.id)
+    order      Order   @relation(order_id)
+    product    Product @relation(product_id)
+    quantity   Int     @min(1)
+    unit_price Decimal @min(0)
+}
+
+# ---- Request / Response types ----
+
+request CreateUserRequest {
+    email String @email @max(255) @min(5)
+    name  String @min(2) @max(100)
+}
+
+response UserResponse {
+    id    UUID
+    email String
+    name  String
+}
+
+request CreateProductRequest {
+    name        String  @min(2) @max(200)
+    price       Decimal @min(0)
+    stock       Int     @min(0)
+    category_id UUID
+}
+
+response ProductResponse {
+    id          UUID
+    name        String
+    price       Decimal
+    stock       Int
+    category_id UUID
+}
+
+request CreateOrderRequest {
+    user_id UUID
+    items   String
+}
+
+response OrderResponse {
+    id         UUID
+    user_id    UUID
+    total      Decimal
+    status     String
+    created_at UUID
+}
+
+# ---- Errores ----
+
+error NotFound          { status 404 message "Recurso no encontrado" }
+error EmailTaken        { status 409 message "El email ya esta registrado" }
+error InsufficientStock { status 422 message "Stock insuficiente para completar el pedido" }
+error InvalidInput      { status 400 message "Datos de entrada invalidos" }
+
+# ---- Endpoints ----
+
+endpoint ListUsers {
+    method   GET
+    path     /users
+    response UserResponse
+}
+
+endpoint GetUser {
+    method   GET
+    path     /users/{id}
+    response UserResponse
+    errors   [NotFound]
+}
+
+endpoint CreateUser {
+    method   POST
+    path     /users
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken, InvalidInput]
+}
+
+endpoint ListProducts {
+    method   GET
+    path     /products
+    response ProductResponse
+}
+
+endpoint GetProduct {
+    method   GET
+    path     /products/{id}
+    response ProductResponse
+    errors   [NotFound]
+}
+
+endpoint CreateProduct {
+    method   POST
+    path     /products
+    body     CreateProductRequest
+    response ProductResponse
+    errors   [NotFound, InvalidInput]
+}
+
+endpoint CreateOrder {
+    method   POST
+    path     /orders
+    body     CreateOrderRequest
+    response OrderResponse
+    errors   [NotFound, InsufficientStock, InvalidInput]
+}
+
+endpoint GetOrder {
+    method   GET
+    path     /orders/{id}
+    response OrderResponse
+    errors   [NotFound]
+}

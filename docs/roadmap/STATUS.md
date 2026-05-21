@@ -227,8 +227,10 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 
 ### Criterios de salida (3.3)
 
-- [ ] Proyecto completo definible en schema.ag, generado y ejecutable con CLI.
-- [ ] Example ecommerce-api reescrito con DSL.
+- [x] Proyecto completo definible en schema.ag, generado y ejecutable con CLI.
+  `ag schema lint` y `ag generate` verificados en examples/ecommerce-api. 8 artefactos generados.
+- [x] Example ecommerce-api reescrito con DSL. Modelos User, Category, Product, Order, OrderItem
+  con relaciones 1:N y N:M. SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TS y OpenAPI $ref generados.
 - [ ] CRUD generado por DSL no es mas lento que CRUD a mano.
 - [ ] Plugin VS Code >= 100 instalaciones.
 - [ ] Al menos un colaborador externo contribuyo al compilador.

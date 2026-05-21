@@ -40,15 +40,33 @@ fn generate_table(model: &ModelDef) -> String {
     let table_name = to_snake_case(&model.name.value);
     let mut out = String::new();
 
+    // Recopila CHECK constraints de validaciones v0.3
+    let checks: Vec<String> = model
+        .fields
+        .iter()
+        .flat_map(|f| field_check_constraints(&table_name, f))
+        .collect();
+
     out.push_str(&format!("CREATE TABLE IF NOT EXISTS \"{table_name}\" (\n"));
 
-    let field_count = model.fields.len();
-    for (i, field) in model.fields.iter().enumerate() {
+    let total_items = model.fields.len() + checks.len();
+    let mut item_idx = 0;
+
+    for field in &model.fields {
         let col = generate_column(field);
-        if i < field_count - 1 {
+        item_idx += 1;
+        if item_idx < total_items {
             out.push_str(&format!("    {col},\n"));
         } else {
             out.push_str(&format!("    {col}\n"));
+        }
+    }
+    for check in &checks {
+        item_idx += 1;
+        if item_idx < total_items {
+            out.push_str(&format!("    {check},\n"));
+        } else {
+            out.push_str(&format!("    {check}\n"));
         }
     }
 
@@ -137,6 +155,68 @@ fn generate_column(field: &FieldDef) -> String {
 /// Delega a la utilidad de conversion en `ast`.
 fn to_snake_case(s: &str) -> String {
     crate::ast::to_snake_case(s)
+}
+
+// ---- Validaciones v0.3 — CHECK constraints ----
+
+/// Genera las clausulas CHECK para las anotaciones de validacion del campo.
+fn field_check_constraints(table_name: &str, field: &FieldDef) -> Vec<String> {
+    use crate::ast::FieldType;
+    use Annotation::{Email, Length, Max, Min, Regex};
+
+    let col_name = to_snake_case(&field.name.value);
+    let mut checks = Vec::new();
+
+    for ann in &field.annotations {
+        let constraint_name = format!(
+            "chk_{}_{}_{}",
+            table_name,
+            col_name,
+            annotation_sql_suffix(&ann.value)
+        );
+        let expr = match &ann.value {
+            Min(n) => match field.ty.value {
+                FieldType::String => Some(format!("char_length(\"{col_name}\") >= {n}")),
+                FieldType::Int | FieldType::Float | FieldType::Decimal => {
+                    Some(format!("\"{col_name}\" >= {n}"))
+                }
+                _ => None,
+            },
+            Max(n) => match field.ty.value {
+                FieldType::String => Some(format!("char_length(\"{col_name}\") <= {n}")),
+                FieldType::Int | FieldType::Float | FieldType::Decimal => {
+                    Some(format!("\"{col_name}\" <= {n}"))
+                }
+                _ => None,
+            },
+            Length(n) => Some(format!("char_length(\"{col_name}\") = {n}")),
+            Regex(pattern) => {
+                // Usa el operador ~ de PostgreSQL (regex POSIX).
+                let escaped = pattern.replace('\'', "''");
+                Some(format!("\"{col_name}\" ~ '{escaped}'"))
+            }
+            Email => {
+                // Validacion basica: contiene @ y al menos un punto despues.
+                Some(format!("\"{col_name}\" ~ '^[^@]+@[^@]+\\.[^@]+$'"))
+            }
+            _ => None,
+        };
+        if let Some(expr) = expr {
+            checks.push(format!("CONSTRAINT \"{constraint_name}\" CHECK ({expr})"));
+        }
+    }
+    checks
+}
+
+fn annotation_sql_suffix(ann: &Annotation) -> &'static str {
+    match ann {
+        Annotation::Min(_) => "min",
+        Annotation::Max(_) => "max",
+        Annotation::Email => "email",
+        Annotation::Regex(_) => "regex",
+        Annotation::Length(_) => "length",
+        _ => "constraint",
+    }
 }
 
 #[cfg(test)]
@@ -239,5 +319,83 @@ model Thing {
         assert_eq!(to_snake_case("BlogPost"), "blog_post");
         assert_eq!(to_snake_case("HTTPRequest"), "h_t_t_p_request");
         assert_eq!(to_snake_case("id"), "id");
+    }
+
+    // ---- Tests DSL v0.3 ----
+
+    #[test]
+    fn v03_min_max_generates_check_constraints() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID   @primary @auto
+    email String @max(255) @min(1)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("CHECK (char_length(\"email\") <= 255)"),
+            "should have max length check"
+        );
+        assert!(
+            sql.contains("CHECK (char_length(\"email\") >= 1)"),
+            "should have min length check"
+        );
+    }
+
+    #[test]
+    fn v03_email_generates_regex_check() {
+        let schema = schema_from(
+            r#"
+model Contact {
+    id    UUID @primary @auto
+    email String @email
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("~ '^[^@]+@[^@]+\\.[^@]+$'"),
+            "should have email regex check"
+        );
+    }
+
+    #[test]
+    fn v03_length_generates_exact_check() {
+        let schema = schema_from(
+            r#"
+model Country {
+    id   UUID @primary @auto
+    code String @length(3)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("char_length(\"code\") = 3"),
+            "should have exact length check"
+        );
+    }
+
+    #[test]
+    fn v03_int_min_max_value_check() {
+        let schema = schema_from(
+            r#"
+model Score {
+    id    UUID @primary @auto
+    value Int  @min(0) @max(100)
+}
+"#,
+        );
+        let sql = generate_migration(&schema);
+        assert!(
+            sql.contains("\"value\" >= 0"),
+            "should have min value check"
+        );
+        assert!(
+            sql.contains("\"value\" <= 100"),
+            "should have max value check"
+        );
     }
 }

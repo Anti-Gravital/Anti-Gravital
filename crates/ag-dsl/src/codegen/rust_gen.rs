@@ -229,6 +229,7 @@ fn generate_request_struct(req: &RequestDef) -> String {
         out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
     }
     out.push_str("}\n");
+    out.push_str(&generate_validate_impl(name, &req.fields));
     out
 }
 
@@ -329,6 +330,91 @@ pub fn generate_router(schema: &Schema) -> String {
         ));
     }
     out.push_str("}\n");
+    out
+}
+
+// ---- Validacion v0.3 — metodo validate() ----------------------------
+
+/// Genera un bloque `impl NombreStruct { pub fn validate(...) }` con
+/// todas las comprobaciones derivadas de las anotaciones de validacion.
+/// Retorna cadena vacia si no hay anotaciones de validacion en los campos.
+fn generate_validate_impl(struct_name: &str, fields: &[FieldDef]) -> String {
+    use crate::ast::{Annotation, FieldType};
+
+    let mut checks: Vec<String> = Vec::new();
+
+    for field in fields {
+        let fname = &field.name.value;
+        let is_string = field.ty.value == FieldType::String;
+        let is_numeric = matches!(
+            field.ty.value,
+            FieldType::Int | FieldType::Float | FieldType::Decimal
+        );
+
+        for ann in &field.annotations {
+            match &ann.value {
+                Annotation::Min(n) if is_string => checks.push(format!(
+                    "    if self.{fname}.len() < {n} {{\n\
+                             errors.push(format!(\"{fname}: longitud minima es {n}, encontrado {{}} caracteres\", self.{fname}.len()));\n\
+                     }}"
+                )),
+                Annotation::Max(n) if is_string => checks.push(format!(
+                    "    if self.{fname}.len() > {n} {{\n\
+                             errors.push(format!(\"{fname}: longitud maxima es {n}, encontrado {{}} caracteres\", self.{fname}.len()));\n\
+                     }}"
+                )),
+                Annotation::Min(n) if is_numeric => checks.push(format!(
+                    "    if (self.{fname} as i64) < {n} {{\n\
+                             errors.push(\"{fname}: valor minimo es {n}\".to_owned());\n\
+                     }}"
+                )),
+                Annotation::Max(n) if is_numeric => checks.push(format!(
+                    "    if (self.{fname} as i64) > {n} {{\n\
+                             errors.push(\"{fname}: valor maximo es {n}\".to_owned());\n\
+                     }}"
+                )),
+                Annotation::Email => checks.push(format!(
+                    "    {{\n\
+                             let s = &self.{fname};\n\
+                             let valid = s.contains('@') && s.rfind('@')\n\
+                                 .map(|i| s[i+1..].contains('.'))\n\
+                                 .unwrap_or(false);\n\
+                             if !valid {{\n\
+                                 errors.push(\"{fname}: formato de email invalido\".to_owned());\n\
+                             }}\n\
+                     }}"
+                )),
+                Annotation::Length(n) => checks.push(format!(
+                    "    if self.{fname}.len() != {n} {{\n\
+                             errors.push(format!(\"{fname}: longitud exacta requerida es {n}, encontrado {{}} caracteres\", self.{fname}.len()));\n\
+                     }}"
+                )),
+                Annotation::Regex(pattern) => checks.push(format!(
+                    "    // TODO: validar {fname} contra regex: {pattern:?}\n\
+                     // Añade la crate `regex` y verifica: Regex::new({pattern:?}).unwrap().is_match(&self.{fname})"
+                )),
+                _ => {}
+            }
+        }
+    }
+
+    if checks.is_empty() {
+        return String::new();
+    }
+
+    let mut out = String::new();
+    out.push_str(&format!(
+        "\nimpl {struct_name} {{\n\
+         /// Valida todas las restricciones declaradas en el schema DSL.\n\
+         /// Retorna la lista de errores; vacio significa valido.\n\
+         pub fn validate(&self) -> Vec<String> {{\n\
+             let mut errors: Vec<String> = Vec::new();\n"
+    ));
+    for check in checks {
+        out.push_str(&check);
+        out.push('\n');
+    }
+    out.push_str("    errors\n}\n}\n");
     out
 }
 

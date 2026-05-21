@@ -101,6 +101,23 @@ pub enum Token {
     #[token("@default")]
     AtDefault,
 
+    // ---- Anotaciones DSL v0.3 — validacion ----
+    /// `@min(N)` — longitud minima (String) o valor minimo (numeros).
+    #[token("@min")]
+    AtMin,
+    /// `@max(N)` — longitud maxima (String) o valor maximo (numeros).
+    #[token("@max")]
+    AtMax,
+    /// `@email` — valida que el valor sea un email valido.
+    #[token("@email")]
+    AtEmail,
+    /// `@regex("patron")` — valida contra una expresion regular.
+    #[token("@regex")]
+    AtRegex,
+    /// `@length(N)` — longitud exacta de caracteres (solo String).
+    #[token("@length")]
+    AtLength,
+
     // ---- Literales ----
     /// Literal entero: `42`, `255`, `0`.
     #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
@@ -375,5 +392,40 @@ model User {
         assert!(kinds.contains(&Token::Endpoint));
         assert!(kinds.contains(&Token::HttpGet));
         assert!(kinds.contains(&Token::PathLit("/users".to_owned())));
+    }
+
+    // ---- Tests DSL v0.3 ----
+
+    #[test]
+    fn v03_validation_annotations() {
+        let toks = lex("@min @max @email @regex @length");
+        assert_eq!(
+            toks,
+            vec![
+                Token::AtMin,
+                Token::AtMax,
+                Token::AtEmail,
+                Token::AtRegex,
+                Token::AtLength,
+            ]
+        );
+    }
+
+    #[test]
+    fn v03_min_max_with_args() {
+        let toks = lex("@min(2) @max(255)");
+        assert_eq!(
+            toks,
+            vec![
+                Token::AtMin,
+                Token::LParen,
+                Token::IntLit(2),
+                Token::RParen,
+                Token::AtMax,
+                Token::LParen,
+                Token::IntLit(255),
+                Token::RParen,
+            ]
+        );
     }
 }

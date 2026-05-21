@@ -201,11 +201,14 @@ pub enum Annotation {
     // ---- Relaciones v0.4 ----
     /// `@references(Modelo.campo)` — clave foranea con columna SQL real.
     References {
+        /// Nombre del modelo destino.
         model: std::string::String,
+        /// Nombre del campo destino (normalmente la clave primaria).
         field: std::string::String,
     },
     /// `@relation(campo)` o `@relation(modelo.campo)` — campo virtual sin columna SQL.
     Relation {
+        /// Path de la relacion: `campo` para N:1, `modelo.campo` para 1:N.
         path: std::string::String,
     },
 }
@@ -380,6 +383,20 @@ pub fn extract_path_params(path: &str) -> Vec<std::string::String> {
     params
 }
 
+/// Convierte PascalCase o camelCase a snake_case.
+///
+/// Usado para convertir nombres de endpoints/modelos a nombres de funcion Rust.
+pub fn to_snake_case(s: &str) -> std::string::String {
+    let mut result = std::string::String::with_capacity(s.len() + 4);
+    for (i, ch) in s.chars().enumerate() {
+        if ch.is_uppercase() && i > 0 {
+            result.push('_');
+        }
+        result.push(ch.to_lowercase().next().unwrap());
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -408,18 +425,4 @@ mod tests {
         let ty = FieldType::ModelRef("User".to_owned());
         assert_eq!(ty.ts_type(), "object");
     }
-}
-
-/// Convierte PascalCase o camelCase a snake_case.
-///
-/// Usado para convertir nombres de endpoints/modelos a nombres de funcion Rust.
-pub fn to_snake_case(s: &str) -> std::string::String {
-    let mut result = std::string::String::with_capacity(s.len() + 4);
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_lowercase().next().unwrap());
-    }
-    result
 }

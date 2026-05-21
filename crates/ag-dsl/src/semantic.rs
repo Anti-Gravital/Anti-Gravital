@@ -444,7 +444,10 @@ fn check_references_model_exists(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     for model in &schema.models {
         for field in &model.fields {
             for ann in &field.annotations {
-                if let Annotation::References { model: ref_model, .. } = &ann.value {
+                if let Annotation::References {
+                    model: ref_model, ..
+                } = &ann.value
+                {
                     if !model_names.contains(ref_model.as_str()) {
                         diags.push(Diagnostic::semantic_error_with_hint(
                             ann.span.clone(),
@@ -577,14 +580,11 @@ fn check_relation_fk_field_exists(schema: &Schema, diags: &mut Vec<Diagnostic>) 
                             ));
                         }
                     } else {
-                        let ref_model = path.splitn(2, '.').next().unwrap_or("");
+                        let ref_model = path.split('.').next().unwrap_or("");
                         if !ref_model.is_empty() && !all_model_names.contains(ref_model) {
                             diags.push(Diagnostic::semantic_error_with_hint(
                                 ann.span.clone(),
-                                format!(
-                                    "el modelo '{}' en @relation no esta definido",
-                                    ref_model
-                                ),
+                                format!("el modelo '{}' en @relation no esta definido", ref_model),
                                 format!("define 'model {} {{ ... }}' en el schema", ref_model),
                             ));
                         }
@@ -605,7 +605,10 @@ fn check_circular_fk(schema: &Schema, diags: &mut Vec<Diagnostic>) {
                 continue;
             }
             for ann in &field.annotations {
-                if let Annotation::References { model: ref_model, .. } = &ann.value {
+                if let Annotation::References {
+                    model: ref_model, ..
+                } = &ann.value
+                {
                     entry.insert(ref_model.as_str());
                 }
             }
@@ -625,8 +628,8 @@ fn check_circular_fk(schema: &Schema, diags: &mut Vec<Diagnostic>) {
             if a == b {
                 continue;
             }
-            let a_to_b = fk_targets.get(a).map_or(false, |s| s.contains(b));
-            let b_to_a = fk_targets.get(b).map_or(false, |s| s.contains(a));
+            let a_to_b = fk_targets.get(a).is_some_and(|s| s.contains(b));
+            let b_to_a = fk_targets.get(b).is_some_and(|s| s.contains(a));
 
             if a_to_b && b_to_a && !reported.contains(&(b, a)) {
                 reported.insert((a, b));
@@ -973,7 +976,9 @@ model Post {
 "#;
         let (_, diags) = compile(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("Ghost")),
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("Ghost")),
             "should error: model Ghost not defined. Got: {diags:?}"
         );
     }
@@ -992,7 +997,9 @@ model Post {
 "#;
         let (_, diags) = compile(src);
         assert!(
-            diags.iter().any(|d| !d.is_error() && d.message.contains("@primary")),
+            diags
+                .iter()
+                .any(|d| !d.is_error() && d.message.contains("@primary")),
             "should warn: email is not @primary. Got: {diags:?}"
         );
     }
@@ -1010,7 +1017,9 @@ model Post {
 "#;
         let (_, diags) = compile(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("@relation")),
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("@relation")),
             "should error: ModelRef without @relation. Got: {diags:?}"
         );
     }
@@ -1028,7 +1037,9 @@ model Post {
 "#;
         let (_, diags) = compile(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("nonexistent_id")),
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("nonexistent_id")),
             "should error: FK field nonexistent_id does not exist. Got: {diags:?}"
         );
     }
@@ -1047,7 +1058,9 @@ model B {
 "#;
         let (_, diags) = compile(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("circular")),
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("circular")),
             "should error: circular FK between A and B. Got: {diags:?}"
         );
     }

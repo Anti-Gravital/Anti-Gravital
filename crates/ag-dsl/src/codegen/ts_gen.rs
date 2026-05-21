@@ -143,23 +143,32 @@ fn generate_model_interface(model: &ModelDef) -> String {
     out.push_str(&format!("export interface {name} {{\n"));
 
     for field in &model.fields {
-        let ts_ty = ts_field_type(field);
         let fname = &field.name.value;
-        let optional_marker = if field.optional { "?" } else { "" };
-        out.push_str(&format!("  {fname}{optional_marker}: {ts_ty};\n"));
+        if field.virtual_field {
+            let ts_ty = match &field.ty.value {
+                crate::ast::FieldType::ModelRef(m) => m.clone(),
+                crate::ast::FieldType::ModelRefList(m) => format!("{m}[]"),
+                _ => continue,
+            };
+            out.push_str(&format!("  {fname}?: {ts_ty};\n"));
+        } else {
+            let ts_ty = ts_field_type(field);
+            let optional_marker = if field.optional { "?" } else { "" };
+            out.push_str(&format!("  {fname}{optional_marker}: {ts_ty};\n"));
+        }
     }
 
     out.push_str("}\n");
     out
 }
 
-/// Interfaz de creacion: excluye campos @auto.
+/// Interfaz de creacion: excluye campos @auto y virtuales.
 fn generate_create_interface(model: &ModelDef) -> String {
     let name = &model.name.value;
     let create_fields: Vec<_> = model
         .fields
         .iter()
-        .filter(|f| !is_auto_generated(f))
+        .filter(|f| !is_auto_generated(f) && !f.virtual_field)
         .collect();
 
     if create_fields.is_empty() {
@@ -189,7 +198,7 @@ fn generate_update_interface(model: &ModelDef) -> String {
     let update_fields: Vec<_> = model
         .fields
         .iter()
-        .filter(|f| !is_auto_generated(f) && !is_primary(f))
+        .filter(|f| !is_auto_generated(f) && !is_primary(f) && !f.virtual_field)
         .collect();
 
     if update_fields.is_empty() {
@@ -276,6 +285,39 @@ model Profile {
         );
         let ts = generate_types(&schema);
         assert!(ts.contains("bio?: string | null;"));
+    }
+
+    // ---- Tests DSL v0.4 ----
+
+    #[test]
+    fn v04_ts_relation_types() {
+        let schema = schema_from(
+            r#"
+model User {
+    id    UUID   @primary @auto
+    posts Post[] @relation(post.author_id)
+}
+model Post {
+    id        UUID @primary @auto
+    title     String
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#,
+        );
+        let out = generate_types(&schema);
+        assert!(
+            out.contains("posts?: Post[];"),
+            "1:N should be optional Post[]. Output:\n{out}"
+        );
+        assert!(
+            out.contains("author?: User;"),
+            "N:1 should be optional User. Output:\n{out}"
+        );
+        assert!(
+            out.contains("author_id: string;"),
+            "FK field should be string. Output:\n{out}"
+        );
     }
 
     #[test]

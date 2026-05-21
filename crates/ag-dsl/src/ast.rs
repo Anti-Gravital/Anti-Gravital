@@ -156,7 +156,7 @@ impl FieldType {
     }
 }
 
-/// Anotaciones DSL v0.1.
+/// Anotaciones DSL v0.1–v0.3.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Annotation {
     /// `@primary` — clave primaria.
@@ -169,6 +169,17 @@ pub enum Annotation {
     AutoUpdate,
     /// `@default(valor)` — valor por defecto.
     Default(DefaultValue),
+    // ---- Validaciones v0.3 ----
+    /// `@min(N)` — longitud minima (String) o valor minimo (Int/Float/Decimal).
+    Min(i64),
+    /// `@max(N)` — longitud maxima (String) o valor maximo (Int/Float/Decimal).
+    Max(i64),
+    /// `@email` — valida formato de email RFC 5321 basico.
+    Email,
+    /// `@regex("patron")` — valida contra expresion regular.
+    Regex(std::string::String),
+    /// `@length(N)` — longitud exacta de caracteres (solo String).
+    Length(i64),
 }
 
 /// Valor para la anotacion `@default(...)`.

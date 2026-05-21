@@ -141,6 +141,11 @@ fn build_operation(ep: &EndpointDef, schema: &Schema) -> Value {
 
 /// Schema para campos de request/response types simples (sin @auto).
 fn simple_type_schema(fields: &[FieldDef]) -> Value {
+    field_list_schema(fields)
+}
+
+/// Construye un schema object a partir de una lista de campos.
+fn field_list_schema(fields: &[FieldDef]) -> Value {
     let mut properties = serde_json::Map::new();
     let mut required: Vec<Value> = Vec::new();
 
@@ -156,6 +161,8 @@ fn simple_type_schema(fields: &[FieldDef]) -> Value {
         if let Some(fmt) = format {
             prop.insert("format".to_owned(), json!(fmt));
         }
+        // v0.3 — añade constraints de validacion
+        apply_validation_constraints(&mut prop, field);
         properties.insert(fname.clone(), Value::Object(prop));
         if !field.optional {
             required.push(json!(fname));
@@ -169,6 +176,45 @@ fn simple_type_schema(fields: &[FieldDef]) -> Value {
     }
     schema.insert("properties".to_owned(), Value::Object(properties));
     Value::Object(schema)
+}
+
+/// Añade campos de validacion OpenAPI 3.1 derivados de las anotaciones v0.3.
+fn apply_validation_constraints(prop: &mut serde_json::Map<String, Value>, field: &FieldDef) {
+    use crate::ast::{Annotation, FieldType};
+
+    let is_string = field.ty.value == FieldType::String;
+    let is_numeric = matches!(
+        field.ty.value,
+        FieldType::Int | FieldType::Float | FieldType::Decimal
+    );
+
+    for ann in &field.annotations {
+        match &ann.value {
+            Annotation::Min(n) if is_string => {
+                prop.insert("minLength".to_owned(), json!(n));
+            }
+            Annotation::Max(n) if is_string => {
+                prop.insert("maxLength".to_owned(), json!(n));
+            }
+            Annotation::Min(n) if is_numeric => {
+                prop.insert("minimum".to_owned(), json!(n));
+            }
+            Annotation::Max(n) if is_numeric => {
+                prop.insert("maximum".to_owned(), json!(n));
+            }
+            Annotation::Email => {
+                prop.insert("format".to_owned(), json!("email"));
+            }
+            Annotation::Regex(pattern) => {
+                prop.insert("pattern".to_owned(), json!(pattern));
+            }
+            Annotation::Length(n) => {
+                prop.insert("minLength".to_owned(), json!(n));
+                prop.insert("maxLength".to_owned(), json!(n));
+            }
+            _ => {}
+        }
+    }
 }
 
 /// Genera el schema JSON Schema de un modelo.
@@ -196,6 +242,8 @@ fn model_schema(model: &ModelDef, create_only: bool) -> Value {
             // OpenAPI 3.1 usa nullable via type array
             prop.insert("type".to_owned(), json!([ts_type, "null"]));
         }
+        // v0.3 — constraints de validacion
+        apply_validation_constraints(&mut prop, field);
 
         properties.insert(fname.clone(), Value::Object(prop));
 

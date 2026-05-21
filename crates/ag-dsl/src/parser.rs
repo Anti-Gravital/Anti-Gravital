@@ -189,12 +189,40 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         .ignore_then(default_value.delimited_by(just(Token::LParen), just(Token::RParen)))
         .map(Annotation::Default);
 
+    // v0.3 — anotaciones con argumento entero: @min(N), @max(N), @length(N)
+    let int_arg =
+        || select! { Token::IntLit(n) => n }.delimited_by(just(Token::LParen), just(Token::RParen));
+
+    let at_min = just(Token::AtMin)
+        .ignore_then(int_arg())
+        .map(Annotation::Min);
+    let at_max = just(Token::AtMax)
+        .ignore_then(int_arg())
+        .map(Annotation::Max);
+    let at_length = just(Token::AtLength)
+        .ignore_then(int_arg())
+        .map(Annotation::Length);
+
+    // v0.3 — @regex("patron")
+    let at_regex = just(Token::AtRegex)
+        .ignore_then(
+            select! { Token::StringLit(s) => s }
+                .delimited_by(just(Token::LParen), just(Token::RParen))
+                .labelled("patron de regex"),
+        )
+        .map(Annotation::Regex);
+
     choice((
         just(Token::AtPrimary).to(Annotation::Primary),
         just(Token::AtUnique).to(Annotation::Unique),
         just(Token::AtAutoUpdate).to(Annotation::AutoUpdate), // primero: mas especifico
         just(Token::AtAuto).to(Annotation::Auto),
+        just(Token::AtEmail).to(Annotation::Email),
         at_default,
+        at_min,
+        at_max,
+        at_length,
+        at_regex,
     ))
     .map_with_span(|ann, span: Span| Spanned::new(ann, span))
     .labelled("anotacion")
@@ -674,5 +702,81 @@ endpoint GetUser {
         assert_eq!(schema.responses.len(), 1);
         assert_eq!(schema.errors.len(), 1);
         assert_eq!(schema.endpoints.len(), 2);
+    }
+
+    // ---- Tests DSL v0.3 ----
+
+    #[test]
+    fn v03_min_max_annotations() {
+        let src = r#"
+model User {
+    id    UUID @primary @auto
+    email String @max(255) @min(1)
+    age   Int    @min(0) @max(150)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().models[0].fields[1]; // email
+        let has_max = field
+            .annotations
+            .iter()
+            .any(|a| a.value == Annotation::Max(255));
+        let has_min = field
+            .annotations
+            .iter()
+            .any(|a| a.value == Annotation::Min(1));
+        assert!(has_max, "should have @max(255)");
+        assert!(has_min, "should have @min(1)");
+    }
+
+    #[test]
+    fn v03_email_annotation() {
+        let src = r#"
+model User {
+    id    UUID @primary @auto
+    email String @email @max(255)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let email_field = &ast.unwrap().models[0].fields[1];
+        assert!(email_field
+            .annotations
+            .iter()
+            .any(|a| a.value == Annotation::Email));
+    }
+
+    #[test]
+    fn v03_regex_annotation() {
+        let src = r#"
+request Req {
+    code String @regex("^[A-Z]{3}$")
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().requests[0].fields[0];
+        assert!(field
+            .annotations
+            .iter()
+            .any(|a| a.value == Annotation::Regex("^[A-Z]{3}$".to_owned())));
+    }
+
+    #[test]
+    fn v03_length_annotation() {
+        let src = r#"
+model Country {
+    id   UUID @primary @auto
+    code String @length(3)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().models[0].fields[1];
+        assert!(field
+            .annotations
+            .iter()
+            .any(|a| a.value == Annotation::Length(3)));
     }
 }

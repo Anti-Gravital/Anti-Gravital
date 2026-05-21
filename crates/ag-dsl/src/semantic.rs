@@ -35,6 +35,41 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     check_error_status_codes(schema, &mut diags);
     check_endpoint_references(schema, &mut diags);
 
+    // v0.3 validaciones de anotaciones
+    for model in &schema.models {
+        for field in &model.fields {
+            check_validation_annotations(
+                &field.name.value,
+                &model.name.value,
+                &field.ty.value,
+                &field.annotations,
+                &mut diags,
+            );
+        }
+    }
+    for req in &schema.requests {
+        for field in &req.fields {
+            check_validation_annotations(
+                &field.name.value,
+                &req.name.value,
+                &field.ty.value,
+                &field.annotations,
+                &mut diags,
+            );
+        }
+    }
+    for resp in &schema.responses {
+        for field in &resp.fields {
+            check_validation_annotations(
+                &field.name.value,
+                &resp.name.value,
+                &field.ty.value,
+                &field.annotations,
+                &mut diags,
+            );
+        }
+    }
+
     diags
 }
 
@@ -296,6 +331,111 @@ fn check_endpoint_references(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     }
 }
 
+// ---- Validaciones DSL v0.3 -------------------------------------------
+
+/// Verifica compatibilidad de las anotaciones de validacion con el tipo del campo.
+fn check_validation_annotations(
+    field_name: &str,
+    parent_name: &str,
+    field_ty: &FieldType,
+    annotations: &[crate::ast::Spanned<Annotation>],
+    diags: &mut Vec<Diagnostic>,
+) {
+    use FieldType::{Bool, Decimal, Float, Int, String as Str, Timestamp, Uuid};
+
+    let string_only = [&Annotation::Email];
+    let string_and_numeric = [Str, Int, Float, Decimal];
+
+    let mut min_val: Option<(i64, crate::lexer::Span)> = None;
+    let mut max_val: Option<(i64, crate::lexer::Span)> = None;
+
+    for ann in annotations {
+        match &ann.value {
+            Annotation::Email | Annotation::Regex(_) | Annotation::Length(_) => {
+                if *field_ty != Str {
+                    diags.push(Diagnostic::semantic_error_with_hint(
+                        ann.span.clone(),
+                        format!(
+                            "{} en '{}.{}': solo aplica a campos de tipo String",
+                            annotation_name(&ann.value),
+                            parent_name,
+                            field_name
+                        ),
+                        "cambia el tipo del campo a String".to_owned(),
+                    ));
+                }
+                if let Annotation::Length(n) = ann.value {
+                    if n <= 0 {
+                        diags.push(Diagnostic::semantic_error_with_hint(
+                            ann.span.clone(),
+                            format!(
+                                "@length({n}) en '{}.{}': el valor debe ser mayor que cero",
+                                parent_name, field_name
+                            ),
+                            "usa @length con un entero positivo",
+                        ));
+                    }
+                }
+            }
+            Annotation::Min(n) => {
+                if !string_and_numeric.contains(field_ty) {
+                    diags.push(Diagnostic::semantic_error_with_hint(
+                        ann.span.clone(),
+                        format!(
+                            "@min en '{}.{}': no aplica al tipo {:?}",
+                            parent_name, field_name, field_ty
+                        ),
+                        "@min es valido en String, Int, Float y Decimal",
+                    ));
+                }
+                min_val = Some((*n, ann.span.clone()));
+            }
+            Annotation::Max(n) => {
+                if !string_and_numeric.contains(field_ty) {
+                    diags.push(Diagnostic::semantic_error_with_hint(
+                        ann.span.clone(),
+                        format!(
+                            "@max en '{}.{}': no aplica al tipo {:?}",
+                            parent_name, field_name, field_ty
+                        ),
+                        "@max es valido en String, Int, Float y Decimal",
+                    ));
+                }
+                max_val = Some((*n, ann.span.clone()));
+            }
+            _ => {}
+        }
+    }
+
+    // @min debe ser <= @max cuando ambos estan presentes
+    if let (Some((min_n, _)), Some((max_n, max_span))) = (min_val, max_val) {
+        if min_n > max_n {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                max_span,
+                format!(
+                    "@min({min_n}) > @max({max_n}) en '{}.{}': el minimo supera al maximo",
+                    parent_name, field_name
+                ),
+                format!("usa @min({min_n}) @max(N) con N >= {min_n}"),
+            ));
+        }
+    }
+
+    // Suprimir advertencias de unused variables
+    let _ = (string_only, Bool, Timestamp, Uuid);
+}
+
+fn annotation_name(ann: &Annotation) -> &'static str {
+    match ann {
+        Annotation::Email => "@email",
+        Annotation::Regex(_) => "@regex",
+        Annotation::Length(_) => "@length",
+        Annotation::Min(_) => "@min",
+        Annotation::Max(_) => "@max",
+        _ => "@annotation",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -516,5 +656,111 @@ endpoint B { method GET path /users }
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("invalido")),);
+    }
+
+    // ---- Tests DSL v0.3 ----
+
+    #[test]
+    fn v03_valid_validations_no_errors() {
+        let src = r#"
+model User {
+    id    UUID   @primary @auto
+    email String @email @max(255) @min(1)
+    age   Int    @min(0) @max(150)
+    code  String @length(3)
+}
+"#;
+        let (_, diags) = compile(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(errors.is_empty(), "unexpected errors: {errors:?}");
+    }
+
+    #[test]
+    fn v03_email_on_non_string_is_error() {
+        let src = r#"
+model Bad {
+    id  UUID @primary @auto
+    age Int  @email
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("@email")),
+            "should error: @email on Int"
+        );
+    }
+
+    #[test]
+    fn v03_regex_on_non_string_is_error() {
+        let src = r#"
+model Bad {
+    id    UUID @primary @auto
+    score Int  @regex("^[0-9]+$")
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("@regex")));
+    }
+
+    #[test]
+    fn v03_length_on_non_string_is_error() {
+        let src = r#"
+model Bad {
+    id  UUID @primary @auto
+    val Bool @length(3)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("@length")));
+    }
+
+    #[test]
+    fn v03_min_greater_than_max_is_error() {
+        let src = r#"
+model Bad {
+    id   UUID   @primary @auto
+    name String @min(100) @max(10)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("minimo supera al maximo")),);
+    }
+
+    #[test]
+    fn v03_min_on_uuid_is_error() {
+        let src = r#"
+model Bad {
+    id UUID @primary @auto @min(1)
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("@min")));
+    }
+
+    #[test]
+    fn v03_request_field_validations() {
+        let src = r#"
+request CreateUser {
+    email String @email @max(255)
+    name  String @min(2) @max(100)
+    age   Int    @min(18) @max(120)
+}
+"#;
+        let (_, diags) = compile(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(
+            errors.is_empty(),
+            "unexpected errors in request: {errors:?}"
+        );
     }
 }

@@ -2,8 +2,8 @@
 //!
 //! Todas las construcciones del lenguaje se representan como nodos del AST.
 //! Los nodos clave llevan informacion de span para reportar errores precisos.
-//! En DSL v0.1 el AST cubre modelos, campos, tipos primitivos y anotaciones
-//! basicas (@primary, @unique, @auto, @auto_update, @default).
+//! En DSL v0.1–v0.2 el AST cubre modelos, request/response/error types,
+//! endpoints HTTP y anotaciones basicas.
 
 use crate::lexer::Span;
 
@@ -25,14 +25,21 @@ impl<T> Spanned<T> {
 
 /// Schema completo: punto de entrada del AST.
 ///
-/// En v0.1 contiene configuracion opcional y cero o mas modelos.
-/// Las versiones futuras añadiran endpoints, enums y eventos.
+/// Contiene configuracion, modelos (v0.1) y tipos de API + endpoints (v0.2).
 #[derive(Debug, Clone, Default)]
 pub struct Schema {
     /// Bloque `config { ... }` opcional.
     pub config: Option<Config>,
     /// Definiciones de modelo en orden de aparicion.
     pub models: Vec<ModelDef>,
+    /// Tipos de cuerpo de peticion: `request Nombre { ... }`.
+    pub requests: Vec<RequestDef>,
+    /// Tipos de cuerpo de respuesta: `response Nombre { ... }`.
+    pub responses: Vec<ResponseDef>,
+    /// Tipos de error HTTP: `error Nombre { status N message "..." }`.
+    pub errors: Vec<ErrorDef>,
+    /// Definiciones de endpoint: `endpoint Nombre { method path body response errors }`.
+    pub endpoints: Vec<EndpointDef>,
 }
 
 /// Bloque `config { ... }`.
@@ -186,4 +193,164 @@ impl std::fmt::Display for DefaultValue {
             DefaultValue::Ident(s) => write!(f, "'{s}'"),
         }
     }
+}
+
+// ============================================================
+// DSL v0.2 — API types y endpoints
+// ============================================================
+
+/// Definicion de tipo de cuerpo de peticion: `request Nombre { campos... }`.
+#[derive(Debug, Clone)]
+pub struct RequestDef {
+    /// Nombre del tipo con span.
+    pub name: Spanned<std::string::String>,
+    /// Campos del cuerpo de peticion.
+    pub fields: Vec<FieldDef>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
+/// Definicion de tipo de cuerpo de respuesta: `response Nombre { campos... }`.
+#[derive(Debug, Clone)]
+pub struct ResponseDef {
+    /// Nombre del tipo con span.
+    pub name: Spanned<std::string::String>,
+    /// Campos del cuerpo de respuesta.
+    pub fields: Vec<FieldDef>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
+/// Definicion de error HTTP: `error Nombre { status N message "texto" }`.
+#[derive(Debug, Clone)]
+pub struct ErrorDef {
+    /// Nombre del tipo de error con span.
+    pub name: Spanned<std::string::String>,
+    /// Codigo de estado HTTP (ej. 409, 422).
+    pub status: Spanned<u16>,
+    /// Mensaje legible para el cliente.
+    pub message: Spanned<std::string::String>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
+/// Definicion de endpoint HTTP.
+///
+/// ```text
+/// endpoint CreateUser {
+///     method   POST
+///     path     /users
+///     body     CreateUserRequest
+///     response UserResponse
+///     errors   [EmailTaken, WeakPassword]
+/// }
+/// ```
+#[derive(Debug, Clone)]
+pub struct EndpointDef {
+    /// Nombre del endpoint con span.
+    pub name: Spanned<std::string::String>,
+    /// Metodo HTTP.
+    pub method: Spanned<HttpMethod>,
+    /// Path HTTP (ej. `/users/{id}`).
+    pub path: Spanned<std::string::String>,
+    /// Nombre del tipo de cuerpo de peticion (referencia a `RequestDef`).
+    pub body: Option<Spanned<std::string::String>>,
+    /// Nombre del tipo de respuesta (referencia a `ResponseDef`).
+    pub response: Option<Spanned<std::string::String>>,
+    /// Nombres de tipos de error (referencias a `ErrorDef`).
+    pub errors: Vec<Spanned<std::string::String>>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
+/// Metodo HTTP soportado en DSL v0.2.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HttpMethod {
+    /// HTTP GET — lectura.
+    Get,
+    /// HTTP POST — creacion.
+    Post,
+    /// HTTP PUT — reemplazo completo.
+    Put,
+    /// HTTP PATCH — actualizacion parcial.
+    Patch,
+    /// HTTP DELETE — eliminacion.
+    Delete,
+}
+
+impl HttpMethod {
+    /// Retorna la representacion textual del metodo en mayusculas.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HttpMethod::Get => "GET",
+            HttpMethod::Post => "POST",
+            HttpMethod::Put => "PUT",
+            HttpMethod::Patch => "PATCH",
+            HttpMethod::Delete => "DELETE",
+        }
+    }
+}
+
+impl std::fmt::Display for HttpMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Convierte un path DSL (`/users/{id}`) a formato Axum (`/users/:id`).
+pub fn dsl_path_to_axum(path: &str) -> std::string::String {
+    let mut result = std::string::String::new();
+    let mut chars = path.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '{' {
+            result.push(':');
+            for inner in chars.by_ref() {
+                if inner == '}' {
+                    break;
+                }
+                result.push(inner);
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+/// Extrae los nombres de los parametros de path de un path DSL.
+///
+/// `/users/{id}/posts/{postId}` → `["id", "postId"]`
+pub fn extract_path_params(path: &str) -> Vec<std::string::String> {
+    let mut params = Vec::new();
+    let mut current = std::string::String::new();
+    let mut inside = false;
+    for ch in path.chars() {
+        match ch {
+            '{' => inside = true,
+            '}' => {
+                if !current.is_empty() {
+                    params.push(current.clone());
+                    current.clear();
+                }
+                inside = false;
+            }
+            c if inside => current.push(c),
+            _ => {}
+        }
+    }
+    params
+}
+
+/// Convierte PascalCase o camelCase a snake_case.
+///
+/// Usado para convertir nombres de endpoints/modelos a nombres de funcion Rust.
+pub fn to_snake_case(s: &str) -> std::string::String {
+    let mut result = std::string::String::with_capacity(s.len() + 4);
+    for (i, ch) in s.chars().enumerate() {
+        if ch.is_uppercase() && i > 0 {
+            result.push('_');
+        }
+        result.push(ch.to_lowercase().next().unwrap());
+    }
+    result
 }

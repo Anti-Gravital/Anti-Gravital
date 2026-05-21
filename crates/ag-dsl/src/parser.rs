@@ -13,7 +13,8 @@
 use chumsky::prelude::*;
 
 use crate::ast::{
-    Annotation, Config, DefaultValue, FieldDef, FieldType, ModelDef, Schema, Spanned,
+    Annotation, Config, DefaultValue, EndpointDef, ErrorDef, FieldDef, FieldType, HttpMethod,
+    ModelDef, RequestDef, ResponseDef, Schema, Spanned,
 };
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
@@ -42,13 +43,24 @@ pub fn parse_tokens(
 
 // ---- Construccion del parser ----------------------------------------
 
-/// Parser principal: lee cero o mas items (model o config) hasta EOF.
+/// Parser principal: lee cero o mas items hasta EOF.
 fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
-    let model = model_parser();
-    let config = config_parser();
-
-    let item = choice((config.map(SchemaItem::Config), model.map(SchemaItem::Model)))
-        .recover_with(skip_then_retry_until([Token::Model, Token::Config]));
+    let item = choice((
+        config_parser().map(SchemaItem::Config),
+        model_parser().map(SchemaItem::Model),
+        request_parser().map(SchemaItem::Request),
+        response_parser().map(SchemaItem::Response),
+        error_def_parser().map(SchemaItem::Error),
+        endpoint_parser().map(SchemaItem::Endpoint),
+    ))
+    .recover_with(skip_then_retry_until([
+        Token::Model,
+        Token::Config,
+        Token::Request,
+        Token::Response,
+        Token::ErrorKw,
+        Token::Endpoint,
+    ]));
 
     item.repeated().then_ignore(end()).map(|items| {
         let mut schema = Schema::default();
@@ -56,6 +68,10 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
             match item {
                 SchemaItem::Config(c) => schema.config = Some(c),
                 SchemaItem::Model(m) => schema.models.push(m),
+                SchemaItem::Request(r) => schema.requests.push(r),
+                SchemaItem::Response(r) => schema.responses.push(r),
+                SchemaItem::Error(e) => schema.errors.push(e),
+                SchemaItem::Endpoint(ep) => schema.endpoints.push(ep),
             }
         }
         schema
@@ -66,6 +82,10 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
 enum SchemaItem {
     Config(Config),
     Model(ModelDef),
+    Request(RequestDef),
+    Response(ResponseDef),
+    Error(ErrorDef),
+    Endpoint(EndpointDef),
 }
 
 /// Parser de bloque `config { ... }`.
@@ -178,6 +198,161 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
     ))
     .map_with_span(|ann, span: Span| Spanned::new(ann, span))
     .labelled("anotacion")
+}
+
+// ---- Parsers DSL v0.2 -----------------------------------------------
+
+/// Parser de `request Nombre { campos... }`.
+fn request_parser() -> impl Parser<Token, RequestDef, Error = ParseErr> {
+    just(Token::Request)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del request"))
+        .map_with_span(|name, span: Span| Spanned::new(name, span))
+        .then(field_parser().repeated().collect::<Vec<_>>().delimited_by(
+            just(Token::LBrace).labelled("{"),
+            just(Token::RBrace).labelled("}"),
+        ))
+        .map_with_span(|(name, fields), span| RequestDef { name, fields, span })
+        .labelled("definicion de request")
+}
+
+/// Parser de `response Nombre { campos... }`.
+fn response_parser() -> impl Parser<Token, ResponseDef, Error = ParseErr> {
+    just(Token::Response)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del response"))
+        .map_with_span(|name, span: Span| Spanned::new(name, span))
+        .then(field_parser().repeated().collect::<Vec<_>>().delimited_by(
+            just(Token::LBrace).labelled("{"),
+            just(Token::RBrace).labelled("}"),
+        ))
+        .map_with_span(|(name, fields), span| ResponseDef { name, fields, span })
+        .labelled("definicion de response")
+}
+
+/// Parser de `error Nombre { status N message "texto" }`.
+fn error_def_parser() -> impl Parser<Token, ErrorDef, Error = ParseErr> {
+    let error_name = just(Token::ErrorKw)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del error"))
+        .map_with_span(|name, span: Span| Spanned::new(name, span));
+
+    let status_field = just(Token::Ident("status".to_owned())).ignore_then(
+        select! { Token::IntLit(n) => n as u16 }
+            .map_with_span(|n, span: Span| Spanned::new(n, span))
+            .labelled("codigo de estado HTTP"),
+    );
+
+    let message_field = just(Token::Ident("message".to_owned())).ignore_then(
+        select! { Token::StringLit(s) => s }
+            .map_with_span(|s, span: Span| Spanned::new(s, span))
+            .labelled("mensaje de error"),
+    );
+
+    let body = status_field
+        .then(message_field)
+        .delimited_by(just(Token::LBrace), just(Token::RBrace));
+
+    error_name
+        .then(body)
+        .map_with_span(|(name, (status, message)), span| ErrorDef {
+            name,
+            status,
+            message,
+            span,
+        })
+        .labelled("definicion de error")
+}
+
+/// Parser de `endpoint Nombre { method path [body] [response] [errors] }`.
+fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
+    let endpoint_name = just(Token::Endpoint)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del endpoint"))
+        .map_with_span(|name, span: Span| Spanned::new(name, span));
+
+    let http_method = choice((
+        just(Token::HttpGet).to(HttpMethod::Get),
+        just(Token::HttpPost).to(HttpMethod::Post),
+        just(Token::HttpPut).to(HttpMethod::Put),
+        just(Token::HttpPatch).to(HttpMethod::Patch),
+        just(Token::HttpDelete).to(HttpMethod::Delete),
+    ))
+    .map_with_span(|m, span: Span| Spanned::new(m, span))
+    .labelled("metodo HTTP");
+
+    let ident_ref =
+        select! { Token::Ident(s) => s }.map_with_span(|s, span: Span| Spanned::new(s, span));
+
+    let error_list = ident_ref
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .collect::<Vec<_>>()
+        .delimited_by(just(Token::LBracket), just(Token::RBracket))
+        .labelled("lista de errores");
+
+    // Cada campo del bloque endpoint es un par clave-valor
+    #[allow(clippy::type_complexity)]
+    let endpoint_field = choice((
+        just(Token::Ident("method".to_owned()))
+            .ignore_then(http_method)
+            .map(EndpointField::Method),
+        just(Token::Ident("path".to_owned()))
+            .ignore_then(
+                select! { Token::PathLit(s) => s }
+                    .map_with_span(|s, span: Span| Spanned::new(s, span))
+                    .labelled("path HTTP"),
+            )
+            .map(EndpointField::Path),
+        just(Token::Ident("body".to_owned()))
+            .ignore_then(ident_ref)
+            .map(EndpointField::Body),
+        just(Token::Response) // 'response' es keyword
+            .ignore_then(ident_ref)
+            .map(EndpointField::Response),
+        just(Token::Ident("errors".to_owned()))
+            .ignore_then(error_list)
+            .map(EndpointField::Errors),
+    ));
+
+    endpoint_name
+        .then(
+            endpoint_field
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, fields), span: Span| {
+            let mut method = None;
+            let mut path = None;
+            let mut body = None;
+            let mut response = None;
+            let mut errors = Vec::new();
+            for f in fields {
+                match f {
+                    EndpointField::Method(m) => method = Some(m),
+                    EndpointField::Path(p) => path = Some(p),
+                    EndpointField::Body(b) => body = Some(b),
+                    EndpointField::Response(r) => response = Some(r),
+                    EndpointField::Errors(e) => errors = e,
+                }
+            }
+            EndpointDef {
+                name,
+                method: method.unwrap_or_else(|| Spanned::new(HttpMethod::Get, span.clone())),
+                path: path.unwrap_or_else(|| Spanned::new("/".to_owned(), span.clone())),
+                body,
+                response,
+                errors,
+                span,
+            }
+        })
+        .labelled("definicion de endpoint")
+}
+
+/// Campos posibles dentro de un bloque endpoint.
+enum EndpointField {
+    Method(Spanned<HttpMethod>),
+    Path(Spanned<String>),
+    Body(Spanned<String>),
+    Response(Spanned<String>),
+    Errors(Vec<Spanned<String>>),
 }
 
 // ---- Conversion de errores de chumsky a Diagnostic ------------------
@@ -352,5 +527,152 @@ model Post {
             diags.iter().any(|d| d.is_error()),
             "should have parse error"
         );
+    }
+
+    // ---- Tests DSL v0.2 ----
+
+    #[test]
+    fn request_def_parses() {
+        let src = r#"
+request CreateUserRequest {
+    email String
+    name  String
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.requests.len(), 1);
+        let req = &schema.requests[0];
+        assert_eq!(req.name.value, "CreateUserRequest");
+        assert_eq!(req.fields.len(), 2);
+    }
+
+    #[test]
+    fn response_def_parses() {
+        let src = r#"
+response UserResponse {
+    id    UUID
+    email String
+    name  String
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.responses.len(), 1);
+        assert_eq!(schema.responses[0].name.value, "UserResponse");
+        assert_eq!(schema.responses[0].fields.len(), 3);
+    }
+
+    #[test]
+    fn error_def_parses() {
+        let src = r#"error EmailTaken { status 409 message "Email already registered" }"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.errors.len(), 1);
+        let err = &schema.errors[0];
+        assert_eq!(err.name.value, "EmailTaken");
+        assert_eq!(err.status.value, 409u16);
+        assert_eq!(err.message.value, "Email already registered");
+    }
+
+    #[test]
+    fn endpoint_with_all_fields_parses() {
+        let src = r#"
+endpoint CreateUser {
+    method   POST
+    path     /users
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken, WeakPassword]
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.endpoints.len(), 1);
+        let ep = &schema.endpoints[0];
+        assert_eq!(ep.name.value, "CreateUser");
+        assert_eq!(ep.method.value, HttpMethod::Post);
+        assert_eq!(ep.path.value, "/users");
+        assert_eq!(
+            ep.body.as_ref().map(|b| b.value.as_str()),
+            Some("CreateUserRequest")
+        );
+        assert_eq!(
+            ep.response.as_ref().map(|r| r.value.as_str()),
+            Some("UserResponse")
+        );
+        assert_eq!(ep.errors.len(), 2);
+    }
+
+    #[test]
+    fn endpoint_get_without_body_parses() {
+        let src = r#"
+endpoint GetUser {
+    method   GET
+    path     /users/{id}
+    response UserResponse
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let ep = &ast.unwrap().endpoints[0];
+        assert_eq!(ep.method.value, HttpMethod::Get);
+        assert_eq!(ep.path.value, "/users/{id}");
+        assert!(ep.body.is_none());
+    }
+
+    #[test]
+    fn full_v02_schema_parses() {
+        let src = r#"
+config {
+    project_name "users-api"
+    database "postgres"
+}
+
+model User {
+    id    UUID   @primary @auto
+    email String @unique
+    name  String
+}
+
+request CreateUserRequest {
+    email String
+    name  String
+}
+
+response UserResponse {
+    id    UUID
+    email String
+    name  String
+}
+
+error EmailTaken { status 409 message "Email already taken" }
+
+endpoint CreateUser {
+    method   POST
+    path     /users
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken]
+}
+
+endpoint GetUser {
+    method   GET
+    path     /users/{id}
+    response UserResponse
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.models.len(), 1);
+        assert_eq!(schema.requests.len(), 1);
+        assert_eq!(schema.responses.len(), 1);
+        assert_eq!(schema.errors.len(), 1);
+        assert_eq!(schema.endpoints.len(), 2);
     }
 }

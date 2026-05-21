@@ -134,16 +134,9 @@ fn generate_column(field: &FieldDef) -> String {
     col
 }
 
-/// Convierte PascalCase o camelCase a snake_case para nombres de tabla/columna.
+/// Delega a la utilidad de conversion en `ast`.
 fn to_snake_case(s: &str) -> String {
-    let mut result = String::with_capacity(s.len() + 4);
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_lowercase().next().unwrap());
-    }
-    result
+    crate::ast::to_snake_case(s)
 }
 
 #[cfg(test)]

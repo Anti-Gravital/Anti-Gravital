@@ -2,10 +2,10 @@
 //!
 //! Valida invariantes que el parser no puede verificar por ser
 //! context-free: nombres duplicados, modelos sin campos, multiples
-//! @primary, uso de @auto en tipos que no lo soportan, etc.
+//! @primary, referencias a tipos inexistentes en endpoints, etc.
 //! Produce diagnosticos de error y warning sin modificar el AST.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::{Annotation, FieldType, Schema};
 use crate::diagnostics::Diagnostic;
@@ -17,15 +17,23 @@ use crate::diagnostics::Diagnostic;
 pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
 
+    // v0.1 validaciones
     check_duplicate_model_names(schema, &mut diags);
-
     for model in &schema.models {
         check_model_has_fields(model, &mut diags);
-        check_duplicate_field_names(model, &mut diags);
+        check_duplicate_field_names_in_model(model, &mut diags);
         check_primary_key(model, &mut diags);
         check_auto_type_compatibility(model, &mut diags);
         check_auto_update_type_compatibility(model, &mut diags);
     }
+
+    // v0.2 validaciones
+    check_duplicate_request_names(schema, &mut diags);
+    check_duplicate_response_names(schema, &mut diags);
+    check_duplicate_error_names(schema, &mut diags);
+    check_duplicate_endpoint_names(schema, &mut diags);
+    check_error_status_codes(schema, &mut diags);
+    check_endpoint_references(schema, &mut diags);
 
     diags
 }
@@ -56,7 +64,7 @@ fn check_model_has_fields(model: &crate::ast::ModelDef, diags: &mut Vec<Diagnost
     }
 }
 
-fn check_duplicate_field_names(model: &crate::ast::ModelDef, diags: &mut Vec<Diagnostic>) {
+fn check_duplicate_field_names_in_model(model: &crate::ast::ModelDef, diags: &mut Vec<Diagnostic>) {
     let mut seen: HashMap<&str, usize> = HashMap::new();
     for field in &model.fields {
         let name = field.name.value.as_str();
@@ -134,6 +142,156 @@ fn check_auto_update_type_compatibility(model: &crate::ast::ModelDef, diags: &mu
                 ),
                 "cambia el tipo del campo a Timestamp",
             ));
+        }
+    }
+}
+
+// ---- Validaciones DSL v0.2 -------------------------------------------
+
+fn check_duplicate_request_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let mut seen: HashMap<&str, usize> = HashMap::new();
+    for r in &schema.requests {
+        let name = r.name.value.as_str();
+        if let Some(first) = seen.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                r.name.span.clone(),
+                format!("nombre de request duplicado: '{name}'"),
+                format!("el primer 'request {name}' esta en el byte {first}"),
+            ));
+        } else {
+            seen.insert(name, r.name.span.start);
+        }
+    }
+}
+
+fn check_duplicate_response_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let mut seen: HashMap<&str, usize> = HashMap::new();
+    for r in &schema.responses {
+        let name = r.name.value.as_str();
+        if let Some(first) = seen.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                r.name.span.clone(),
+                format!("nombre de response duplicado: '{name}'"),
+                format!("el primer 'response {name}' esta en el byte {first}"),
+            ));
+        } else {
+            seen.insert(name, r.name.span.start);
+        }
+    }
+}
+
+fn check_duplicate_error_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let mut seen: HashMap<&str, usize> = HashMap::new();
+    for e in &schema.errors {
+        let name = e.name.value.as_str();
+        if let Some(first) = seen.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                e.name.span.clone(),
+                format!("nombre de error duplicado: '{name}'"),
+                format!("el primer 'error {name}' esta en el byte {first}"),
+            ));
+        } else {
+            seen.insert(name, e.name.span.start);
+        }
+    }
+}
+
+fn check_duplicate_endpoint_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let mut seen_names: HashMap<&str, usize> = HashMap::new();
+    let mut seen_routes: HashSet<String> = HashSet::new();
+    for ep in &schema.endpoints {
+        let name = ep.name.value.as_str();
+        if let Some(first) = seen_names.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                ep.name.span.clone(),
+                format!("nombre de endpoint duplicado: '{name}'"),
+                format!("el primer 'endpoint {name}' esta en el byte {first}"),
+            ));
+        } else {
+            seen_names.insert(name, ep.name.span.start);
+        }
+        let route = format!("{} {}", ep.method.value, ep.path.value);
+        if seen_routes.contains(&route) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                ep.path.span.clone(),
+                format!("ruta duplicada: {route}"),
+                "dos endpoints no pueden tener el mismo metodo y path",
+            ));
+        } else {
+            seen_routes.insert(route);
+        }
+    }
+}
+
+fn check_error_status_codes(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    for e in &schema.errors {
+        let code = e.status.value;
+        if !(400..=599).contains(&code) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                e.status.span.clone(),
+                format!(
+                    "codigo de estado HTTP invalido {code} en el error '{}'",
+                    e.name.value
+                ),
+                "los errores deben usar codigos HTTP 4xx o 5xx",
+            ));
+        }
+    }
+}
+
+fn check_endpoint_references(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    let request_names: HashSet<&str> = schema
+        .requests
+        .iter()
+        .map(|r| r.name.value.as_str())
+        .collect();
+    let response_names: HashSet<&str> = schema
+        .responses
+        .iter()
+        .map(|r| r.name.value.as_str())
+        .collect();
+    let error_names: HashSet<&str> = schema
+        .errors
+        .iter()
+        .map(|e| e.name.value.as_str())
+        .collect();
+
+    for ep in &schema.endpoints {
+        if let Some(body) = &ep.body {
+            if !request_names.contains(body.value.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    body.span.clone(),
+                    format!(
+                        "body '{}' en endpoint '{}' no esta definido",
+                        body.value, ep.name.value
+                    ),
+                    format!("define 'request {} {{ ... }}' en el schema", body.value),
+                ));
+            }
+        }
+        if let Some(resp) = &ep.response {
+            if !response_names.contains(resp.value.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    resp.span.clone(),
+                    format!(
+                        "response '{}' en endpoint '{}' no esta definido",
+                        resp.value, ep.name.value
+                    ),
+                    format!("define 'response {} {{ ... }}' en el schema", resp.value),
+                ));
+            }
+        }
+        for err_ref in &ep.errors {
+            if !error_names.contains(err_ref.value.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    err_ref.span.clone(),
+                    format!(
+                        "error '{}' en endpoint '{}' no esta definido",
+                        err_ref.value, ep.name.value
+                    ),
+                    format!("define 'error {} {{ ... }}' en el schema", err_ref.value),
+                ));
+            }
         }
     }
 }
@@ -266,5 +424,97 @@ model Bad {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("no tiene campos")),);
+    }
+
+    // ---- Tests DSL v0.2 ----
+
+    #[test]
+    fn valid_endpoint_no_errors() {
+        let src = r#"
+request CreateUserRequest { email String }
+response UserResponse { id UUID }
+error EmailTaken { status 409 message "Email taken" }
+endpoint CreateUser {
+    method   POST
+    path     /users
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken]
+}
+"#;
+        let (_, diags) = compile(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(errors.is_empty(), "unexpected errors: {errors:?}");
+    }
+
+    #[test]
+    fn endpoint_with_undefined_body_is_error() {
+        let src = r#"
+response UserResponse { id UUID }
+endpoint Create {
+    method   POST
+    path     /users
+    body     NonExistentRequest
+    response UserResponse
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("body")),
+            "should error on undefined body reference"
+        );
+    }
+
+    #[test]
+    fn endpoint_with_undefined_response_is_error() {
+        let src = r#"
+endpoint GetUser {
+    method   GET
+    path     /users/{id}
+    response NonExistentResponse
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("response")),);
+    }
+
+    #[test]
+    fn endpoint_with_undefined_error_ref_is_error() {
+        let src = r#"
+endpoint Create {
+    method POST
+    path   /items
+    errors [UndefinedError]
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("error")),);
+    }
+
+    #[test]
+    fn duplicate_route_is_error() {
+        let src = r#"
+endpoint A { method GET path /users }
+endpoint B { method GET path /users }
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("duplicada")),);
+    }
+
+    #[test]
+    fn invalid_error_status_code_is_error() {
+        let src = r#"error BadCode { status 200 message "ok" }"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("invalido")),);
     }
 }

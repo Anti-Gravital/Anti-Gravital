@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Pre-lanzamiento. Fase 0 - Fundaciones y Gobernanza.
-> Status: Pre-launch. Phase 0 - Foundations and Governance.
+> Estado: Fase 2 completada (implementacion tecnica). Fase 3 — Anti-DSL alpha, proxima.
+> Status: Phase 2 complete (technical implementation). Phase 3 — Anti-DSL alpha, next.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -36,35 +36,94 @@ computo cientifico. Vease el capitulo de alcance en
 
 ### Estado del proyecto
 
-El repositorio se encuentra en Fase 0 segun la
-`docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`. La Fase 0 entrega
-fundaciones y gobernanza: documentos maestros, licencia, gobernanza,
-estructura del monorepo Cargo con 15 crates vacios, integracion
-continua multiplataforma y plantillas de issue, pull request, RFC y
-ADR. No hay codigo funcional todavia. El primer hito tecnico (Shield
-MVP) llega en Fase 1.
+El proyecto ha completado las fases 1 y 2 de implementacion tecnica.
+Existe codigo funcional, probado y benchmarkeado.
+
+**Fase 1 — The Shield MVP:** completada. El crate `ag-core` contiene
+el modulo `shield` operativo con HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
+autenticacion JWT Ed25519, rate limiting, CORS, CSRF, validacion de
+payload y logging estructurado. Pipeline verificada con tests E2E y
+benchmarks criterion.
+
+**Fase 2 — The Core MVP:** completada (implementacion tecnica).
+Router Axum integrado con la Shield, extractores tipados, sistema de
+errores `AgError`, pool PostgreSQL via sqlx, migraciones embebidas y
+la aplicacion de ejemplo `todo-api` con CRUD completo. La CLI `ag`
+ofrece `new`, `dev` y `build` con tres templates (`rest`, `realtime`,
+`fullstack`). La app `todo-api` se despliega como imagen `FROM scratch`
+de 2.49 MB. Benchmarks medidos en hardware real: stack HTTP 89K req/s,
+CRUD con PostgreSQL 14.5K req/s de lectura (cuello de botella en PG,
+no en el framework). Los criterios de throughput y latencia de la fase
+(40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
+
+**Fase 3 — Anti-DSL alpha:** proxima. El DSL genera codigo Rust, SQL,
+migraciones y OpenAPI desde archivos `.ag`.
+
+El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
+
+### Inicio rapido
+
+Requiere Rust 1.95+ y PostgreSQL.
+
+```sh
+# Instalar la CLI
+cargo install --path crates/ag-cli
+
+# Crear un proyecto nuevo
+ag new mi-api
+
+# Arrancar en modo desarrollo
+cd mi-api
+ag dev
+```
+
+La app responde en `http://localhost:8080`. El template `rest` genera
+un proyecto con Shield, extractores tipados y conexion a PostgreSQL
+lista para configurar con `DATABASE_URL`.
+
+Para el ejemplo completo CRUD con PostgreSQL:
+
+```sh
+export DATABASE_URL="postgresql://usuario:clave@localhost/mi_db"
+cargo run -p todo-api
+```
+
+### Rendimiento medido
+
+Mediciones del 2026-05-21 en AMD Ryzen 5 2500U (4C/8T), PostgreSQL 18.4
+nativo, `rustc 1.95.0`, perfil release con LTO fat. Metodologia completa
+en `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+
+| Endpoint                     | req/s    | p99      | Notas                     |
+| ---------------------------- | -------- | -------- | ------------------------- |
+| GET /health (sin DB)         | 88 930   | 3.2 ms   | Stack HTTP puro           |
+| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Cuello de botella: PG     |
+| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
+
+El objetivo de 40K req/s requiere hardware con >= 8 nucleos fisicos o
+uso de pgbouncer en transaction mode. Ver analisis en el documento
+de benchmarks.
 
 ### Fuente de verdad
 
 Los tres documentos maestros viven en `docs/master/` y gobiernan toda
 decision tecnica del proyecto:
 
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` - vision, posicionamiento y alcance.
-- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` - como se construye.
-- `ANTI-GRAVITAL-Hoja-de-Ruta.md` - que se construye y cuando.
+- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, posicionamiento y alcance.
+- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — como se construye.
+- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — que se construye y cuando.
 
 Esta documentacion se descompone en archivos navegables bajo
 `docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
-`docs/security/`, `docs/governance/` y `docs/benchmarks/`. El contenido
-de los derivados se copia verbatim del maestro correspondiente; si
-existe divergencia, el maestro gana.
+`docs/security/`, `docs/governance/` y `docs/benchmarks/`. Si existe
+divergencia entre un derivado y el maestro, el maestro gana.
 
 ### Como contribuir
 
 Vease `CONTRIBUTING.md` para la guia completa. Resumen rapido:
 
 1. Lea los maestros bajo `docs/master/` y la fase actual en
-   `docs/roadmap/`.
+   `docs/roadmap/STATUS.md`.
 2. Para cambios arquitectonicos, abra una RFC en `docs/rfc/` antes de
    tocar codigo.
 3. Mantenga sus pull requests cortas: titulo de hasta 256 caracteres y
@@ -103,35 +162,94 @@ scientific computing framework. See the scope chapter at
 
 ### Project status
 
-The repository is in Phase 0 per
-`docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`. Phase 0 delivers
-foundations and governance: master documents, license, governance, a
-Cargo workspace skeleton with 15 empty crates, multiplatform
-continuous integration, and templates for issues, pull requests, RFCs
-and ADRs. There is no functional code yet. The first technical
-milestone (Shield MVP) ships in Phase 1.
+Phases 1 and 2 have been technically completed. There is functional,
+tested, and benchmarked code.
+
+**Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
+the operational `shield` module with HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
+JWT Ed25519 authentication, rate limiting, CORS, CSRF, payload
+validation, and structured logging. Pipeline verified with E2E tests
+and criterion benchmarks.
+
+**Phase 2 — The Core MVP:** complete (technical implementation).
+Axum router integrated with the Shield, typed extractors, `AgError`
+error system, PostgreSQL connection pool via sqlx, embedded migrations,
+and the `todo-api` example app with a full CRUD. The `ag` CLI provides
+`new`, `dev`, and `build` with three templates (`rest`, `realtime`,
+`fullstack`). The `todo-api` app deploys as a `FROM scratch` image of
+2.49 MB. Benchmarks measured on real hardware: HTTP stack 89K req/s,
+CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
+not the framework). Phase throughput and latency targets (40K req/s,
+p99 <= 5 ms) require hardware with more cores or pgbouncer.
+
+**Phase 3 — Anti-DSL alpha:** next. The DSL generates Rust code, SQL,
+migrations, and OpenAPI from `.ag` files.
+
+Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
+
+### Quick start
+
+Requires Rust 1.95+ and PostgreSQL.
+
+```sh
+# Install the CLI
+cargo install --path crates/ag-cli
+
+# Create a new project
+ag new my-api
+
+# Start in development mode
+cd my-api
+ag dev
+```
+
+The app responds at `http://localhost:8080`. The `rest` template
+generates a project with Shield, typed extractors, and a PostgreSQL
+connection ready to configure via `DATABASE_URL`.
+
+For the full CRUD example with PostgreSQL:
+
+```sh
+export DATABASE_URL="postgresql://user:pass@localhost/my_db"
+cargo run -p todo-api
+```
+
+### Measured performance
+
+Measurements from 2026-05-21 on AMD Ryzen 5 2500U (4C/8T), native
+PostgreSQL 18.4, `rustc 1.95.0`, release profile with fat LTO. Full
+methodology in
+`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+
+| Endpoint                     | req/s    | p99      | Notes                     |
+| ---------------------------- | -------- | -------- | ------------------------- |
+| GET /health (no DB)          | 88 930   | 3.2 ms   | Pure HTTP stack           |
+| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Bottleneck: PostgreSQL    |
+| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
+
+The 40K req/s target requires hardware with >= 8 physical cores or
+pgbouncer in transaction mode. See the benchmark document for analysis.
 
 ### Source of truth
 
 The three master documents live in `docs/master/` and govern every
 technical decision:
 
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` - vision, positioning, scope.
-- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` - how the system is built.
-- `ANTI-GRAVITAL-Hoja-de-Ruta.md` - what is built and when.
+- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, positioning, scope.
+- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — how the system is built.
+- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — what is built and when.
 
 These documents are decomposed into navigable files under
 `docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
-`docs/security/`, `docs/governance/` and `docs/benchmarks/`. The
-content of the derivatives is copied verbatim from the corresponding
-master; if a divergence appears, the master wins.
+`docs/security/`, `docs/governance/` and `docs/benchmarks/`. If a
+derivative diverges from its master, the master wins.
 
 ### How to contribute
 
 See `CONTRIBUTING.md` for the full guide. Quick summary:
 
-1. Read the masters in `docs/master/` and the current phase in
-   `docs/roadmap/`.
+1. Read the masters in `docs/master/` and current phase status in
+   `docs/roadmap/STATUS.md`.
 2. For architectural changes, open an RFC in `docs/rfc/` before
    touching code.
 3. Keep pull requests small: titles up to 256 characters and a single
@@ -153,18 +271,18 @@ maintainer: Angel Nereira.
 
 ## Calendario / Calendar
 
-| Hito / Milestone                  | Fase / Phase | Estado / Status |
-| --- | --- | --- |
-| Fundaciones y gobernanza          | 0  | En curso / In progress |
-| The Shield MVP                    | 1  | Pendiente / Pending |
-| The Core MVP                      | 2  | Pendiente / Pending |
-| Anti-DSL alpha                    | 3  | Pendiente / Pending |
-| Modulos estandar                  | 4  | Pendiente / Pending |
-| `ag-cloud` y version 0.5 beta     | 5  | Pendiente / Pending |
-| `ag-ai` y Knowledge Graph         | 6  | Pendiente / Pending |
-| `ag-migrate` importadores         | 7  | Pendiente / Pending |
-| `ag-mobile` Flutter bridge        | 8  | Pendiente / Pending |
-| Sistema de plugins WASI           | 9  | Pendiente / Pending |
-| Endurecimiento y version 1.0      | 10 | Pendiente / Pending |
+| Fase / Phase | Hito / Milestone              | Estado / Status                                         |
+| ------------ | ----------------------------- | ------------------------------------------------------- |
+| 0            | Fundaciones y gobernanza      | En curso (externos pendientes) / In progress (externals pending) |
+| 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
+| 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
+| 3            | Anti-DSL alpha                | Proxima / Next                                          |
+| 4            | Modulos estandar              | Pendiente / Pending                                     |
+| 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
+| 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
+| 7            | ag-migrate importadores       | Pendiente / Pending                                     |
+| 8            | ag-mobile Flutter bridge      | Pendiente / Pending                                     |
+| 9            | Sistema de plugins WASI       | Pendiente / Pending                                     |
+| 10           | Endurecimiento y version 1.0  | Pendiente / Pending                                     |
 
-Detalle completo en `docs/roadmap/` y `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`.
+Detalle completo en `docs/roadmap/STATUS.md` y `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`.

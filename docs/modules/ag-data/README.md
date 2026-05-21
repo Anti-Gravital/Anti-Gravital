@@ -21,6 +21,18 @@ crates Anti-Gravital.
 
 ## Estado
 
-Fase 0: el crate `crates/ag-data/` esta declarado en el workspace con
-`src/lib.rs` vacio y `README.md` propio. No contiene codigo
-funcional. La implementacion comienza en la fase indicada arriba.
+Fase 2 MVP completada. El crate contiene la capa de datos minima
+necesaria para el Core MVP.
+
+Implementado: `DataConfig` con `url`, `max_connections` y defaults
+configurables via `DATABASE_MAX_CONNECTIONS`. `DbPool` (alias de
+`sqlx::PgPool`). `connect()` que establece el pool con los parametros
+de `DataConfig`. `run_migrations()` que ejecuta un `sqlx::Migrator`
+sobre el pool. `DataError` con conversion automatica a `AgError`.
+
+Demostrado en `examples/todo-api/`: migraciones embebidas con
+`sqlx::migrate!`, CRUD completo contra PostgreSQL real y despliegue
+como binario estatico MUSL (5.3 MB) en imagen `FROM scratch` (2.49 MB).
+
+El ORM generado por DSL y las funcionalidades avanzadas (relaciones,
+paginacion, caches de queries) llegan en fases posteriores.

@@ -9,10 +9,10 @@ exige una fecha externa."
 
 | Fase | Hito | Duracion estimada | Estado |
 | --- | --- | --- | --- |
-| 0 | Fundaciones y gobernanza | 1-2 meses | En curso |
-| 1 | The Shield MVP | 2-3 meses | Pendiente |
-| 2 | The Core MVP | 2 meses | Pendiente |
-| 3 | Anti-DSL alpha (v0.1 a v0.4) | 3 meses | Pendiente |
+| 0 | Fundaciones y gobernanza | 1-2 meses | En curso (criterios externos pendientes; implementacion bajo RFC-0001) |
+| 1 | The Shield MVP | 2-3 meses | Implementacion tecnica completa |
+| 2 | The Core MVP | 2 meses | Implementacion tecnica completa |
+| 3 | Anti-DSL alpha (v0.1 a v0.4) | 3 meses | Proxima |
 | 4 | Modulos estandar | 3 meses | Pendiente |
 | 5 | ag-cloud y version 0.5 beta publica | 2 meses | Pendiente |
 | 6 | ag-ai y Knowledge Graph | 2 meses | Pendiente |

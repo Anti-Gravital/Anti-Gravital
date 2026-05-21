@@ -21,6 +21,20 @@ crates Anti-Gravital.
 
 ## Estado
 
-Fase 0: el crate `crates/ag-core/` esta declarado en el workspace con
-`src/lib.rs` vacio y `README.md` propio. No contiene codigo
-funcional. La implementacion comienza en la fase indicada arriba.
+Fase 1 y Fase 2 completadas. El crate contiene ~2 600 lineas de codigo
+funcional organizado en los modulos `shield` y `core`.
+
+Modulo `shield` (Fase 1): HTTP/1.1 y HTTP/2 via Axum + Tokio, TLS 1.3
+con rustls, autenticacion JWT Ed25519 (`shield::auth`), rate limiting
+token-bucket por IP (`shield::rate_limit`), CORS (`shield::cors`), CSRF
+double-submit cookie (`shield::csrf`), validacion de payload
+(`shield::validation`) y logging estructurado (`shield::logging`).
+Configuracion desde TOML. 84 tests (unit + E2E + doctest).
+
+Modulo `core` (Fase 2): reexporta `State<T>`, `Path<T>`, `Query<T>`,
+`ValidatedBody<T>`, `Claims<T>` y el modulo `response` con `Json`,
+`PlainText` y `BodyStream`. Sistema de errores `AgError` con conversion
+automatica a respuesta HTTP. `Shield::apply(router)` integra ambas capas.
+
+Rendimiento medido (Ryzen 5 2500U, oha 1.14.0): stack HTTP sin DB 88 930
+req/s. Ver `docs/benchmarks/` para metodologia completa.

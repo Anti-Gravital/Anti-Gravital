@@ -21,6 +21,20 @@ crates Anti-Gravital.
 
 ## Estado
 
-Fase 0: el crate `crates/ag-cli/` esta declarado en el workspace con
-`src/lib.rs` vacio y `README.md` propio. No contiene codigo
-funcional. La implementacion comienza en la fase indicada arriba.
+Fase 2 MVP completada. El binario `ag` es funcional con tres comandos
+y tres templates embebidos.
+
+Implementado:
+- `ag new <nombre>` — genera scaffold desde template (`rest`,
+  `realtime` o `fullstack`) embebido via `include_str!`. Crea
+  `Cargo.toml`, `src/main.rs`, `README.md` y `.gitignore`.
+- `ag dev` — arranca el servidor con hot reload via `cargo-watch`.
+  Responde en `http://localhost:8080`.
+- `ag build` — compila en perfil release. Produce binario optimizado.
+
+Verificado el 2026-05-21: los tres templates generan scaffold correcto,
+compilan sin warnings con `cargo clippy -D warnings` y el binario
+release funciona correctamente.
+
+Comandos futuros (`ag deploy`, `ag migrate`, `ag plugin`) llegan en
+fases posteriores segun la hoja de ruta.

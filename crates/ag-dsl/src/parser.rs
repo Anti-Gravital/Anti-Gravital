@@ -154,6 +154,12 @@ fn field_parser() -> impl Parser<Token, FieldDef, Error = ParseErr> {
         just(Token::TyBool).to(FieldType::Bool),
         just(Token::TyTimestamp).to(FieldType::Timestamp),
         just(Token::TyDecimal).to(FieldType::Decimal),
+        // v0.4: ModelRefList antes de ModelRef (patron mas especifico primero)
+        select! { Token::Ident(s) => s }
+            .then_ignore(just(Token::LBracket))
+            .then_ignore(just(Token::RBracket))
+            .map(FieldType::ModelRefList),
+        select! { Token::Ident(s) => s }.map(FieldType::ModelRef),
     ))
     .map_with_span(|t, span: Span| Spanned::new(t, span))
     .labelled("tipo de campo");
@@ -219,6 +225,37 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         )
         .map(Annotation::Regex);
 
+    // v0.4 — @references(Modelo.campo)
+    let at_references = just(Token::AtReferences)
+        .ignore_then(
+            select! { Token::Ident(s) => s }
+                .then_ignore(just(Token::Dot))
+                .then(select! { Token::Ident(s) => s })
+                .delimited_by(just(Token::LParen), just(Token::RParen))
+                .labelled("referencia Modelo.campo"),
+        )
+        .map(|(model, field)| Annotation::References { model, field });
+
+    // v0.4 — @relation(campo) o @relation(modelo.campo)
+    let relation_path = select! { Token::Ident(s) => s }
+        .then(
+            just(Token::Dot)
+                .ignore_then(select! { Token::Ident(s) => s })
+                .or_not(),
+        )
+        .map(|(first, second)| match second {
+            Some(s) => format!("{first}.{s}"),
+            None => first,
+        });
+
+    let at_relation = just(Token::AtRelation)
+        .ignore_then(
+            relation_path
+                .delimited_by(just(Token::LParen), just(Token::RParen))
+                .labelled("path de relacion"),
+        )
+        .map(|path| Annotation::Relation { path });
+
     choice((
         just(Token::AtPrimary).to(Annotation::Primary),
         just(Token::AtUnique).to(Annotation::Unique),
@@ -230,6 +267,8 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         at_max,
         at_length,
         at_regex,
+        at_references,
+        at_relation,
     ))
     .map_with_span(|ann, span: Span| Spanned::new(ann, span))
     .labelled("anotacion")
@@ -768,6 +807,71 @@ request Req {
             .annotations
             .iter()
             .any(|a| a.value == Annotation::Regex("^[A-Z]{3}$".to_owned())));
+    }
+
+    #[test]
+    fn v04_parses_references_annotation() {
+        let src = r#"
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.id)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().models[0].fields[1];
+        let has_ref = field.annotations.iter().any(|a| {
+            matches!(&a.value,
+                Annotation::References { model, field }
+                if model == "User" && field == "id")
+        });
+        assert!(has_ref, "should have @references(User.id)");
+        assert!(!field.virtual_field, "FK field should not be virtual");
+    }
+
+    #[test]
+    fn v04_parses_relation_single() {
+        let src = r#"
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().models[0].fields[2];
+        assert!(
+            matches!(&field.ty.value, FieldType::ModelRef(m) if m == "User"),
+            "type should be ModelRef(User)"
+        );
+        assert!(field.virtual_field, "relation field should be virtual");
+        let has_rel = field.annotations.iter().any(|a| {
+            matches!(&a.value, Annotation::Relation { path } if path == "author_id")
+        });
+        assert!(has_rel, "should have @relation(author_id)");
+    }
+
+    #[test]
+    fn v04_parses_relation_list() {
+        let src = r#"
+model User {
+    id    UUID   @primary @auto
+    posts Post[] @relation(post.author_id)
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let field = &ast.unwrap().models[0].fields[1];
+        assert!(
+            matches!(&field.ty.value, FieldType::ModelRefList(m) if m == "Post"),
+            "type should be ModelRefList(Post)"
+        );
+        assert!(field.virtual_field, "list relation should be virtual");
+        let has_rel = field.annotations.iter().any(|a| {
+            matches!(&a.value, Annotation::Relation { path } if path == "post.author_id")
+        });
+        assert!(has_rel, "should have @relation(post.author_id)");
     }
 
     #[test]

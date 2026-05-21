@@ -76,9 +76,12 @@ pub struct FieldDef {
     pub optional: bool,
     /// Lista de anotaciones en orden de aparicion.
     pub annotations: Vec<Spanned<Annotation>>,
+    /// true cuando el campo es ModelRef/ModelRefList con @relation.
+    /// SQL codegen lo omite; Rust/TS/OpenAPI lo incluyen como tipo anidado.
+    pub virtual_field: bool,
 }
 
-/// Tipos primitivos soportados en DSL v0.1.
+/// Tipos primitivos soportados en DSL v0.1 y referencias a modelos (v0.4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FieldType {
     /// `UUID` — identificador unico universal.
@@ -95,11 +98,22 @@ pub enum FieldType {
     Timestamp,
     /// `Decimal` — numero decimal de precision arbitraria (para dinero).
     Decimal,
+    /// Referencia a otro modelo — campo virtual N:1 o 1:1, sin columna SQL.
+    ModelRef(std::string::String),
+    /// Lista de referencias — campo virtual 1:N, sin columna SQL.
+    ModelRefList(std::string::String),
 }
 
 impl FieldType {
     /// Nombre Rust del tipo generado.
     pub fn rust_type(&self, optional: bool) -> std::string::String {
+        if let FieldType::ModelRef(m) | FieldType::ModelRefList(m) = self {
+            return if optional {
+                format!("Option<{m}>")
+            } else {
+                m.clone()
+            };
+        }
         let base = match self {
             FieldType::Uuid => "uuid::Uuid",
             FieldType::String => "String",
@@ -108,6 +122,7 @@ impl FieldType {
             FieldType::Bool => "bool",
             FieldType::Timestamp => "chrono::DateTime<chrono::Utc>",
             FieldType::Decimal => "rust_decimal::Decimal",
+            FieldType::ModelRef(_) | FieldType::ModelRefList(_) => unreachable!(),
         };
         if optional {
             format!("Option<{base}>")
@@ -116,7 +131,7 @@ impl FieldType {
         }
     }
 
-    /// Tipo SQL correspondiente.
+    /// Tipo SQL correspondiente. Vacio para campos virtuales (nunca generan columna).
     pub fn sql_type(&self) -> &'static str {
         match self {
             FieldType::Uuid => "UUID",
@@ -126,6 +141,7 @@ impl FieldType {
             FieldType::Bool => "BOOLEAN",
             FieldType::Timestamp => "TIMESTAMPTZ",
             FieldType::Decimal => "NUMERIC",
+            FieldType::ModelRef(_) | FieldType::ModelRefList(_) => "",
         }
     }
 
@@ -139,6 +155,7 @@ impl FieldType {
             FieldType::Bool => "boolean",
             FieldType::Timestamp => "string",
             FieldType::Decimal => "string",
+            FieldType::ModelRef(_) | FieldType::ModelRefList(_) => "object",
         }
     }
 
@@ -152,11 +169,12 @@ impl FieldType {
             FieldType::Bool => ("boolean", None),
             FieldType::Timestamp => ("string", Some("date-time")),
             FieldType::Decimal => ("string", Some("decimal")),
+            FieldType::ModelRef(_) | FieldType::ModelRefList(_) => ("object", None),
         }
     }
 }
 
-/// Anotaciones DSL v0.1–v0.3.
+/// Anotaciones DSL v0.1–v0.4.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Annotation {
     /// `@primary` — clave primaria.
@@ -180,6 +198,16 @@ pub enum Annotation {
     Regex(std::string::String),
     /// `@length(N)` — longitud exacta de caracteres (solo String).
     Length(i64),
+    // ---- Relaciones v0.4 ----
+    /// `@references(Modelo.campo)` — clave foranea con columna SQL real.
+    References {
+        model: std::string::String,
+        field: std::string::String,
+    },
+    /// `@relation(campo)` o `@relation(modelo.campo)` — campo virtual sin columna SQL.
+    Relation {
+        path: std::string::String,
+    },
 }
 
 /// Valor para la anotacion `@default(...)`.
@@ -350,6 +378,36 @@ pub fn extract_path_params(path: &str) -> Vec<std::string::String> {
         }
     }
     params
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_ref_rust_type_single() {
+        let ty = FieldType::ModelRef("User".to_owned());
+        assert_eq!(ty.rust_type(false), "User");
+        assert_eq!(ty.rust_type(true), "Option<User>");
+    }
+
+    #[test]
+    fn model_ref_list_rust_type() {
+        let ty = FieldType::ModelRefList("Post".to_owned());
+        assert_eq!(ty.rust_type(false), "Post");
+    }
+
+    #[test]
+    fn model_ref_sql_type_empty() {
+        let ty = FieldType::ModelRef("User".to_owned());
+        assert_eq!(ty.sql_type(), "");
+    }
+
+    #[test]
+    fn model_ref_ts_type() {
+        let ty = FieldType::ModelRef("User".to_owned());
+        assert_eq!(ty.ts_type(), "object");
+    }
 }
 
 /// Convierte PascalCase o camelCase a snake_case.

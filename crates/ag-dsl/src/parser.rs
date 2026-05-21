@@ -166,11 +166,18 @@ fn field_parser() -> impl Parser<Token, FieldDef, Error = ParseErr> {
         .then(field_type)
         .then(optional)
         .then(annotations)
-        .map(|(((name, ty), optional), annotations)| FieldDef {
-            name,
-            ty,
-            optional,
-            annotations,
+        .map(|(((name, ty), optional), annotations)| {
+            let virtual_field = matches!(
+                ty.value,
+                FieldType::ModelRef(_) | FieldType::ModelRefList(_)
+            );
+            FieldDef {
+                name,
+                ty,
+                optional,
+                annotations,
+                virtual_field,
+            }
         })
 }
 

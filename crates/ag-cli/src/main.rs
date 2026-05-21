@@ -335,30 +335,29 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
 
 fn cmd_schema_lint(schema_path: &Path) -> Result<(), String> {
     let source = read_schema(schema_path)?;
+    let diags = ag_dsl::lint(&source);
 
-    match ag_dsl::compile(&source) {
-        Ok(_schema) => {
-            println!("'{}': sin problemas encontrados.", schema_path.display());
-        }
-        Err(diags) => {
-            let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
-            let warnings: Vec<_> = diags.iter().filter(|d| !d.is_error()).collect();
+    if diags.is_empty() {
+        println!("'{}': sin problemas encontrados.", schema_path.display());
+        return Ok(());
+    }
 
-            for w in &warnings {
-                println!("warning: {}", w.display(&source));
-            }
-            for e in &errors {
-                eprintln!("error: {}", e.display(&source));
-            }
+    let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+    let warnings: Vec<_> = diags.iter().filter(|d| !d.is_error()).collect();
 
-            if !errors.is_empty() {
-                return Err(format!(
-                    "{} error(es) en '{}'",
-                    errors.len(),
-                    schema_path.display()
-                ));
-            }
-        }
+    for w in &warnings {
+        println!("warning: {}", w.display(&source));
+    }
+    for e in &errors {
+        eprintln!("error:   {}", e.display(&source));
+    }
+
+    if !errors.is_empty() {
+        return Err(format!(
+            "{} error(es) en '{}'",
+            errors.len(),
+            schema_path.display()
+        ));
     }
     Ok(())
 }
@@ -541,5 +540,12 @@ mod tests {
         let tmpl = "{{name}} y {{name}}";
         let result = apply_template(tmpl, "alfa");
         assert_eq!(result, "alfa y alfa");
+    }
+
+    #[test]
+    fn lint_fn_surfaces_warnings_for_model_without_primary() {
+        let src = "model Tag { name String }";
+        let diags = ag_dsl::lint(src);
+        assert!(!diags.is_empty(), "debe haber warnings para modelo sin @primary");
     }
 }

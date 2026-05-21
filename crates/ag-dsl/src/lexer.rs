@@ -105,6 +105,7 @@ pub enum Token {
     /// `@min(N)` — longitud minima (String) o valor minimo (numeros).
     #[token("@min")]
     AtMin,
+
     /// `@max(N)` — longitud maxima (String) o valor maximo (numeros).
     #[token("@max")]
     AtMax,
@@ -117,6 +118,14 @@ pub enum Token {
     /// `@length(N)` — longitud exacta de caracteres (solo String).
     #[token("@length")]
     AtLength,
+
+    // ---- Anotaciones DSL v0.4 — relaciones ----
+    /// `@references` — clave foranea hacia otro modelo.
+    #[token("@references")]
+    AtReferences,
+    /// `@relation` — campo virtual de relacion.
+    #[token("@relation")]
+    AtRelation,
 
     // ---- Literales ----
     /// Literal entero: `42`, `255`, `0`.
@@ -168,6 +177,9 @@ pub enum Token {
     /// Campo opcional: `Nombre String?`
     #[token("?")]
     Question,
+    /// Punto: separador en `@references(Modelo.campo)` y `@relation(modelo.campo)`.
+    #[token(".")]
+    Dot,
 }
 
 /// Resultado de tokenizar el texto fuente.
@@ -407,6 +419,38 @@ model User {
                 Token::AtEmail,
                 Token::AtRegex,
                 Token::AtLength,
+            ]
+        );
+    }
+
+    #[test]
+    fn v04_relation_tokens() {
+        let toks = lex("@references @relation");
+        assert_eq!(toks, vec![Token::AtReferences, Token::AtRelation]);
+    }
+
+    #[test]
+    fn v04_dot_token() {
+        let toks = lex("User.id");
+        assert_eq!(
+            toks,
+            vec![
+                Token::Ident("User".to_owned()),
+                Token::Dot,
+                Token::Ident("id".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
+    fn v04_list_type_brackets() {
+        let toks = lex("Post[]");
+        assert_eq!(
+            toks,
+            vec![
+                Token::Ident("Post".to_owned()),
+                Token::LBracket,
+                Token::RBracket,
             ]
         );
     }

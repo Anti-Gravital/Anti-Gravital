@@ -5,7 +5,7 @@
 //!
 //! - `NombreModel` — struct completo (para respuestas y persistencia).
 //! - `CreateNombreRequest` — sin campos @auto (para POST).
-//! - `UpdateNombreRequest` — todos los campos no-@auto como Option<T> (para PUT/PATCH).
+//! - `UpdateNombreRequest` — todos los campos no-@auto como `Option<T>` (para PUT/PATCH).
 
 use crate::ast::{Annotation, FieldDef, FieldType, ModelDef, Schema};
 

@@ -846,9 +846,10 @@ model Post {
             "type should be ModelRef(User)"
         );
         assert!(field.virtual_field, "relation field should be virtual");
-        let has_rel = field.annotations.iter().any(|a| {
-            matches!(&a.value, Annotation::Relation { path } if path == "author_id")
-        });
+        let has_rel = field
+            .annotations
+            .iter()
+            .any(|a| matches!(&a.value, Annotation::Relation { path } if path == "author_id"));
         assert!(has_rel, "should have @relation(author_id)");
     }
 
@@ -868,9 +869,10 @@ model User {
             "type should be ModelRefList(Post)"
         );
         assert!(field.virtual_field, "list relation should be virtual");
-        let has_rel = field.annotations.iter().any(|a| {
-            matches!(&a.value, Annotation::Relation { path } if path == "post.author_id")
-        });
+        let has_rel = field
+            .annotations
+            .iter()
+            .any(|a| matches!(&a.value, Annotation::Relation { path } if path == "post.author_id"));
         assert!(has_rel, "should have @relation(post.author_id)");
     }
 

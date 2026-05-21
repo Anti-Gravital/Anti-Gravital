@@ -49,14 +49,14 @@ mod semantic;
 pub use codegen::{generate, GeneratedFiles};
 pub use diagnostics::Diagnostic;
 
-/// Compila un texto fuente DSL y retorna el AST si no hay errores.
+/// Compila texto fuente DSL y retorna el AST si no hay errores de lex, parse o semantica.
 ///
 /// Los warnings (como un modelo sin @primary) no bloquean la compilacion.
 /// Solo los errores de severidad `Error` producen `Err`.
 ///
 /// # Errors
 ///
-/// Retorna `Err(Vec<Diagnostic>)` si hay errores de lex, parse o semantic.
+/// Retorna `Err(Vec<Diagnostic>)` si hay errores de lex, parse o semanticos.
 pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
     let (tokens, lex_spans) = lexer::tokenize(source);
 
@@ -85,5 +85,128 @@ pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
             }
             Err(all_diags)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_MODEL: &str = r#"
+model User {
+    id    UUID   @primary @auto
+    email String @unique @email @max(255)
+    name  String @min(2)
+}
+"#;
+
+    #[test]
+    fn compile_valid_schema_returns_ok() {
+        let schema = compile(VALID_MODEL).expect("valid schema should compile");
+        assert_eq!(schema.models.len(), 1);
+        assert_eq!(schema.models[0].name.value, "User");
+    }
+
+    #[test]
+    fn compile_with_warnings_returns_ok() {
+        let src = "model Tag { name String }";
+        let schema = compile(src).expect("warnings should not block compilation");
+        assert_eq!(schema.models[0].name.value, "Tag");
+    }
+
+    #[test]
+    fn compile_semantic_error_returns_err() {
+        let src = "model Bad { id UUID @primary @auto @min(1) }";
+        let diags = compile(src).expect_err("@min on UUID should fail");
+        assert!(diags.iter().any(|d| d.is_error()));
+    }
+
+    #[test]
+    fn compile_parse_error_returns_err() {
+        let src = "model Unclosed { id UUID @primary @auto";
+        let diags = compile(src).expect_err("unclosed brace should fail");
+        assert!(diags.iter().any(|d| d.is_error()));
+    }
+
+    #[test]
+    fn compile_lex_error_returns_err() {
+        let src = "model Bad { id UUID @ }";
+        assert!(compile(src).is_err());
+    }
+
+    #[test]
+    fn generate_produces_files_for_valid_schema() {
+        let schema = compile(VALID_MODEL).unwrap();
+        let files = generate(&schema);
+        assert!(!files.files.is_empty());
+        let paths: Vec<_> = files.files.keys().collect();
+        assert!(
+            paths.iter().any(|p| p.to_string_lossy().contains("models")),
+            "should generate models file"
+        );
+        assert!(
+            paths.iter().any(|p| p.to_string_lossy().contains("sql")),
+            "should generate migration"
+        );
+    }
+
+    #[test]
+    fn generate_full_schema_produces_all_artefacts() {
+        let src = r#"
+config { project_name "test" database "postgres" }
+model User {
+    id    UUID   @primary @auto
+    email String @unique @email @max(255)
+}
+request CreateUser { email String @email }
+response UserResp  { id UUID email String }
+error EmailTaken   { status 409 message "taken" }
+endpoint CreateUser {
+    method POST
+    path   /users
+    body   CreateUser
+    response UserResp
+    errors [EmailTaken]
+}
+endpoint GetUser {
+    method GET
+    path   /users/{id}
+    response UserResp
+    errors [EmailTaken]
+}
+"#;
+        let schema = compile(src).expect("full schema should compile");
+        let files = generate(&schema);
+        let paths: Vec<_> = files
+            .files
+            .keys()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        assert!(paths.iter().any(|p| p.contains("handlers")), "handlers");
+        assert!(paths.iter().any(|p| p.contains("router")), "router");
+        assert!(paths.iter().any(|p| p.contains("types")), "types");
+        assert!(paths.iter().any(|p| p.contains("client")), "client");
+        assert!(paths.iter().any(|p| p.contains("openapi")), "openapi");
+    }
+
+    #[test]
+    fn generate_with_relations_produces_fk_sql() {
+        let src = r#"
+model User { id UUID @primary @auto }
+model Post {
+    id        UUID @primary @auto
+    author_id UUID @references(User.id)
+    author    User @relation(author_id)
+}
+"#;
+        let schema = compile(src).unwrap();
+        let files = generate(&schema);
+        let sql = files
+            .files
+            .iter()
+            .find(|(p, _)| p.to_string_lossy().contains("sql"))
+            .map(|(_, c)| c.as_str())
+            .unwrap_or("");
+        assert!(sql.contains("FOREIGN KEY"), "should have FK in SQL");
     }
 }

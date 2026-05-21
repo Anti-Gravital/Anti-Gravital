@@ -221,7 +221,8 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 - [x] Diagnostics legibles. Lex + parse + semantic con linea:columna.
 - [ ] Servidor LSP basico (ag-lsp).
 - [ ] Plugin VS Code.
-- [/] Cobertura tests >= 85%. 73 tests verdes; cobertura formal pendiente.
+- [x] Cobertura tests >= 85%. Medicion 2026-05-21: 95.26% lineas, 93.02% funciones (cargo-llvm-cov).
+  115 tests verdes. Objetivo superado.
 - [ ] Fuzzing 24h sin crashes.
 - [x] Documentacion de referencia del DSL. `docs/dsl/referencia-v01-v04.md` — cubre tipos,
   anotaciones v0.1–v0.4, generacion de codigo, diagnostics y limitaciones conocidas.

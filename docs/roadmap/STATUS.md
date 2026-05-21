@@ -194,7 +194,7 @@ mas potente o pgbouncer. Criterios externos de comunidad pendientes.
 
 Estado: En curso. Iniciada 2026-05-21 en rama `fase-3`.
 RFC-0003 aceptada. Stack fijado: logos 0.14 (lexer), chumsky 0.9 (parser),
-format! macros v0.1 (codegen). Implementacion incremental v0.1 -> v0.4.
+format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 
 ### Criterios de entrada (3.1)
 
@@ -206,21 +206,21 @@ format! macros v0.1 (codegen). Implementacion incremental v0.1 -> v0.4.
 
 ### Entregables (3.2)
 
-- [ ] DSL version 0.1: modelos basicos (@primary, @unique, @auto).
-- [ ] DSL version 0.2: endpoints (metodo, path, body, response).
+- [x] DSL version 0.1: modelos basicos (@primary, @unique, @auto). Commit 5aa442d.
+- [x] DSL version 0.2: endpoints (metodo, path, body, response, errors). Commit 7d41930.
 - [ ] DSL version 0.3: validaciones (@min, @max, @email, @regex, @length).
 - [ ] DSL version 0.4: relaciones entre modelos (1:1, 1:N, N:M).
-- [ ] Generador Rust: structs con serde.
-- [ ] Generador SQL: migraciones idempotentes.
-- [ ] Generador TypeScript: tipos y cliente HTTP.
-- [ ] Generador OpenAPI 3.1.
-- [ ] Comando ag generate.
-- [ ] Comando ag schema lint.
-- [ ] Comando ag schema diff.
-- [ ] Diagnostics legibles.
+- [x] Generador Rust: structs con serde (v0.1), types.rs + handlers.rs + router.rs (v0.2).
+- [x] Generador SQL: migraciones idempotentes (v0.1).
+- [x] Generador TypeScript: tipos y cliente HTTP (v0.1+v0.2).
+- [x] Generador OpenAPI 3.1: schemas (v0.1) + paths (v0.2).
+- [x] Comando ag generate. Operativo desde v0.1.
+- [x] Comando ag schema lint. Operativo desde v0.1.
+- [x] Comando ag schema diff. Operativo desde v0.1.
+- [x] Diagnostics legibles. Lex + parse + semantic con linea:columna.
 - [ ] Servidor LSP basico (ag-lsp).
 - [ ] Plugin VS Code.
-- [ ] Cobertura tests >= 85%.
+- [/] Cobertura tests >= 85%. 73 tests verdes; cobertura formal pendiente.
 - [ ] Fuzzing 24h sin crashes.
 - [ ] Documentacion de referencia del DSL.
 

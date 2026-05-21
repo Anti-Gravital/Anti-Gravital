@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1 (modelos) y v0.2 (endpoints) operativos.
-> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1 (models) and v0.2 (endpoints) operational.
+> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1, v0.2 y v0.3 operativos.
+> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1, v0.2 and v0.3 operational.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -57,10 +57,12 @@ no en el framework). Los criterios de throughput y latencia de la fase
 (40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
 
 **Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). El compilador
-`ag-dsl` esta operativo con DSL v0.1 y v0.2. Define modelos, endpoints,
-tipos de peticion y respuesta en un archivo `.ag` y genera
-automaticamente structs Rust con serde, migraciones SQL, interfaces
-TypeScript, un cliente HTTP tipado y documentacion OpenAPI 3.1 completa.
+`ag-dsl` esta operativo con DSL v0.1, v0.2 y v0.3. Define modelos,
+endpoints, tipos de peticion y respuesta, y anotaciones de validacion
+(`@min`, `@max`, `@email`, `@regex`, `@length`) en un archivo `.ag`.
+Genera structs Rust con serde y metodos `validate()`, migraciones SQL
+con CHECK constraints, interfaces TypeScript, un cliente HTTP tipado,
+y documentacion OpenAPI 3.1 con constraints de validacion.
 La CLI expone `ag generate`, `ag schema lint` y `ag schema diff`.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
@@ -234,11 +236,13 @@ not the framework). Phase throughput and latency targets (40K req/s,
 p99 <= 5 ms) require hardware with more cores or pgbouncer.
 
 **Phase 3 — Anti-DSL alpha:** in progress (branch `fase-3`). The
-`ag-dsl` compiler is operational with DSL v0.1 and v0.2. Define models,
-endpoints, request and response types in a `.ag` file and automatically
-generate Rust structs with serde, SQL migrations, TypeScript interfaces,
-a typed HTTP client, and a full OpenAPI 3.1 document. The CLI exposes
-`ag generate`, `ag schema lint`, and `ag schema diff`.
+`ag-dsl` compiler is operational with DSL v0.1, v0.2, and v0.3. Define
+models, endpoints, request and response types, and validation annotations
+(`@min`, `@max`, `@email`, `@regex`, `@length`) in a `.ag` file.
+Generates Rust structs with serde and `validate()` methods, SQL
+migrations with CHECK constraints, TypeScript interfaces, a typed HTTP
+client, and a full OpenAPI 3.1 document with validation constraints.
+The CLI exposes `ag generate`, `ag schema lint`, and `ag schema diff`.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 

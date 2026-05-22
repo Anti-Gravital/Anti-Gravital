@@ -13,8 +13,8 @@
 use chumsky::prelude::*;
 
 use crate::ast::{
-    Annotation, Config, DefaultValue, EndpointDef, ErrorDef, FieldDef, FieldType, HttpMethod,
-    ModelDef, RequestDef, ResponseDef, Schema, Spanned,
+    Annotation, AuthMode, Config, DefaultValue, EndpointDef, ErrorDef, FieldDef, FieldType,
+    HttpMethod, ModelDef, RequestDef, ResponseDef, Schema, Spanned,
 };
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
@@ -414,6 +414,9 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
                 body,
                 response,
                 errors,
+                auth: AuthMode::None,
+                policy: None,
+                emits: Vec::new(),
                 span,
             }
         })

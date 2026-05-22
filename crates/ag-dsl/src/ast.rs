@@ -40,6 +40,8 @@ pub struct Schema {
     pub errors: Vec<ErrorDef>,
     /// Definiciones de endpoint: `endpoint Nombre { method path body response errors }`.
     pub endpoints: Vec<EndpointDef>,
+    /// Declaraciones de evento (v0.6): `event nombre { payload T retain Nd }`.
+    pub events: Vec<EventDef>,
 }
 
 /// Bloque `config { ... }`.
@@ -276,6 +278,50 @@ pub struct ErrorDef {
     pub span: Span,
 }
 
+// ============================================================
+// DSL v0.5 — auth/policy en endpoints
+// ============================================================
+
+/// Modo de autenticacion declarado en un endpoint (DSL v0.5).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum AuthMode {
+    /// Sin autenticacion requerida (valor por defecto).
+    #[default]
+    None,
+    /// El token JWT es requerido; la Shield rechaza requests sin token.
+    Required,
+    /// El token JWT es opcional; el handler decide como tratar la ausencia.
+    Optional,
+}
+
+impl AuthMode {
+    /// Representacion textual del modo tal como aparece en el schema.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AuthMode::None => "none",
+            AuthMode::Required => "required",
+            AuthMode::Optional => "optional",
+        }
+    }
+}
+
+// ============================================================
+// DSL v0.6 — declaracion de eventos
+// ============================================================
+
+/// Declaracion de evento en DSL v0.6: `event nombre { payload T retain Nd }`.
+#[derive(Debug, Clone)]
+pub struct EventDef {
+    /// Nombre del evento en formato `entidad.accion`.
+    pub name: Spanned<std::string::String>,
+    /// Nombre del tipo de payload (referencia a model/request/response).
+    pub payload: Spanned<std::string::String>,
+    /// Retencion en dias. `None` si no se declara.
+    pub retain_days: Option<u32>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
 /// Definicion de endpoint HTTP.
 ///
 /// ```text
@@ -301,6 +347,12 @@ pub struct EndpointDef {
     pub response: Option<Spanned<std::string::String>>,
     /// Nombres de tipos de error (referencias a `ErrorDef`).
     pub errors: Vec<Spanned<std::string::String>>,
+    /// Modo de autenticacion del endpoint (v0.5). Default: None.
+    pub auth: AuthMode,
+    /// Expresion de politica RBAC (v0.5). Solo valida cuando auth != None.
+    pub policy: Option<Spanned<std::string::String>>,
+    /// Nombres de eventos emitidos por este endpoint (v0.6).
+    pub emits: Vec<Spanned<std::string::String>>,
     /// Span del bloque completo.
     pub span: Span,
 }
@@ -395,6 +447,30 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         result.push(ch.to_lowercase().next().unwrap());
     }
     result
+}
+
+#[cfg(test)]
+mod ast_v05_v06_tests {
+    use super::*;
+
+    #[test]
+    fn auth_mode_display() {
+        assert_eq!(AuthMode::Required.as_str(), "required");
+        assert_eq!(AuthMode::Optional.as_str(), "optional");
+        assert_eq!(AuthMode::None.as_str(), "none");
+    }
+
+    #[test]
+    fn event_def_fields() {
+        let ev = EventDef {
+            name: Spanned::new("user.created".to_string(), 0..12),
+            payload: Spanned::new("UserResponse".to_string(), 0..12),
+            retain_days: Some(30),
+            span: 0..50,
+        };
+        assert_eq!(ev.name.value, "user.created");
+        assert_eq!(ev.retain_days, Some(30));
+    }
 }
 
 #[cfg(test)]

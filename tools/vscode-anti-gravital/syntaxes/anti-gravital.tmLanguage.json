@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Anti-Gravital DSL",
+  "scopeName": "source.anti-gravital",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#annotations" },
+    { "include": "#types" },
+    { "include": "#http-methods" },
+    { "include": "#keywords" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.number-sign.anti-gravital",
+      "match": "#.*$"
+    },
+    "strings": {
+      "name": "string.quoted.double.anti-gravital",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.anti-gravital", "match": "\\\\." }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.anti-gravital",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    },
+    "annotations": {
+      "name": "entity.other.attribute-name.anti-gravital",
+      "match": "@(primary|unique|auto_update|auto|default|min|max|email|regex|length|on_delete|on_update|references|relation)\\b"
+    },
+    "types": {
+      "name": "support.type.anti-gravital",
+      "match": "\\b(UUID|String|Int|Float|Bool|DateTime)\\b"
+    },
+    "http-methods": {
+      "name": "keyword.operator.anti-gravital",
+      "match": "\\b(GET|POST|PUT|PATCH|DELETE)\\b"
+    },
+    "keywords": {
+      "name": "keyword.control.anti-gravital",
+      "match": "\\b(model|endpoint|request|response|error|config|field|method|path|body|errors|status|message|project_name|database)\\b"
+    },
+    "identifiers": {
+      "name": "entity.name.type.anti-gravital",
+      "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+    }
+  }
+}

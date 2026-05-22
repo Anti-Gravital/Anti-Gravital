@@ -13,8 +13,8 @@
 use chumsky::prelude::*;
 
 use crate::ast::{
-    Annotation, Config, DefaultValue, EndpointDef, ErrorDef, FieldDef, FieldType, HttpMethod,
-    ModelDef, RequestDef, ResponseDef, Schema, Spanned,
+    Annotation, AuthMode, Config, DefaultValue, EndpointDef, ErrorDef, EventDef, FieldDef,
+    FieldType, HttpMethod, ModelDef, RequestDef, ResponseDef, Schema, Spanned,
 };
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
@@ -52,6 +52,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         response_parser().map(SchemaItem::Response),
         error_def_parser().map(SchemaItem::Error),
         endpoint_parser().map(SchemaItem::Endpoint),
+        event_parser().map(SchemaItem::Event),
     ))
     .recover_with(skip_then_retry_until([
         Token::Model,
@@ -60,6 +61,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         Token::Response,
         Token::ErrorKw,
         Token::Endpoint,
+        Token::Event,
     ]));
 
     item.repeated().then_ignore(end()).map(|items| {
@@ -72,6 +74,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
                 SchemaItem::Response(r) => schema.responses.push(r),
                 SchemaItem::Error(e) => schema.errors.push(e),
                 SchemaItem::Endpoint(ep) => schema.endpoints.push(ep),
+                SchemaItem::Event(ev) => schema.events.push(ev),
             }
         }
         schema
@@ -86,6 +89,7 @@ enum SchemaItem {
     Response(ResponseDef),
     Error(ErrorDef),
     Endpoint(EndpointDef),
+    Event(EventDef),
 }
 
 /// Parser de bloque `config { ... }`.
@@ -335,7 +339,37 @@ fn error_def_parser() -> impl Parser<Token, ErrorDef, Error = ParseErr> {
         .labelled("definicion de error")
 }
 
-/// Parser de `endpoint Nombre { method path [body] [response] [errors] }`.
+/// Parser de nombre compuesto con punto: `user.created` o `UserResponse`.
+///
+/// Tokeniza como `Ident("user") Dot Ident("created")` o solo `Ident("UserResponse")`.
+/// Retorna el nombre completo como `Spanned<String>`.
+fn dotted_ident_parser() -> impl Parser<Token, Spanned<String>, Error = ParseErr> {
+    select! { Token::Ident(s) => s }
+        .map_with_span(|s, span: Span| (s, span))
+        .then(
+            just(Token::Dot)
+                .ignore_then(select! { Token::Ident(s) => s })
+                .or_not(),
+        )
+        .map_with_span(|((first, fspan), second), full_span: Span| {
+            let name = match second {
+                Some(part) => format!("{first}.{part}"),
+                None => first,
+            };
+            // Usa el span del primer segmento para nombres simples,
+            // el span completo para nombres con punto.
+            Spanned::new(
+                name,
+                if full_span.start < full_span.end {
+                    full_span
+                } else {
+                    fspan
+                },
+            )
+        })
+}
+
+/// Parser de `endpoint Nombre { method path [body] [response] [errors] [auth] [policy] [events] }`.
 fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
     let endpoint_name = just(Token::Endpoint)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del endpoint"))
@@ -361,6 +395,37 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         .delimited_by(just(Token::LBracket), just(Token::RBracket))
         .labelled("lista de errores");
 
+    // Lista de nombres de eventos: `[user.created, order.placed]`
+    // Cada elemento puede ser un nombre con punto (user.created).
+    let emits_list = dotted_ident_parser()
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .collect::<Vec<_>>()
+        .delimited_by(just(Token::LBracket), just(Token::RBracket))
+        .labelled("lista de eventos");
+
+    // auth required | auth optional
+    let auth_field = just(Token::Auth)
+        .ignore_then(choice((
+            just(Token::Required).to(AuthMode::Required),
+            just(Token::Optional).to(AuthMode::Optional),
+        )))
+        .map(EndpointField::Auth);
+
+    // policy "expresion"
+    let policy_field = just(Token::Policy)
+        .ignore_then(
+            select! { Token::StringLit(s) => s }
+                .map_with_span(|s, span: Span| Spanned::new(s, span))
+                .labelled("expresion de policy"),
+        )
+        .map(EndpointField::Policy);
+
+    // events [nombre.evento, ...]
+    let events_field = just(Token::Ident("events".to_owned()))
+        .ignore_then(emits_list)
+        .map(EndpointField::EmitsList);
+
     // Cada campo del bloque endpoint es un par clave-valor
     #[allow(clippy::type_complexity)]
     let endpoint_field = choice((
@@ -383,6 +448,9 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         just(Token::Ident("errors".to_owned()))
             .ignore_then(error_list)
             .map(EndpointField::Errors),
+        auth_field,
+        policy_field,
+        events_field,
     ));
 
     endpoint_name
@@ -398,6 +466,9 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
             let mut body = None;
             let mut response = None;
             let mut errors = Vec::new();
+            let mut auth = AuthMode::None;
+            let mut policy = None;
+            let mut emits = Vec::new();
             for f in fields {
                 match f {
                     EndpointField::Method(m) => method = Some(m),
@@ -405,6 +476,9 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
                     EndpointField::Body(b) => body = Some(b),
                     EndpointField::Response(r) => response = Some(r),
                     EndpointField::Errors(e) => errors = e,
+                    EndpointField::Auth(a) => auth = a,
+                    EndpointField::Policy(p) => policy = Some(p),
+                    EndpointField::EmitsList(ev) => emits = ev,
                 }
             }
             EndpointDef {
@@ -414,6 +488,9 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
                 body,
                 response,
                 errors,
+                auth,
+                policy,
+                emits,
                 span,
             }
         })
@@ -427,6 +504,73 @@ enum EndpointField {
     Body(Spanned<String>),
     Response(Spanned<String>),
     Errors(Vec<Spanned<String>>),
+    Auth(AuthMode),
+    Policy(Spanned<String>),
+    EmitsList(Vec<Spanned<String>>),
+}
+
+// ---- Parser DSL v0.6 — eventos ----------------------------------------
+
+/// Parser de bloque `event nombre { payload T [retain N] }`.
+///
+/// El nombre puede ser compuesto: `user.created` → `Ident("user") Dot Ident("created")`.
+fn event_parser() -> impl Parser<Token, crate::ast::EventDef, Error = ParseErr> {
+    use crate::ast::EventDef;
+
+    let event_name =
+        just(Token::Event).ignore_then(dotted_ident_parser().labelled("nombre del evento"));
+
+    // payload NombreTipo
+    let payload_field = just(Token::Ident("payload".to_owned())).ignore_then(
+        select! { Token::Ident(s) => s }
+            .map_with_span(|s, span: Span| Spanned::new(s, span))
+            .labelled("tipo de payload"),
+    );
+
+    // retain N (dias)
+    let retain_field = just(Token::Retain).ignore_then(
+        select! { Token::IntLit(n) => n }
+            .map_with_span(|n, span: Span| Spanned::new(n, span))
+            .labelled("dias de retencion"),
+    );
+
+    #[allow(clippy::type_complexity)]
+    let event_field = choice((
+        payload_field.map(EventField::Payload),
+        retain_field.map(EventField::Retain),
+    ));
+
+    event_name
+        .then(
+            event_field
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, fields), span: Span| {
+            let mut payload: Option<Spanned<String>> = None;
+            let mut retain_days: Option<u32> = None;
+            for f in fields {
+                match f {
+                    EventField::Payload(p) => payload = Some(p),
+                    EventField::Retain(r) => retain_days = Some(r.value.unsigned_abs() as u32),
+                }
+            }
+            let payload = payload.unwrap_or_else(|| Spanned::new(String::new(), span.clone()));
+            EventDef {
+                name,
+                payload,
+                retain_days,
+                span,
+            }
+        })
+        .labelled("declaracion de evento")
+}
+
+/// Campos posibles dentro de un bloque event.
+enum EventField {
+    Payload(Spanned<String>),
+    Retain(Spanned<i64>),
 }
 
 // ---- Conversion de errores de chumsky a Diagnostic ------------------
@@ -891,5 +1035,64 @@ model Country {
             .annotations
             .iter()
             .any(|a| a.value == Annotation::Length(3)));
+    }
+
+    // ---- Tests DSL v0.5+v0.6 ----
+
+    #[test]
+    fn parse_endpoint_with_auth_required() {
+        let src = r#"
+    endpoint GetProfile {
+        method GET
+        path /profile
+        auth required
+        policy "user.id == params.id"
+        response UserResponse
+    }
+    response UserResponse { id UUID }
+    "#;
+        let (tokens, _) = crate::lexer::tokenize(src);
+        let (ast, _diags) = parse_tokens(tokens, src.len());
+        let schema = ast.expect("debe parsear");
+        assert_eq!(schema.endpoints.len(), 1);
+        let ep = &schema.endpoints[0];
+        assert_eq!(ep.auth, crate::ast::AuthMode::Required);
+        assert!(ep.policy.is_some());
+    }
+
+    #[test]
+    fn parse_event_declaration() {
+        let src = r#"
+    event user.created {
+        payload UserResponse
+        retain 30
+    }
+    "#;
+        let (tokens, _) = crate::lexer::tokenize(src);
+        let (ast, _diags) = parse_tokens(tokens, src.len());
+        let schema = ast.expect("debe parsear");
+        assert_eq!(schema.events.len(), 1);
+        assert_eq!(schema.events[0].name.value, "user.created");
+        assert_eq!(schema.events[0].retain_days, Some(30));
+    }
+
+    #[test]
+    fn parse_endpoint_with_events() {
+        let src = r#"
+    event user.created { payload UserResponse }
+    endpoint CreateUser {
+        method POST
+        path /users
+        auth required
+        events [user.created]
+    }
+    response UserResponse { id UUID }
+    "#;
+        let (tokens, _) = crate::lexer::tokenize(src);
+        let (ast, _) = parse_tokens(tokens, src.len());
+        let schema = ast.expect("debe parsear");
+        let ep = &schema.endpoints[0];
+        assert_eq!(ep.emits.len(), 1);
+        assert_eq!(ep.emits[0].value, "user.created");
     }
 }

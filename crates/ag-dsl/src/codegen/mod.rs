@@ -4,6 +4,7 @@
 //! La funcion `generate()` invoca todos los generadores y retorna la
 //! coleccion de archivos a escribir en disco.
 
+pub mod async_api_gen;
 pub mod openapi_gen;
 pub mod rust_gen;
 pub mod sql_gen;
@@ -89,11 +90,22 @@ pub fn generate(schema: &Schema) -> GeneratedFiles {
         files.insert(PathBuf::from("clients/typescript/client.ts"), client_ts);
     }
 
-    // OpenAPI 3.1 completo (schemas + paths en v0.2)
+    // OpenAPI 3.1 completo en JSON (schemas + paths v0.2)
     files.insert(
         PathBuf::from("openapi.json"),
         openapi_gen::generate_openapi(schema),
     );
+
+    // OpenAPI 3.1 en YAML con securitySchemes v0.5
+    files.insert(
+        PathBuf::from("openapi.yaml"),
+        openapi_gen::generate_openapi_yaml(schema),
+    );
+
+    // AsyncAPI 2.6 — solo cuando hay eventos declarados (v0.6)
+    if let Some((path, content)) = async_api_gen::generate(schema) {
+        files.insert(path, content);
+    }
 
     files
 }
@@ -111,7 +123,25 @@ mod tests {
     }
 
     #[test]
-    fn generates_four_files() {
+    fn generate_produces_asyncapi_when_events_present() {
+        let src = r#"
+event user.created { payload UserResponse retain 30 }
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = generate(&schema);
+        let has_async_api = files
+            .files
+            .iter()
+            .any(|(p, _)| p.to_str().unwrap_or("").contains("asyncapi"));
+        assert!(
+            has_async_api,
+            "debe generar asyncapi.yaml cuando hay eventos"
+        );
+    }
+
+    #[test]
+    fn generates_five_files() {
         let schema = schema_from(
             r#"
 model User {
@@ -122,7 +152,7 @@ model User {
 "#,
         );
         let files = generate(&schema);
-        assert_eq!(files.len(), 4);
+        assert_eq!(files.len(), 5);
         assert!(files.files.contains_key(&PathBuf::from("src/models.rs")));
         assert!(files
             .files
@@ -131,5 +161,6 @@ model User {
             .files
             .contains_key(&PathBuf::from("clients/typescript/types.ts")));
         assert!(files.files.contains_key(&PathBuf::from("openapi.json")));
+        assert!(files.files.contains_key(&PathBuf::from("openapi.yaml")));
     }
 }

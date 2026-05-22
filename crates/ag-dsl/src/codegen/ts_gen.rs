@@ -7,11 +7,12 @@ use crate::ast::{extract_path_params, Annotation, EndpointDef, FieldDef, ModelDe
 
 /// Genera el contenido del archivo `clients/typescript/types.ts`.
 ///
-/// Incluye interfaces para modelos (v0.1) y para request/response/error types (v0.2).
+/// Incluye interfaces para modelos (v0.1), request/response/error types (v0.2)
+/// y tipos de payload de eventos (v0.6).
 pub fn generate_types(schema: &Schema) -> String {
     let mut out = String::new();
 
-    out.push_str("// Tipos generados por Anti-Gravital ag-dsl v0.1-v0.2.\n");
+    out.push_str("// Tipos generados por Anti-Gravital ag-dsl v0.1-v0.6.\n");
     out.push_str("// NO editar manualmente. Regenerar con `ag generate`.\n\n");
 
     for model in &schema.models {
@@ -30,6 +31,32 @@ pub fn generate_types(schema: &Schema) -> String {
     for resp in &schema.responses {
         out.push_str(&generate_simple_interface(&resp.name.value, &resp.fields));
         out.push('\n');
+    }
+
+    // v0.6 — tipos de payload de eventos
+    if !schema.events.is_empty() {
+        out.push_str("\n// Event payload types\n");
+        for ev in &schema.events {
+            // "user.created" -> "UserCreatedEvent"
+            let type_name = ev
+                .name
+                .value
+                .split('.')
+                .map(|part| {
+                    let mut chars = part.chars();
+                    match chars.next() {
+                        None => String::new(),
+                        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("")
+                + "Event";
+            out.push_str(&format!(
+                "export type {} = {};\n",
+                type_name, ev.payload.value
+            ));
+        }
     }
 
     out
@@ -252,6 +279,27 @@ mod tests {
         let (tokens, _) = tokenize(src);
         let (ast, _) = parse_tokens(tokens, src.len());
         ast.expect("valid schema")
+    }
+
+    #[test]
+    fn ts_gen_emits_event_payload_types() {
+        let src = r#"
+event user.created { payload UserResponse }
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = crate::generate(&schema);
+        let ts = files
+            .files
+            .iter()
+            .find(|(p, _)| p.extension().map(|e| e == "ts").unwrap_or(false))
+            .map(|(_, c)| c.clone())
+            .unwrap_or_default();
+        assert!(
+            ts.contains("UserCreatedEvent") || ts.contains("user_created"),
+            "debe emitir tipo de evento, got:\n{}",
+            ts
+        );
     }
 
     #[test]

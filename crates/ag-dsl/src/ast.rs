@@ -2,8 +2,8 @@
 //!
 //! Todas las construcciones del lenguaje se representan como nodos del AST.
 //! Los nodos clave llevan informacion de span para reportar errores precisos.
-//! En DSL v0.1–v0.2 el AST cubre modelos, request/response/error types,
-//! endpoints HTTP y anotaciones basicas.
+//! En DSL v0.1–v0.6 el AST cubre modelos, request/response/error types,
+//! endpoints HTTP, anotaciones, auth/policy (v0.5) y declaraciones de evento (v0.6).
 
 use crate::lexer::Span;
 
@@ -25,7 +25,8 @@ impl<T> Spanned<T> {
 
 /// Schema completo: punto de entrada del AST.
 ///
-/// Contiene configuracion, modelos (v0.1) y tipos de API + endpoints (v0.2).
+/// Contiene configuracion, modelos (v0.1), tipos de API y endpoints (v0.2),
+/// validaciones (v0.3), relaciones (v0.4), auth/policy (v0.5) y eventos (v0.6).
 #[derive(Debug, Clone, Default)]
 pub struct Schema {
     /// Bloque `config { ... }` opcional.
@@ -40,6 +41,8 @@ pub struct Schema {
     pub errors: Vec<ErrorDef>,
     /// Definiciones de endpoint: `endpoint Nombre { method path body response errors }`.
     pub endpoints: Vec<EndpointDef>,
+    /// Declaraciones de evento (v0.6): `event nombre { payload T retain Nd }`.
+    pub events: Vec<EventDef>,
 }
 
 /// Bloque `config { ... }`.
@@ -276,6 +279,50 @@ pub struct ErrorDef {
     pub span: Span,
 }
 
+// ============================================================
+// DSL v0.5 — auth/policy en endpoints
+// ============================================================
+
+/// Modo de autenticacion declarado en un endpoint (DSL v0.5).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum AuthMode {
+    /// Sin autenticacion requerida (valor por defecto).
+    #[default]
+    None,
+    /// El token JWT es requerido; la Shield rechaza requests sin token.
+    Required,
+    /// El token JWT es opcional; el handler decide como tratar la ausencia.
+    Optional,
+}
+
+impl AuthMode {
+    /// Representacion textual del modo tal como aparece en el schema.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AuthMode::None => "none",
+            AuthMode::Required => "required",
+            AuthMode::Optional => "optional",
+        }
+    }
+}
+
+// ============================================================
+// DSL v0.6 — declaracion de eventos
+// ============================================================
+
+/// Declaracion de evento en DSL v0.6: `event nombre { payload T retain Nd }`.
+#[derive(Debug, Clone)]
+pub struct EventDef {
+    /// Nombre del evento en formato `entidad.accion`.
+    pub name: Spanned<std::string::String>,
+    /// Nombre del tipo de payload (referencia a model/request/response).
+    pub payload: Spanned<std::string::String>,
+    /// Retencion en dias. `None` si no se declara.
+    pub retain_days: Option<u32>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
 /// Definicion de endpoint HTTP.
 ///
 /// ```text
@@ -301,6 +348,12 @@ pub struct EndpointDef {
     pub response: Option<Spanned<std::string::String>>,
     /// Nombres de tipos de error (referencias a `ErrorDef`).
     pub errors: Vec<Spanned<std::string::String>>,
+    /// Modo de autenticacion del endpoint (v0.5). Default: None.
+    pub auth: AuthMode,
+    /// Expresion de politica RBAC (v0.5). Solo valida cuando auth != None.
+    pub policy: Option<Spanned<std::string::String>>,
+    /// Nombres de eventos emitidos por este endpoint (v0.6).
+    pub emits: Vec<Spanned<std::string::String>>,
     /// Span del bloque completo.
     pub span: Span,
 }
@@ -392,9 +445,39 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         if ch.is_uppercase() && i > 0 {
             result.push('_');
         }
+        // TECH-DEBT:
+        // motivo: char::to_lowercase() garantiza al menos 1 caracter; unwrap() es seguro pero viola
+        //         la regla del proyecto de no usar unwrap() fuera de tests.
+        // impacto: bajo (no puede panic en practica)
+        // eliminacion esperada: PR de limpieza post-Fase 4
         result.push(ch.to_lowercase().next().unwrap());
     }
     result
+}
+
+#[cfg(test)]
+mod ast_v05_v06_tests {
+    use super::*;
+
+    #[test]
+    fn auth_mode_display() {
+        assert_eq!(AuthMode::Required.as_str(), "required");
+        assert_eq!(AuthMode::Optional.as_str(), "optional");
+        assert_eq!(AuthMode::None.as_str(), "none");
+    }
+
+    #[test]
+    fn event_def_fields() {
+        let ev = EventDef {
+            name: Spanned::new("user.created".to_string(), 0..12),
+            payload: Spanned::new("UserResponse".to_string(), 0..12),
+            retain_days: Some(30),
+            span: 0..50,
+        };
+        assert_eq!(ev.name.value, "user.created");
+        assert_eq!(ev.payload.value, "UserResponse");
+        assert_eq!(ev.retain_days, Some(30));
+    }
 }
 
 #[cfg(test)]

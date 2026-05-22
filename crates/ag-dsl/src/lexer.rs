@@ -127,6 +127,26 @@ pub enum Token {
     #[token("@relation")]
     AtRelation,
 
+    // ---- Palabras clave DSL v0.5+v0.6 — autenticacion y eventos ----
+    /// `auth` — bloque de autenticacion/autorizacion sobre un endpoint o modelo.
+    #[token("auth")]
+    Auth,
+    /// `required` — el campo o bloque es obligatorio.
+    #[token("required")]
+    Required,
+    /// `optional` — el campo o bloque es opcional.
+    #[token("optional")]
+    Optional,
+    /// `policy` — define una politica de control de acceso.
+    #[token("policy")]
+    Policy,
+    /// `event` — define un evento del dominio emitido por el sistema.
+    #[token("event")]
+    Event,
+    /// `retain` — indica la politica de retencion de datos de un evento.
+    #[token("retain")]
+    Retain,
+
     // ---- Literales ----
     /// Literal entero: `42`, `255`, `0`.
     /// Si el valor supera i64::MAX, logos descarta el token y genera un error lexico.
@@ -472,5 +492,21 @@ model User {
                 Token::RParen,
             ]
         );
+    }
+
+    // ---- Tests DSL v0.5+v0.6 ----
+
+    #[test]
+    fn lex_auth_keywords() {
+        let src = "auth required optional policy event retain";
+        let (tokens, errs) = tokenize(src);
+        assert!(errs.is_empty(), "sin errores lex: {:?}", errs);
+        let kinds: Vec<_> = tokens.iter().map(|(t, _)| t.clone()).collect();
+        assert!(kinds.contains(&Token::Auth));
+        assert!(kinds.contains(&Token::Required));
+        assert!(kinds.contains(&Token::Optional));
+        assert!(kinds.contains(&Token::Policy));
+        assert!(kinds.contains(&Token::Event));
+        assert!(kinds.contains(&Token::Retain));
     }
 }

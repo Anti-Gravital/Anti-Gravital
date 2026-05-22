@@ -4,8 +4,8 @@
 //! y tipos API + handler stubs + router a partir de endpoints (v0.2).
 
 use crate::ast::{
-    extract_path_params, to_snake_case, Annotation, EndpointDef, FieldDef, FieldType, HttpMethod,
-    ModelDef, RequestDef, ResponseDef, Schema,
+    extract_path_params, to_snake_case, Annotation, AuthMode, EndpointDef, FieldDef, FieldType,
+    HttpMethod, ModelDef, RequestDef, ResponseDef, Schema,
 };
 
 /// Genera el contenido del archivo `src/models.rs` para el schema dado.
@@ -281,6 +281,10 @@ fn generate_handler_stub(ep: &EndpointDef) -> String {
     for param in &path_params {
         params.push(format!("Path({param}): Path<String>"));
     }
+    // v0.5 — Claims extractor cuando el endpoint requiere autenticacion
+    if ep.auth != AuthMode::None {
+        params.push("Claims(claims): Claims<serde_json::Value>".to_owned());
+    }
     if let Some(body) = &ep.body {
         params.push(format!("Json(body): Json<{}>", body.value));
     }
@@ -300,6 +304,13 @@ fn generate_handler_stub(ep: &EndpointDef) -> String {
         "pub async fn {fn_name}(\n    {}\n) -> {return_ty} {{\n",
         params.join(",\n    ")
     ));
+    // v0.6 — stubs para eventos declarados en el endpoint
+    for event in &ep.emits {
+        out.push_str(&format!(
+            "    // TODO: state.events.emit(\"{}\", &payload).await?;\n",
+            event.value
+        ));
+    }
     out.push_str("    todo!()\n}\n");
     out
 }
@@ -434,6 +445,59 @@ mod tests {
         let (tokens, _) = tokenize(src);
         let (ast, _) = parse_tokens(tokens, src.len());
         ast.expect("valid schema")
+    }
+
+    #[test]
+    fn rust_gen_includes_claims_when_auth_required() {
+        let src = r#"
+endpoint GetProfile {
+    method GET
+    path /profile
+    auth required
+    response UserResponse
+}
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = crate::generate(&schema);
+        let handlers = files
+            .files
+            .iter()
+            .find(|(p, _)| p.to_str().unwrap_or("").contains("handlers"))
+            .map(|(_, c)| c.clone())
+            .unwrap_or_default();
+        assert!(
+            handlers.contains("Claims"),
+            "debe incluir Claims cuando auth required, got:\n{}",
+            handlers
+        );
+    }
+
+    #[test]
+    fn rust_gen_includes_event_stub_in_handler() {
+        let src = r#"
+event user.created { payload UserResponse }
+endpoint CreateUser {
+    method POST
+    path /users
+    auth required
+    events [user.created]
+}
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = crate::generate(&schema);
+        let handlers = files
+            .files
+            .iter()
+            .find(|(p, _)| p.to_str().unwrap_or("").contains("handlers"))
+            .map(|(_, c)| c.clone())
+            .unwrap_or_default();
+        assert!(
+            handlers.contains("user.created"),
+            "debe incluir stub de evento, got:\n{}",
+            handlers
+        );
     }
 
     #[test]

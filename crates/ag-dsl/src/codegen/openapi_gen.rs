@@ -1,11 +1,12 @@
-//! Generador OpenAPI 3.1 para DSL v0.1–v0.2.
+//! Generador OpenAPI 3.1 para DSL v0.1–v0.5.
 //!
-//! Produce `components/schemas` (v0.1) y `paths` con operaciones (v0.2).
-//! La salida esta en formato JSON; puede convertirse a YAML con herramientas externas.
+//! Produce `components/schemas` (v0.1), `paths` con operaciones (v0.2) y
+//! `securitySchemes` + `security` por endpoint (v0.5).
+//! La salida JSON es la version canonica; el helper YAML se usa en el pipeline de generacion.
 
 use serde_json::{json, Value};
 
-use crate::ast::{Annotation, EndpointDef, FieldDef, HttpMethod, ModelDef, Schema};
+use crate::ast::{Annotation, AuthMode, EndpointDef, FieldDef, HttpMethod, ModelDef, Schema};
 
 /// Genera el documento OpenAPI 3.1 completo.
 ///
@@ -55,6 +56,82 @@ pub fn generate_openapi(schema: &Schema) -> String {
     });
 
     serde_json::to_string_pretty(&doc).expect("serde_json serialization is infallible")
+}
+
+/// Genera el documento OpenAPI 3.1 como YAML con soporte de seguridad v0.5.
+///
+/// Si algun endpoint tiene `auth != None`, agrega `securitySchemes` en `components`
+/// y el campo `security` en la operacion correspondiente.
+pub fn generate_openapi_yaml(schema: &Schema) -> String {
+    let has_auth = schema.endpoints.iter().any(|ep| ep.auth != AuthMode::None);
+
+    let project_name = schema
+        .config
+        .as_ref()
+        .and_then(|c| c.project_name.as_deref())
+        .unwrap_or("anti-gravital-api");
+
+    let mut out = String::new();
+    out.push_str("openapi: '3.1.0'\n");
+    out.push_str(&format!(
+        "info:\n  title: {}\n  version: '0.1.0'\n",
+        project_name
+    ));
+
+    // Paths
+    if !schema.endpoints.is_empty() {
+        out.push_str("paths:\n");
+        let mut by_path: std::collections::BTreeMap<&str, Vec<&EndpointDef>> =
+            std::collections::BTreeMap::new();
+        for ep in &schema.endpoints {
+            by_path.entry(ep.path.value.as_str()).or_default().push(ep);
+        }
+        for (path, endpoints) in &by_path {
+            out.push_str(&format!("  {}:\n", path));
+            for ep in endpoints {
+                let method = ep.method.value.as_str().to_lowercase();
+                out.push_str(&format!("    {}:\n", method));
+                out.push_str(&format!("      operationId: {}\n", ep.name.value));
+                if ep.auth != AuthMode::None {
+                    out.push_str("      security:\n");
+                    out.push_str("        - BearerAuth: []\n");
+                }
+                if let Some(resp) = &ep.response {
+                    out.push_str("      responses:\n");
+                    let code = match ep.method.value {
+                        HttpMethod::Post => "201",
+                        HttpMethod::Delete => "204",
+                        _ => "200",
+                    };
+                    out.push_str(&format!("        '{}':\n", code));
+                    out.push_str("          description: Respuesta exitosa\n");
+                    out.push_str(&format!(
+                        "          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/{}'\n",
+                        resp.value
+                    ));
+                } else {
+                    out.push_str(
+                        "      responses:\n        '200':\n          description: Exito\n",
+                    );
+                }
+            }
+        }
+    } else {
+        out.push_str("paths: {}\n");
+    }
+
+    // Components
+    out.push_str("components:\n");
+    if has_auth {
+        out.push_str("  securitySchemes:\n");
+        out.push_str("    BearerAuth:\n");
+        out.push_str("      type: http\n");
+        out.push_str("      scheme: bearer\n");
+        out.push_str("      bearerFormat: JWT\n");
+    }
+    out.push_str("  schemas: {}\n");
+
+    out
 }
 
 /// Construye el objeto `paths` para todos los endpoints del schema.
@@ -299,6 +376,40 @@ mod tests {
         let (tokens, _) = tokenize(src);
         let (ast, _) = parse_tokens(tokens, src.len());
         ast.expect("valid schema")
+    }
+
+    #[test]
+    fn openapi_gen_adds_security_for_auth_required() {
+        let src = r#"
+endpoint GetProfile {
+    method GET
+    path /profile
+    auth required
+    response UserResponse
+}
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = crate::generate(&schema);
+        let openapi = files
+            .files
+            .iter()
+            .find(|(p, _)| {
+                let s = p.to_str().unwrap_or("");
+                s.ends_with(".yaml") || s.ends_with(".yml")
+            })
+            .map(|(_, c)| c.clone())
+            .unwrap_or_default();
+        assert!(
+            openapi.contains("BearerAuth") || openapi.contains("bearerAuth"),
+            "debe incluir securityScheme BearerAuth, got:\n{}",
+            openapi
+        );
+        assert!(
+            openapi.contains("security"),
+            "debe incluir campo security, got:\n{}",
+            openapi
+        );
     }
 
     #[test]

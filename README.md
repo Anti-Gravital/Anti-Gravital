@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code, cargo-fuzz y benchmark Neon 2h completados.
-> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, VS Code plugin, cargo-fuzz and 2h Neon benchmark complete.
+> Estado: Fase 3 implementacion tecnica completa — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code, cargo-fuzz y benchmark Neon 2h completados.
+> Status: Phase 3 technical implementation complete — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, VS Code plugin, cargo-fuzz and 2h Neon benchmark complete.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -56,19 +56,18 @@ CRUD con PostgreSQL 14.5K req/s de lectura (cuello de botella en PG,
 no en el framework). Los criterios de throughput y latencia de la fase
 (40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
 
-**Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). Todos los
-entregables tecnicos completados. El compilador `ag-dsl` esta operativo
-con DSL v0.1 a v0.4: modelos, endpoints, validaciones y relaciones entre
-modelos (@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M> Rust,
-$ref OpenAPI). La CLI expone `ag generate`, `ag schema lint` y
-`ag schema diff`. Servidor LSP (`ag-lsp`) con diagnostics en tiempo real,
+**Fase 3 — Anti-DSL alpha:** implementacion tecnica completa (rama `fase-3`).
+El compilador `ag-dsl` esta operativo con DSL v0.1 a v0.4: modelos, endpoints,
+validaciones y relaciones entre modelos (@references/@relation, FOREIGN KEY SQL,
+Option<M>/Vec<M> Rust, $ref OpenAPI). La CLI expone `ag generate`, `ag schema lint`
+y `ag schema diff`. Servidor LSP (`ag-lsp`) con diagnostics en tiempo real,
 autocompletado y hover. Plugin VS Code con syntax highlighting e integracion
 LSP (`.vsix` empaquetado). Harness cargo-fuzz con 3 targets activo en CI.
 129 tests verdes (119 ag-dsl + 10 ag-lsp), cobertura 95.26%.
 Benchmark real de 2 horas contra Neon PostgreSQL: 255.805 requests,
 0 errores, peak 43 req/s. Prueba de saturacion: 800 workers sin errores,
 quiebre a 1600 (limite del pool de conexiones, no de Neon).
-Pendiente: gate manual de 24h de fuzzing y publicacion del plugin en marketplace.
+Criterios externos (comunidad) pendientes.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 
@@ -260,19 +259,18 @@ CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
 not the framework). Phase throughput and latency targets (40K req/s,
 p99 <= 5 ms) require hardware with more cores or pgbouncer.
 
-**Phase 3 — Anti-DSL alpha:** in progress (branch `fase-3`). All
-technical deliverables complete. The `ag-dsl` compiler is operational
-with DSL v0.1 to v0.4: models, endpoints, validations, and model
-relations (@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M>
-Rust, $ref OpenAPI). The CLI exposes `ag generate`, `ag schema lint`,
-and `ag schema diff`. LSP server (`ag-lsp`) with real-time diagnostics,
-autocompletion, and hover. VS Code plugin with syntax highlighting and
-LSP integration (`.vsix` packaged). cargo-fuzz harness with 3 active
-targets in CI. 129 green tests (119 ag-dsl + 10 ag-lsp), 95.26%
-coverage. Real 2-hour benchmark against Neon PostgreSQL: 255,805
-requests, 0 errors, peak 43 req/s. Saturation test: 800 workers
-error-free, break at 1600 (connection pool limit, not Neon).
-Pending: 24h manual fuzzing gate and marketplace plugin publication.
+**Phase 3 — Anti-DSL alpha:** technical implementation complete (branch
+`fase-3`). The `ag-dsl` compiler is operational with DSL v0.1 to v0.4:
+models, endpoints, validations, and model relations (@references/@relation,
+FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI). The CLI exposes
+`ag generate`, `ag schema lint`, and `ag schema diff`. LSP server
+(`ag-lsp`) with real-time diagnostics, autocompletion, and hover. VS Code
+plugin with syntax highlighting and LSP integration (`.vsix` packaged).
+cargo-fuzz harness with 3 active targets in CI. 129 green tests (119
+ag-dsl + 10 ag-lsp), 95.26% coverage. Real 2-hour benchmark against Neon
+PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. Saturation test:
+800 workers error-free, break at 1600 (connection pool limit, not Neon).
+External community criteria pending.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -405,7 +403,7 @@ maintainer: Angel Nereira.
 | 0            | Fundaciones y gobernanza      | En curso (externos pendientes) / In progress (externals pending) |
 | 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
-| 3            | Anti-DSL alpha                | En curso / In progress — DSL v0.1–v0.4, ag-lsp, VS Code, fuzz, benchmark Neon |
+| 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
 | 4            | Modulos estandar              | Pendiente / Pending                                     |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |

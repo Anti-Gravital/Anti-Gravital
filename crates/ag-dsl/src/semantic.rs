@@ -77,6 +77,57 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     check_relation_fk_field_exists(schema, &mut diags);
     check_circular_fk(schema, &mut diags);
 
+    // v0.5 validaciones — policy requiere auth != None
+    for ep in &schema.endpoints {
+        if let Some(ref policy_spanned) = ep.policy {
+            if ep.auth == crate::ast::AuthMode::None {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    policy_spanned.span.clone(),
+                    format!(
+                        "policy '{}' en endpoint '{}' solo es valida cuando auth es 'required' u 'optional'",
+                        policy_spanned.value, ep.name.value
+                    ),
+                    "agrega 'auth required' al endpoint o elimina la clausula policy",
+                ));
+            }
+        }
+    }
+
+    // v0.6 validaciones — eventos referenciados deben estar declarados
+    let declared_event_names: HashSet<&str> =
+        schema.events.iter().map(|e| e.name.value.as_str()).collect();
+
+    for ep in &schema.endpoints {
+        for ev_ref in &ep.emits {
+            if !declared_event_names.contains(ev_ref.value.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    ev_ref.span.clone(),
+                    format!(
+                        "evento '{}' referenciado en endpoint '{}' no esta declarado en el schema",
+                        ev_ref.value, ep.name.value
+                    ),
+                    format!(
+                        "agrega 'event {} {{ payload T }}' al schema",
+                        ev_ref.value
+                    ),
+                ));
+            }
+        }
+    }
+
+    // v0.6 validaciones — nombre de evento debe contener punto (entidad.accion)
+    for ev in &schema.events {
+        if !ev.name.value.contains('.') {
+            diags.push(Diagnostic::warning(
+                ev.name.span.clone(),
+                format!(
+                    "el nombre de evento '{}' no sigue el patron entidad.accion",
+                    ev.name.value
+                ),
+            ));
+        }
+    }
+
     diags
 }
 

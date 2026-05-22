@@ -263,6 +263,58 @@ model User {
         assert!(errors.is_empty(), "schema limpio no debe tener errores");
     }
 
+    // ---- Tests DSL v0.5 + v0.6 ----
+
+    #[test]
+    fn policy_without_auth_is_error() {
+        // auth se omite: el default es AuthMode::None.
+        // policy con auth None debe producir error semantico.
+        let src = r#"
+endpoint GetProfile {
+    method GET
+    path /profile
+    policy "user.id == params.id"
+}
+"#;
+        let diags = lint(src);
+        assert!(
+            diags.iter().any(|d| d.is_error() && d.message.contains("policy")),
+            "debe haber error sobre policy sin auth: {:?}", diags
+        );
+    }
+
+    #[test]
+    fn event_in_endpoint_not_declared_is_error() {
+        let src = r#"
+endpoint CreateUser {
+    method POST
+    path /users
+    auth required
+    events [user.created]
+}
+"#;
+        let diags = lint(src);
+        assert!(
+            diags.iter().any(|d| d.is_error() && d.message.contains("user.created")),
+            "debe haber error por evento no declarado: {:?}", diags
+        );
+    }
+
+    #[test]
+    fn event_name_without_dot_is_warning() {
+        let src = r#"
+event usercreated {
+    payload UserResponse
+}
+response UserResponse { id UUID }
+"#;
+        let diags = lint(src);
+        assert!(
+            diags.iter().any(|d| !d.is_error() && d.message.contains("usercreated")),
+            "debe haber warning por nombre sin punto: {:?}", diags
+        );
+    }
+
     #[test]
     fn fuzz_crash_repro_tab_comment_number() {
         // Crash encontrado por cargo-fuzz: \t#\n11111111111111111111,\n#\n#

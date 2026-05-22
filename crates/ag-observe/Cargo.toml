@@ -9,10 +9,27 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Observabilidad: tracing, OpenTelemetry, Prometheus, tokio-console"
+description = "Observabilidad nativa: tracing, OpenTelemetry, Prometheus y dashboards Grafana"
 keywords.workspace = true
 categories.workspace = true
 publish = false
+
+[features]
+dev-console = ["dep:console-subscriber"]
+
+[dependencies]
+tracing                     = { workspace = true }
+tracing-subscriber          = { workspace = true }
+tracing-opentelemetry       = { workspace = true }
+opentelemetry               = { workspace = true }
+opentelemetry-otlp          = { workspace = true }
+opentelemetry_sdk           = { workspace = true }
+tokio                       = { workspace = true }
+serde                       = { workspace = true }
+axum                        = { workspace = true }
+metrics                     = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+console-subscriber          = { workspace = true, optional = true }
 
 [lints]
 workspace = true

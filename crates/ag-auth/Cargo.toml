@@ -38,3 +38,5 @@ oauth2 = { workspace = true }
 tokio = { workspace = true }
 testcontainers = { workspace = true }
 testcontainers-modules = { workspace = true }
+ed25519-dalek = { workspace = true }
+rand_core = { workspace = true }

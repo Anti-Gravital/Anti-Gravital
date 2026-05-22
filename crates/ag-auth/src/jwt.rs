@@ -1,7 +1,7 @@
 //! Firma y verificacion de JSON Web Tokens con el algoritmo Ed25519 (EdDSA).
 //!
 //! Usa [`jsonwebtoken`] con claves en formato PEM PKCS#8. Las claves deben
-//! generarse fuera del crate (openssl, age, etc.) y pasarse via [`AuthConfig`].
+//! generarse fuera del crate (openssl, age, etc.) y pasarse via `AuthConfig`.
 
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ impl JwtSigner {
     /// Crea un nuevo `JwtSigner` a partir de claves PEM.
     ///
     /// Las claves deben estar en formato PKCS#8 Ed25519.
-    /// La validacion de formato ocurre en [`sign`] y [`verify`], no aqui.
+    /// La validacion de formato ocurre en [`JwtSigner::sign`] y [`JwtSigner::verify`], no aqui.
     pub fn new(private_key_pem: String, public_key_pem: String) -> Self {
         Self {
             private_key_pem,

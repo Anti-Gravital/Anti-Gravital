@@ -4,7 +4,7 @@
 //! 1. [`generate`] crea 32 bytes aleatorios seguros, los codifica en Base64Url y los
 //!    prefija con `{prefix}_`. Retorna la clave en texto plano y su hash BLAKE3.
 //! 2. Solo el hash se almacena en la base de datos.
-//! 3. [`verify`] computa el hash de la clave recibida y lo compara con el almacenado.
+//! 3. [`verify()`] computa el hash de la clave recibida y lo compara con el almacenado.
 
 use base64ct::{Base64Url, Encoding};
 

@@ -4,5 +4,7 @@
 //! del subscriber de tracing y metricas Prometheus estandar.
 
 pub mod config;
+pub mod layer;
 
 pub use config::{LogFormat, ObserveConfig};
+pub use layer::{init, ObserveError};

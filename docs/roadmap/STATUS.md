@@ -192,9 +192,8 @@ mas potente o pgbouncer. Criterios externos de comunidad pendientes.
 
 ## Fase 3 - Anti-DSL alpha
 
-Estado: En curso. Todos los entregables tecnicos completados. Pendientes
-son criterios externos (comunidad) y el gate manual de fuzzing 24h.
-DSL v0.1–v0.4, ag-lsp, plugin VS Code y cargo-fuzz operativos en rama `fase-3`.
+Estado: Implementacion tecnica completa. DSL v0.1–v0.4, ag-lsp, plugin VS Code,
+cargo-fuzz y benchmark Neon 2h completados. Criterios externos de comunidad pendientes.
 RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.20 (LSP).
 
 ### Criterios de entrada (3.1)

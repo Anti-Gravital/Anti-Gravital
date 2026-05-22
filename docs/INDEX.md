@@ -52,7 +52,15 @@ implementacion.
 ### docs/dsl/
 
 Subsecciones del capitulo 7 de Arquitectura Tecnica, dedicadas al
-Anti-DSL.
+Anti-DSL. Incluye la referencia implementada v0.1–v0.4
+(`referencia-v01-v04.md`) y la hoja de ruta del servidor LSP
+(`lsp-roadmap.md`).
+
+### docs/fuzz/
+
+Documentacion del harness de fuzzing del compilador DSL (cargo-fuzz).
+Incluye instrucciones para el gate manual de 24h requerido antes de
+cerrar Fase 3 e historial de crashes encontrados y corregidos.
 
 ### docs/benchmarks/, docs/security/, docs/governance/
 

@@ -12,6 +12,7 @@ arquitectura, dedicadas al Anti-DSL.
 | **Referencia completa v0.1–v0.4 (implementado)** | **`referencia-v01-v04.md`** |
 | Implementacion incremental por versiones | `versionado.md` |
 | Ejemplo completo de schema (v1.0 target) | `ejemplo-completo.md` |
+| Hoja de ruta del servidor LSP (ag-lsp) | `lsp-roadmap.md` |
 | Filosofia del lenguaje | vease `docs/architecture/07-anti-dsl.md` |
 | Anotaciones, tipos y diagnostics | vease `docs/architecture/07-anti-dsl.md` |
 

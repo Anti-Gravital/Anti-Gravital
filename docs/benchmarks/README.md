@@ -40,3 +40,11 @@ La versión 1.0 estable se libera solo cuando se cumplen los siguientes hitos:
 
 ---
 
+## Resultados disponibles
+
+| Archivo | Fecha | Fase | Descripcion |
+|---|---|---|---|
+| `measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md` | 2026-05-21 | 2 | CRUD con PostgreSQL nativo en Ryzen 5 2500U. GET 14 478 req/s, POST 8 934 req/s. |
+| `measurement-2026-05-22-neon-real.md` | 2026-05-22 | 3 | Benchmark 2 horas contra Neon PostgreSQL serverless. 255 805 requests, 0 errores, peak 43 req/s. |
+| `measurement-2026-05-22-neon-saturacion.md` | 2026-05-22 | 3 | Prueba de saturacion. Estable a 800 workers, quiebre a 1600 por pool de conexiones. |
+

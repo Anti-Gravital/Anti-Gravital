@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code y cargo-fuzz operativos.
-> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1, v0.2 and v0.3 operational.
+> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code, cargo-fuzz y benchmark Neon 2h completados.
+> Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, VS Code plugin, cargo-fuzz and 2h Neon benchmark complete.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -56,15 +56,18 @@ CRUD con PostgreSQL 14.5K req/s de lectura (cuello de botella en PG,
 no en el framework). Los criterios de throughput y latencia de la fase
 (40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
 
-**Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). El compilador
-`ag-dsl` esta operativo con DSL v0.1 a v0.4 (relaciones entre modelos,
-@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI).
-Define modelos, endpoints, tipos de peticion y respuesta, y anotaciones de
-validacion en un archivo `.ag`. Genera structs Rust, SQL, TypeScript y OpenAPI.
-La CLI expone `ag generate`, `ag schema lint` y `ag schema diff`.
-Incluye servidor LSP (`ag-lsp`) con diagnostics en tiempo real, autocompletado
-y hover, y plugin VS Code con syntax highlighting e integracion LSP.
-Harness de fuzzing con cargo-fuzz activo en CI (3 targets, 60s por PR).
+**Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). Todos los
+entregables tecnicos completados. El compilador `ag-dsl` esta operativo
+con DSL v0.1 a v0.4: modelos, endpoints, validaciones y relaciones entre
+modelos (@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M> Rust,
+$ref OpenAPI). La CLI expone `ag generate`, `ag schema lint` y
+`ag schema diff`. Servidor LSP (`ag-lsp`) con diagnostics en tiempo real,
+autocompletado y hover. Plugin VS Code con syntax highlighting e integracion
+LSP (`.vsix` empaquetado). Harness cargo-fuzz con 3 targets activo en CI.
+129 tests verdes (119 ag-dsl + 10 ag-lsp), cobertura 95.26%.
+Benchmark real de 2 horas contra Neon PostgreSQL: 255.805 requests,
+0 errores, peak 43 req/s. Prueba de saturacion: 800 workers sin errores,
+quiebre a 1600 (limite del pool de conexiones, no de Neon).
 Pendiente: gate manual de 24h de fuzzing y publicacion del plugin en marketplace.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
@@ -145,9 +148,11 @@ ag schema diff schema-anterior.ag --schema schema.ag
 
 ### Rendimiento medido
 
-Mediciones del 2026-05-21 en AMD Ryzen 5 2500U (4C/8T), PostgreSQL 18.4
-nativo, `rustc 1.95.0`, perfil release con LTO fat. Metodologia completa
-en `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+**Fase 2 — Ryzen 5 2500U local (2026-05-21)**
+
+Mediciones en AMD Ryzen 5 2500U (4C/8T), PostgreSQL 18.4 nativo,
+`rustc 1.95.0`, perfil release con LTO fat. Metodologia completa en
+`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
 
 | Endpoint                     | req/s    | p99      | Notas                     |
 | ---------------------------- | -------- | -------- | ------------------------- |
@@ -156,8 +161,26 @@ en `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
 | POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
 
 El objetivo de 40K req/s requiere hardware con >= 8 nucleos fisicos o
-uso de pgbouncer en transaction mode. Ver analisis en el documento
-de benchmarks.
+uso de pgbouncer en transaction mode.
+
+**Fase 3 — Neon PostgreSQL serverless (2026-05-22)**
+
+Benchmark de 2 horas contra Neon PostgreSQL (us-east-1, pooler). Mix
+de operaciones: POST facturas con transacciones, GET por id, GET lista
+filtrada, PATCH estado. Pool de 20 conexiones. Metodologia completa en
+`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
+
+| Metrica                      | Valor    | Notas                           |
+| ---------------------------- | -------- | ------------------------------- |
+| Total requests               | 255 805  | 120 min 11 s                    |
+| Errores                      | 0        | Error rate 0.00%                |
+| Throughput promedio          | 35.5 req/s | Incluye cold-start              |
+| Throughput pico              | 43.0 req/s | Fase cooldown (25 workers)      |
+
+Prueba de saturacion: sistema estable hasta 800 workers concurrentes
+(0 errores). Saturacion a 1600 workers por agotamiento del pool de
+conexiones (Neon estaba al 10% CPU / 12% RAM). Ver
+`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
 
 ### Fuente de verdad
 
@@ -237,14 +260,19 @@ CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
 not the framework). Phase throughput and latency targets (40K req/s,
 p99 <= 5 ms) require hardware with more cores or pgbouncer.
 
-**Phase 3 — Anti-DSL alpha:** in progress (branch `fase-3`). The
-`ag-dsl` compiler is operational with DSL v0.1, v0.2, and v0.3. Define
-models, endpoints, request and response types, and validation annotations
-(`@min`, `@max`, `@email`, `@regex`, `@length`) in a `.ag` file.
-Generates Rust structs with serde and `validate()` methods, SQL
-migrations with CHECK constraints, TypeScript interfaces, a typed HTTP
-client, and a full OpenAPI 3.1 document with validation constraints.
-The CLI exposes `ag generate`, `ag schema lint`, and `ag schema diff`.
+**Phase 3 — Anti-DSL alpha:** in progress (branch `fase-3`). All
+technical deliverables complete. The `ag-dsl` compiler is operational
+with DSL v0.1 to v0.4: models, endpoints, validations, and model
+relations (@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M>
+Rust, $ref OpenAPI). The CLI exposes `ag generate`, `ag schema lint`,
+and `ag schema diff`. LSP server (`ag-lsp`) with real-time diagnostics,
+autocompletion, and hover. VS Code plugin with syntax highlighting and
+LSP integration (`.vsix` packaged). cargo-fuzz harness with 3 active
+targets in CI. 129 green tests (119 ag-dsl + 10 ag-lsp), 95.26%
+coverage. Real 2-hour benchmark against Neon PostgreSQL: 255,805
+requests, 0 errors, peak 43 req/s. Saturation test: 800 workers
+error-free, break at 1600 (connection pool limit, not Neon).
+Pending: 24h manual fuzzing gate and marketplace plugin publication.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -297,9 +325,10 @@ ag schema diff old-schema.ag --schema schema.ag
 
 ### Measured performance
 
-Measurements from 2026-05-21 on AMD Ryzen 5 2500U (4C/8T), native
-PostgreSQL 18.4, `rustc 1.95.0`, release profile with fat LTO. Full
-methodology in
+**Phase 2 — Ryzen 5 2500U local (2026-05-21)**
+
+Measurements on AMD Ryzen 5 2500U (4C/8T), native PostgreSQL 18.4,
+`rustc 1.95.0`, release profile with fat LTO. Full methodology in
 `docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
 
 | Endpoint                     | req/s    | p99      | Notes                     |
@@ -309,7 +338,26 @@ methodology in
 | POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
 
 The 40K req/s target requires hardware with >= 8 physical cores or
-pgbouncer in transaction mode. See the benchmark document for analysis.
+pgbouncer in transaction mode.
+
+**Phase 3 — Neon PostgreSQL serverless (2026-05-22)**
+
+2-hour benchmark against Neon PostgreSQL (us-east-1, pooler). Mixed
+operations: POST invoices with transactions, GET by id, GET filtered
+list, PATCH status. Connection pool of 20. Full methodology in
+`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
+
+| Metric                       | Value    | Notes                           |
+| ---------------------------- | -------- | ------------------------------- |
+| Total requests               | 255 805  | 120 min 11 s                    |
+| Errors                       | 0        | Error rate 0.00%                |
+| Average throughput           | 35.5 req/s | Includes cold-start           |
+| Peak throughput              | 43.0 req/s | Cooldown phase (25 workers)   |
+
+Saturation test: system stable up to 800 concurrent workers (0 errors).
+Saturation at 1600 workers due to connection pool exhaustion (Neon was
+at 10% CPU / 12% RAM throughout). See
+`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
 
 ### Source of truth
 
@@ -357,7 +405,7 @@ maintainer: Angel Nereira.
 | 0            | Fundaciones y gobernanza      | En curso (externos pendientes) / In progress (externals pending) |
 | 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
-| 3            | Anti-DSL alpha                | En curso / In progress — DSL v0.1+v0.2 operativos       |
+| 3            | Anti-DSL alpha                | En curso / In progress — DSL v0.1–v0.4, ag-lsp, VS Code, fuzz, benchmark Neon |
 | 4            | Modulos estandar              | Pendiente / Pending                                     |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |

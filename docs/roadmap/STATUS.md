@@ -242,7 +242,12 @@ RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.
   `ag schema lint` y `ag generate` verificados en examples/ecommerce-api. 8 artefactos generados.
 - [x] Example ecommerce-api reescrito con DSL. Modelos User, Category, Product, Order, OrderItem
   con relaciones 1:N y N:M. SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TS y OpenAPI $ref generados.
-- [ ] CRUD generado por DSL no es mas lento que CRUD a mano.
+- [/] CRUD generado por DSL no es mas lento que CRUD a mano. Benchmark
+  real de 2 horas contra Neon PostgreSQL (2026-05-22): 255 805 requests,
+  0 errores, peak 43 req/s con handlers escritos manualmente (equivalente
+  al codigo generado por ag-dsl v0.4). La comparativa directa DSL-generado
+  vs manual requiere ejecutar `cargo bench -p todo-api` con el mismo schema,
+  pendiente en gate de Fase 4. Ver `docs/benchmarks/measurement-2026-05-22-neon-real.md`.
 - [ ] Plugin VS Code >= 100 instalaciones. (Plugin empaquetado; pendiente publicacion y adopcion.)
 - [ ] Al menos un colaborador externo contribuyo al compilador.
 - [ ] Documentacion DSL revisada por dos personas.

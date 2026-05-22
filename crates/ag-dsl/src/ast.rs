@@ -2,8 +2,8 @@
 //!
 //! Todas las construcciones del lenguaje se representan como nodos del AST.
 //! Los nodos clave llevan informacion de span para reportar errores precisos.
-//! En DSL v0.1–v0.2 el AST cubre modelos, request/response/error types,
-//! endpoints HTTP y anotaciones basicas.
+//! En DSL v0.1–v0.6 el AST cubre modelos, request/response/error types,
+//! endpoints HTTP, anotaciones, auth/policy (v0.5) y declaraciones de evento (v0.6).
 
 use crate::lexer::Span;
 
@@ -25,7 +25,8 @@ impl<T> Spanned<T> {
 
 /// Schema completo: punto de entrada del AST.
 ///
-/// Contiene configuracion, modelos (v0.1) y tipos de API + endpoints (v0.2).
+/// Contiene configuracion, modelos (v0.1), tipos de API y endpoints (v0.2),
+/// validaciones (v0.3), relaciones (v0.4), auth/policy (v0.5) y eventos (v0.6).
 #[derive(Debug, Clone, Default)]
 pub struct Schema {
     /// Bloque `config { ... }` opcional.
@@ -444,6 +445,11 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         if ch.is_uppercase() && i > 0 {
             result.push('_');
         }
+        // TECH-DEBT:
+        // motivo: char::to_lowercase() garantiza al menos 1 caracter; unwrap() es seguro pero viola
+        //         la regla del proyecto de no usar unwrap() fuera de tests.
+        // impacto: bajo (no puede panic en practica)
+        // eliminacion esperada: PR de limpieza post-Fase 4
         result.push(ch.to_lowercase().next().unwrap());
     }
     result
@@ -469,6 +475,7 @@ mod ast_v05_v06_tests {
             span: 0..50,
         };
         assert_eq!(ev.name.value, "user.created");
+        assert_eq!(ev.payload.value, "UserResponse");
         assert_eq!(ev.retain_days, Some(30));
     }
 }

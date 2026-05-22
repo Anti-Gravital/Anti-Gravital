@@ -1,11 +1,12 @@
-# feat(fase-3): compilador Anti-DSL v0.1 — lexer, parser, semantic, codegen y CLI
+# feat(fase-3): completa cargo-fuzz, ag-lsp y plugin VS Code
 
 ## Resumen
 
-Implementacion completa del primer incremento de la Fase 3: el compilador
-`ag-dsl` pasa de skeleton vacio a un compilador funcional de extremo a extremo
-que soporta DSL v0.1 (modelos, tipos primitivos, anotaciones @primary/@unique/@auto).
-La CLI `ag` recibe tres comandos nuevos: `generate`, `schema lint`, `schema diff`.
+Cierre de todos los entregables tecnicos de la Fase 3 — Anti-DSL alpha.
+El compilador DSL v0.1-v0.4 esta completo (modelos, endpoints, validaciones,
+relaciones). Esta PR anade los tres entregables finales: harness de fuzzing
+(cargo-fuzz), servidor LSP (ag-lsp) y plugin VS Code con syntax highlighting,
+diagnostics en tiempo real, autocompletado y hover.
 
 ## Fase afectada
 
@@ -14,89 +15,87 @@ Fase 3 — Anti-DSL alpha
 ## Tipo de cambio
 
 - [x] Nueva feature
-- [ ] Bugfix
+- [x] Bugfix (lexer panic en enteros > i64::MAX)
 - [ ] Refactor
 - [ ] Documentacion
 
 ## Documentos relacionados
 
-- `docs/rfc/RFC-0003-librerias-compilador-ag-dsl.md` (criterio de entrada)
-- `docs/roadmap/STATUS.md` (fase 3 marcada como "En curso")
-- `docs/roadmap/fase-03-anti-dsl-alpha.md`
-- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` §7
+- `docs/superpowers/specs/2026-05-21-fase3-pendientes-design.md`
+- `docs/fuzz/README.md`
+- `docs/dsl/lsp-roadmap.md`
+- `docs/roadmap/STATUS.md`
 
 ## Cambios principales
 
-### crates/ag-dsl
+### fix(dsl): lexer panic en overflow i64
 
-- `src/lexer.rs`: Token enum con logos 0.14 (keywords, tipos, anotaciones v0.1,
-  literales, puntuacion). `tokenize()` separa tokens validos de errores de lex.
-- `src/ast.rs`: tipos del AST — Schema, Config, ModelDef, FieldDef, FieldType,
-  Annotation, DefaultValue, Spanned<T>.
-- `src/parser.rs`: schema_parser() con chumsky 0.9. Soporta config{} y model{},
-  campos con tipo, opcionalidad `?` y todas las anotaciones v0.1.
-- `src/semantic.rs`: validaciones — nombres duplicados, modelo sin campos, campo
-  @auto incompatible con tipo, @auto_update en no-Timestamp, multiples @primary.
-- `src/diagnostics.rs`: Diagnostic con Severity, span, mensaje y hint. Formato
-  legible linea:columna para el usuario.
-- `src/codegen/rust_gen.rs`: genera structs Rust con serde, CreateRequest, UpdateRequest.
-- `src/codegen/sql_gen.rs`: genera CREATE TABLE IF NOT EXISTS con PRIMARY KEY,
-  UNIQUE INDEX, BIGSERIAL, gen_random_uuid(), tipos SQL correctos.
-- `src/codegen/ts_gen.rs`: genera interfaces TypeScript con tipos precisos,
-  Create/Update interfaces.
-- `src/codegen/openapi_gen.rs`: genera OpenAPI 3.1 JSON con components/schemas,
-  required fields, format annotations.
-- `src/codegen/mod.rs`: generate() retorna GeneratedFiles (BTreeMap ruta->contenido).
-- `src/lib.rs`: API publica compile() y generate().
-- `Cargo.toml`: dependencias logos 0.14, chumsky 0.9, thiserror, serde_json.
+`IntLit` usaba `.unwrap()` en el parse de enteros. Con inputs arbitrarios
+(detectado por cargo-fuzz), enteros > i64::MAX causaban panic. Corregido
+con `.ok()`: logos descarta el token y genera un error lexico controlado.
+Test de regresion: `fuzz_crash_repro_tab_comment_number` en lib.rs.
 
-### crates/ag-cli
+### test(dsl): harness cargo-fuzz
 
-- `ag generate [--schema] [--output]`: compila schema.ag y escribe 4 artefactos.
-- `ag schema lint [--schema]`: reporta errores y warnings del schema.
-- `ag schema diff <ref> [--schema]`: detecta cambios BREAKING vs additive.
-- `Cargo.toml`: añade ag-dsl como dependencia.
+3 targets libfuzzer en `fuzz/`:
+- `fuzz_lexer`: lexer no panics con UTF-8 arbitrario
+- `fuzz_parser`: parser no panics con entrada arbitraria
+- `fuzz_compile`: pipeline completo lint+compile+generate no panics
+Smoke test local: 42.404 runs en 11s sin crashes post-fix.
 
-### Workspace
+### ci(fuzz): job fuzz-smoke en quality.yml
 
-- `Cargo.toml`: añade logos 0.14, chumsky 0.9, ag-dsl al workspace.
+Ejecuta cada target por 60s en cada PR/push con nightly Rust.
+Sube artefactos si detecta crash. Gate manual de 24h pendiente antes
+de mergear (ver `docs/fuzz/README.md`).
 
-### Documentacion
+### feat(lsp): ag-lsp — servidor LSP Anti-Gravital alpha
 
-- `docs/rfc/RFC-0003-librerias-compilador-ag-dsl.md`: decision formal sobre stack
-  del compilador (criterio de entrada 3.1 de la Fase 3).
-- `docs/rfc/README.md`: RFC-0003 añadida a la tabla.
-- `docs/roadmap/STATUS.md`: Fase 3 marcada como "En curso", criterios de entrada
-  marcados, entregables y criterios de salida listados.
+Nuevo crate `crates/ag-lsp/` con tower-lsp 0.20:
+- `textDocument/initialize`: server info + capabilities
+- `textDocument/didOpen` + `didChange`: diagnostics en tiempo real via ag_dsl::lint()
+- `textDocument/completion`: keywords, tipos, anotaciones, nombres de modelos del schema
+- `textDocument/hover`: descripcion de tipos primitivos y anotaciones
+
+10 tests unitarios. Smoke test del protocolo LSP: responde initialize correctamente.
+
+### feat(vscode): plugin Anti-Gravital DSL
+
+Plugin VS Code en `tools/vscode-anti-gravital/`:
+- Syntax highlighting con tmLanguage para archivos `.ag`
+- Integracion con ag-lsp via vscode-languageclient 8
+- Deteccion automatica de ag-lsp en PATH con fallback a `cargo install ag-lsp`
+- `.vsix` empaquetado y verificado: `anti-gravital-0.1.0.vsix`
 
 ## Plan de prueba
 
-- [x] `cargo test -p ag-dsl -p ag-cli`: 56 tests verdes (50 ag-dsl + 5 ag-cli + 1 doctest)
-- [x] `cargo clippy -p ag-dsl -p ag-cli --all-targets -- -D warnings`: limpio
-- [x] `cargo fmt --check`: limpio
-- [ ] `cargo audit`: pendiente (sin dependencias nuevas con CVEs conocidos)
-- [ ] `cargo deny`: pendiente
-- [ ] Test manual: crear schema.ag, ejecutar `ag generate`, verificar artefactos
+- [x] `cargo test --workspace`: 129+ tests verdes (119 ag-dsl + 10 ag-lsp + otros)
+- [x] `cargo clippy --workspace --all-targets -- -D warnings`: limpio
+- [x] `cargo fmt --all -- --check`: limpio
+- [x] `cargo fuzz run fuzz_compile -- -max_total_time=10`: 42K runs sin crash
+- [x] `npx tsc --noEmit` en tools/vscode-anti-gravital: TypeScript OK
+- [x] `npx vsce package --no-dependencies`: anti-gravital-0.1.0.vsix generado
+- [x] Smoke test LSP: ag-lsp responde initialize con serverInfo.name = "ag-lsp"
 
 ## Criterios de salida que avanza
 
-- [x] Criterio de entrada 3.1.3: RFC-0003 aceptada.
-- Primer entregable 3.2.1 (DSL v0.1) en progreso — lexer, parser, semantic y
-  codegen funcionales para modelos con tipos primitivos y anotaciones basicas.
+- [x] Harness de fuzzing activo en CI (criterio 3.2.x)
+- [x] ag-lsp binario funcional con diagnostics en tiempo real
+- [x] Plugin VS Code empaquetado
+- [ ] Gate manual 24h fuzzing (pendiente ejecucion en hardware Linux x86-64)
+- [ ] Publicacion en VS Code marketplace (requiere repo publico)
 
 ## Checklist final
 
 - [x] Pertenece a la fase correcta (Fase 3).
-- [x] Respeta la documentacion (RFC-0003, Arquitectura §7, Hoja de Ruta §3).
-- [x] No rompe arquitectura.
-- [x] No anade complejidad innecesaria (format! sobre askama/quote para v0.1).
-- [x] No crea dependencias circulares (ag-dsl no depende de ag-core).
+- [x] Respeta la documentacion.
+- [x] No rompe arquitectura (ag-lsp depende solo de ag-dsl y tower-lsp).
+- [x] No anade complejidad innecesaria.
+- [x] No crea dependencias circulares.
 - [x] Compila.
 - [x] Pasa tests.
 - [x] Pasa fmt.
 - [x] Pasa clippy.
-- [ ] Pasa audit.
-- [ ] Tiene benchmarks (no aplica en este incremento).
-- [x] Tiene documentacion (rustdoc en todos los modulos publicos).
-- [x] Tiene manejo de errores correcto (pipeline lex->parse->semantic->Diagnostic).
+- [x] Tiene documentacion (docs/fuzz/README.md, docs/dsl/lsp-roadmap.md).
+- [x] Tiene manejo de errores correcto.
 - [x] Mantiene coherencia con Anti-Gravital v4.0.

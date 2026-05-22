@@ -546,6 +546,9 @@ mod tests {
     fn lint_fn_surfaces_warnings_for_model_without_primary() {
         let src = "model Tag { name String }";
         let diags = ag_dsl::lint(src);
-        assert!(!diags.is_empty(), "debe haber warnings para modelo sin @primary");
+        assert!(
+            !diags.is_empty(),
+            "debe haber warnings para modelo sin @primary"
+        );
     }
 }

@@ -94,8 +94,7 @@ pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
 /// warnings cuando no hay errores. Usar en el servidor LSP y en `ag schema lint`.
 pub fn lint(source: &str) -> Vec<Diagnostic> {
     let (tokens, lex_spans) = lexer::tokenize(source);
-    let mut all_diags: Vec<Diagnostic> =
-        lex_spans.into_iter().map(Diagnostic::lex_error).collect();
+    let mut all_diags: Vec<Diagnostic> = lex_spans.into_iter().map(Diagnostic::lex_error).collect();
 
     let (ast, parse_diags) = parser::parse_tokens(tokens, source.len());
     all_diags.extend(parse_diags);

@@ -77,7 +77,10 @@ impl LanguageServer for Backend {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let uri = params.text_document.uri;
         let text = params.text_document.text;
-        self.documents.lock().await.insert(uri.clone(), text.clone());
+        self.documents
+            .lock()
+            .await
+            .insert(uri.clone(), text.clone());
         self.publish_diagnostics(uri, &text).await;
     }
 
@@ -85,7 +88,10 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         if let Some(change) = params.content_changes.into_iter().last() {
             let text = change.text;
-            self.documents.lock().await.insert(uri.clone(), text.clone());
+            self.documents
+                .lock()
+                .await
+                .insert(uri.clone(), text.clone());
             self.publish_diagnostics(uri, &text).await;
         }
     }
@@ -349,7 +355,10 @@ mod tests {
     fn ag_diag_error_maps_to_lsp_error() {
         let src = "model Bad { id UUID @primary @auto @min(1) }";
         let diags = ag_dsl::lint(src);
-        let err = diags.iter().find(|d| d.is_error()).expect("debe haber error");
+        let err = diags
+            .iter()
+            .find(|d| d.is_error())
+            .expect("debe haber error");
         let lsp = ag_diag_to_lsp(src, err);
         assert_eq!(lsp.severity, Some(DiagnosticSeverity::ERROR));
     }

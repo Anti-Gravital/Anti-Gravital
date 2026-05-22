@@ -1,0 +1,110 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Anti-Gravital — Overview del servicio: latencia, throughput y errores",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(rate(ag_requests_total[5m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "title": "Throughput (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(ag_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p50 {{endpoint}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ag_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(ag_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p99 {{endpoint}}"
+        }
+      ],
+      "title": "Latencia (p50 / p95 / p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(rate(ag_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx errors/s"
+        }
+      ],
+      "title": "Tasa de errores 5xx",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "ag_active_connections",
+          "legendFormat": "conexiones activas"
+        }
+      ],
+      "title": "Conexiones activas",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["anti-gravital"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "title": "Anti-Gravital — Overview",
+  "uid": "ag-overview",
+  "version": 1
+}

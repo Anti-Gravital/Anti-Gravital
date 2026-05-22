@@ -1,0 +1,28 @@
+[package]
+name = "neon-real-benchmark"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "neon-bench"
+path = "src/main.rs"
+
+[[bin]]
+name = "neon-saturate"
+path = "src/saturate.rs"
+
+[dependencies]
+axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "json", "query"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+
+[workspace]

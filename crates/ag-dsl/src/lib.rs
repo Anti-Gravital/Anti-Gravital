@@ -278,8 +278,11 @@ endpoint GetProfile {
 "#;
         let diags = lint(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("policy")),
-            "debe haber error sobre policy sin auth: {:?}", diags
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("policy")),
+            "debe haber error sobre policy sin auth: {:?}",
+            diags
         );
     }
 
@@ -295,8 +298,11 @@ endpoint CreateUser {
 "#;
         let diags = lint(src);
         assert!(
-            diags.iter().any(|d| d.is_error() && d.message.contains("user.created")),
-            "debe haber error por evento no declarado: {:?}", diags
+            diags
+                .iter()
+                .any(|d| d.is_error() && d.message.contains("user.created")),
+            "debe haber error por evento no declarado: {:?}",
+            diags
         );
     }
 
@@ -310,8 +316,11 @@ response UserResponse { id UUID }
 "#;
         let diags = lint(src);
         assert!(
-            diags.iter().any(|d| !d.is_error() && d.message.contains("usercreated")),
-            "debe haber warning por nombre sin punto: {:?}", diags
+            diags
+                .iter()
+                .any(|d| !d.is_error() && d.message.contains("usercreated")),
+            "debe haber warning por nombre sin punto: {:?}",
+            diags
         );
     }
 

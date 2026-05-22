@@ -358,7 +358,14 @@ fn dotted_ident_parser() -> impl Parser<Token, Spanned<String>, Error = ParseErr
             };
             // Usa el span del primer segmento para nombres simples,
             // el span completo para nombres con punto.
-            Spanned::new(name, if full_span.start < full_span.end { full_span } else { fspan })
+            Spanned::new(
+                name,
+                if full_span.start < full_span.end {
+                    full_span
+                } else {
+                    fspan
+                },
+            )
         })
 }
 
@@ -510,24 +517,22 @@ enum EndpointField {
 fn event_parser() -> impl Parser<Token, crate::ast::EventDef, Error = ParseErr> {
     use crate::ast::EventDef;
 
-    let event_name = just(Token::Event)
-        .ignore_then(dotted_ident_parser().labelled("nombre del evento"));
+    let event_name =
+        just(Token::Event).ignore_then(dotted_ident_parser().labelled("nombre del evento"));
 
     // payload NombreTipo
-    let payload_field = just(Token::Ident("payload".to_owned()))
-        .ignore_then(
-            select! { Token::Ident(s) => s }
-                .map_with_span(|s, span: Span| Spanned::new(s, span))
-                .labelled("tipo de payload"),
-        );
+    let payload_field = just(Token::Ident("payload".to_owned())).ignore_then(
+        select! { Token::Ident(s) => s }
+            .map_with_span(|s, span: Span| Spanned::new(s, span))
+            .labelled("tipo de payload"),
+    );
 
     // retain N (dias)
-    let retain_field = just(Token::Retain)
-        .ignore_then(
-            select! { Token::IntLit(n) => n }
-                .map_with_span(|n, span: Span| Spanned::new(n, span))
-                .labelled("dias de retencion"),
-        );
+    let retain_field = just(Token::Retain).ignore_then(
+        select! { Token::IntLit(n) => n }
+            .map_with_span(|n, span: Span| Spanned::new(n, span))
+            .labelled("dias de retencion"),
+    );
 
     #[allow(clippy::type_complexity)]
     let event_field = choice((

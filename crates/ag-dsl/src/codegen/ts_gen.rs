@@ -289,13 +289,16 @@ response UserResponse { id UUID }
 "#;
         let schema = crate::compile(src).unwrap();
         let files = crate::generate(&schema);
-        let ts = files.files.iter()
+        let ts = files
+            .files
+            .iter()
             .find(|(p, _)| p.extension().map(|e| e == "ts").unwrap_or(false))
             .map(|(_, c)| c.clone())
             .unwrap_or_default();
         assert!(
             ts.contains("UserCreatedEvent") || ts.contains("user_created"),
-            "debe emitir tipo de evento, got:\n{}", ts
+            "debe emitir tipo de evento, got:\n{}",
+            ts
         );
     }
 

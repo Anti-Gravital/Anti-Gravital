@@ -460,11 +460,17 @@ response UserResponse { id UUID }
 "#;
         let schema = crate::compile(src).unwrap();
         let files = crate::generate(&schema);
-        let handlers = files.files.iter()
+        let handlers = files
+            .files
+            .iter()
             .find(|(p, _)| p.to_str().unwrap_or("").contains("handlers"))
             .map(|(_, c)| c.clone())
             .unwrap_or_default();
-        assert!(handlers.contains("Claims"), "debe incluir Claims cuando auth required, got:\n{}", handlers);
+        assert!(
+            handlers.contains("Claims"),
+            "debe incluir Claims cuando auth required, got:\n{}",
+            handlers
+        );
     }
 
     #[test]
@@ -481,11 +487,17 @@ response UserResponse { id UUID }
 "#;
         let schema = crate::compile(src).unwrap();
         let files = crate::generate(&schema);
-        let handlers = files.files.iter()
+        let handlers = files
+            .files
+            .iter()
             .find(|(p, _)| p.to_str().unwrap_or("").contains("handlers"))
             .map(|(_, c)| c.clone())
             .unwrap_or_default();
-        assert!(handlers.contains("user.created"), "debe incluir stub de evento, got:\n{}", handlers);
+        assert!(
+            handlers.contains("user.created"),
+            "debe incluir stub de evento, got:\n{}",
+            handlers
+        );
     }
 
     #[test]

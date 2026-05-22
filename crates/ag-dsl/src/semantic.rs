@@ -94,8 +94,11 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     }
 
     // v0.6 validaciones — eventos referenciados deben estar declarados
-    let declared_event_names: HashSet<&str> =
-        schema.events.iter().map(|e| e.name.value.as_str()).collect();
+    let declared_event_names: HashSet<&str> = schema
+        .events
+        .iter()
+        .map(|e| e.name.value.as_str())
+        .collect();
 
     for ep in &schema.endpoints {
         for ev_ref in &ep.emits {
@@ -106,10 +109,7 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
                         "evento '{}' referenciado en endpoint '{}' no esta declarado en el schema",
                         ev_ref.value, ep.name.value
                     ),
-                    format!(
-                        "agrega 'event {} {{ payload T }}' al schema",
-                        ev_ref.value
-                    ),
+                    format!("agrega 'event {} {{ payload T }}' al schema", ev_ref.value),
                 ));
             }
         }

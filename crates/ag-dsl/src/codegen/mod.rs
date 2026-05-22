@@ -130,9 +130,14 @@ response UserResponse { id UUID }
 "#;
         let schema = crate::compile(src).unwrap();
         let files = generate(&schema);
-        let has_async_api = files.files.iter()
+        let has_async_api = files
+            .files
+            .iter()
             .any(|(p, _)| p.to_str().unwrap_or("").contains("asyncapi"));
-        assert!(has_async_api, "debe generar asyncapi.yaml cuando hay eventos");
+        assert!(
+            has_async_api,
+            "debe generar asyncapi.yaml cuando hay eventos"
+        );
     }
 
     #[test]

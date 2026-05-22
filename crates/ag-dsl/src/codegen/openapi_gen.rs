@@ -63,10 +63,7 @@ pub fn generate_openapi(schema: &Schema) -> String {
 /// Si algun endpoint tiene `auth != None`, agrega `securitySchemes` en `components`
 /// y el campo `security` en la operacion correspondiente.
 pub fn generate_openapi_yaml(schema: &Schema) -> String {
-    let has_auth = schema
-        .endpoints
-        .iter()
-        .any(|ep| ep.auth != AuthMode::None);
+    let has_auth = schema.endpoints.iter().any(|ep| ep.auth != AuthMode::None);
 
     let project_name = schema
         .config
@@ -113,7 +110,9 @@ pub fn generate_openapi_yaml(schema: &Schema) -> String {
                         resp.value
                     ));
                 } else {
-                    out.push_str("      responses:\n        '200':\n          description: Exito\n");
+                    out.push_str(
+                        "      responses:\n        '200':\n          description: Exito\n",
+                    );
                 }
             }
         }
@@ -392,7 +391,9 @@ response UserResponse { id UUID }
 "#;
         let schema = crate::compile(src).unwrap();
         let files = crate::generate(&schema);
-        let openapi = files.files.iter()
+        let openapi = files
+            .files
+            .iter()
             .find(|(p, _)| {
                 let s = p.to_str().unwrap_or("");
                 s.ends_with(".yaml") || s.ends_with(".yml")
@@ -401,9 +402,14 @@ response UserResponse { id UUID }
             .unwrap_or_default();
         assert!(
             openapi.contains("BearerAuth") || openapi.contains("bearerAuth"),
-            "debe incluir securityScheme BearerAuth, got:\n{}", openapi
+            "debe incluir securityScheme BearerAuth, got:\n{}",
+            openapi
         );
-        assert!(openapi.contains("security"), "debe incluir campo security, got:\n{}", openapi);
+        assert!(
+            openapi.contains("security"),
+            "debe incluir campo security, got:\n{}",
+            openapi
+        );
     }
 
     #[test]

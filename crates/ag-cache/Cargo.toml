@@ -9,10 +9,23 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Cache L1 con moka y L2 con Redis"
+description = "Cache multinivel L1 (moka) + L2 opcional (Redis/fred) con invalidacion por tags"
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+ag-core = { workspace = true }
+moka = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

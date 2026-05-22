@@ -91,8 +91,9 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 tokio-test = "0.4"
+moka = { version = "0.12", features = ["future"] }
 testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis"] }
 
 [workspace.lints.rust]
 # Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.

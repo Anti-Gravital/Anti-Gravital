@@ -89,10 +89,16 @@ pub fn generate(schema: &Schema) -> GeneratedFiles {
         files.insert(PathBuf::from("clients/typescript/client.ts"), client_ts);
     }
 
-    // OpenAPI 3.1 completo (schemas + paths en v0.2)
+    // OpenAPI 3.1 completo en JSON (schemas + paths v0.2)
     files.insert(
         PathBuf::from("openapi.json"),
         openapi_gen::generate_openapi(schema),
+    );
+
+    // OpenAPI 3.1 en YAML con securitySchemes v0.5
+    files.insert(
+        PathBuf::from("openapi.yaml"),
+        openapi_gen::generate_openapi_yaml(schema),
     );
 
     files
@@ -111,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn generates_four_files() {
+    fn generates_five_files() {
         let schema = schema_from(
             r#"
 model User {
@@ -122,7 +128,7 @@ model User {
 "#,
         );
         let files = generate(&schema);
-        assert_eq!(files.len(), 4);
+        assert_eq!(files.len(), 5);
         assert!(files.files.contains_key(&PathBuf::from("src/models.rs")));
         assert!(files
             .files
@@ -131,5 +137,6 @@ model User {
             .files
             .contains_key(&PathBuf::from("clients/typescript/types.ts")));
         assert!(files.files.contains_key(&PathBuf::from("openapi.json")));
+        assert!(files.files.contains_key(&PathBuf::from("openapi.yaml")));
     }
 }

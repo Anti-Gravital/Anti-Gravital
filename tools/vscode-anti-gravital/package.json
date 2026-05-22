@@ -1,0 +1,57 @@
+{
+  "name": "anti-gravital",
+  "displayName": "Anti-Gravital DSL",
+  "description": "Language support for .ag schema files — syntax highlighting, diagnostics, and IntelliSense via ag-lsp",
+  "version": "0.1.0",
+  "publisher": "gravital-labs",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anti-gravital/anti-gravital"
+  },
+  "activationEvents": [
+    "onLanguage:anti-gravital"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "anti-gravital",
+        "aliases": [
+          "Anti-Gravital DSL",
+          "anti-gravital"
+        ],
+        "extensions": [
+          ".ag"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "anti-gravital",
+        "scopeName": "source.anti-gravital",
+        "path": "./syntaxes/anti-gravital.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^2.22.0",
+    "typescript": "^5.3.0"
+  }
+}

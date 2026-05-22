@@ -54,7 +54,10 @@ pub async fn metrics_handler() -> impl IntoResponse {
     // lo obtenemos aqui.
     // Si el exporter no esta instalado, retornar texto vacio con el content-type correcto.
     (
-        [(axum::http::header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8")],
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; version=0.0.4; charset=utf-8",
+        )],
         render_metrics(),
     )
 }

@@ -54,7 +54,12 @@ impl ObserveConfig {
         let dev_console = std::env::var("AG_DEV_CONSOLE")
             .map(|v| v == "true" || v == "1")
             .unwrap_or(false);
-        Self { otlp_endpoint, prometheus_port, log_format, dev_console }
+        Self {
+            otlp_endpoint,
+            prometheus_port,
+            log_format,
+            dev_console,
+        }
     }
 }
 

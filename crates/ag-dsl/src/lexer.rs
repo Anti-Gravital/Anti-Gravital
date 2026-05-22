@@ -129,7 +129,8 @@ pub enum Token {
 
     // ---- Literales ----
     /// Literal entero: `42`, `255`, `0`.
-    #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
+    /// Si el valor supera i64::MAX, logos descarta el token y genera un error lexico.
+    #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().ok())]
     IntLit(i64),
 
     /// Literal de path HTTP: `/users`, `/users/{id}`, `/a/b/{c}`.

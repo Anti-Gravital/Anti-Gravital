@@ -263,4 +263,17 @@ model User {
         let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
         assert!(errors.is_empty(), "schema limpio no debe tener errores");
     }
+
+    #[test]
+    fn fuzz_crash_repro_tab_comment_number() {
+        // Crash encontrado por cargo-fuzz: \t#\n11111111111111111111,\n#\n#
+        // El compilador no debe entrar en panico con ningun input UTF-8 valido.
+        let input = "\t#\n11111111111111111111,\n#\n#";
+        let diags = lint(input);
+        // No importa el resultado, solo que no haya panic
+        let _ = diags;
+        if let Ok(schema) = compile(input) {
+            let _ = generate(&schema);
+        }
+    }
 }

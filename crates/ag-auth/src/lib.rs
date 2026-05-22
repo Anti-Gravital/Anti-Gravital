@@ -24,6 +24,30 @@ pub mod api_keys;
 pub mod config;
 pub mod jwt;
 
+// TECH-DEBT:
+// motivo: WebAuthn (FIDO2) requiere integracion con webauthn-rs que necesita
+//         estado de ceremonia serializable y tests con mocks de autenticador.
+//         La complejidad supera el alcance de esta iteracion.
+// impacto: Passkeys no disponibles hasta que se implemente este modulo.
+// eliminacion esperada: rama fase-4/ag-auth segunda iteracion.
+// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
+
+// TECH-DEBT:
+// motivo: OAuth2 (Google, GitHub) requiere intercambio de codigos HTTP y
+//         fetch de user info — necesita un cliente HTTP (reqwest) y
+//         credenciales de prueba para tests. Se pospone para siguiente iteracion.
+// impacto: Login social no disponible hasta que se implemente este modulo.
+// eliminacion esperada: rama fase-4/ag-auth segunda iteracion.
+// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
+
+// TECH-DEBT:
+// motivo: Refresh tokens con rotacion (SessionStore) requiere testcontainers
+//         PostgreSQL y la feature persistent activada. Se pospone para que
+//         no bloquee el path critico JWT + API keys.
+// impacto: Solo JWT stateless disponible hasta que se implemente SessionStore.
+// eliminacion esperada: rama fase-4/ag-auth segunda iteracion (Task 7 del plan).
+// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
+
 pub use api_keys::{generate as generate_api_key, verify as verify_api_key};
 pub use config::{AuthConfig, AuthConfigError};
 pub use jwt::{Claims, JwtError, JwtSigner};

@@ -4,6 +4,7 @@
 //! La funcion `generate()` invoca todos los generadores y retorna la
 //! coleccion de archivos a escribir en disco.
 
+pub mod async_api_gen;
 pub mod openapi_gen;
 pub mod rust_gen;
 pub mod sql_gen;
@@ -101,6 +102,11 @@ pub fn generate(schema: &Schema) -> GeneratedFiles {
         openapi_gen::generate_openapi_yaml(schema),
     );
 
+    // AsyncAPI 2.6 — solo cuando hay eventos declarados (v0.6)
+    if let Some((path, content)) = async_api_gen::generate(schema) {
+        files.insert(path, content);
+    }
+
     files
 }
 
@@ -114,6 +120,19 @@ mod tests {
         let (tokens, _) = tokenize(src);
         let (ast, _) = parse_tokens(tokens, src.len());
         ast.expect("valid schema")
+    }
+
+    #[test]
+    fn generate_produces_asyncapi_when_events_present() {
+        let src = r#"
+event user.created { payload UserResponse retain 30 }
+response UserResponse { id UUID }
+"#;
+        let schema = crate::compile(src).unwrap();
+        let files = generate(&schema);
+        let has_async_api = files.files.iter()
+            .any(|(p, _)| p.to_str().unwrap_or("").contains("asyncapi"));
+        assert!(has_async_api, "debe generar asyncapi.yaml cuando hay eventos");
     }
 
     #[test]

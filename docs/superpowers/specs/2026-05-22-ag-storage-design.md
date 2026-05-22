@@ -209,7 +209,90 @@ pub enum StorageError {
 }
 ```
 
-## 8. TECH-DEBTs explicitamente declarados
+## 8. Seguridad
+
+El store opera sobre disco real. Cualquier clave maliciosa que escape del directorio raiz es una brecha critica. Las siguientes protecciones son obligatorias — no opcionales — y se implementan antes que cualquier operacion de I/O.
+
+### 8.1 Validacion de clave (key sanitization)
+
+Toda clave entrante pasa por `validate_key(key: &str) -> Result<(), StorageError>` antes de convertirse en path de disco. La funcion rechaza con `StorageError::InvalidKey` si:
+
+- La clave esta vacia.
+- La clave contiene bytes nulos (`\0`).
+- La clave contiene caracteres de control (bytes < 0x20, excepto `/`).
+- Algun segmento del path es `.` o `..` (path traversal directo).
+- La clave empieza o termina con `/`.
+- La clave contiene secuencias `//` (segmentos vacios).
+- La longitud supera 1024 bytes.
+
+Esta validacion se aplica tanto en el backend embebido como en el servidor HTTP, independientemente de la autenticacion.
+
+### 8.2 Confinamiento de path (path confinement)
+
+Despues de validar la clave, `resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError>` construye el path absoluto y verifica el confinamiento:
+
+```rust
+fn resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError> {
+    validate_key(key)?;
+    let candidate = root.join(key);
+    // canonicalize solo si el archivo existe; si no, verificar el prefijo
+    let resolved = if candidate.exists() {
+        candidate.canonicalize()?
+    } else {
+        // normalizar sin tocar disco
+        normalize_path(&candidate)
+    };
+    if !resolved.starts_with(root.canonicalize()?) {
+        return Err(StorageError::PathEscape(key.to_string()));
+    }
+    Ok(resolved)
+}
+```
+
+El error `StorageError::PathEscape` no revela el path interno al cliente — el servidor devuelve 400 con un mensaje generico.
+
+### 8.3 Proteccion contra symlinks
+
+Al acceder a un archivo existente, se verifica que el path canonicalizado no salte fuera del root. `canonicalize()` resuelve symlinks, por lo que un symlink que apunte a `/etc/passwd` sera detectado como path escape en el check `starts_with(root)`.
+
+### 8.4 Limites de tamano
+
+- Tamano maximo de upload: 100 MB por defecto, configurable via `STORAGE_MAX_OBJECT_SIZE_MB`.
+- El servidor rechaza con 413 (Payload Too Large) antes de escribir al disco.
+- El backend embebido rechaza con `StorageError::TooLarge` si el payload supera el limite.
+
+### 8.5 Rate limiting del servidor HTTP
+
+El servidor HTTP aplica rate limiting por IP usando `tower-http`'s `limit` layer:
+- Max 100 requests/segundo por IP (configurable via `STORAGE_RATE_LIMIT_RPS`).
+- Responde 429 (Too Many Requests) al exceder el limite.
+- El endpoint `/v1/health` esta excluido del rate limiting.
+
+### 8.6 Content-Type seguro
+
+El servidor nunca infiere Content-Type de contenido ejecutable como `application/x-executable` o `application/x-sh`. La lista de Content-Types servidos es positiva: image/*, text/plain, text/html, application/json, application/pdf, application/octet-stream (fallback). Cualquier extension no reconocida recibe `application/octet-stream` con `Content-Disposition: attachment`.
+
+### 8.7 Concurrencia segura en escritura
+
+Las escrituras usan el patron write-then-rename: el contenido se escribe a un archivo temporal `{key}.tmp.{random}` en el mismo directorio, y luego se renombra atomicamente al path final. Esto evita lecturas de archivos parcialmente escritos.
+
+### 8.8 Autenticacion aplicada a todas las rutas protegidas
+
+El middleware de autenticacion se aplica a nivel de `Router` en Axum, no por ruta individual. El unico endpoint excluido explicitamente es `/v1/health`. Esta exclusion se documenta en el codigo. Cualquier nueva ruta que se agregue hereda la proteccion por defecto.
+
+### 8.9 Tests de seguridad adicionales
+
+| Nombre | Verifica |
+|---|---|
+| `key_with_dotdot_is_rejected` | `../secret` devuelve `InvalidKey` |
+| `key_with_null_byte_is_rejected` | `"foo\0bar"` devuelve `InvalidKey` |
+| `key_starting_with_slash_is_rejected` | `"/etc/passwd"` devuelve `InvalidKey` |
+| `symlink_escape_is_blocked` | symlink a path externo devuelve `PathEscape` |
+| `oversized_upload_is_rejected` | payload > limite devuelve `TooLarge` |
+
+Estos 5 tests se suman a los 12 funcionales. Total: 17 tests.
+
+## 9. TECH-DEBTs explicitamente declarados
 
 ### TD-1: Cliente HTTP remoto
 
@@ -239,7 +322,7 @@ Requiere integracion entre ag-dsl y ag-storage en runtime.
 - Impacto: thumbnails deben generarse manualmente.
 - Eliminacion esperada: tras integracion ag-dsl runtime, segunda mitad Fase 4.
 
-## 9. Tests
+## 10. Tests
 
 | Nombre | Tipo | Verifica |
 |---|---|---|
@@ -256,14 +339,15 @@ Requiere integracion entre ag-dsl y ag-storage en runtime.
 | `image_thumbnail_max_dimensions` | unit | thumbnail <= WxH con aspect ratio preservado |
 | `image_to_webp_produces_bytes` | unit | conversion produce bytes no vacios |
 
-Total: 12 tests. Sin dependencias externas. Sin Docker. Sin credenciales AWS.
+Total: 12 tests funcionales + 5 tests de seguridad = 17 tests. Sin dependencias externas. Sin Docker. Sin credenciales AWS.
 
-## 10. Coherencia con documentacion maestra
+## 11. Coherencia con documentacion maestra
 
 - Arquitectura Tecnica 8.5: cumplido (storage nativo + S3/MinIO opcional + image processing).
 - Hoja de Ruta Fase 4: cumplido (`ag-storage` completo como crate independiente).
 - CLAUDE.md regla 14: `ag-storage` es crate estandar. Dependencia de `ag-auth` es opt-in via feature.
 - CLAUDE.md regla 15: sin dependencias circulares (ag-auth no depende de ag-storage).
-- CLAUDE.md regla 18: 12 tests, sin estado externo requerido.
+- CLAUDE.md regla 16: seguridad por construccion — path confinement, key validation, write-then-rename, rate limiting.
+- CLAUDE.md regla 18: 17 tests (12 funcionales + 5 seguridad), sin estado externo requerido.
 - CLAUDE.md regla 21: no hay magia — el store es un directorio de Linux legible.
 - CLAUDE.md regla 29: 4 TECH-DEBTs con formato obligatorio.

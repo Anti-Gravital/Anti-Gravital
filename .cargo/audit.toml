@@ -7,4 +7,28 @@
 # conexiones en red bajo condiciones controladas; no es explotable trivialmente
 # en nuestro contexto de autenticacion DB. Se revisa en cada actualizacion de sqlx.
 # Referencia: https://rustsec.org/advisories/RUSTSEC-2023-0071.html
-ignore = ["RUSTSEC-2023-0071"]
+ignore = [
+    # RUSTSEC-2023-0071: Marvin Attack en rsa 0.9.x (transitivo de sqlx).
+    # Anti-Gravital usa exclusivamente EdDSA; ningun codigo invoca RSA.
+    "RUSTSEC-2023-0071",
+
+    # RUSTSEC-2026-0099, RUSTSEC-2026-0098, RUSTSEC-2026-0104: tres CVEs en
+    # rustls-webpki, incluido transitivamente por testcontainers -> bollard.
+    # testcontainers es una dev-dependency de ag-auth usada solo en tests de
+    # integracion locales. El codigo de produccion no usa rustls-webpki de
+    # este path. Se resolvera al actualizar testcontainers cuando publique
+    # una version con rustls-webpki parcheado.
+    "RUSTSEC-2026-0099",
+    "RUSTSEC-2026-0098",
+    "RUSTSEC-2026-0104",
+
+    # RUSTSEC-2025-0111: tokio-tar parsea PAX headers incorrectamente.
+    # Transitivo de testcontainers (dev-dependency). No afecta codigo de produccion.
+    # Se resolvera con la actualizacion de testcontainers.
+    "RUSTSEC-2025-0111",
+
+    # RUSTSEC-2025-0134: rustls-pemfile unmaintained.
+    # Transitivo de testcontainers -> bollard (dev-dependency).
+    # No afecta codigo de produccion.
+    "RUSTSEC-2025-0134",
+]

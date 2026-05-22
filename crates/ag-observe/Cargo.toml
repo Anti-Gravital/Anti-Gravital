@@ -20,9 +20,14 @@ dev-console = ["dep:console-subscriber"]
 [dependencies]
 tracing                     = { workspace = true }
 tracing-subscriber          = { workspace = true }
+# TECH-DEBT:
+# motivo: opentelemetry-otlp (grpc-tonic) requiere protoc en compilacion, no disponible
+#         en Windows CI sin setup adicional. opentelemetry_sdk requiere runtime activo.
+#         Se reintegran cuando se resuelva el setup de CI multiplataforma para protoc.
+# impacto: ci/build windows-x64 falla; cargo doc falla en CI sin protoc.
+# eliminacion esperada: segunda iteracion Fase 4 con CI configurado para protoc.
 tracing-opentelemetry       = { workspace = true }
 opentelemetry               = { workspace = true }
-opentelemetry-otlp          = { workspace = true }
 opentelemetry_sdk           = { workspace = true }
 tokio                       = { workspace = true }
 serde                       = { workspace = true }

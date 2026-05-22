@@ -72,13 +72,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 tracing-opentelemetry    = "0.28"
 opentelemetry            = { version = "0.27", features = ["trace"] }
-opentelemetry-otlp       = { version = "0.27", features = ["grpc-tonic", "trace"] }
 opentelemetry_sdk        = { version = "0.27", features = ["rt-tokio"] }
 metrics                  = "0.24"
 metrics-exporter-prometheus = "0.16"
 console-subscriber       = "0.4"
-webauthn-rs              = { version = "0.5", features = ["danger-allow-state-serialisation"] }
-oauth2                   = "4"
+# TECH-DEBT: opentelemetry-otlp (grpc-tonic) requiere protoc en compilacion
+# (Windows CI). webauthn-rs (MPL-2.0 bloqueada) y oauth2 (reqwest 0.11 con
+# rustls-pemfile unmaintained) se reintegran en la segunda iteracion de ag-auth.
+# Eliminacion esperada: segunda iteracion Fase 4.
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
 getrandom                = "0.2"

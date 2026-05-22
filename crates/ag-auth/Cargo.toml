@@ -16,3 +16,25 @@ publish = false
 
 [lints]
 workspace = true
+
+[features]
+default = []
+persistent = ["dep:ag-data"]
+
+[dependencies]
+ag-data = { workspace = true, optional = true }
+blake3 = { workspace = true }
+base64ct = { workspace = true }
+getrandom = { workspace = true }
+jsonwebtoken = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+webauthn-rs = { workspace = true }
+oauth2 = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }

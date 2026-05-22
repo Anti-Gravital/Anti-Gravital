@@ -1,6 +1,6 @@
 # Anti-Gravital
 
-> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1, v0.2 y v0.3 operativos.
+> Estado: Fase 3 en curso — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code y cargo-fuzz operativos.
 > Status: Phase 3 in progress — Anti-DSL alpha. DSL v0.1, v0.2 and v0.3 operational.
 
 Anti-Gravital es un ecosistema de software libre para construir
@@ -57,13 +57,15 @@ no en el framework). Los criterios de throughput y latencia de la fase
 (40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
 
 **Fase 3 — Anti-DSL alpha:** en curso (rama `fase-3`). El compilador
-`ag-dsl` esta operativo con DSL v0.1, v0.2 y v0.3. Define modelos,
-endpoints, tipos de peticion y respuesta, y anotaciones de validacion
-(`@min`, `@max`, `@email`, `@regex`, `@length`) en un archivo `.ag`.
-Genera structs Rust con serde y metodos `validate()`, migraciones SQL
-con CHECK constraints, interfaces TypeScript, un cliente HTTP tipado,
-y documentacion OpenAPI 3.1 con constraints de validacion.
+`ag-dsl` esta operativo con DSL v0.1 a v0.4 (relaciones entre modelos,
+@references/@relation, FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI).
+Define modelos, endpoints, tipos de peticion y respuesta, y anotaciones de
+validacion en un archivo `.ag`. Genera structs Rust, SQL, TypeScript y OpenAPI.
 La CLI expone `ag generate`, `ag schema lint` y `ag schema diff`.
+Incluye servidor LSP (`ag-lsp`) con diagnostics en tiempo real, autocompletado
+y hover, y plugin VS Code con syntax highlighting e integracion LSP.
+Harness de fuzzing con cargo-fuzz activo en CI (3 targets, 60s por PR).
+Pendiente: gate manual de 24h de fuzzing y publicacion del plugin en marketplace.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

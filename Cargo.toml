@@ -16,6 +16,7 @@ members = [
     "crates/ag-mobile",
     "crates/ag-migrate",
     "crates/ag-wasm-host",
+    "crates/ag-lsp",
     "examples/todo-api",
 ]
 
@@ -66,6 +67,7 @@ tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "sig
 toml = "0.8"
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "request-id", "util", "cors"] }
+tower-lsp = "0.20"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 

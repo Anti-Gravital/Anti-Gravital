@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-21, medicion real CRUD con PostgreSQL nativo, correccion bug de routing Axum 0.7 ({id} -> :id).
+Ultima actualizacion: 2026-05-22, Fase 3 entregables tecnicos completados: ag-lsp, plugin VS Code, cargo-fuzz. Fix lexer panic i64 overflow.
 
 ---
 
@@ -192,9 +192,10 @@ mas potente o pgbouncer. Criterios externos de comunidad pendientes.
 
 ## Fase 3 - Anti-DSL alpha
 
-Estado: En curso. Iniciada 2026-05-21 en rama `fase-3`.
-RFC-0003 aceptada. Stack fijado: logos 0.14 (lexer), chumsky 0.9 (parser),
-format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
+Estado: En curso. Todos los entregables tecnicos completados. Pendientes
+son criterios externos (comunidad) y el gate manual de fuzzing 24h.
+DSL v0.1–v0.4, ag-lsp, plugin VS Code y cargo-fuzz operativos en rama `fase-3`.
+RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.20 (LSP).
 
 ### Criterios de entrada (3.1)
 
@@ -219,13 +220,21 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 - [x] Comando ag schema lint. Operativo desde v0.1.
 - [x] Comando ag schema diff. Operativo desde v0.1.
 - [x] Diagnostics legibles. Lex + parse + semantic con linea:columna.
-- [ ] Servidor LSP basico (ag-lsp).
-- [ ] Plugin VS Code.
+- [x] Servidor LSP basico (ag-lsp). Commits 01f256a + c7e01a9. Binario funcional;
+  diagnostics en tiempo real, completion y hover implementados. 10 tests.
+  Smoke test protocolo LSP verificado: responde initialize con serverInfo correcto.
+- [x] Plugin VS Code. Commits fd8b882..133a390. tmLanguage grammar, extension.ts con
+  LSP client, deteccion PATH y fallback cargo install. vsce package: anti-gravital-0.1.0.vsix.
+  Publicacion en marketplace pendiente (requiere repo publico).
 - [x] Cobertura tests >= 85%. Medicion 2026-05-21: 95.26% lineas, 93.02% funciones (cargo-llvm-cov).
-  115 tests verdes. Objetivo superado.
-- [ ] Fuzzing 24h sin crashes.
+  119 tests ag-dsl + 10 tests ag-lsp = 129 tests verdes post-Fase 3. Objetivo superado.
+- [/] Fuzzing 24h sin crashes. Harness cargo-fuzz operativo (3 targets: fuzz_lexer,
+  fuzz_parser, fuzz_compile). CI smoke test 60s activo en quality.yml. Crash encontrado
+  y corregido (lexer panic en enteros > i64::MAX, commit ff85c6f). Gate manual 24h
+  pendiente de ejecucion en hardware Linux x86-64 antes de mergear.
 - [x] Documentacion de referencia del DSL. `docs/dsl/referencia-v01-v04.md` — cubre tipos,
   anotaciones v0.1–v0.4, generacion de codigo, diagnostics y limitaciones conocidas.
+  Hoja de ruta LSP en `docs/dsl/lsp-roadmap.md`. Documentacion fuzzing en `docs/fuzz/README.md`.
 
 ### Criterios de salida (3.3)
 
@@ -234,7 +243,7 @@ format! macros (codegen). Implementacion incremental: v0.1 y v0.2 completados.
 - [x] Example ecommerce-api reescrito con DSL. Modelos User, Category, Product, Order, OrderItem
   con relaciones 1:N y N:M. SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TS y OpenAPI $ref generados.
 - [ ] CRUD generado por DSL no es mas lento que CRUD a mano.
-- [ ] Plugin VS Code >= 100 instalaciones.
+- [ ] Plugin VS Code >= 100 instalaciones. (Plugin empaquetado; pendiente publicacion y adopcion.)
 - [ ] Al menos un colaborador externo contribuyo al compilador.
 - [ ] Documentacion DSL revisada por dos personas.
 - [ ] Al menos 200 stars.

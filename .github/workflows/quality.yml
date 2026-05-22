@@ -66,3 +66,36 @@ jobs:
         with:
           command: check
           arguments: --all-features
+
+  fuzz-smoke:
+    name: cargo fuzz smoke (60s)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - name: install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fuzz/target
+          key: ${{ runner.os }}-fuzz-${{ hashFiles('fuzz/Cargo.toml') }}
+      - name: fuzz fuzz_lexer 60s
+        working-directory: fuzz
+        run: cargo fuzz run fuzz_lexer -- -max_total_time=60
+      - name: fuzz fuzz_parser 60s
+        working-directory: fuzz
+        run: cargo fuzz run fuzz_parser -- -max_total_time=60
+      - name: fuzz fuzz_compile 60s
+        working-directory: fuzz
+        run: cargo fuzz run fuzz_compile -- -max_total_time=60
+      - name: upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: fuzz/artifacts/

@@ -1,0 +1,27 @@
+[package]
+name = "ag-lsp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Servidor LSP del Anti-DSL: diagnostics y autocompletado para archivos .ag"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[[bin]]
+name = "ag-lsp"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-dsl    = { workspace = true }
+tower-lsp = { workspace = true }
+tokio     = { workspace = true, features = ["io-std"] }

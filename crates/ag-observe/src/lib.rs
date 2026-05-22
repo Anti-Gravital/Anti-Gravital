@@ -1,5 +1,8 @@
 //! Observabilidad nativa: tracing, OpenTelemetry exporter, metricas Prometheus y tokio-console.
 //!
-//! Estado: Fase 0 (Fundaciones y Gobernanza). Este crate aun no contiene
-//! codigo funcional. La implementacion se entrega en la fase declarada
-//! en el README del crate y en la Hoja de Ruta del proyecto.
+//! Estado: Fase 4 (Modulos Estandar). Implementa configuracion, inicializacion
+//! del subscriber de tracing y metricas Prometheus estandar.
+
+pub mod config;
+
+pub use config::{LogFormat, ObserveConfig};

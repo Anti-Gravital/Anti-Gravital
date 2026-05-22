@@ -70,14 +70,29 @@ tower-http = { version = "0.6", features = ["trace", "request-id", "util", "cors
 tower-lsp = "0.20"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+tracing-opentelemetry    = "0.28"
+opentelemetry            = { version = "0.27", features = ["trace"] }
+opentelemetry_sdk        = { version = "0.27", features = ["rt-tokio"] }
+metrics                  = "0.24"
+metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
+console-subscriber       = "0.4"
+# TECH-DEBT: opentelemetry-otlp (grpc-tonic) requiere protoc en compilacion
+# (Windows CI). webauthn-rs (MPL-2.0 bloqueada) y oauth2 (reqwest 0.11 con
+# rustls-pemfile unmaintained) se reintegran en la segunda iteracion de ag-auth.
+# Eliminacion esperada: segunda iteracion Fase 4.
+blake3                   = "1"
+base64ct                 = { version = "1", features = ["alloc"] }
+getrandom                = "0.2"
 
 # Dev-dependencies compartidas.
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
-ed25519-dalek = { version = "2", features = ["pkcs8", "pem"] }
+ed25519-dalek = { version = "2", features = ["pkcs8", "pem", "rand_core"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 tokio-test = "0.4"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
 
 [workspace.lints.rust]
 # Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.

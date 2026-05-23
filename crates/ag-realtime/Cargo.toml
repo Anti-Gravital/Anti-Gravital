@@ -9,10 +9,27 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "WebSocket binario, SSE fallback y pub/sub con NATS"
+description = "Tiempo real: WebSocket, SSE y pub/sub con bus de eventos"
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+axum = { workspace = true }
+futures-util = { workspace = true }
+rmp-serde = { workspace = true }
+async-nats = { workspace = true, optional = true }
+
+[features]
+nats-external = ["dep:async-nats"]
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

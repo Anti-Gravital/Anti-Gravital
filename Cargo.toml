@@ -44,7 +44,10 @@ publish = false
 ag-core = { path = "crates/ag-core", version = "0.0.0" }
 ag-data = { path = "crates/ag-data", version = "0.0.0" }
 ag-dsl = { path = "crates/ag-dsl", version = "0.0.0" }
-axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query"] }
+axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query", "ws"] }
+async-nats = "0.48"
+rmp-serde  = "1"
+futures-util = "0.3"
 bytes = "1"
 clap = { version = "4", features = ["derive"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
@@ -91,8 +94,11 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 tokio-test = "0.4"
+moka = { version = "0.12", features = ["future"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+tempfile = "3"
 testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis"] }
 
 [workspace.lints.rust]
 # Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.

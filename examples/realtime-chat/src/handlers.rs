@@ -154,7 +154,7 @@ pub async fn post_message(
     let user = req.user.trim();
     let text = req.text.trim();
 
-    if user.is_empty() || user.len() > 32 || text.is_empty() || text.len() > 512 {
+    if user.is_empty() || user.chars().count() > 32 || text.is_empty() || text.chars().count() > 512 {
         return StatusCode::UNPROCESSABLE_ENTITY.into_response();
     }
 

@@ -39,7 +39,12 @@ pub enum StorageError {
     PathEscape(String),
     /// Payload supera el limite configurado.
     #[error("objeto demasiado grande: {size} bytes (limite: {limit} bytes)")]
-    TooLarge { size: usize, limit: usize },
+    TooLarge {
+        /// Tamano del objeto recibido en bytes.
+        size: usize,
+        /// Limite maximo permitido en bytes.
+        limit: usize,
+    },
     /// Error de I/O del sistema operativo.
     #[error("error de I/O: {0}")]
     Io(#[from] std::io::Error),

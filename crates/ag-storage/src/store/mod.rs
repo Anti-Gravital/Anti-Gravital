@@ -13,11 +13,6 @@ use std::path::{Component, Path, PathBuf};
 /// Toda operacion pasa por [`validate_key`] y [`resolve_path`] antes de I/O.
 pub struct AgStore {
     root: PathBuf,
-    // TECH-DEBT:
-    // motivo: usado en Task 5 para rechazar payloads grandes.
-    // impacto: sin efecto hasta Task 5.
-    // eliminacion esperada: Task 5 ag-storage.
-    #[allow(dead_code)]
     max_object_size: usize,
 }
 
@@ -44,42 +39,56 @@ impl AgStore {
     ///
     /// Usa write-then-atomic-rename para evitar lecturas de archivos parciales.
     pub async fn put(&self, key: &str, data: Bytes) -> Result<(), StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 5 (write-then-rename atomico).
-        // impacto: put no funcional hasta Task 5.
-        // eliminacion esperada: Task 5 ag-storage.
-        let _ = (key, data);
-        todo!()
+        if data.len() > self.max_object_size {
+            return Err(StorageError::TooLarge {
+                size: data.len(),
+                limit: self.max_object_size,
+            });
+        }
+        let dest = resolve_path(&self.root, key)?;
+        if let Some(parent) = dest.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        // write-then-rename atomico: evita lecturas de archivos parcialmente escritos
+        let mut nonce = [0u8; 8];
+        getrandom::getrandom(&mut nonce).unwrap_or_default();
+        let tmp = dest.with_file_name(format!(
+            ".tmp.{:016x}",
+            u64::from_le_bytes(nonce)
+        ));
+        tokio::fs::write(&tmp, &data).await?;
+        tokio::fs::rename(&tmp, &dest).await?;
+        Ok(())
     }
 
     /// Recupera el contenido del objeto con clave `key`.
     pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 5.
-        // impacto: get no funcional hasta Task 5.
-        // eliminacion esperada: Task 5 ag-storage.
-        let _ = key;
-        todo!()
+        let path = resolve_path(&self.root, key)?;
+        match tokio::fs::read(&path).await {
+            Ok(data) => Ok(Bytes::from(data)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Err(StorageError::NotFound(key.to_owned()))
+            }
+            Err(e) => Err(StorageError::Io(e)),
+        }
     }
 
     /// Borra el objeto con clave `key`.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 5.
-        // impacto: delete no funcional hasta Task 5.
-        // eliminacion esperada: Task 5 ag-storage.
-        let _ = key;
-        todo!()
+        let path = resolve_path(&self.root, key)?;
+        match tokio::fs::remove_file(&path).await {
+            Ok(()) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Err(StorageError::NotFound(key.to_owned()))
+            }
+            Err(e) => Err(StorageError::Io(e)),
+        }
     }
 
     /// Retorna `true` si existe un objeto con clave `key`.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 5.
-        // impacto: exists no funcional hasta Task 5.
-        // eliminacion esperada: Task 5 ag-storage.
-        let _ = key;
-        todo!()
+        let path = resolve_path(&self.root, key)?;
+        Ok(tokio::fs::try_exists(&path).await.unwrap_or(false))
     }
 
     /// Lista las claves de objetos bajo `prefix`.
@@ -262,5 +271,64 @@ mod tests {
             result,
             Err(StorageError::PathEscape(_)) | Err(StorageError::Io(_))
         ));
+    }
+
+    // --- Tests funcionales ---
+
+    fn test_config(root: &std::path::Path) -> crate::StorageConfig {
+        crate::StorageConfig {
+            root_path: root.to_path_buf(),
+            max_object_size_mb: 10,
+            ..crate::StorageConfig::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn put_get_roundtrip() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        let data = Bytes::from("contenido de prueba");
+        store.put("docs/test.txt", data.clone()).await.unwrap();
+        let result = store.get("docs/test.txt").await.unwrap();
+        assert_eq!(result, data);
+    }
+
+    #[tokio::test]
+    async fn get_not_found_returns_error() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        let result = store.get("no-existe.txt").await;
+        assert!(matches!(result, Err(StorageError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn delete_removes_object() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        store.put("temp.txt", Bytes::from("x")).await.unwrap();
+        store.delete("temp.txt").await.unwrap();
+        assert!(!store.exists("temp.txt").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn exists_returns_false_for_missing() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        assert!(!store.exists("ghost.txt").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn oversized_upload_is_rejected() {
+        let dir = tempdir();
+        let mut cfg = test_config(dir.path());
+        cfg.max_object_size_mb = 0; // 0 MB = limit is 0 bytes, any payload fails
+        let store = AgStore::new(&cfg).unwrap();
+        let data = Bytes::from(vec![0u8; 1]);
+        let result = store.put("big.bin", data).await;
+        assert!(matches!(result, Err(StorageError::TooLarge { .. })));
     }
 }

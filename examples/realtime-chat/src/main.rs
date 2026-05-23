@@ -19,7 +19,11 @@ mod handlers;
 
 use ag_observe::{init as observe_init, ObserveConfig};
 use ag_realtime::{AgRealtime, RealtimeConfig};
-use axum::{http::StatusCode, routing::{get, post}, Router};
+use axum::{
+    http::StatusCode,
+    routing::{get, post},
+    Router,
+};
 use std::sync::Arc;
 
 /// Estado compartido entre todos los handlers.

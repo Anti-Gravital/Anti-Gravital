@@ -125,7 +125,7 @@ function send() {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({user: user, text: text})
-  });
+  }).catch(function(err) { console.error('error enviando mensaje:', err); });
   textInput.value = '';
   textInput.focus();
 }
@@ -154,7 +154,8 @@ pub async fn post_message(
     let user = req.user.trim();
     let text = req.text.trim();
 
-    if user.is_empty() || user.chars().count() > 32 || text.is_empty() || text.chars().count() > 512 {
+    if user.is_empty() || user.chars().count() > 32 || text.is_empty() || text.chars().count() > 512
+    {
         return StatusCode::UNPROCESSABLE_ENTITY.into_response();
     }
 

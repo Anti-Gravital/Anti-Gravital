@@ -3283,6 +3283,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "realtime-chat"
+version = "0.0.0"
+dependencies = [
+ "ag-observe",
+ "ag-realtime",
+ "axum 0.7.9",
+ "criterion",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4457,6 +4474,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

@@ -1,0 +1,34 @@
+[package]
+name = "realtime-chat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Ejemplo: chat en tiempo real con ag-realtime y SSE"
+
+[[bin]]
+name = "realtime-chat"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-realtime = { path = "../../crates/ag-realtime" }
+ag-observe = { path = "../../crates/ag-observe" }
+axum = { workspace = true }
+futures-util = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "chat_throughput"
+harness = false

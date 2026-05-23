@@ -139,7 +139,18 @@ impl AgStorage {
 
 #[cfg(test)]
 mod tests {
-    use super::StorageError;
+    use super::*;
+    use bytes::Bytes;
+
+    fn temp_config() -> (tempfile::TempDir, StorageConfig) {
+        let dir = tempfile::tempdir().unwrap();
+        let config = StorageConfig {
+            root_path: dir.path().to_path_buf(),
+            server_mode: false,
+            ..StorageConfig::default()
+        };
+        (dir, config)
+    }
 
     #[test]
     fn storage_error_not_found_display() {
@@ -161,5 +172,86 @@ mod tests {
     fn storage_error_invalid_key_display() {
         let e = StorageError::InvalidKey("../secret".into());
         assert!(e.to_string().contains("invalida"));
+    }
+
+    #[tokio::test]
+    async fn new_creates_successfully() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        let _ = storage.processor();
+    }
+
+    #[tokio::test]
+    async fn put_get_roundtrip() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        let data = Bytes::from("hello storage");
+        storage.put("files/test.txt", data.clone()).await.unwrap();
+        let got = storage.get("files/test.txt").await.unwrap();
+        assert_eq!(got, data);
+    }
+
+    #[tokio::test]
+    async fn exists_returns_true_after_put() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        assert!(!storage.exists("x.bin").await.unwrap());
+        storage.put("x.bin", Bytes::from("x")).await.unwrap();
+        assert!(storage.exists("x.bin").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_removes_object() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        storage.put("del.txt", Bytes::from("bye")).await.unwrap();
+        storage.delete("del.txt").await.unwrap();
+        assert!(!storage.exists("del.txt").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn list_returns_put_keys() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        storage.put("ns/a.txt", Bytes::from("a")).await.unwrap();
+        storage.put("ns/b.txt", Bytes::from("b")).await.unwrap();
+        let keys = storage.list(Some("ns/")).await.unwrap();
+        assert_eq!(keys.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn copy_duplicates_object() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        storage
+            .put("src.txt", Bytes::from("original"))
+            .await
+            .unwrap();
+        storage.copy("src.txt", "dst.txt").await.unwrap();
+        let got = storage.get("dst.txt").await.unwrap();
+        assert_eq!(got, Bytes::from("original"));
+    }
+
+    #[tokio::test]
+    async fn object_url_native_mode() {
+        let (_dir, config) = temp_config();
+        let storage = AgStorage::new(config).await.unwrap();
+        let url = storage.object_url("docs/readme.txt").unwrap();
+        assert!(url.starts_with("file://"), "URL nativa debe ser file://");
+    }
+
+    #[tokio::test]
+    async fn object_url_server_mode() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = StorageConfig {
+            root_path: dir.path().to_path_buf(),
+            server_mode: true,
+            server_port: 14280,
+            ..StorageConfig::default()
+        };
+        let storage = AgStorage::new(config).await.unwrap();
+        let url = storage.object_url("docs/readme.txt").unwrap();
+        assert!(url.contains("14280"), "URL server debe contener el puerto");
+        assert!(url.starts_with("http://"));
     }
 }

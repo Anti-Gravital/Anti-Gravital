@@ -44,3 +44,82 @@ pub async fn bearer_auth_middleware(
         _ => StatusCode::UNAUTHORIZED.into_response(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+        middleware,
+        routing::get,
+        Router,
+    };
+    use tower::ServiceExt;
+
+    async fn ok_handler() -> StatusCode {
+        StatusCode::OK
+    }
+
+    fn app_with_token(token: &str) -> Router {
+        let auth_token: AuthToken = Arc::new(token.to_string());
+        Router::new()
+            .route("/test", get(ok_handler))
+            .layer(middleware::from_fn_with_state(
+                auth_token,
+                bearer_auth_middleware,
+            ))
+    }
+
+    #[tokio::test]
+    async fn empty_token_allows_all_requests() {
+        let app = app_with_token("");
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn valid_token_allows_request() {
+        let app = app_with_token("secret123");
+        let req = Request::builder()
+            .uri("/test")
+            .header("Authorization", "Bearer secret123")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn invalid_token_returns_401() {
+        let app = app_with_token("secret123");
+        let req = Request::builder()
+            .uri("/test")
+            .header("Authorization", "Bearer wrongtoken")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn missing_auth_header_returns_401() {
+        let app = app_with_token("secret123");
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn malformed_bearer_returns_401() {
+        let app = app_with_token("secret123");
+        let req = Request::builder()
+            .uri("/test")
+            .header("Authorization", "Basic secret123")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+}

@@ -182,6 +182,8 @@ pub fn resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError> {
     let resolved = if candidate.exists() {
         candidate.canonicalize().map_err(StorageError::Io)?
     } else {
+        // Seguro porque validate_key (llamada arriba) ya rechazo todos los
+        // segmentos '.' y '..'. normalize_path es solo defensa adicional.
         normalize_path(&candidate)
     };
     if !resolved.starts_with(&canonical_root) {

@@ -9,10 +9,37 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Almacenamiento de objetos: S3, MinIO, filesystem"
+description = "Store nativo Anti-Gravital: filesystem, servidor HTTP, S3/MinIO, procesamiento de imagen"
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [lints]
 workspace = true
+
+[features]
+default = []
+auth = ["dep:ag-auth"]
+s3   = ["dep:object_store"]
+
+[dependencies]
+ag-auth       = { path = "../ag-auth", optional = true }
+axum          = { workspace = true }
+blake3        = { workspace = true }
+bytes         = { workspace = true }
+getrandom     = { workspace = true }
+governor      = { workspace = true }
+http          = { workspace = true }
+image         = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+thiserror     = { workspace = true }
+tokio         = { workspace = true }
+tower         = { workspace = true }
+tower-http    = { workspace = true }
+tracing       = { workspace = true }
+object_store  = { version = "0.11", features = ["aws"], optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

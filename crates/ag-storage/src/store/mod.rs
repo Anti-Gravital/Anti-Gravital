@@ -93,22 +93,26 @@ impl AgStore {
 
     /// Lista las claves de objetos bajo `prefix`.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 6.
-        // impacto: list no funcional hasta Task 6.
-        // eliminacion esperada: Task 6 ag-storage.
-        let _ = prefix;
-        todo!()
+        let root = self.root.clone();
+        let prefix_str = prefix.map(|p| p.trim_end_matches('/').to_owned());
+
+        let keys = tokio::task::spawn_blocking(move || collect_keys(&root, &root))
+            .await
+            .map_err(|e| StorageError::Io(std::io::Error::other(e.to_string())))??;
+
+        Ok(match prefix_str {
+            Some(p) => keys
+                .into_iter()
+                .filter(|k| k == &p || k.starts_with(&format!("{p}/")))
+                .collect(),
+            None => keys,
+        })
     }
 
     /// Copia el objeto `from` a la clave `to`.
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
-        // TECH-DEBT:
-        // motivo: implementacion completa en Task 6.
-        // impacto: copy no funcional hasta Task 6.
-        // eliminacion esperada: Task 6 ag-storage.
-        let _ = (from, to);
-        todo!()
+        let data = self.get(from).await?;
+        self.put(to, data).await
     }
 }
 
@@ -178,6 +182,35 @@ fn normalize_path(path: &Path) -> PathBuf {
         }
     }
     out
+}
+
+/// Recorre `dir` recursivamente y retorna rutas relativas a `root`.
+/// Ignora archivos temporales con prefijo `.tmp.`.
+fn collect_keys(dir: &std::path::Path, root: &std::path::Path) -> Result<Vec<String>, StorageError> {
+    let mut keys = Vec::new();
+    if !dir.exists() {
+        return Ok(keys);
+    }
+    for entry in std::fs::read_dir(dir).map_err(StorageError::Io)? {
+        let entry = entry.map_err(StorageError::Io)?;
+        let path = entry.path();
+        if path.is_dir() {
+            let mut sub = collect_keys(&path, root)?;
+            keys.append(&mut sub);
+        } else if path.is_file() {
+            let name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy();
+            if name.starts_with(".tmp.") {
+                continue;
+            }
+            if let Ok(rel) = path.strip_prefix(root) {
+                keys.push(rel.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+    Ok(keys)
 }
 
 /// Resuelve `key` a un path absoluto dentro de `root`.
@@ -330,5 +363,35 @@ mod tests {
         let data = Bytes::from(vec![0u8; 1]);
         let result = store.put("big.bin", data).await;
         assert!(matches!(result, Err(StorageError::TooLarge { .. })));
+    }
+
+    #[tokio::test]
+    async fn list_returns_keys_by_prefix() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        store.put("avatars/alice.jpg", Bytes::from("a")).await.unwrap();
+        store.put("avatars/bob.jpg", Bytes::from("b")).await.unwrap();
+        store.put("docs/readme.txt", Bytes::from("c")).await.unwrap();
+
+        let all = store.list(None).await.unwrap();
+        assert_eq!(all.len(), 3);
+
+        let avatars = store.list(Some("avatars")).await.unwrap();
+        assert_eq!(avatars.len(), 2);
+        assert!(avatars.iter().all(|k| k.starts_with("avatars/")));
+    }
+
+    #[tokio::test]
+    async fn copy_duplicates_object() {
+        let dir = tempdir();
+        let cfg = test_config(dir.path());
+        let store = AgStore::new(&cfg).unwrap();
+        let data = Bytes::from("original");
+        store.put("original.txt", data.clone()).await.unwrap();
+        store.copy("original.txt", "backup/original.txt").await.unwrap();
+
+        assert_eq!(store.get("original.txt").await.unwrap(), data);
+        assert_eq!(store.get("backup/original.txt").await.unwrap(), data);
     }
 }

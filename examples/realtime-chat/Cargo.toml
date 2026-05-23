@@ -28,7 +28,3 @@ tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
-
-[[bench]]
-name = "chat_throughput"
-harness = false

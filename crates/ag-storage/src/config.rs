@@ -143,9 +143,25 @@ mod tests {
 
     #[test]
     fn config_from_env_reads_port() {
+        let prev = std::env::var("STORAGE_PORT").ok();
         std::env::set_var("STORAGE_PORT", "9000");
         let cfg = StorageConfig::from_env();
-        std::env::remove_var("STORAGE_PORT");
+        match prev {
+            Some(v) => std::env::set_var("STORAGE_PORT", v),
+            None => std::env::remove_var("STORAGE_PORT"),
+        }
         assert_eq!(cfg.server_port, 9000);
+    }
+
+    #[test]
+    fn config_from_env_reads_server_mode() {
+        let prev = std::env::var("STORAGE_SERVER").ok();
+        std::env::set_var("STORAGE_SERVER", "true");
+        let cfg = StorageConfig::from_env();
+        match prev {
+            Some(v) => std::env::set_var("STORAGE_SERVER", v),
+            None => std::env::remove_var("STORAGE_SERVER"),
+        }
+        assert!(cfg.server_mode);
     }
 }

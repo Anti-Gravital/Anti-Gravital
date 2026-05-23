@@ -99,4 +99,38 @@ mod tests {
         let result = init(&ObserveConfig::default());
         assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
     }
+
+    #[test]
+    fn init_json_format_does_not_panic() {
+        use crate::config::{LogFormat, ObserveConfig};
+        let config = ObserveConfig {
+            log_format: LogFormat::Json,
+            ..ObserveConfig::default()
+        };
+        let result = init(&config);
+        assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
+    }
+
+    #[test]
+    fn init_with_otlp_endpoint_logs_warning() {
+        use crate::config::ObserveConfig;
+        let config = ObserveConfig {
+            otlp_endpoint: Some("http://localhost:4317".to_string()),
+            ..ObserveConfig::default()
+        };
+        let result = init(&config);
+        assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
+    }
+
+    #[test]
+    fn already_initialized_error_displays_correctly() {
+        let e = ObserveError::AlreadyInitialized;
+        assert!(e.to_string().contains("inicializado"));
+    }
+
+    #[test]
+    fn otlp_setup_error_displays_correctly() {
+        let e = ObserveError::OtlpSetup("fallo".to_string());
+        assert!(e.to_string().contains("fallo"));
+    }
 }

@@ -127,6 +127,11 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
         "png" => ("image/png", false),
         "gif" => ("image/gif", false),
         "webp" => ("image/webp", false),
+        // TECH-DEBT:
+        // motivo: SVG puede contener JavaScript y disparar XSS en navegadores.
+        // impacto: objetos SVG se sirven inline; usar un sanitizador o forzar
+        //          attachment para mitigar XSS en clientes browser.
+        // eliminacion esperada: segunda iteracion ag-storage con politica de CSP.
         "svg" => ("image/svg+xml", false),
         "ico" => ("image/x-icon", false),
         "txt" => ("text/plain; charset=utf-8", false),
@@ -140,6 +145,12 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 }
 
 fn etag_for(data: &Bytes) -> String {
+    // TECH-DEBT:
+    // motivo: ETag truncado a 16 hex chars (64 bits de blake3). RFC 7232
+    //         recomienda hash completo para ETags fuertes; 64 bits pueden
+    //         colisionar a escala alta.
+    // impacto: posibles falsos cache-hits con objetos distintos.
+    // eliminacion esperada: segunda iteracion ag-storage con ETag completo.
     let hash = blake3::hash(data);
     format!("\"{}\"", &hash.to_hex()[..16])
 }

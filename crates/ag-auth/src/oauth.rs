@@ -358,8 +358,7 @@ mod tests {
     fn authorization_url_unconfigured_returns_error() {
         let http = reqwest::Client::new();
         let client = OAuthClient::from_config(&config_empty(), http);
-        let result =
-            client.authorization_url(OAuthProvider::Google, "http://localhost/callback");
+        let result = client.authorization_url(OAuthProvider::Google, "http://localhost/callback");
         assert!(matches!(result, Err(OAuthError::ProviderNotConfigured(_))));
     }
 

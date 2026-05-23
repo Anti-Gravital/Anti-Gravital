@@ -23,7 +23,7 @@ auth = ["dep:ag-auth"]
 s3   = ["dep:object_store"]
 
 [dependencies]
-ag-auth       = { path = "../ag-auth", optional = true }
+ag-auth       = { path = "../ag-auth", version = "0.0.0", optional = true }
 axum          = { workspace = true }
 blake3        = { workspace = true }
 bytes         = { workspace = true }

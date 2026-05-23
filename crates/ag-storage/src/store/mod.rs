@@ -279,6 +279,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn symlink_escape_is_blocked() {
         let dir = tempdir();
         let root = dir.path();

@@ -10,7 +10,7 @@
 //!
 //! # fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = AuthConfig::from_env()?;
-//! let auth = AgAuth::new(config)?;
+//! let auth = AgAuth::new(config, reqwest::Client::new())?;
 //!
 //! // API keys
 //! let (raw_key, key_hash) = auth.create_api_key("sk");
@@ -26,6 +26,10 @@ pub mod jwt;
 pub mod oauth;
 pub mod refresh;
 pub mod webauthn;
+
+pub use api_keys::{generate as generate_api_key, verify as verify_api_key};
+pub use config::{AuthConfig, AuthConfigError};
+pub use jwt::{Claims, JwtError, JwtSigner};
 pub use oauth::{OAuthClient, OAuthError, OAuthProvider, OAuthUser};
 pub use refresh::RefreshBlacklist;
 pub use webauthn::{
@@ -33,45 +37,54 @@ pub use webauthn::{
     StoredCredential, WebAuthnError, WebAuthnRp,
 };
 
-// TECH-DEBT:
-// motivo: WebAuthn (FIDO2) requiere integracion con webauthn-rs que necesita
-//         estado de ceremonia serializable y tests con mocks de autenticador.
-//         La complejidad supera el alcance de esta iteracion.
-// impacto: Passkeys no disponibles hasta que se implemente este modulo.
-// eliminacion esperada: rama fase-4/ag-auth segunda iteracion.
-// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
-
-// TECH-DEBT:
-// motivo: OAuth2 (Google, GitHub) requiere intercambio de codigos HTTP y
-//         fetch de user info — necesita un cliente HTTP (reqwest) y
-//         credenciales de prueba para tests. Se pospone para siguiente iteracion.
-// impacto: Login social no disponible hasta que se implemente este modulo.
-// eliminacion esperada: rama fase-4/ag-auth segunda iteracion.
-// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
-
-// TECH-DEBT:
-// motivo: Refresh tokens con rotacion (SessionStore) requiere testcontainers
-//         PostgreSQL y la feature persistent activada. Se pospone para que
-//         no bloquee el path critico JWT + API keys.
-// impacto: Solo JWT stateless disponible hasta que se implemente SessionStore.
-// eliminacion esperada: rama fase-4/ag-auth segunda iteracion (Task 7 del plan).
-// issue: https://github.com/anti-gravital/anti-gravital/issues/TBD
-
-pub use api_keys::{generate as generate_api_key, verify as verify_api_key};
-pub use config::{AuthConfig, AuthConfigError};
-pub use jwt::{Claims, JwtError, JwtSigner};
-
 /// Fachada principal del modulo de autenticacion.
 pub struct AgAuth {
     /// Firmador/verificador de JWTs.
     pub jwt: JwtSigner,
+    /// Relying Party WebAuthn. None si `webauthn_rp_id` esta vacio.
+    pub webauthn: Option<webauthn::WebAuthnRp>,
+    /// Cliente OAuth2. None si ningun proveedor esta configurado.
+    pub oauth: Option<oauth::OAuthClient>,
+    /// Blacklist de refresh tokens.
+    pub refresh_blacklist: std::sync::Arc<refresh::RefreshBlacklist>,
 }
 
 impl AgAuth {
-    /// Crea una nueva instancia de `AgAuth` con la configuracion dada.
-    pub fn new(config: AuthConfig) -> Result<Self, AuthConfigError> {
-        let jwt = JwtSigner::new(config.jwt_private_key_pem, config.jwt_public_key_pem);
-        Ok(Self { jwt })
+    /// Crea una nueva instancia de `AgAuth`.
+    ///
+    /// - `webauthn` se inicializa si `config.webauthn_rp_id` no esta vacio.
+    /// - `oauth` se inicializa si al menos un proveedor tiene client_id configurado.
+    /// - `http_client` se usa internamente para OAuth2 — el llamador lo provee
+    ///   para permitir configuracion de timeouts, proxies y TLS personalizado.
+    pub fn new(config: AuthConfig, http_client: reqwest::Client) -> Result<Self, AuthConfigError> {
+        let jwt = JwtSigner::new(
+            config.jwt_private_key_pem.clone(),
+            config.jwt_public_key_pem.clone(),
+        );
+
+        let webauthn_rp = if !config.webauthn_rp_id.is_empty() {
+            Some(webauthn::WebAuthnRp::new(
+                config.webauthn_rp_id.clone(),
+                config.webauthn_origin.clone(),
+            ))
+        } else {
+            None
+        };
+
+        let has_google = config.oauth_google_client_id.is_some();
+        let has_github = config.oauth_github_client_id.is_some();
+        let oauth_client = if has_google || has_github {
+            Some(oauth::OAuthClient::from_config(&config, http_client))
+        } else {
+            None
+        };
+
+        Ok(Self {
+            jwt,
+            webauthn: webauthn_rp,
+            oauth: oauth_client,
+            refresh_blacklist: std::sync::Arc::new(refresh::RefreshBlacklist::new()),
+        })
     }
 
     /// Genera una nueva API key y su hash BLAKE3.
@@ -96,8 +109,8 @@ mod tests {
         AuthConfig {
             jwt_private_key_pem: "fake-private".to_string(),
             jwt_public_key_pem: "fake-public".to_string(),
-            webauthn_rp_id: "localhost".to_string(),
-            webauthn_origin: "http://localhost".to_string(),
+            webauthn_rp_id: String::new(),
+            webauthn_origin: String::new(),
             oauth_google_client_id: None,
             oauth_google_client_secret: None,
             oauth_github_client_id: None,
@@ -105,15 +118,39 @@ mod tests {
         }
     }
 
+    fn http() -> reqwest::Client {
+        reqwest::Client::new()
+    }
+
     #[test]
     fn new_succeeds_with_valid_config() {
-        let auth = AgAuth::new(fake_config()).expect("debe construirse con config valida");
+        let auth = AgAuth::new(fake_config(), http()).expect("debe construirse con config valida");
         let _ = &auth.jwt;
+        assert!(auth.webauthn.is_none(), "sin rp_id, webauthn debe ser None");
+        assert!(auth.oauth.is_none(), "sin providers, oauth debe ser None");
+    }
+
+    #[test]
+    fn new_enables_webauthn_when_rp_id_set() {
+        let mut cfg = fake_config();
+        cfg.webauthn_rp_id = "example.com".into();
+        cfg.webauthn_origin = "https://example.com".into();
+        let auth = AgAuth::new(cfg, http()).unwrap();
+        assert!(auth.webauthn.is_some());
+    }
+
+    #[test]
+    fn new_enables_oauth_when_google_configured() {
+        let mut cfg = fake_config();
+        cfg.oauth_google_client_id = Some("gid".into());
+        cfg.oauth_google_client_secret = Some("gsecret".into());
+        let auth = AgAuth::new(cfg, http()).unwrap();
+        assert!(auth.oauth.is_some());
     }
 
     #[test]
     fn create_api_key_uses_prefix() {
-        let auth = AgAuth::new(fake_config()).unwrap();
+        let auth = AgAuth::new(fake_config(), http()).unwrap();
         let (raw, _hash) = auth.create_api_key("sk");
         assert!(
             raw.starts_with("sk_"),
@@ -123,7 +160,7 @@ mod tests {
 
     #[test]
     fn verify_api_key_roundtrip() {
-        let auth = AgAuth::new(fake_config()).unwrap();
+        let auth = AgAuth::new(fake_config(), http()).unwrap();
         let (raw, hash) = auth.create_api_key("test");
         assert!(
             auth.verify_api_key(&raw, &hash),
@@ -133,7 +170,7 @@ mod tests {
 
     #[test]
     fn verify_api_key_rejects_wrong_key() {
-        let auth = AgAuth::new(fake_config()).unwrap();
+        let auth = AgAuth::new(fake_config(), http()).unwrap();
         let (_raw, hash) = auth.create_api_key("test");
         assert!(!auth.verify_api_key("test_wrongkey", &hash));
     }

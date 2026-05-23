@@ -255,7 +255,7 @@ impl WebAuthnRp {
         &mut self,
         user_handle: &str,
         response: AuthenticationResponse,
-        creds: &mut Vec<StoredCredential>,
+        creds: &mut [StoredCredential],
     ) -> Result<String, WebAuthnError> {
         let key = format!("auth:{user_handle}");
         let pending = self.take_pending(&key)?;
@@ -296,8 +296,7 @@ impl WebAuthnRp {
     /// Elimina challenges con mas de `max_age_secs` segundos.
     pub fn purge_expired_challenges(&mut self, max_age_secs: u64) {
         let max_age = Duration::from_secs(max_age_secs);
-        self.pending
-            .retain(|_, v| v.created_at.elapsed() < max_age);
+        self.pending.retain(|_, v| v.created_at.elapsed() < max_age);
     }
 
     fn take_pending(&mut self, key: &str) -> Result<PendingCeremony, WebAuthnError> {
@@ -396,9 +395,7 @@ fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError
     let (cred_id, cose_public_key) = if at && auth_data.len() > 37 {
         let rest = &auth_data[37..];
         if rest.len() < 18 {
-            return Err(WebAuthnError::Format(
-                "attestedCredentialData corto".into(),
-            ));
+            return Err(WebAuthnError::Format("attestedCredentialData corto".into()));
         }
         let cred_id_len = u16::from_be_bytes([rest[16], rest[17]]) as usize;
         let start = 18 + cred_id_len;
@@ -456,10 +453,8 @@ fn verify_cose_signature(
             use p256::ecdsa::{signature::Verifier, DerSignature, VerifyingKey};
             use p256::EncodedPoint;
 
-            let x = get_bytes(-2)
-                .ok_or_else(|| WebAuthnError::Format("P-256 x ausente".into()))?;
-            let y = get_bytes(-3)
-                .ok_or_else(|| WebAuthnError::Format("P-256 y ausente".into()))?;
+            let x = get_bytes(-2).ok_or_else(|| WebAuthnError::Format("P-256 x ausente".into()))?;
+            let y = get_bytes(-3).ok_or_else(|| WebAuthnError::Format("P-256 y ausente".into()))?;
 
             let point = EncodedPoint::from_affine_coordinates(
                 x.as_slice().into(),
@@ -477,14 +472,14 @@ fn verify_cose_signature(
             // EdDSA — Ed25519
             use ed25519_dalek::{Signature, Verifier, VerifyingKey as Ed25519Vk};
 
-            let x = get_bytes(-2)
-                .ok_or_else(|| WebAuthnError::Format("Ed25519 x ausente".into()))?;
+            let x =
+                get_bytes(-2).ok_or_else(|| WebAuthnError::Format("Ed25519 x ausente".into()))?;
             let key_bytes: [u8; 32] = x
                 .as_slice()
                 .try_into()
                 .map_err(|_| WebAuthnError::Format("Ed25519 key no es 32 bytes".into()))?;
-            let vk = Ed25519Vk::from_bytes(&key_bytes)
-                .map_err(|_| WebAuthnError::InvalidSignature)?;
+            let vk =
+                Ed25519Vk::from_bytes(&key_bytes).map_err(|_| WebAuthnError::InvalidSignature)?;
             let sig_bytes: [u8; 64] = sig
                 .try_into()
                 .map_err(|_| WebAuthnError::InvalidSignature)?;

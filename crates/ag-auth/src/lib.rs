@@ -77,3 +77,55 @@ impl AgAuth {
         api_keys::verify(raw_key, stored_hash)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::AuthConfig;
+
+    fn fake_config() -> AuthConfig {
+        AuthConfig {
+            jwt_private_key_pem: "fake-private".to_string(),
+            jwt_public_key_pem: "fake-public".to_string(),
+            webauthn_rp_id: "localhost".to_string(),
+            webauthn_origin: "http://localhost".to_string(),
+            oauth_google_client_id: None,
+            oauth_google_client_secret: None,
+            oauth_github_client_id: None,
+            oauth_github_client_secret: None,
+        }
+    }
+
+    #[test]
+    fn new_succeeds_with_valid_config() {
+        let auth = AgAuth::new(fake_config()).expect("debe construirse con config valida");
+        let _ = &auth.jwt;
+    }
+
+    #[test]
+    fn create_api_key_uses_prefix() {
+        let auth = AgAuth::new(fake_config()).unwrap();
+        let (raw, _hash) = auth.create_api_key("sk");
+        assert!(
+            raw.starts_with("sk_"),
+            "raw key debe iniciar con el prefijo"
+        );
+    }
+
+    #[test]
+    fn verify_api_key_roundtrip() {
+        let auth = AgAuth::new(fake_config()).unwrap();
+        let (raw, hash) = auth.create_api_key("test");
+        assert!(
+            auth.verify_api_key(&raw, &hash),
+            "la key generada debe verificar"
+        );
+    }
+
+    #[test]
+    fn verify_api_key_rejects_wrong_key() {
+        let auth = AgAuth::new(fake_config()).unwrap();
+        let (_raw, hash) = auth.create_api_key("test");
+        assert!(!auth.verify_api_key("test_wrongkey", &hash));
+    }
+}

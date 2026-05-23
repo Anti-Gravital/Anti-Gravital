@@ -18,6 +18,8 @@ members = [
     "crates/ag-wasm-host",
     "crates/ag-lsp",
     "examples/todo-api",
+    "examples/realtime-chat",
+    "examples/ai-backend",
 ]
 
 [workspace.package]
@@ -83,6 +85,7 @@ console-subscriber       = "0.4"
 # (Windows CI). webauthn-rs (MPL-2.0 bloqueada) y oauth2 (reqwest 0.11 con
 # rustls-pemfile unmaintained) se reintegran en la segunda iteracion de ag-auth.
 # Eliminacion esperada: segunda iteracion Fase 4.
+async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
 getrandom                = "0.2"
@@ -92,9 +95,10 @@ criterion = { version = "0.5", default-features = false, features = ["cargo_benc
 ed25519-dalek = { version = "2", features = ["pkcs8", "pem", "rand_core"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 tokio-test = "0.4"
 moka = { version = "0.12", features = ["future"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 tempfile = "3"
 testcontainers = "0.27"

@@ -1,0 +1,28 @@
+[package]
+name = "ai-backend"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Example: streaming SSE multi-proveedor IA (Claude, Gemini, OpenAI-compatible)"
+
+[[bin]]
+name = "ai-backend"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-observe   = { path = "../../crates/ag-observe", version = "0.0.0" }
+async-trait  = { workspace = true }
+axum         = { workspace = true }
+futures-util = { workspace = true }
+reqwest      = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+thiserror    = { workspace = true }
+tokio        = { workspace = true }
+tokio-stream = { workspace = true }
+tracing      = { workspace = true }

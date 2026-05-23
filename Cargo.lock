@@ -218,6 +218,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai-backend"
+version = "0.0.0"
+dependencies = [
+ "ag-observe",
+ "async-trait",
+ "axum 0.7.9",
+ "futures-util",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3283,6 +3300,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "realtime-chat"
+version = "0.0.0"
+dependencies = [
+ "ag-observe",
+ "ag-realtime",
+ "axum 0.7.9",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4457,6 +4489,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

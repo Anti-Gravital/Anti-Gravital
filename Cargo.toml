@@ -19,6 +19,7 @@ members = [
     "crates/ag-lsp",
     "examples/todo-api",
     "examples/realtime-chat",
+    "examples/ai-backend",
 ]
 
 [workspace.package]
@@ -93,7 +94,7 @@ criterion = { version = "0.5", default-features = false, features = ["cargo_benc
 ed25519-dalek = { version = "2", features = ["pkcs8", "pem", "rand_core"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 rcgen = "0.13"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 tokio-test = "0.4"
 moka = { version = "0.12", features = ["future"] }
 tokio-stream = { version = "0.1", features = ["sync"] }

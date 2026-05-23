@@ -20,10 +20,7 @@ impl AgStore {
     /// Crea el store, creando `root_path` si no existe.
     pub fn new(config: &StorageConfig) -> Result<Self, StorageError> {
         std::fs::create_dir_all(&config.root_path).map_err(StorageError::Io)?;
-        let root = config
-            .root_path
-            .canonicalize()
-            .map_err(StorageError::Io)?;
+        let root = config.root_path.canonicalize().map_err(StorageError::Io)?;
         Ok(Self {
             root,
             max_object_size: config.max_object_size_mb as usize * 1024 * 1024,
@@ -52,10 +49,7 @@ impl AgStore {
         // write-then-rename atomico: evita lecturas de archivos parcialmente escritos
         let mut nonce = [0u8; 8];
         getrandom::getrandom(&mut nonce).unwrap_or_default();
-        let tmp = dest.with_file_name(format!(
-            ".tmp.{:016x}",
-            u64::from_le_bytes(nonce)
-        ));
+        let tmp = dest.with_file_name(format!(".tmp.{:016x}", u64::from_le_bytes(nonce)));
         tokio::fs::write(&tmp, &data).await?;
         tokio::fs::rename(&tmp, &dest).await?;
         Ok(())
@@ -133,9 +127,7 @@ pub fn validate_key(key: &str) -> Result<(), StorageError> {
         return Err(StorageError::InvalidKey("clave vacia".into()));
     }
     if key.len() > 1024 {
-        return Err(StorageError::InvalidKey(
-            "clave supera 1024 bytes".into(),
-        ));
+        return Err(StorageError::InvalidKey("clave supera 1024 bytes".into()));
     }
     if key.starts_with('/') || key.ends_with('/') {
         return Err(StorageError::InvalidKey(
@@ -149,9 +141,7 @@ pub fn validate_key(key: &str) -> Result<(), StorageError> {
     }
     for byte in key.bytes() {
         if byte == 0 {
-            return Err(StorageError::InvalidKey(
-                "clave contiene byte nulo".into(),
-            ));
+            return Err(StorageError::InvalidKey("clave contiene byte nulo".into()));
         }
         if byte < 0x20 && byte != b'/' {
             return Err(StorageError::InvalidKey(
@@ -186,7 +176,10 @@ fn normalize_path(path: &Path) -> PathBuf {
 
 /// Recorre `dir` recursivamente y retorna rutas relativas a `root`.
 /// Ignora archivos temporales con prefijo `.tmp.`.
-fn collect_keys(dir: &std::path::Path, root: &std::path::Path) -> Result<Vec<String>, StorageError> {
+fn collect_keys(
+    dir: &std::path::Path,
+    root: &std::path::Path,
+) -> Result<Vec<String>, StorageError> {
     let mut keys = Vec::new();
     if !dir.exists() {
         return Ok(keys);
@@ -198,10 +191,7 @@ fn collect_keys(dir: &std::path::Path, root: &std::path::Path) -> Result<Vec<Str
             let mut sub = collect_keys(&path, root)?;
             keys.append(&mut sub);
         } else if path.is_file() {
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy();
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
             if name.starts_with(".tmp.") {
                 continue;
             }
@@ -370,9 +360,18 @@ mod tests {
         let dir = tempdir();
         let cfg = test_config(dir.path());
         let store = AgStore::new(&cfg).unwrap();
-        store.put("avatars/alice.jpg", Bytes::from("a")).await.unwrap();
-        store.put("avatars/bob.jpg", Bytes::from("b")).await.unwrap();
-        store.put("docs/readme.txt", Bytes::from("c")).await.unwrap();
+        store
+            .put("avatars/alice.jpg", Bytes::from("a"))
+            .await
+            .unwrap();
+        store
+            .put("avatars/bob.jpg", Bytes::from("b"))
+            .await
+            .unwrap();
+        store
+            .put("docs/readme.txt", Bytes::from("c"))
+            .await
+            .unwrap();
 
         let all = store.list(None).await.unwrap();
         assert_eq!(all.len(), 3);
@@ -389,7 +388,10 @@ mod tests {
         let store = AgStore::new(&cfg).unwrap();
         let data = Bytes::from("original");
         store.put("original.txt", data.clone()).await.unwrap();
-        store.copy("original.txt", "backup/original.txt").await.unwrap();
+        store
+            .copy("original.txt", "backup/original.txt")
+            .await
+            .unwrap();
 
         assert_eq!(store.get("original.txt").await.unwrap(), data);
         assert_eq!(store.get("backup/original.txt").await.unwrap(), data);

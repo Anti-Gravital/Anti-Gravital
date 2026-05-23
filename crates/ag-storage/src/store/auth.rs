@@ -40,9 +40,7 @@ pub async fn bearer_auth_middleware(
         .and_then(|v| v.to_str().ok());
 
     match auth_header {
-        Some(h) if h.starts_with("Bearer ") && h[7..] == **token => {
-            next.run(request).await
-        }
+        Some(h) if h.starts_with("Bearer ") && h[7..] == **token => next.run(request).await,
         _ => StatusCode::UNAUTHORIZED.into_response(),
     }
 }

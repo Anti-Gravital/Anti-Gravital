@@ -37,10 +37,7 @@ use tower::ServiceBuilder;
 // ---------------------------------------------------------------------------
 
 /// Arranca el servidor HTTP y bloquea hasta que el proceso termina.
-pub async fn run_server(
-    store: Arc<AgStore>,
-    config: &StorageConfig,
-) -> Result<(), StorageError> {
+pub async fn run_server(store: Arc<AgStore>, config: &StorageConfig) -> Result<(), StorageError> {
     let addr = format!("0.0.0.0:{}", config.server_port);
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
@@ -172,9 +169,7 @@ impl From<StorageError> for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            AppError::Storage(StorageError::NotFound(_)) => {
-                StatusCode::NOT_FOUND.into_response()
-            }
+            AppError::Storage(StorageError::NotFound(_)) => StatusCode::NOT_FOUND.into_response(),
             AppError::Storage(StorageError::InvalidKey(_))
             | AppError::Storage(StorageError::PathEscape(_)) => {
                 StatusCode::BAD_REQUEST.into_response()
@@ -361,9 +356,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(get_res.status(), StatusCode::OK);
-        assert_eq!(
-            get_res.headers()["X-AG-Store-Key"],
-            "test/hello.txt"
-        );
+        assert_eq!(get_res.headers()["X-AG-Store-Key"], "test/hello.txt");
     }
 }

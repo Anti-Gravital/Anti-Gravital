@@ -74,19 +74,27 @@ impl StorageConfig {
         {
             "s3" => {
                 #[cfg(feature = "s3")]
-                { StorageBackend::S3 }
+                {
+                    StorageBackend::S3
+                }
                 #[cfg(not(feature = "s3"))]
                 {
-                    tracing::warn!("STORAGE_BACKEND=s3 pero feature s3 no esta activa; usando Native");
+                    tracing::warn!(
+                        "STORAGE_BACKEND=s3 pero feature s3 no esta activa; usando Native"
+                    );
                     StorageBackend::Native
                 }
             }
             "minio" => {
                 #[cfg(feature = "s3")]
-                { StorageBackend::MinIO }
+                {
+                    StorageBackend::MinIO
+                }
                 #[cfg(not(feature = "s3"))]
                 {
-                    tracing::warn!("STORAGE_BACKEND=minio pero feature s3 no esta activa; usando Native");
+                    tracing::warn!(
+                        "STORAGE_BACKEND=minio pero feature s3 no esta activa; usando Native"
+                    );
                     StorageBackend::Native
                 }
             }

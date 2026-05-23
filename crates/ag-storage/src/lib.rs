@@ -149,7 +149,10 @@ mod tests {
 
     #[test]
     fn storage_error_too_large_display() {
-        let e = StorageError::TooLarge { size: 200, limit: 100 };
+        let e = StorageError::TooLarge {
+            size: 200,
+            limit: 100,
+        };
         assert!(e.to_string().contains("200"));
         assert!(e.to_string().contains("100"));
     }

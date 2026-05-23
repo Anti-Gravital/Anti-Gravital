@@ -23,6 +23,11 @@
 pub mod api_keys;
 pub mod config;
 pub mod jwt;
+pub mod webauthn;
+pub use webauthn::{
+    AuthenticationChallenge, AuthenticationResponse, RegistrationChallenge, RegistrationResponse,
+    StoredCredential, WebAuthnError, WebAuthnRp,
+};
 
 // TECH-DEBT:
 // motivo: WebAuthn (FIDO2) requiere integracion con webauthn-rs que necesita

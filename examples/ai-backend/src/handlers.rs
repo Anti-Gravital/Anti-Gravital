@@ -104,8 +104,9 @@ pub async fn chat_stream(
     let sse_stream = token_stream
         .map(|result| {
             let data = match result {
-                Ok(token) => serde_json::to_string(&TokenEvent { token, done: false })
-                    .unwrap_or_default(),
+                Ok(token) => {
+                    serde_json::to_string(&TokenEvent { token, done: false }).unwrap_or_default()
+                }
                 Err(e) => serde_json::to_string(&ErrorEvent {
                     error: e.to_string(),
                     done: true,

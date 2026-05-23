@@ -15,8 +15,8 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-ag-realtime = { path = "../../crates/ag-realtime" }
-ag-observe = { path = "../../crates/ag-observe" }
+ag-realtime = { path = "../../crates/ag-realtime", version = "0.0.0" }
+ag-observe  = { path = "../../crates/ag-observe",  version = "0.0.0" }
 axum = { workspace = true }
 futures-util = { workspace = true }
 serde = { workspace = true }

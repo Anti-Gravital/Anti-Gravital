@@ -85,6 +85,7 @@ console-subscriber       = "0.4"
 # (Windows CI). webauthn-rs (MPL-2.0 bloqueada) y oauth2 (reqwest 0.11 con
 # rustls-pemfile unmaintained) se reintegran en la segunda iteracion de ag-auth.
 # Eliminacion esperada: segunda iteracion Fase 4.
+async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
 getrandom                = "0.2"

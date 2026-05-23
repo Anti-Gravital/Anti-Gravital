@@ -13,19 +13,6 @@ ignore = [
     # RUSTSEC-2023-0071: Marvin Attack en rsa 0.9.x (transitivo de jsonwebtoken).
     # Anti-Gravital usa exclusivamente EdDSA; ningun codigo invoca RSA.
     { id = "RUSTSEC-2023-0071" },
-
-    # RUSTSEC-2026-0099, RUSTSEC-2026-0098, RUSTSEC-2026-0104: CVEs en
-    # rustls-webpki, transitivo de testcontainers -> bollard (dev-dep de ag-auth).
-    # No afecta codigo de produccion. Se resuelve al actualizar testcontainers.
-    { id = "RUSTSEC-2026-0099" },
-    { id = "RUSTSEC-2026-0098" },
-    { id = "RUSTSEC-2026-0104" },
-
-    # RUSTSEC-2025-0111: tokio-tar PAX headers — transitivo de testcontainers (dev-dep).
-    { id = "RUSTSEC-2025-0111" },
-
-    # RUSTSEC-2025-0134: rustls-pemfile unmaintained — transitivo de testcontainers (dev-dep).
-    { id = "RUSTSEC-2025-0134" },
 ]
 
 [licenses]

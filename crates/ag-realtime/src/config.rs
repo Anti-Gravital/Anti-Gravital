@@ -77,4 +77,50 @@ mod tests {
         let cfg = RealtimeConfig::default();
         assert_eq!(cfg.nats_url, "nats://localhost:4222");
     }
+
+    #[test]
+    fn from_env_external_mode_and_custom_url() {
+        std::env::set_var("NATS_MODE", "external");
+        std::env::set_var("NATS_URL", "nats://myserver:4222");
+        let cfg = RealtimeConfig::from_env();
+        assert!(matches!(cfg.nats_mode, NatsMode::External));
+        assert_eq!(cfg.nats_url, "nats://myserver:4222");
+        std::env::remove_var("NATS_MODE");
+        std::env::remove_var("NATS_URL");
+    }
+
+    #[test]
+    fn from_env_unknown_mode_defaults_to_inprocess() {
+        std::env::set_var("NATS_MODE", "other_value");
+        let cfg = RealtimeConfig::from_env();
+        assert!(matches!(cfg.nats_mode, NatsMode::InProcess));
+        std::env::remove_var("NATS_MODE");
+    }
+
+    #[test]
+    fn from_env_custom_broadcast_capacity() {
+        std::env::set_var("RT_BROADCAST_CAPACITY", "256");
+        let cfg = RealtimeConfig::from_env();
+        assert_eq!(cfg.broadcast_capacity, 256);
+        std::env::remove_var("RT_BROADCAST_CAPACITY");
+    }
+
+    #[test]
+    fn from_env_invalid_capacity_uses_default() {
+        std::env::set_var("RT_BROADCAST_CAPACITY", "not_a_number");
+        let cfg = RealtimeConfig::from_env();
+        assert_eq!(cfg.broadcast_capacity, 1024);
+        std::env::remove_var("RT_BROADCAST_CAPACITY");
+    }
+
+    #[test]
+    fn from_env_no_vars_uses_defaults() {
+        std::env::remove_var("NATS_MODE");
+        std::env::remove_var("NATS_URL");
+        std::env::remove_var("RT_BROADCAST_CAPACITY");
+        let cfg = RealtimeConfig::from_env();
+        assert!(matches!(cfg.nats_mode, NatsMode::InProcess));
+        assert_eq!(cfg.nats_url, "nats://localhost:4222");
+        assert_eq!(cfg.broadcast_capacity, 1024);
+    }
 }

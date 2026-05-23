@@ -23,7 +23,9 @@
 pub mod api_keys;
 pub mod config;
 pub mod jwt;
+pub mod oauth;
 pub mod webauthn;
+pub use oauth::{OAuthClient, OAuthError, OAuthProvider, OAuthUser};
 pub use webauthn::{
     AuthenticationChallenge, AuthenticationResponse, RegistrationChallenge, RegistrationResponse,
     StoredCredential, WebAuthnError, WebAuthnRp,

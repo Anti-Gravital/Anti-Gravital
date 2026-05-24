@@ -23,7 +23,7 @@ desde el origen autorizado antes de continuar.
 | Archivo | Tamano (bytes) | SHA-256 |
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 99836 | `d8045e0881d789c873dae26a862d8e6e2821abd5cc4a5c8cb6ef5ca17a2788b3` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 102322 | `5f56cadcf03f49289b7f4a141eccf4c6289543caf65041f38b54a4830b6bd76d` |
 | `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 33516 | `ff5e322f568e2ecf416d09235c91d8f4eb004531b6844f513a68b63042b64590` |
 
 ### Deuda explícita — Blueprint PDF v4.1

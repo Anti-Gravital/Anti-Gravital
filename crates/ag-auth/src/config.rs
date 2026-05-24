@@ -73,10 +73,14 @@ impl std::error::Error for AuthConfigError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Serializa el acceso a JWT_PRIVATE_KEY / JWT_PUBLIC_KEY entre tests paralelos.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn from_env_fails_without_jwt_keys() {
-        // Eliminar variables para asegurar que el test sea determinista.
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::remove_var("JWT_PRIVATE_KEY");
         std::env::remove_var("JWT_PUBLIC_KEY");
         assert!(AuthConfig::from_env().is_err());
@@ -84,13 +88,13 @@ mod tests {
 
     #[test]
     fn from_env_reads_jwt_keys() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("JWT_PRIVATE_KEY", "fake-private");
         std::env::set_var("JWT_PUBLIC_KEY", "fake-public");
         let config = AuthConfig::from_env()
             .expect("debe construirse con JWT_PRIVATE_KEY y JWT_PUBLIC_KEY definidas");
         assert_eq!(config.jwt_private_key_pem, "fake-private");
         assert_eq!(config.jwt_public_key_pem, "fake-public");
-        // Limpiar variables de entorno para no contaminar otros tests.
         std::env::remove_var("JWT_PRIVATE_KEY");
         std::env::remove_var("JWT_PUBLIC_KEY");
     }

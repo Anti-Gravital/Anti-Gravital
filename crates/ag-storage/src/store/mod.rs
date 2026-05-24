@@ -1,5 +1,10 @@
 //! Backend nativo del store — operaciones sobre filesystem local.
 
+#[cfg(feature = "s3")]
+pub mod s3;
+#[cfg(feature = "s3")]
+pub use s3::S3Store;
+
 pub mod auth;
 pub mod server;
 

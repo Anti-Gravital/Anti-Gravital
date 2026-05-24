@@ -57,6 +57,7 @@ pub mod test_utils {
     /// Sender falso que almacena los correos en memoria para verificar en tests.
     #[derive(Clone, Default)]
     pub struct NullSender {
+        /// Correos capturados por el sender.
         pub sent: Arc<Mutex<Vec<Email>>>,
     }
 
@@ -76,10 +77,17 @@ pub mod test_utils {
     }
 
     impl NullSender {
+        /// Crea un sender vacio.
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        /// Numero de correos capturados hasta ahora.
         pub fn emails_sent(&self) -> usize {
             self.sent.lock().unwrap().len()
         }
 
+        /// Ultimo correo capturado, si existe.
         pub fn last_email(&self) -> Option<Email> {
             self.sent.lock().unwrap().last().cloned()
         }

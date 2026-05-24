@@ -197,12 +197,14 @@ fn word_at_position<'a>(source: &'a str, pos: &Position) -> Option<&'a str> {
 
 fn hover_content_for_word(word: &str) -> Option<String> {
     let s = match word {
+        // Tipos escalares
         "UUID" => "**UUID** — Identificador unico universal v4. SQL: `UUID`.",
         "String" => "**String** — Cadena de texto UTF-8. SQL: `TEXT`.",
         "Int" => "**Int** — Entero de 64 bits con signo. SQL: `BIGINT`.",
         "Float" => "**Float** — Punto flotante 64 bits. SQL: `DOUBLE PRECISION`.",
         "Bool" => "**Bool** — Valor booleano. SQL: `BOOLEAN`.",
         "DateTime" => "**DateTime** — Fecha y hora UTC. SQL: `TIMESTAMPTZ`.",
+        // Anotaciones de modelo
         "@primary" => "**@primary** — Clave primaria de la tabla.",
         "@unique" => "**@unique** — Restriccion UNIQUE en la columna.",
         "@auto" => "**@auto** — Valor generado automaticamente (UUID o serial).",
@@ -215,6 +217,30 @@ fn hover_content_for_word(word: &str) -> Option<String> {
         "@length" => "**@length(n)** — Longitud exacta del string.",
         "@relation" => "**@relation(campo_fk)** — Relacion virtual. No genera columna SQL.",
         "@references" => "**@references(Modelo.campo)** — Clave foranea hacia otro modelo.",
+        // Bloques DSL v0.7 — correo transaccional
+        "mail" => {
+            "**mail** (DSL v0.7) — Bloque de configuracion de correo transaccional.\n\n\
+            ```ag\nmail nombre {\n    provider smtp\n    from \"noreply@ejemplo.com\"\n    template bienvenida {\n        subject \"Bienvenido {{nombre}}\"\n        vars [nombre, token]\n    }\n}\n```\n\n\
+            Proveedores soportados: `smtp`, `resend`, `ses`, `postmark`."
+        }
+        "domain" => {
+            "**domain** (DSL v0.7) — Bloque de configuracion DNS de un dominio.\n\n\
+            ```ag\ndomain mi_dominio {\n    name \"ejemplo.com\"\n    provider cloudflare\n    dkim_selector \"s1\"\n    dmarc_policy quarantine\n    dmarc_rua \"admin@ejemplo.com\"\n}\n```\n\n\
+            Gestiona registros SPF/DKIM/DMARC via `ag domains sync`."
+        }
+        "template" => {
+            "**template** (DSL v0.7) — Sub-bloque de template de correo dentro de un bloque `mail`.\n\n\
+            ```ag\ntemplate bienvenida {\n    subject \"Bienvenido {{nombre}}\"\n    vars [nombre, token]\n}\n```\n\n\
+            Las `vars` declaradas son validadas en compile-time contra el HTML del template."
+        }
+        // Propiedades de bloques mail/domain
+        "provider" => "**provider** — Proveedor del bloque. En `mail`: `smtp`, `resend`, `ses`, `postmark`. En `domain`: `cloudflare`.",
+        "from" => "**from** — Direccion de correo remitente. Debe referenciar un `domain` declarado en el mismo schema.",
+        "subject" => "**subject** — Asunto del correo. Admite variables `{{nombre}}` declaradas en `vars`.",
+        "vars" => "**vars** — Lista de variables del template de correo. Validadas en compile-time contra el HTML/texto.",
+        "dkim_selector" => "**dkim_selector** — Selector DKIM para la firma criptografica del correo. Ejemplo: `\"s1\"`.",
+        "dmarc_policy" => "**dmarc_policy** — Politica DMARC. Valores: `none`, `quarantine`, `reject`.",
+        "dmarc_rua" => "**dmarc_rua** — Direccion de correo para recibir reportes DMARC agregados (RUA).",
         _ => return None,
     };
     Some(s.to_string())
@@ -233,6 +259,10 @@ fn static_completion_items() -> Vec<CompletionItem> {
         ("PUT", "Metodo HTTP PUT"),
         ("PATCH", "Metodo HTTP PATCH"),
         ("DELETE", "Metodo HTTP DELETE"),
+        // DSL v0.7 — bloques mail/domain
+        ("mail", "Bloque de correo transaccional (DSL v0.7)"),
+        ("domain", "Bloque de configuracion DNS (DSL v0.7)"),
+        ("template", "Sub-bloque de template de correo (DSL v0.7)"),
     ];
     let types: &[(&str, &str)] = &[
         ("UUID", "Identificador unico universal"),
@@ -256,6 +286,25 @@ fn static_completion_items() -> Vec<CompletionItem> {
         ("@relation", "@relation(campo_fk) — relacion virtual"),
         ("@references", "@references(Modelo.campo) — clave foranea"),
     ];
+    // Propiedades de bloques mail/domain (DSL v0.7)
+    let mail_domain_props: &[(&str, &str)] = &[
+        (
+            "provider",
+            "Proveedor: smtp | resend | ses | postmark | cloudflare",
+        ),
+        (
+            "from",
+            "Direccion remitente del correo (debe referenciar un domain)",
+        ),
+        ("subject", "Asunto del correo. Admite {{vars}}"),
+        ("vars", "Variables del template, validadas en compile-time"),
+        (
+            "dkim_selector",
+            "Selector DKIM para firma criptografica del correo",
+        ),
+        ("dmarc_policy", "Politica DMARC: none | quarantine | reject"),
+        ("dmarc_rua", "Direccion de reporte DMARC agregado (RUA)"),
+    ];
 
     let mut items = Vec::new();
     for (label, detail) in keywords {
@@ -278,6 +327,14 @@ fn static_completion_items() -> Vec<CompletionItem> {
         items.push(CompletionItem {
             label: label.to_string(),
             kind: Some(CompletionItemKind::PROPERTY),
+            detail: Some(detail.to_string()),
+            ..Default::default()
+        });
+    }
+    for (label, detail) in mail_domain_props {
+        items.push(CompletionItem {
+            label: label.to_string(),
+            kind: Some(CompletionItemKind::FIELD),
             detail: Some(detail.to_string()),
             ..Default::default()
         });
@@ -349,6 +406,65 @@ mod tests {
         assert!(labels.contains(&"UUID"));
         assert!(labels.contains(&"@primary"));
         assert!(labels.contains(&"@references"));
+    }
+
+    #[test]
+    fn static_items_include_v07_mail_domain_keywords() {
+        let items = static_completion_items();
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert!(labels.contains(&"mail"), "falta keyword 'mail'");
+        assert!(labels.contains(&"domain"), "falta keyword 'domain'");
+        assert!(labels.contains(&"template"), "falta keyword 'template'");
+        assert!(labels.contains(&"provider"), "falta prop 'provider'");
+        assert!(labels.contains(&"from"), "falta prop 'from'");
+        assert!(labels.contains(&"subject"), "falta prop 'subject'");
+        assert!(labels.contains(&"vars"), "falta prop 'vars'");
+        assert!(
+            labels.contains(&"dkim_selector"),
+            "falta prop 'dkim_selector'"
+        );
+        assert!(
+            labels.contains(&"dmarc_policy"),
+            "falta prop 'dmarc_policy'"
+        );
+    }
+
+    #[test]
+    fn hover_content_v07_mail_block() {
+        let h = hover_content_for_word("mail").unwrap();
+        assert!(
+            h.contains("DSL v0.7"),
+            "hover de 'mail' debe mencionar DSL v0.7"
+        );
+        assert!(
+            h.contains("provider"),
+            "hover de 'mail' debe mostrar ejemplo con provider"
+        );
+    }
+
+    #[test]
+    fn hover_content_v07_domain_block() {
+        let h = hover_content_for_word("domain").unwrap();
+        assert!(h.contains("DNS"), "hover de 'domain' debe mencionar DNS");
+        assert!(
+            h.contains("cloudflare"),
+            "hover de 'domain' debe mencionar cloudflare"
+        );
+    }
+
+    #[test]
+    fn hover_content_v07_template_block() {
+        let h = hover_content_for_word("template").unwrap();
+        assert!(
+            h.contains("vars"),
+            "hover de 'template' debe mencionar vars"
+        );
+    }
+
+    #[test]
+    fn hover_content_v07_dmarc_policy() {
+        let h = hover_content_for_word("dmarc_policy").unwrap();
+        assert!(h.contains("quarantine"));
     }
 
     #[test]

@@ -145,7 +145,10 @@ mod tests {
         };
         let store = S3Store::new(&config).expect("debe construirse");
         let data = Bytes::from("contenido de prueba s3");
-        store.put("test/ag-s3-test.txt", data.clone()).await.expect("put");
+        store
+            .put("test/ag-s3-test.txt", data.clone())
+            .await
+            .expect("put");
         let result = store.get("test/ag-s3-test.txt").await.expect("get");
         assert_eq!(result, data);
         store.delete("test/ag-s3-test.txt").await.expect("delete");

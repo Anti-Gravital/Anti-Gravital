@@ -63,7 +63,9 @@ pub fn verify_signed_url(secret: &str, key: &str, token: &str) -> Result<(), Sig
         .rsplit_once('_')
         .ok_or(SignedUrlError::InvalidFormat)?;
 
-    let expires_at: u64 = expires_str.parse().map_err(|_| SignedUrlError::InvalidFormat)?;
+    let expires_at: u64 = expires_str
+        .parse()
+        .map_err(|_| SignedUrlError::InvalidFormat)?;
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -74,8 +76,8 @@ pub fn verify_signed_url(secret: &str, key: &str, token: &str) -> Result<(), Sig
     }
 
     let expected_mac = compute_hmac(secret.as_bytes(), key, expires_at);
-    let provided_sig = Base64Url::decode_vec(sig_b64)
-        .map_err(|_| SignedUrlError::InvalidSignature)?;
+    let provided_sig =
+        Base64Url::decode_vec(sig_b64).map_err(|_| SignedUrlError::InvalidSignature)?;
 
     if expected_mac.len() != provided_sig.len() {
         return Err(SignedUrlError::InvalidSignature);
@@ -92,8 +94,8 @@ pub fn verify_signed_url(secret: &str, key: &str, token: &str) -> Result<(), Sig
 }
 
 fn compute_hmac(secret: &[u8], key: &str, expires_at: u64) -> Vec<u8> {
-    let mut mac = HmacSha256::new_from_slice(secret)
-        .expect("HMAC acepta claves de cualquier longitud");
+    let mut mac =
+        HmacSha256::new_from_slice(secret).expect("HMAC acepta claves de cualquier longitud");
     mac.update(key.as_bytes());
     mac.update(&expires_at.to_be_bytes());
     mac.finalize().into_bytes().to_vec()

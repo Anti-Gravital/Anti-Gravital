@@ -1,4 +1,4 @@
-//! Backend nativo del store — operaciones sobre filesystem local.
+//! Backend del store Anti-Gravital: filesystem nativo y S3/MinIO opcional.
 
 #[cfg(feature = "s3")]
 pub mod s3;
@@ -8,30 +8,24 @@ pub use s3::S3Store;
 pub mod auth;
 pub mod server;
 
-use crate::{StorageConfig, StorageError};
+use crate::{StorageBackend, StorageConfig, StorageError};
 use bytes::Bytes;
 use std::path::{Component, Path, PathBuf};
+
+// ---------------------------------------------------------------------------
+// NativeStore: implementacion sobre filesystem local
+// ---------------------------------------------------------------------------
 
 /// Store nativo Anti-Gravital.
 ///
 /// Almacena objetos como archivos bajo `root`. La clave es la ruta relativa.
 /// Toda operacion pasa por [`validate_key`] y [`resolve_path`] antes de I/O.
-pub struct AgStore {
-    root: PathBuf,
+pub struct NativeStore {
+    pub(crate) root: PathBuf,
     max_object_size: usize,
 }
 
-impl AgStore {
-    /// Crea el store, creando `root_path` si no existe.
-    pub fn new(config: &StorageConfig) -> Result<Self, StorageError> {
-        std::fs::create_dir_all(&config.root_path).map_err(StorageError::Io)?;
-        let root = config.root_path.canonicalize().map_err(StorageError::Io)?;
-        Ok(Self {
-            root,
-            max_object_size: config.max_object_size_mb as usize * 1024 * 1024,
-        })
-    }
-
+impl NativeStore {
     /// Directorio raiz del store (canonicalizado).
     pub fn root(&self) -> &Path {
         &self.root
@@ -112,6 +106,100 @@ impl AgStore {
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
         let data = self.get(from).await?;
         self.put(to, data).await
+    }
+}
+
+// ---------------------------------------------------------------------------
+// AgStore: enum que unifica NativeStore y S3Store
+// ---------------------------------------------------------------------------
+
+/// Backend de almacenamiento — filesystem nativo o S3/MinIO.
+pub enum AgStore {
+    /// Backend sobre filesystem local.
+    Native(NativeStore),
+    #[cfg(feature = "s3")]
+    /// Backend S3/MinIO via object_store.
+    S3(S3Store),
+}
+
+impl AgStore {
+    /// Construye el store segun `config.backend`.
+    pub fn new(config: &StorageConfig) -> Result<Self, StorageError> {
+        match &config.backend {
+            StorageBackend::Native => {
+                std::fs::create_dir_all(&config.root_path).map_err(StorageError::Io)?;
+                let root = config.root_path.canonicalize().map_err(StorageError::Io)?;
+                Ok(AgStore::Native(NativeStore {
+                    root,
+                    max_object_size: config.max_object_size_mb as usize * 1024 * 1024,
+                }))
+            }
+            #[cfg(feature = "s3")]
+            StorageBackend::S3 | StorageBackend::MinIO => Ok(AgStore::S3(S3Store::new(config)?)),
+        }
+    }
+
+    /// Almacena `data` bajo la clave `key`.
+    pub async fn put(&self, key: &str, data: Bytes) -> Result<(), StorageError> {
+        match self {
+            AgStore::Native(s) => s.put(key, data).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.put(key, data).await,
+        }
+    }
+
+    /// Recupera el contenido del objeto con clave `key`.
+    pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
+        match self {
+            AgStore::Native(s) => s.get(key).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.get(key).await,
+        }
+    }
+
+    /// Borra el objeto con clave `key`.
+    pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
+        match self {
+            AgStore::Native(s) => s.delete(key).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.delete(key).await,
+        }
+    }
+
+    /// Retorna `true` si existe un objeto con clave `key`.
+    pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
+        match self {
+            AgStore::Native(s) => s.exists(key).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.exists(key).await,
+        }
+    }
+
+    /// Lista las claves de objetos bajo `prefix`.
+    pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
+        match self {
+            AgStore::Native(s) => s.list(prefix).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.list(prefix).await,
+        }
+    }
+
+    /// Copia el objeto `from` a la clave `to`.
+    pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
+        match self {
+            AgStore::Native(s) => s.copy(from, to).await,
+            #[cfg(feature = "s3")]
+            AgStore::S3(s) => s.copy(from, to).await,
+        }
+    }
+
+    /// Retorna la ruta raiz si el backend es nativo.
+    pub fn root(&self) -> Option<&std::path::Path> {
+        match self {
+            AgStore::Native(s) => Some(&s.root),
+            #[cfg(feature = "s3")]
+            AgStore::S3(_) => None,
+        }
     }
 }
 

@@ -187,7 +187,11 @@ pub async fn post_message(
 pub async fn get_events(
     State(state): State<AppState>,
 ) -> Sse<impl futures_util::Stream<Item = Result<SseEvent, Infallible>>> {
-    let rx = state.realtime.bus().subscribe();
+    let rx = state
+        .realtime
+        .bus()
+        .expect("realtime-chat usa InProcess")
+        .subscribe();
     let stream = BroadcastStream::new(rx).filter_map(|result| match result {
         Ok(ev) if ev.subject == "chat.message" => {
             let data = String::from_utf8_lossy(&ev.payload).into_owned();

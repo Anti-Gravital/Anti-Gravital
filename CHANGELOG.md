@@ -7,6 +7,57 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4 - Modulos estandar: implementacion tecnica completa (2026-05-23)
+
+Anadido:
+
+- `crates/ag-auth`: implementacion completa de autenticacion y autorizacion.
+  JWT Ed25519 con firma/verificacion PEM, API keys con hash BLAKE3 y prefijo
+  configurable, WebAuthn/Passkeys con CBOR (ciborium) y verificacion COSE
+  (ES256 via p256, EdDSA via ed25519-dalek), OAuthClient para Google y GitHub
+  con flujo PKCE, RefreshBlacklist en memoria con RwLock. 32 tests pasan.
+
+- `crates/ag-realtime`: bus de eventos InProcess mas cliente NATS externo.
+  EventBus broadcast en proceso, NatsExternalClient con async-nats 0.48,
+  TLS en 3 niveles (CAs del sistema, CA custom, mTLS), JetStream con stream
+  AG_EVENTS y publish con ACK, ws_handler Axum que conecta WebSocket al bus,
+  sse_handler Axum que sirve stream SSE EventSource-compatible via BroadcastStream.
+  AgRealtime::new es ahora async y retorna Result.
+
+- `crates/ag-storage`: URLs firmadas HMAC-SHA256 y backend S3/MinIO.
+  sign_url y verify_signed_url con comparacion en tiempo constante, token
+  en formato {base64url_hmac}_{expires_at}, AgStore convertido de struct a
+  enum (Native | S3), S3Store via object_store 0.11 con soporte MinIO
+  via endpoint opcional.
+
+- `crates/ag-cache`: cobertura de tests elevada a mas de 80% en todos los
+  archivos. Tests adicionales para L1Cache incluyendo invalidacion por tags,
+  expiracion, y operaciones concurrentes.
+
+- `crates/ag-observe`: cobertura de tests elevada a mas de 80%. Tests para
+  init del layer, metricas handler, y configuracion desde env vars.
+
+- `tests/integration`: nuevo crate de tests E2E cross-module con 7 tests:
+  6 tests unitarios por modulo (observe, auth JWT, auth API key, cache,
+  realtime, storage) y 1 test E2E de 15 pasos que atraviesa ag-auth,
+  ag-cache, ag-realtime, ag-storage y ag-observe en secuencia.
+
+- `docs/rfc/RFC-0005-ag-cache-native-l2.md`: RFC para L2 cache nativo
+  Anti-Gravital compatible con protocolo RESP2, sin dependencia de Redis
+  como servicio externo. Estado: propuesto, pendiente de aprobacion.
+
+Cambiado:
+
+- `examples/realtime-chat`: actualizado para AgRealtime::new async y
+  bus() que retorna Option<Arc<EventBus>>.
+
+- READMEs de modulos actualizados de placeholder "Fase 0 - Vacio" a
+  documentacion de uso real: ag-auth, ag-realtime, ag-cache, ag-observe,
+  ag-storage.
+
+- `docs/roadmap/STATUS.md`: Fase 4 marcada como completada con todos los
+  entregables en [x].
+
 ### Benchmarks reales Fase 2 y correccion de routing (2026-05-21)
 
 Corregido:

@@ -98,4 +98,24 @@ mod tests {
         inc_active_connections();
         dec_active_connections();
     }
+
+    #[tokio::test]
+    async fn metrics_handler_returns_prometheus_content_type() {
+        use axum::response::IntoResponse;
+        let response = metrics_handler().await.into_response();
+        let ct = response
+            .headers()
+            .get(axum::http::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        assert!(
+            ct.contains("text/plain"),
+            "content-type debe ser text/plain, fue: {ct}"
+        );
+    }
+
+    #[test]
+    fn render_metrics_returns_string() {
+        let _s = render_metrics();
+    }
 }

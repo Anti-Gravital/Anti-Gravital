@@ -358,4 +358,147 @@ mod tests {
         assert_eq!(get_res.status(), StatusCode::OK);
         assert_eq!(get_res.headers()["X-AG-Store-Key"], "test/hello.txt");
     }
+
+    #[tokio::test]
+    async fn put_and_get_object() {
+        let (_dir, store) = temp_store();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let put_req = Request::builder()
+            .method("PUT")
+            .uri("/v1/objects/myfile.txt")
+            .body(Body::from("hello"))
+            .unwrap();
+        let resp = app.clone().oneshot(put_req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::CREATED);
+
+        let get_req = Request::builder()
+            .uri("/v1/objects/myfile.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(get_req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn delete_existing_object() {
+        let (_dir, store) = temp_store();
+        store
+            .put("todelete.txt", bytes::Bytes::from("bye"))
+            .await
+            .unwrap();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .method("DELETE")
+            .uri("/v1/objects/todelete.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn head_existing_object_returns_200() {
+        let (_dir, store) = temp_store();
+        store
+            .put("head.txt", bytes::Bytes::from("data"))
+            .await
+            .unwrap();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .method("HEAD")
+            .uri("/v1/objects/head.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn head_missing_object_returns_404() {
+        let (_dir, store) = temp_store();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .method("HEAD")
+            .uri("/v1/objects/nonexistent.bin")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn list_objects_returns_200() {
+        let (_dir, store) = temp_store();
+        store
+            .put("ns/a.bin", bytes::Bytes::from("a"))
+            .await
+            .unwrap();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .uri("/v1/objects/?prefix=ns/")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn copy_object_returns_201() {
+        let (_dir, store) = temp_store();
+        store
+            .put("src.txt", bytes::Bytes::from("data"))
+            .await
+            .unwrap();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/v1/copy?from=src.txt&to=dst.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn get_missing_object_returns_404() {
+        let (_dir, store) = temp_store();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .uri("/v1/objects/missing.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn bearer_auth_protects_objects() {
+        let (_dir, store) = temp_store();
+        let config = crate::StorageConfig {
+            store_token: "secret".to_string(),
+            ..crate::StorageConfig::default()
+        };
+        let app = build_router(store, &config);
+
+        let req = Request::builder()
+            .uri("/v1/objects/test.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
 }

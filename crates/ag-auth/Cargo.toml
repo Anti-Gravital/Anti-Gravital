@@ -31,15 +31,20 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-# TECH-DEBT:
-# motivo: webauthn-rs (MPL-2.0) y oauth2 (reqwest 0.11) se agregan en la segunda
-#         iteracion de ag-auth cuando WebAuthn y OAuth2 esten implementados.
-# impacto: cargo deny rechaza MPL-2.0; cargo audit detecta rustls-pemfile unmaintained.
-# eliminacion esperada: segunda iteracion Fase 4 con deps actualizadas.
+# WebAuthn: passkey-types (Apache-2.0) para tipos FIDO2/COSE.
+# OAuth2: oauth2 v5 sin feature reqwest; intercambio HTTP via reqwest 0.12.
+passkey-types = { workspace = true }
+oauth2        = { workspace = true }
+ciborium      = { workspace = true }
+sha2          = { workspace = true }
+p256          = { workspace = true }
+hmac          = { workspace = true }
+reqwest       = { workspace = true }
+ed25519-dalek = { workspace = true }
+url           = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
 testcontainers = { workspace = true }
 testcontainers-modules = { workspace = true }
-ed25519-dalek = { workspace = true }
 rand_core = { workspace = true }

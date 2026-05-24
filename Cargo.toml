@@ -20,6 +20,7 @@ members = [
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
+    "tests/integration",
 ]
 
 [workspace.package]
@@ -82,13 +83,18 @@ metrics                  = "0.24"
 metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
 console-subscriber       = "0.4"
 # TECH-DEBT: opentelemetry-otlp (grpc-tonic) requiere protoc en compilacion
-# (Windows CI). webauthn-rs (MPL-2.0 bloqueada) y oauth2 (reqwest 0.11 con
-# rustls-pemfile unmaintained) se reintegran en la segunda iteracion de ag-auth.
-# Eliminacion esperada: segunda iteracion Fase 4.
+# (Windows CI). Eliminacion esperada: segunda iteracion Fase 4.
 async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
 getrandom                = "0.2"
+passkey-types            = "0.5"
+oauth2                   = { version = "5", default-features = false }
+ciborium                 = "0.2"
+sha2                     = "0.10"
+p256                     = { version = "0.13", default-features = false, features = ["ecdsa"] }
+hmac                     = "0.12"
+url                      = "2"
 
 # Dev-dependencies compartidas.
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }

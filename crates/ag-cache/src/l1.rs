@@ -93,6 +93,31 @@ mod tests {
         assert!(cache.get_bytes("k").await.is_none());
     }
 
+    #[tokio::test]
+    async fn get_missing_key_returns_none() {
+        let cache = L1Cache::new(100, Duration::from_secs(60));
+        assert!(cache.get_bytes("nonexistent").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn set_bytes_without_tags_and_get() {
+        let cache = L1Cache::new(100, Duration::from_secs(60));
+        cache.set_bytes("plain_key", b"data".to_vec()).await;
+        assert_eq!(cache.get_bytes("plain_key").await, Some(b"data".to_vec()));
+    }
+
+    #[tokio::test]
+    async fn delete_missing_key_does_not_panic() {
+        let cache = L1Cache::new(100, Duration::from_secs(60));
+        cache.delete("never_inserted").await;
+    }
+
+    #[tokio::test]
+    async fn invalidate_missing_tag_does_not_panic() {
+        let cache = L1Cache::new(100, Duration::from_secs(60));
+        cache.invalidate_tag("nonexistent_tag").await;
+    }
+
     /// Throughput basico: 1_000_000 operaciones en menos de 1 segundo.
     /// Marcado `#[ignore]` para no bloquear CI en hardware lento; ejecutar
     /// manualmente con `cargo test -p ag-cache -- --ignored l1_ops_per_second`.

@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 4 implementacion tecnica completa — modulos estandar. ag-auth (WebAuthn+OAuth2+JWT), ag-cache (L1 moka), ag-realtime (NATS+WS+SSE), ag-storage (filesystem+S3+URLs firmadas), ag-observe (tracing+OTLP+Prometheus), DSL v0.5-v0.6, tests E2E cross-module.
-> Status: Phase 4 technical implementation complete — standard modules. ag-auth (WebAuthn+OAuth2+JWT), ag-cache (L1 moka), ag-realtime (NATS+WS+SSE), ag-storage (filesystem+S3+signed URLs), ag-observe (tracing+OTLP+Prometheus), DSL v0.5-v0.6, cross-module E2E tests.
+> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
+> Status: Phase 4.5 technical implementation complete — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 cross-module E2E tests.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -463,7 +463,7 @@ maintainer: Angel Nereira.
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
 | 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
 | 4            | Modulos estandar              | Implementacion completa / Technical implementation complete |
-| 4.5          | ag-mail + ag-domains: comunicacion y dominios | Pendiente / Pending                     |
+| 4.5          | ag-mail + ag-domains: comunicacion y dominios | Implementacion completa / Technical implementation complete |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
 | 7            | ag-migrate importadores       | Pendiente / Pending                                     |

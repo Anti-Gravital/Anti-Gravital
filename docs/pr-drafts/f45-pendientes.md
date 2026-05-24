@@ -1,4 +1,4 @@
-# fix(fase-4.5): ag-lsp v0.7 + ACME renewal fix + manual cap. 3
+# fix(fase-4.5): ag-lsp v0.7 + DSL from→domain + ACME + docs
 
 ## Fase afectada
 
@@ -16,7 +16,7 @@ Correcciones y completar entregables pendientes de Fase 4.5 (`fix` + `docs`).
 
 ## Resumen
 
-Tres entregables de Fase 4.5 que no formaron parte del PR #42:
+Cuatro entregables de Fase 4.5 que no formaron parte del PR #42:
 
 **ag-lsp — soporte DSL v0.7** (`crates/ag-lsp/src/backend.rs`):
 - Hover con documentacion completa para `mail`, `domain`, `template`
@@ -31,6 +31,14 @@ Tres entregables de Fase 4.5 que no formaron parte del PR #42:
 - TECH-DEBT documentado para cuando se implemente parseo de `notAfter`
 - 4 tests nuevos para `CertConfig`, `IssuedCert` y serde roundtrip
 - `acme/mod.rs`: eliminar comentario "Skeleton de la Fase 4.5"
+
+**ag-dsl — validacion from→domain** (`crates/ag-dsl/src/semantic.rs`):
+- Warning si el hostname del `from` de un bloque `mail` no coincide con
+  ningun `domain_name` declarado en los bloques `domain` del schema
+- 2 tests nuevos (total: 153 tests en ag-dsl)
+
+**STATUS.md + README.md** — Fase 4.5 marcada como completada con todos
+los criterios de salida marcados.
 
 **Manual cap. 3** (`docs/manual/03-dominio-tls-correo.md`):
 - Guia: "Configurar dominio, TLS y correo transaccional con Anti-Gravital"

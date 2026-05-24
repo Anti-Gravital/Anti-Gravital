@@ -54,7 +54,7 @@ async-nats = "0.48"
 rmp-serde  = "1"
 futures-util = "0.3"
 bytes = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
 chumsky = "0.9"
 logos = "0.14"

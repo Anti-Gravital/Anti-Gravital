@@ -58,10 +58,13 @@ dependencies = [
 name = "ag-cli"
 version = "0.0.0"
 dependencies = [
+ "ag-domains",
  "ag-dsl",
+ "ag-mail",
  "clap",
  "serde",
  "thiserror 1.0.69",
+ "tokio",
  "toml",
 ]
 

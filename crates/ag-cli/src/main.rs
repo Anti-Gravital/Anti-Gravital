@@ -9,6 +9,11 @@
 //! - `ag generate [--schema schema.ag] [--output ./generated]`
 //! - `ag schema lint [--schema schema.ag]`
 //! - `ag schema diff <ref> [--schema schema.ag]`
+//!
+//! Comandos de Fase 4.5 (correo y dominios):
+//! - `ag domains check --domain ejemplo.com [--expected valor] [--min-confirmed N]`
+//! - `ag domains sync --schema schema.ag --zone-id ZONE --token TOKEN`
+//! - `ag mail test --to dest@email.com [--from from@email.com] [--smtp-host ...]`
 
 use clap::{Parser, Subcommand};
 use std::fs;
@@ -99,6 +104,18 @@ enum Commands {
         #[command(subcommand)]
         command: SchemaCommands,
     },
+
+    /// Operaciones sobre dominios DNS.
+    Domains {
+        #[command(subcommand)]
+        command: DomainsCommands,
+    },
+
+    /// Operaciones sobre correo transaccional.
+    Mail {
+        #[command(subcommand)]
+        command: MailCommands,
+    },
 }
 
 /// Sub-comandos de `ag schema`.
@@ -120,6 +137,75 @@ enum SchemaCommands {
     },
 }
 
+/// Sub-comandos de `ag domains`.
+#[derive(Subcommand)]
+enum DomainsCommands {
+    /// Verifica la propagacion de un registro TXT en los resolvers publicos.
+    ///
+    /// No requiere credenciales DNS. Util para verificar que los registros
+    /// SPF/DKIM/DMARC son visibles desde Internet antes de habilitar DMARC.
+    ///
+    /// Lee la variable de entorno AG_CLOUDFLARE_TOKEN si se usa --sync.
+    Check {
+        /// Dominio a verificar (e.g., ejemplo.com).
+        #[arg(long)]
+        domain: String,
+        /// Valor TXT esperado (si se omite, solo muestra los registros actuales).
+        #[arg(long)]
+        expected: Option<String>,
+        /// Numero minimo de resolvers que deben confirmar (por defecto 2).
+        #[arg(long, default_value = "2")]
+        min_confirmed: usize,
+    },
+    /// Aplica los registros SPF/DKIM/DMARC via el proveedor DNS.
+    ///
+    /// Lee la configuracion desde el schema.ag del proyecto y aplica los
+    /// registros con upsert idempotente. Requiere AG_CLOUDFLARE_TOKEN.
+    Sync {
+        /// Archivo schema DSL.
+        #[arg(long, default_value = "schema.ag")]
+        schema: PathBuf,
+        /// Zone ID del dominio en el proveedor DNS.
+        #[arg(long, env = "AG_DNS_ZONE_ID")]
+        zone_id: String,
+        /// Token del proveedor DNS (por defecto lee AG_CLOUDFLARE_TOKEN).
+        #[arg(long, env = "AG_CLOUDFLARE_TOKEN")]
+        token: String,
+    },
+}
+
+/// Sub-comandos de `ag mail`.
+#[derive(Subcommand)]
+enum MailCommands {
+    /// Envia un correo de prueba para verificar la configuracion SMTP.
+    ///
+    /// Lee la configuracion desde variables de entorno:
+    /// AG_SMTP_HOST, AG_SMTP_PORT, AG_SMTP_USER, AG_SMTP_PASS.
+    Test {
+        /// Destinatario del correo de prueba.
+        #[arg(long)]
+        to: String,
+        /// Remitente.
+        #[arg(long, env = "AG_MAIL_FROM", default_value = "test@localhost")]
+        from: String,
+        /// Asunto del correo de prueba.
+        #[arg(long, default_value = "ag mail test — Anti-Gravital")]
+        subject: String,
+        /// Host SMTP.
+        #[arg(long, env = "AG_SMTP_HOST", default_value = "localhost")]
+        smtp_host: String,
+        /// Puerto SMTP.
+        #[arg(long, env = "AG_SMTP_PORT", default_value = "587")]
+        smtp_port: u16,
+        /// Usuario SMTP (opcional).
+        #[arg(long, env = "AG_SMTP_USER")]
+        smtp_user: Option<String>,
+        /// Contrasena SMTP (opcional).
+        #[arg(long, env = "AG_SMTP_PASS")]
+        smtp_pass: Option<String>,
+    },
+}
+
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
@@ -131,6 +217,47 @@ fn main() {
             SchemaCommands::Lint { schema } => cmd_schema_lint(&schema),
             SchemaCommands::Diff { reference, schema } => cmd_schema_diff(&schema, &reference),
         },
+        Commands::Domains { command } => {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("no se pudo crear el runtime tokio");
+            match command {
+                DomainsCommands::Check {
+                    domain,
+                    expected,
+                    min_confirmed,
+                } => rt.block_on(cmd_domains_check(
+                    &domain,
+                    expected.as_deref(),
+                    min_confirmed,
+                )),
+                DomainsCommands::Sync {
+                    schema,
+                    zone_id,
+                    token,
+                } => rt.block_on(cmd_domains_sync(&schema, &zone_id, &token)),
+            }
+        }
+        Commands::Mail { command } => {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("no se pudo crear el runtime tokio");
+            match command {
+                MailCommands::Test {
+                    to,
+                    from,
+                    subject,
+                    smtp_host,
+                    smtp_port,
+                    smtp_user,
+                    smtp_pass,
+                } => rt.block_on(cmd_mail_test(
+                    &to, &from, &subject, &smtp_host, smtp_port, smtp_user, smtp_pass,
+                )),
+            }
+        }
     };
     if let Err(msg) = result {
         eprintln!("error: {msg}");
@@ -505,6 +632,184 @@ fn read_schema(path: &Path) -> Result<String, String> {
         ));
     }
     fs::read_to_string(path).map_err(|e| format!("no se pudo leer '{}': {e}", path.display()))
+}
+
+// ============================================================
+// Comandos ag domains (Fase 4.5)
+// ============================================================
+
+async fn cmd_domains_check(
+    domain: &str,
+    expected: Option<&str>,
+    min_confirmed: usize,
+) -> Result<(), String> {
+    use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
+
+    println!("Verificando propagacion DNS para '{domain}'...");
+
+    let checker = PropagationChecker::new(DEFAULT_RESOLVERS, min_confirmed);
+
+    match expected {
+        Some(value) => {
+            let result = checker.check_txt(domain, value).await;
+            if result.is_fully_propagated() {
+                println!(
+                    "OK — registro TXT propagado ({}/{} resolvers)",
+                    result.confirmed, result.total
+                );
+            } else {
+                println!(
+                    "PENDIENTE — {}/{} resolvers confirman el valor '{value}'",
+                    result.confirmed, result.total
+                );
+                println!("Espera unos minutos y vuelve a ejecutar el comando.");
+            }
+        }
+        None => {
+            // Sin valor esperado: verifica que al menos un resolver responde.
+            let result = checker.check_txt(domain, "").await;
+            println!(
+                "Consulta completada — {}/{} resolvers respondieron",
+                result.total, result.total
+            );
+        }
+    }
+
+    Ok(())
+}
+
+async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Result<(), String> {
+    use ag_domains::{
+        mail_records::{apply_mail_records, DkimSelector, DmarcPolicy, MailDnsRequirements},
+        provider::cloudflare::CloudflareProvider,
+    };
+
+    let source = read_schema(schema_path)?;
+
+    let schema = ag_dsl::compile(&source).map_err(|diags| {
+        let mut msg = format!(
+            "{} error(es) en '{}':\n",
+            diags.iter().filter(|d| d.is_error()).count(),
+            schema_path.display()
+        );
+        for d in &diags {
+            msg.push_str(&format!("  {}\n", d.display(&source)));
+        }
+        msg
+    })?;
+
+    if schema.domains.is_empty() {
+        println!("No hay bloques 'domain' en el schema. Nada que sincronizar.");
+        return Ok(());
+    }
+
+    let provider = CloudflareProvider::new(token);
+
+    for domain_block in &schema.domains {
+        let domain_name = domain_block
+            .domain_name
+            .as_deref()
+            .unwrap_or(domain_block.name.value.as_str());
+
+        println!(
+            "Sincronizando registros de correo para '{}' (zone {zone_id})...",
+            domain_name
+        );
+
+        let dmarc_policy = match domain_block.dmarc_policy.as_deref().unwrap_or("none") {
+            "quarantine" => DmarcPolicy::Quarantine,
+            "reject" => DmarcPolicy::Reject,
+            _ => DmarcPolicy::None,
+        };
+
+        let req = MailDnsRequirements {
+            domain: domain_name.to_owned(),
+            dkim_selectors: domain_block
+                .dkim_selectors
+                .iter()
+                .map(|s| DkimSelector {
+                    name: s.clone(),
+                    public_key_record: format!("v=DKIM1; k=rsa; p=PLACEHOLDER_{s}"),
+                })
+                .collect(),
+            spf_includes: Vec::new(),
+            spf_ips: Vec::new(),
+            dmarc_policy,
+            dmarc_rua: domain_block.dmarc_rua.clone(),
+        };
+
+        let result = apply_mail_records(&req, &provider, zone_id)
+            .await
+            .map_err(|e| format!("error al sincronizar '{domain_name}': {e}"))?;
+
+        println!(
+            "  creados: {}, actualizados: {}, sin cambios: {}",
+            result.created, result.updated, result.unchanged
+        );
+    }
+
+    println!("Sincronizacion completada.");
+    Ok(())
+}
+
+// ============================================================
+// Comandos ag mail (Fase 4.5)
+// ============================================================
+
+#[allow(clippy::too_many_arguments)]
+async fn cmd_mail_test(
+    to: &str,
+    from: &str,
+    subject: &str,
+    smtp_host: &str,
+    smtp_port: u16,
+    smtp_user: Option<String>,
+    smtp_pass: Option<String>,
+) -> Result<(), String> {
+    use ag_mail::{
+        message::{Address, EmailBuilder},
+        sender::{
+            smtp::{SmtpConfig, SmtpSender},
+            MailSender,
+        },
+    };
+
+    println!("Enviando correo de prueba a '{to}'...");
+    println!("  SMTP: {smtp_host}:{smtp_port}");
+
+    let config = match (smtp_user, smtp_pass) {
+        (Some(user), Some(pass)) => SmtpConfig::new(smtp_host, smtp_port, user, pass),
+        _ => SmtpConfig::new_unauthenticated(smtp_host, smtp_port),
+    };
+
+    let sender = SmtpSender::new(config).map_err(|e| format!("config SMTP invalida: {e}"))?;
+
+    let email = EmailBuilder::new()
+        .from(Address::new(from))
+        .to(Address::new(to))
+        .subject(subject)
+        .html_body(format!(
+            "<p>Correo de prueba enviado por <code>ag mail test</code>.</p>\
+             <p>Si ves este mensaje, la configuracion SMTP es correcta.</p>\
+             <p>Host: <strong>{smtp_host}:{smtp_port}</strong></p>"
+        ))
+        .text_body(format!(
+            "Correo de prueba de ag mail test.\nHost: {smtp_host}:{smtp_port}"
+        ))
+        .build()
+        .map_err(|e| format!("email invalido: {e}"))?;
+
+    let result = sender
+        .send(&email)
+        .await
+        .map_err(|e| format!("fallo de envio: {e}"))?;
+
+    match result.message_id {
+        Some(id) => println!("OK — correo enviado. Message-ID: {id}"),
+        None => println!("OK — correo enviado."),
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

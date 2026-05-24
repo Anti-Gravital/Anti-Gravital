@@ -1,11 +1,20 @@
-//! Generacion de registros DNS requeridos para la entrega de correo.
+//! Generacion y aplicacion de registros DNS para la entrega de correo.
 //!
 //! `ag-mail` declara sus requisitos a traves de `MailDnsRequirements`
-//! y este modulo los materializa como `DnsRecordSpec` para que el caller
-//! los aplique via `DnsProvider`. Sin ciclo de dependencia: `ag-mail` y
-//! `ag-domains` se conocen solo por estos tipos intermedios.
+//! y este modulo los materializa como `DnsRecordSpec` y los aplica via
+//! `DnsProvider`. Sin ciclo de dependencia: `ag-mail` y `ag-domains` se
+//! conocen solo por estos tipos intermedios.
+//!
+//! La funcion principal del flujo de cooperacion es `apply_mail_records`:
+//! genera los registros necesarios y hace upsert contra la zona DNS,
+//! creando los que no existen y actualizando los que difieren en contenido.
 
-use crate::record::{DnsRecordSpec, RecordType};
+use crate::{
+    error::AgDomainsError,
+    metrics,
+    provider::DnsProvider,
+    record::{DnsRecordSpec, RecordType},
+};
 
 /// Requisitos DNS para la entrega de correo de un dominio.
 ///
@@ -142,9 +151,155 @@ fn dmarc_record(req: &MailDnsRequirements) -> DnsRecordSpec {
     }
 }
 
+/// Resultado del upsert de registros DNS de correo.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct MailRecordsResult {
+    /// Registros creados porque no existian.
+    pub created: usize,
+    /// Registros actualizados porque el contenido diferia.
+    pub updated: usize,
+    /// Registros sin cambios (ya existian con el contenido correcto).
+    pub unchanged: usize,
+}
+
+/// Aplica los registros DNS necesarios para la entrega de correo.
+///
+/// Para cada registro que `generate_mail_records` produce:
+/// - Si no existe en la zona: se crea con `DnsProvider::create_record`.
+/// - Si existe pero el contenido es diferente: se actualiza.
+/// - Si existe con el mismo contenido: se omite (idempotente).
+///
+/// La funcion es segura de llamar repetidamente; las re-ejecuciones
+/// devuelven `unchanged` para todos los registros ya correctos.
+pub async fn apply_mail_records<P: DnsProvider>(
+    req: &MailDnsRequirements,
+    provider: &P,
+    zone_id: &str,
+) -> Result<MailRecordsResult, AgDomainsError> {
+    let desired = generate_mail_records(req);
+    let existing = provider.list_records(zone_id).await?;
+
+    let mut result = MailRecordsResult::default();
+
+    for spec in &desired {
+        // Busca un registro existente con el mismo nombre y tipo.
+        let existing_match = existing
+            .iter()
+            .find(|r| r.name == spec.name && r.record_type == spec.record_type);
+
+        match existing_match {
+            None => {
+                provider.create_record(zone_id, spec).await?;
+                metrics::record_dns_upsert(
+                    provider.name(),
+                    &format!("{:?}", spec.record_type),
+                    true,
+                );
+                result.created += 1;
+            }
+            Some(existing_rec) if existing_rec.content != spec.content => {
+                provider
+                    .update_record(zone_id, &existing_rec.id, spec)
+                    .await?;
+                metrics::record_dns_upsert(
+                    provider.name(),
+                    &format!("{:?}", spec.record_type),
+                    true,
+                );
+                result.updated += 1;
+            }
+            Some(_) => {
+                result.unchanged += 1;
+            }
+        }
+    }
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use async_trait::async_trait;
+
     use super::*;
+    use crate::record::DnsRecord;
+
+    // --- InMemoryProvider para tests de apply_mail_records -------------------
+
+    #[derive(Default)]
+    struct InMemoryProvider {
+        records: Arc<Mutex<Vec<DnsRecord>>>,
+        next_id: Arc<Mutex<u64>>,
+    }
+
+    impl InMemoryProvider {
+        fn all_records(&self) -> Vec<DnsRecord> {
+            self.records.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait]
+    impl DnsProvider for InMemoryProvider {
+        fn name(&self) -> &'static str {
+            "memory"
+        }
+
+        async fn zone_id(&self, _domain: &str) -> Result<String, AgDomainsError> {
+            Ok("zone-1".to_owned())
+        }
+
+        async fn list_records(&self, _zone_id: &str) -> Result<Vec<DnsRecord>, AgDomainsError> {
+            Ok(self.records.lock().unwrap().clone())
+        }
+
+        async fn create_record(
+            &self,
+            zone_id: &str,
+            spec: &DnsRecordSpec,
+        ) -> Result<DnsRecord, AgDomainsError> {
+            let mut id_guard = self.next_id.lock().unwrap();
+            *id_guard += 1;
+            let record = DnsRecord {
+                id: id_guard.to_string(),
+                zone_id: zone_id.to_owned(),
+                name: spec.name.clone(),
+                record_type: spec.record_type.clone(),
+                content: spec.content.clone(),
+                ttl: spec.ttl,
+                proxied: spec.proxied,
+            };
+            self.records.lock().unwrap().push(record.clone());
+            Ok(record)
+        }
+
+        async fn update_record(
+            &self,
+            _zone_id: &str,
+            record_id: &str,
+            spec: &DnsRecordSpec,
+        ) -> Result<DnsRecord, AgDomainsError> {
+            let mut records = self.records.lock().unwrap();
+            let rec = records
+                .iter_mut()
+                .find(|r| r.id == record_id)
+                .ok_or_else(|| AgDomainsError::RecordNotFound(record_id.to_owned()))?;
+            rec.content = spec.content.clone();
+            rec.ttl = spec.ttl;
+            Ok(rec.clone())
+        }
+
+        async fn delete_record(
+            &self,
+            _zone_id: &str,
+            record_id: &str,
+        ) -> Result<(), AgDomainsError> {
+            let mut records = self.records.lock().unwrap();
+            records.retain(|r| r.id != record_id);
+            Ok(())
+        }
+    }
 
     fn base_req() -> MailDnsRequirements {
         MailDnsRequirements {
@@ -225,5 +380,91 @@ mod tests {
         let records = generate_mail_records(&req);
         let spf = records.iter().find(|r| r.name == "ejemplo.com").unwrap();
         assert!(spf.content.contains("ip6:2001:db8::1"));
+    }
+
+    // --- Tests de apply_mail_records -----------------------------------------
+
+    #[tokio::test]
+    async fn apply_creates_all_records_on_empty_zone() {
+        let provider = InMemoryProvider::default();
+        let result = apply_mail_records(&base_req(), &provider, "zone-1")
+            .await
+            .unwrap();
+        assert_eq!(result.created, 3); // SPF + DKIM + DMARC
+        assert_eq!(result.updated, 0);
+        assert_eq!(result.unchanged, 0);
+        assert_eq!(provider.all_records().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn apply_is_idempotent_when_content_matches() {
+        let provider = InMemoryProvider::default();
+        // Primera pasada: crea todo
+        apply_mail_records(&base_req(), &provider, "zone-1")
+            .await
+            .unwrap();
+        // Segunda pasada: nada debe cambiar
+        let result = apply_mail_records(&base_req(), &provider, "zone-1")
+            .await
+            .unwrap();
+        assert_eq!(result.created, 0);
+        assert_eq!(result.updated, 0);
+        assert_eq!(result.unchanged, 3);
+    }
+
+    #[tokio::test]
+    async fn apply_updates_record_when_content_changes() {
+        let provider = InMemoryProvider::default();
+        // Crea los registros con la configuracion base.
+        apply_mail_records(&base_req(), &provider, "zone-1")
+            .await
+            .unwrap();
+
+        // Cambia la politica DMARC — el registro _dmarc debe actualizarse.
+        let req_v2 = MailDnsRequirements {
+            dmarc_policy: DmarcPolicy::Reject,
+            ..base_req()
+        };
+        let result = apply_mail_records(&req_v2, &provider, "zone-1")
+            .await
+            .unwrap();
+        assert_eq!(result.updated, 1); // solo DMARC
+        assert_eq!(result.unchanged, 2); // SPF y DKIM sin cambio
+
+        let dmarc = provider
+            .all_records()
+            .into_iter()
+            .find(|r| r.name == "_dmarc.ejemplo.com")
+            .unwrap();
+        assert!(dmarc.content.contains("p=reject"));
+    }
+
+    #[tokio::test]
+    async fn apply_adds_new_dkim_selector() {
+        let provider = InMemoryProvider::default();
+        apply_mail_records(&base_req(), &provider, "zone-1")
+            .await
+            .unwrap();
+
+        // Añade un segundo selector DKIM.
+        let req_v2 = MailDnsRequirements {
+            dkim_selectors: vec![
+                DkimSelector {
+                    name: "s1".to_owned(),
+                    public_key_record: "v=DKIM1; k=rsa; p=MIIB...".to_owned(),
+                },
+                DkimSelector {
+                    name: "s2".to_owned(),
+                    public_key_record: "v=DKIM1; k=rsa; p=MIIC...".to_owned(),
+                },
+            ],
+            ..base_req()
+        };
+        let result = apply_mail_records(&req_v2, &provider, "zone-1")
+            .await
+            .unwrap();
+        assert_eq!(result.created, 1); // s2 es nuevo
+        assert_eq!(result.unchanged, 3); // SPF, s1, DMARC sin cambio
+        assert_eq!(provider.all_records().len(), 4);
     }
 }

@@ -23,15 +23,21 @@ Un runtime backend Rust de alto rendimiento, un lenguaje de definicion
 de dominio llamado Anti-DSL (archivos `.ag`), una CLI unificada (`ag`),
 un conjunto de modulos batteries-included publicados como crates
 independientes, un sistema de plugins WASI, una capa de despliegue
-simplificado, generadores de SDK tipados para TypeScript y Dart, e
-importadores desde frameworks legacy.
+simplificado, comunicacion transaccional nativa (`ag-mail`) y gestion
+de dominios y TLS (`ag-domains`) introducidas en la Fase 4.5, generadores
+de SDK tipados para TypeScript y Dart, e importadores desde frameworks
+legacy.
 
 ### Que no es
 
 No reemplaza Kubernetes. No reemplaza Flutter ni React Native. No
 reemplaza Next.js. No reemplaza Docker. No reemplaza PostgreSQL,
 Redis, MinIO ni NATS. No es un motor de juegos ni un framework de
-computo cientifico. Vease el capitulo de alcance en
+computo cientifico. `ag-mail` no es un servidor de correo completo:
+solo envia correo outbound transaccional, no recibe correo inbound,
+no implementa IMAP/POP, antispam ni reputacion de IP. `ag-domains`
+no es un registrador de dominios: el dominio se compra externamente.
+Vease el capitulo de alcance en
 `docs/architecture/03-alcance-y-limites.md`.
 
 ### Estado del proyecto
@@ -249,14 +255,20 @@ inicial: Angel Nereira.
 A high-performance Rust backend runtime, a domain definition language
 called Anti-DSL (`.ag` files), a unified CLI (`ag`), a set of batteries
 included modules published as independent crates, a WASI plugin
-system, a simplified deployment layer, typed SDK generators for
-TypeScript and Dart, and importers from legacy frameworks.
+system, a simplified deployment layer, native transactional email
+(`ag-mail`) and domain plus TLS management (`ag-domains`) introduced
+in Phase 4.5, typed SDK generators for TypeScript and Dart, and
+importers from legacy frameworks.
 
 ### What it is not
 
 It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
 PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
-scientific computing framework. See the scope chapter at
+scientific computing framework. `ag-mail` is not a full mail server:
+it only sends outbound transactional email; it does not receive
+inbound mail, and does not implement IMAP/POP, antispam or IP
+reputation. `ag-domains` is not a domain registrar: domains are
+purchased externally. See the scope chapter at
 `docs/architecture/03-alcance-y-limites.md`.
 
 ### Project status
@@ -451,6 +463,7 @@ maintainer: Angel Nereira.
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
 | 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
 | 4            | Modulos estandar              | Implementacion completa / Technical implementation complete |
+| 4.5          | ag-mail + ag-domains: comunicacion y dominios | Pendiente / Pending                     |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
 | 7            | ag-migrate importadores       | Pendiente / Pending                                     |

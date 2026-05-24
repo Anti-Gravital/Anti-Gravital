@@ -7,6 +7,63 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.5 - Integracion documental: ag-mail + ag-domains (2026-05-23)
+
+Anadido:
+
+- `docs/adr/0007-ag-mail-ag-domains.md`: ADR-0007 oficializa la Fase 4.5
+  como fase aditiva entre la Fase 4 (completa) y la Fase 5 (pendiente).
+  Introduce `ag-mail` (estandar diferido, outbound + adapters) y
+  `ag-domains` (opcional infra, DNS + ACME + SPF/DKIM/DMARC). Alcance,
+  restricciones, direccionalidad de dependencias (ag-auth -> ag-mail,
+  ag-cloud -> ag-domains), consecuencias documentadas. Estado: Aprobado.
+
+Cambiado:
+
+- `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`: insertada fila 4.5 en
+  el resumen de fases entre Fase 4 y Fase 5; duracion total
+  24-28 meses -> 25-30 meses; nueva seccion "Fase 4.5" completa con
+  criterios de entrada, entregables, criterios de salida bloqueantes y
+  riesgos. Hito v0.5 BETA permanece al final de la Fase 5.
+
+- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`:
+  - § 5.1: tabla del ecosistema actualizada a 17 crates con ag-mail
+    (Estandar diferido) y ag-domains (Opcional infra). Parrafo de cierre
+    explica la clasificacion "estandar diferido".
+  - § 5.2: diagrama del ecosistema redibujado para incluir la columna
+    "Estandar diferido" con ag-mail y la flecha ag-cloud -> ag-domains
+    dentro de "Modulos opcionales".
+  - § 5.3: sexta regla (ag-auth -> ag-mail, no ciclo) y septima regla
+    (ag-cloud -> ag-domains, dependencia no rigida) anadidas.
+  - § 5.4: estructura del monorepo incluye `crates/ag-mail/` y
+    `crates/ag-domains/` con anotaciones de Fase 4.5.
+  - § 7.2: tabla del DSL realineada. v0.5/v0.6 marcados "Fin Fase 4
+    (entregado)"; v0.7 "Mail y dominios declarativos" (Fin Fase 4.5);
+    v0.8 "Plugin hooks" (Fin Fase 9). Multi-tenancy y migracion de
+    datos quedan diferidos para RFCs propios.
+  - § 8.8 (nueva): especificacion completa de `ag-mail` (estandar
+    diferido). Patron Native | Adapter, validacion build-time de
+    templates, cola asincrona, integracion ag-auth.
+  - § 8.9 (nueva): especificacion completa de `ag-domains` (opcional
+    infra). Trait DnsProvider, ACME (instant-acme), cooperacion con
+    ag-mail para SPF/DKIM/DMARC, verificacion de propagacion.
+  - § 10: renombrado a "Subsistema de despliegue (ag-cloud + ag-domains)".
+  - § 10.6 (nueva): integracion ag-cloud <- ag-domains. Flujo de seis
+    pasos del deploy con dominio: validar control, configurar DNS,
+    emitir/renovar TLS, asociar al target, materializar SPF/DKIM/DMARC,
+    verificar propagacion.
+
+- `docs/master/VERSION.md`: nuevos hashes SHA-256 de los dos maestros
+  markdown. Blueprint PDF v4.0 registrado como deuda explicita pendiente
+  de re-export a v4.1 (los maestros markdown gobiernan segun politica
+  pre-existente).
+
+Pendiente (deuda registrada):
+
+- Re-export del Blueprint a `ANTI-GRAVITAL-Blueprint-v4.1.pdf` con los
+  cambios de la Fase 4.5. Requiere herramienta de exportacion fuera del
+  scope de esta rama documental.
+
 ### Fase 4 - Modulos estandar: implementacion tecnica completa (2026-05-23)
 
 Anadido:

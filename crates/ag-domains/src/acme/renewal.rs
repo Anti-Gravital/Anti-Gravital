@@ -90,8 +90,11 @@ pub async fn issue_with_credentials<P: DnsProvider>(
     issue_order(&account, config, provider).await
 }
 
-/// Lanza una tarea Tokio que renueva el certificado cuando faltan
-/// `renew_before_days` dias para su vencimiento.
+/// Lanza una tarea Tokio que renueva el certificado periodicamente.
+///
+/// Comprueba cada dia si faltan menos de `renew_before_days` dias para el
+/// vencimiento. Mientras el parseo del `notAfter` no este implementado, renueva
+/// en cada ciclo y usa `renew_before_days` como periodo de sleep (cota conservadora).
 ///
 /// La tarea vive mientras el `JoinHandle` no sea abortado. En caso de
 /// error de renovacion, lo registra y reintenta al ciclo siguiente.
@@ -110,22 +113,17 @@ where
     let credentials_json = serde_json::to_vec(&credentials)
         .expect("AccountCredentials siempre es serializable a JSON");
 
+    // Cuantos segundos dormir entre ciclos de renovacion.
+    // TECH-DEBT: cuando se implemente el parseo de `notAfter`, usar `check_interval`
+    // (24 h) y comparar la fecha de expiracion con `renew_before_days`.
+    // motivo: simplificacion de la primera iteracion
+    // impacto: renueva cada `renew_before_days` dias en lugar de exactamente al umbral
+    // eliminacion esperada: Etapa 3 de ag-domains
+    let sleep_secs = renew_before_days.max(1) * 86_400;
+
     tokio::spawn(async move {
-        // Comprobacion inicial: renovar si procede, luego revisar cada dia.
-        let check_interval = Duration::from_secs(86_400); // 24 h
-        let renew_threshold = Duration::from_secs(renew_before_days * 86_400);
-
         loop {
-            info!(
-                domain = config.domain,
-                "comprobando vencimiento del certificado"
-            );
-
-            // TECH-DEBT: parsear `notAfter` del cert para renovar exactamente
-            // a `renew_before_days` antes del vencimiento.
-            // motivo: simplificacion de la primera iteracion
-            // impacto: puede renovar antes o despues de lo optimo si la validez no es 90 dias
-            // eliminacion esperada: Etapa 3 de ag-domains
+            info!(domain = config.domain, "renovando certificado TLS via ACME");
 
             let creds: AccountCredentials = serde_json::from_slice(&credentials_json)
                 .expect("AccountCredentials previamente serializado es siempre deserializable");
@@ -140,7 +138,7 @@ where
                 }
             }
 
-            tokio::time::sleep(check_interval - renew_threshold).await;
+            tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
         }
     })
 }
@@ -310,5 +308,50 @@ mod tests {
             !url.contains("staging"),
             "production URL no debe contener 'staging'"
         );
+    }
+
+    #[test]
+    fn cert_config_staging_flag() {
+        let cfg = CertConfig {
+            domain: "ejemplo.com".to_owned(),
+            zone_id: "z123".to_owned(),
+            contact_email: "admin@ejemplo.com".to_owned(),
+            staging: true,
+        };
+        assert!(cfg.staging);
+        assert_eq!(cfg.domain, "ejemplo.com");
+    }
+
+    #[test]
+    fn cert_config_staging_default_is_false() {
+        let json = r#"{"domain":"a.com","zone_id":"z","contact_email":"e@e.com"}"#;
+        let cfg: CertConfig = serde_json::from_str(json).unwrap();
+        assert!(!cfg.staging, "staging debe ser false por defecto");
+    }
+
+    #[test]
+    fn cert_config_roundtrip_json() {
+        let cfg = CertConfig {
+            domain: "test.com".to_owned(),
+            zone_id: "zid".to_owned(),
+            contact_email: "x@x.com".to_owned(),
+            staging: false,
+        };
+        let json = serde_json::to_string(&cfg).unwrap();
+        let cfg2: CertConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(cfg.domain, cfg2.domain);
+        assert_eq!(cfg.zone_id, cfg2.zone_id);
+        assert_eq!(cfg.contact_email, cfg2.contact_email);
+        assert_eq!(cfg.staging, cfg2.staging);
+    }
+
+    #[test]
+    fn issued_cert_fields_accessible() {
+        let cert = IssuedCert {
+            cert_chain_pem: "-----BEGIN CERTIFICATE-----".to_owned(),
+            private_key_pem: "-----BEGIN PRIVATE KEY-----".to_owned(),
+        };
+        assert!(cert.cert_chain_pem.contains("CERTIFICATE"));
+        assert!(cert.private_key_pem.contains("PRIVATE KEY"));
     }
 }

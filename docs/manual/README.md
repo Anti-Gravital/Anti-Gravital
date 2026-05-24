@@ -15,6 +15,8 @@ configurar y desplegar componentes del ecosistema.
 | Capitulo | Tema | Estado |
 | --- | --- | --- |
 | `01-shield-as-library.md` | Usar la Shield de `ag-core` como libreria | Publicado |
+| `02-primera-api.md` | Crear la primera API con el DSL | Publicado |
+| `03-dominio-tls-correo.md` | Configurar dominio, TLS y correo transaccional | Publicado |
 
 ## Convencion
 

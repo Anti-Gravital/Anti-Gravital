@@ -22,14 +22,16 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
 | `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
+| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, adapters (Resend/SES/Postmark), helpers SPF/DKIM/DMARC | Estándar diferido |
 | `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
+| `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
 | `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Opcional             |
 | `ag-mobile`        | Generación SDK Dart, auth nativo Flutter, offline sync           | Opcional             |
 | `ag-migrate`       | Importadores OpenAPI, Prisma, Django, FastAPI, Sequelize         | Opcional             |
 | `ag-wasm-host`     | Runtime de plugins WASI sobre wasmtime                           | Núcleo               |
 
-La distinción entre **núcleo**, **estándar** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Los módulos opcionales se añaden cuando el proyecto los necesita.
+La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema pasa de **17 crates** con la introducción de la Fase 4.5.
 
 ### 5.2 Diagrama del ecosistema
 
@@ -53,7 +55,7 @@ La distinción entre **núcleo**, **estándar** y **opcional** es importante. El
 │            │                       │                             │
 │   ┌────────▼─────────┐    ┌────────▼─────────┐                   │
 │   │  Módulos estándar │    │ ag-wasm-host    │                   │
-│   │  ag-auth         │    │ wasmtime + WASI │                   │
+│   │  ag-auth ────────►│    │ wasmtime + WASI │                   │
 │   │  ag-data         │    │ plugin lifecycle│                   │
 │   │  ag-realtime     │    └─────────────────┘                   │
 │   │  ag-cache        │                                          │
@@ -61,10 +63,19 @@ La distinción entre **núcleo**, **estándar** y **opcional** es importante. El
 │   │  ag-observe      │                                          │
 │   └────────┬─────────┘                                          │
 │            │                                                    │
+│   ┌────────▼─────────────────┐                                  │
+│   │  Estándar diferido       │                                  │
+│   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
+│   │  outbound + adapters     │                                  │
+│   │  (Resend/SES/Postmark)   │                                  │
+│   └────────┬─────────────────┘                                  │
+│            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
 │   │              Módulos opcionales                   │         │
-│   │  ag-ui    ag-cloud    ag-ai    ag-mobile          │         │
-│   │  ag-migrate                                       │         │
+│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │  ag-mobile    ag-migrate                          │         │
+│   │                                                   │         │
+│   │  ag-domains: DnsProvider + ACME + adapters        │         │
 │   └───────────────────────────────────────────────────┘         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -82,6 +93,23 @@ Tercera regla: los módulos opcionales pueden depender de cualquier crate núcle
 Cuarta regla: `ag-cli` depende de todos los demás crates (es el orquestador), pero solo a través de features Cargo, de modo que el binario `ag` puede compilarse con un subconjunto reducido.
 
 Quinta regla: todos los crates publican versiones semánticas independientes. Una breaking change en `ag-cache` no fuerza a `ag-core` a subir mayor. Esto es esencial para la sostenibilidad de un proyecto open source.
+
+Sexta regla (introducida por `ADR-0007`, Fase 4.5): la dirección de la
+dependencia `ag-auth ↔ ag-mail` es estrictamente unidireccional. `ag-auth`
+**consume** `ag-mail` para enviar correos de verificación, recuperación de
+contraseña y magic links, definiendo un trait pequeño que `ag-auth` invoca.
+`ag-mail` **NO** depende de `ag-auth`. Esta direccionalidad preserva la
+segunda regla (no ciclos) y mantiene a `ag-mail` reusable de forma aislada
+en cualquier proyecto Rust. La cooperación `ag-mail ↔ ag-domains` (para
+materializar SPF/DKIM/DMARC) es opcional, vía feature de Cargo: si un
+proyecto usa `ag-mail` con un adapter gestionado (Resend) y no administra
+DNS propio, `ag-domains` no es necesario.
+
+Séptima regla (introducida por `ADR-0007`, Fase 4.5): el módulo opcional
+`ag-cloud` **consume** `ag-domains` durante `ag deploy` para configurar DNS
+y TLS, sin que la dependencia sea rígida en todos los targets. Si el
+proyecto no declara dominios en su `schema.ag`, el flujo se omite.
+`ag-domains` puede usarse de forma independiente desde la CLI sin `ag-cloud`.
 
 ### 5.4 Estructura del monorepo
 
@@ -132,8 +160,10 @@ anti-gravital/
 │   ├── ag-cache/
 │   ├── ag-storage/
 │   ├── ag-observe/
+│   ├── ag-mail/                # Fase 4.5 — estándar diferido
 │   ├── ag-ui/
 │   ├── ag-cloud/
+│   ├── ag-domains/             # Fase 4.5 — opcional infra
 │   ├── ag-ai/
 │   ├── ag-mobile/
 │   ├── ag-migrate/

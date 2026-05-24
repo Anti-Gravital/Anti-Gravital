@@ -68,3 +68,6 @@ como `superseded`.
 | 0001 | Paralelizar puertas externas de Fase 0 con implementacion de Fase 1 | aceptado | `RFC-0001-paralelizar-fase-0-externa-y-fase-1.md` |
 | 0002 | Diseno del Shield MVP (Fase 1) | aceptado | `RFC-0002-diseno-shield-mvp.md` |
 | 0003 | Librerias base del compilador ag-dsl (Fase 3) | aceptado | `RFC-0003-librerias-compilador-ag-dsl.md` |
+| 0005 | ag-cache L2 nativo RESP2 (Fase 4) | propuesto | `RFC-0005-ag-cache-native-l2.md` |
+| 0006 | ag-mail alcance, stack y plan de implementacion (Fase 4.5) | aceptada | `RFC-0006-ag-mail-alcance.md` |
+| 0007 | ag-domains alcance, stack y plan de implementacion (Fase 4.5) | aceptada | `RFC-0007-ag-domains-alcance.md` |

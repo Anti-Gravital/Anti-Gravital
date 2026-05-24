@@ -127,6 +127,17 @@ pub enum Token {
     #[token("@relation")]
     AtRelation,
 
+    // ---- Palabras clave DSL v0.7 — correo y dominios ----
+    /// `mail` — bloque de configuracion de correo transaccional.
+    #[token("mail")]
+    Mail,
+    /// `domain` — bloque de configuracion DNS de un dominio.
+    #[token("domain")]
+    Domain,
+    /// `template` — sub-bloque de template de correo dentro de un bloque `mail`.
+    #[token("template")]
+    Template,
+
     // ---- Palabras clave DSL v0.5+v0.6 — autenticacion y eventos ----
     /// `auth` — bloque de autenticacion/autorizacion sobre un endpoint o modelo.
     #[token("auth")]
@@ -508,5 +519,57 @@ model User {
         assert!(kinds.contains(&Token::Policy));
         assert!(kinds.contains(&Token::Event));
         assert!(kinds.contains(&Token::Retain));
+    }
+
+    // ---- Tests DSL v0.7 ----
+
+    #[test]
+    fn v07_mail_domain_template_keywords() {
+        let toks = lex("mail domain template");
+        assert_eq!(toks, vec![Token::Mail, Token::Domain, Token::Template]);
+    }
+
+    #[test]
+    fn v07_mail_block_tokenizes() {
+        let src = r#"
+mail transaccional {
+    provider smtp
+    from "noreply@ejemplo.com"
+    template bienvenida {
+        subject "Bienvenido {{nombre}}"
+        vars [nombre, token]
+    }
+}
+"#;
+        let (toks, errs) = tokenize(src);
+        assert!(errs.is_empty(), "sin errores lex: {:?}", errs);
+        let kinds: Vec<_> = toks.iter().map(|(t, _)| t.clone()).collect();
+        assert!(kinds.contains(&Token::Mail));
+        assert!(kinds.contains(&Token::Template));
+        assert!(kinds.contains(&Token::LBrace));
+        assert!(kinds.contains(&Token::LBracket));
+    }
+
+    #[test]
+    fn v07_domain_block_tokenizes() {
+        let src = r#"
+domain mi_dominio {
+    name "ejemplo.com"
+    provider cloudflare
+    dkim_selector "s1"
+    dmarc_policy quarantine
+    dmarc_rua "admin@ejemplo.com"
+}
+"#;
+        let (toks, errs) = tokenize(src);
+        assert!(errs.is_empty(), "sin errores lex: {:?}", errs);
+        let kinds: Vec<_> = toks.iter().map(|(t, _)| t.clone()).collect();
+        assert!(kinds.contains(&Token::Domain));
+    }
+
+    #[test]
+    fn v07_mail_not_captured_as_ident() {
+        let toks = lex("mail");
+        assert_eq!(toks, vec![Token::Mail]);
     }
 }

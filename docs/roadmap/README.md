@@ -17,6 +17,7 @@ pendientes) se mantiene en `STATUS.md`.
 | 2 | The Core MVP y roundtrip completo | `fase-02-core-mvp.md` | 2 meses |
 | 3 | Anti-DSL alpha (v0.1 a v0.4) | `fase-03-anti-dsl-alpha.md` | 3 meses |
 | 4 | Modulos estandar | `fase-04-modulos-estandar.md` | 3 meses |
+| 4.5 | ag-mail + ag-domains: comunicacion y dominios | `fase-04-5-ag-mail-y-ag-domains.md` | 1-2 meses |
 | 5 | ag-cloud y version 0.5 beta | `fase-05-ag-cloud.md` | 2 meses |
 | 6 | ag-ai y Knowledge Graph | `fase-06-ag-ai-knowledge-graph.md` | 2 meses |
 | 7 | ag-migrate importadores | `fase-07-ag-migrate.md` | 2 meses |
@@ -26,7 +27,8 @@ pendientes) se mantiene en `STATUS.md`.
 | -- | Mas alla de la 1.0 | `mas-alla-de-1.0.md` | -- |
 | -- | Reglas de oro del proceso | `reglas-de-oro.md` | -- |
 
-Duracion total estimada: 24 a 28 meses desde el inicio.
+Duracion total estimada: 25 a 30 meses desde el inicio (la Fase 4.5 es
+aditiva, introducida por ADR-0007).
 
 ## Estado vivo
 

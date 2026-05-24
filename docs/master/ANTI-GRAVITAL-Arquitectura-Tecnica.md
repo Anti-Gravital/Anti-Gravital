@@ -78,7 +78,8 @@ Anti-Gravital es:
 - Un **runtime backend Rust** de alto rendimiento para servicios HTTP, WebSocket y SSE.
 - Un **lenguaje de definición de dominio** (Anti-DSL, archivos `.ag`) y su compilador.
 - Una **CLI unificada** (`ag`) para creación, generación, desarrollo, build, despliegue y administración.
-- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe).
+- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe, mail —estándar diferido—).
+- Una **capa de gestión de dominios y TLS** (`ag-domains`, opcional infra) que integra DNS vía adapters, ACME para certificados, y SPF/DKIM/DMARC para correo transaccional.
 - Un **sistema de plugins WASI** para extensibilidad multilenguaje aislada.
 - Una **capa de orquestación de despliegue** simplificada al estilo Railway/Fly.io para casos comunes (no un reemplazo de Kubernetes).
 - Un **generador de SDKs tipados** para TypeScript, Dart y otros lenguajes cliente.
@@ -94,7 +95,9 @@ Esta lista es igualmente importante. Anti-Gravital **no** intenta ni intentará:
 - **No reemplaza React, Vue, Svelte ni Next.js.** El módulo `ag-ui` ofrece SSR + HTMX para casos donde un stack JS completo es excesivo, pero no compite con frameworks frontend establecidos. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend + Next.js (o equivalente) como frontend, comunicándose vía cliente TypeScript generado.
 - **No reemplaza Docker.** Genera Dockerfiles. Se ejecuta en contenedores. No reinventa el formato OCI.
 - **No reemplaza PostgreSQL, Redis, MinIO ni NATS.** Se integra con ellos como dependencias externas estándar.
-- **No reemplaza Terraform ni Pulumi.** `ag-cloud` orquesta despliegues simples; para infraestructura compleja multi-cloud con políticas, IaC declarativa y módulos compartidos, Terraform sigue siendo la herramienta correcta.
+- **No reemplaza Terraform ni Pulumi.** `ag-cloud` orquesta despliegues simples; para infraestructura compleja multi-cloud con políticas, IaC declarativa y módulos compartidos, Terraform sigue siendo la herramienta correcta. `ag-domains` (Fase 4.5) tampoco reemplaza Terraform: orquesta DNS y TLS para los dominios declarados en el `schema.ag` del proyecto, no gestiona zonas DNS arbitrarias ni infraestructura compartida.
+- **No es un servidor de correo completo.** `ag-mail` (Fase 4.5) envía correo transaccional outbound (verificación, recuperación, magic links, alertas) vía SMTP nativo o adapters de proveedor (Resend, SES, Postmark). NO es un MTA, NO recibe correo (sin IMAP/POP), NO ofrece buzones, NO implementa antispam ni gestión de reputación de IP. Para inbound o un servidor de correo completo, usar Postfix, Stalwart u otro proyecto especializado.
+- **No es un registrador de dominios.** `ag-domains` (Fase 4.5) consume el dominio que el operador ya compró (Namecheap, Cloudflare Registrar, etc.) y lo configura mediante un adapter (Cloudflare inicialmente). NO registra dominios, NO actúa como mercado de dominios.
 - **No es un motor de juegos, ni un framework de cómputo científico, ni una alternativa a Unreal Engine, Unity, NumPy, PyTorch o TensorFlow.** Estos dominios tienen herramientas especializadas que Anti-Gravital no intenta replicar.
 
 ### 3.3 La regla de interoperabilidad
@@ -154,14 +157,16 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
 | `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
+| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, adapters (Resend/SES/Postmark), helpers SPF/DKIM/DMARC | Estándar diferido |
 | `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
+| `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
 | `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Opcional             |
 | `ag-mobile`        | Generación SDK Dart, auth nativo Flutter, offline sync           | Opcional             |
 | `ag-migrate`       | Importadores OpenAPI, Prisma, Django, FastAPI, Sequelize         | Opcional             |
 | `ag-wasm-host`     | Runtime de plugins WASI sobre wasmtime                           | Núcleo               |
 
-La distinción entre **núcleo**, **estándar** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Los módulos opcionales se añaden cuando el proyecto los necesita.
+La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema pasa de **17 crates** con la introducción de la Fase 4.5.
 
 ### 5.2 Diagrama del ecosistema
 
@@ -185,7 +190,7 @@ La distinción entre **núcleo**, **estándar** y **opcional** es importante. El
 │            │                       │                             │
 │   ┌────────▼─────────┐    ┌────────▼─────────┐                   │
 │   │  Módulos estándar │    │ ag-wasm-host    │                   │
-│   │  ag-auth         │    │ wasmtime + WASI │                   │
+│   │  ag-auth ────────►│    │ wasmtime + WASI │                   │
 │   │  ag-data         │    │ plugin lifecycle│                   │
 │   │  ag-realtime     │    └─────────────────┘                   │
 │   │  ag-cache        │                                          │
@@ -193,10 +198,19 @@ La distinción entre **núcleo**, **estándar** y **opcional** es importante. El
 │   │  ag-observe      │                                          │
 │   └────────┬─────────┘                                          │
 │            │                                                    │
+│   ┌────────▼─────────────────┐                                  │
+│   │  Estándar diferido       │                                  │
+│   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
+│   │  outbound + adapters     │                                  │
+│   │  (Resend/SES/Postmark)   │                                  │
+│   └────────┬─────────────────┘                                  │
+│            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
 │   │              Módulos opcionales                   │         │
-│   │  ag-ui    ag-cloud    ag-ai    ag-mobile          │         │
-│   │  ag-migrate                                       │         │
+│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │  ag-mobile    ag-migrate                          │         │
+│   │                                                   │         │
+│   │  ag-domains: DnsProvider + ACME + adapters        │         │
 │   └───────────────────────────────────────────────────┘         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -214,6 +228,23 @@ Tercera regla: los módulos opcionales pueden depender de cualquier crate núcle
 Cuarta regla: `ag-cli` depende de todos los demás crates (es el orquestador), pero solo a través de features Cargo, de modo que el binario `ag` puede compilarse con un subconjunto reducido.
 
 Quinta regla: todos los crates publican versiones semánticas independientes. Una breaking change en `ag-cache` no fuerza a `ag-core` a subir mayor. Esto es esencial para la sostenibilidad de un proyecto open source.
+
+Sexta regla (introducida por `ADR-0007`, Fase 4.5): la dirección de la
+dependencia `ag-auth ↔ ag-mail` es estrictamente unidireccional. `ag-auth`
+**consume** `ag-mail` para enviar correos de verificación, recuperación de
+contraseña y magic links, definiendo un trait pequeño que `ag-auth` invoca.
+`ag-mail` **NO** depende de `ag-auth`. Esta direccionalidad preserva la
+segunda regla (no ciclos) y mantiene a `ag-mail` reusable de forma aislada
+en cualquier proyecto Rust. La cooperación `ag-mail ↔ ag-domains` (para
+materializar SPF/DKIM/DMARC) es opcional, vía feature de Cargo: si un
+proyecto usa `ag-mail` con un adapter gestionado (Resend) y no administra
+DNS propio, `ag-domains` no es necesario.
+
+Séptima regla (introducida por `ADR-0007`, Fase 4.5): el módulo opcional
+`ag-cloud` **consume** `ag-domains` durante `ag deploy` para configurar DNS
+y TLS, sin que la dependencia sea rígida en todos los targets. Si el
+proyecto no declara dominios en su `schema.ag`, el flujo se omite.
+`ag-domains` puede usarse de forma independiente desde la CLI sin `ag-cloud`.
 
 ### 5.4 Estructura del monorepo
 
@@ -264,8 +295,10 @@ anti-gravital/
 │   ├── ag-cache/
 │   ├── ag-storage/
 │   ├── ag-observe/
+│   ├── ag-mail/                # Fase 4.5 — estándar diferido
 │   ├── ag-ui/
 │   ├── ag-cloud/
+│   ├── ag-domains/             # Fase 4.5 — opcional infra
 │   ├── ag-ai/
 │   ├── ag-mobile/
 │   ├── ag-migrate/
@@ -433,18 +466,24 @@ El lenguaje se inspira en Prisma para la sintaxis de modelos, en GraphQL SDL par
 
 Probablemente la decisión más importante para que el compilador sea viable es admitir que no se puede entregar el lenguaje completo en la primera versión. La especificación se entrega en fases incrementales, cada una con una gramática estable que no rompe la anterior. Las versiones del DSL son independientes de las versiones del framework y siguen su propio semver.
 
-| Versión DSL | Capacidad gramatical                                                                                              |
-|-------------|-------------------------------------------------------------------------------------------------------------------|
-| v0.1        | Modelos básicos: campos, tipos primitivos, anotaciones `@primary`, `@unique`, `@auto`                              |
-| v0.2        | Endpoints: método, path, body, response, errors                                                                    |
-| v0.3        | Validaciones: `@min`, `@max`, `@email`, `@regex`, `@length`                                                        |
-| v0.4        | Relaciones entre modelos: `1:1`, `1:N`, `N:M`, cascadas                                                           |
-| v0.5        | Autenticación y autorización: `auth required`, `policy "..."`                                                      |
-| v0.6        | Eventos: declaración de eventos emitidos por endpoint, suscriptores                                                |
-| v0.7        | Plugins: declaración de extensiones WASI usadas por el proyecto                                                    |
-| v0.8        | Multi-tenancy: schema-per-tenant, row-level security                                                              |
-| v0.9        | Migración de datos: snapshots, diff, generación de migraciones SQL versionadas                                    |
-| v1.0        | Gramática estable. Cualquier extensión posterior será aditiva.                                                    |
+| Versión DSL | Capacidad gramatical                                                                                              | Hito                       |
+|-------------|-------------------------------------------------------------------------------------------------------------------|----------------------------|
+| v0.1        | Modelos básicos: campos, tipos primitivos, anotaciones `@primary`, `@unique`, `@auto`                              | Fin Fase 3 (entregado)     |
+| v0.2        | Endpoints: método, path, body, response, errors                                                                    | Fin Fase 3 (entregado)     |
+| v0.3        | Validaciones: `@min`, `@max`, `@email`, `@regex`, `@length`                                                        | Fin Fase 3 (entregado)     |
+| v0.4        | Relaciones entre modelos: `1:1`, `1:N`, `N:M`, cascadas                                                            | Fin Fase 3 (entregado)     |
+| v0.5        | Autenticación y autorización: `auth required`, `policy "..."`                                                      | Fin Fase 4 (entregado)     |
+| v0.6        | Eventos: declaración de eventos emitidos por endpoint, suscriptores                                                | Fin Fase 4 (entregado)     |
+| v0.7        | Mail y dominios declarativos: `mail`, `domain`, `dns`, `tls`                                                       | Fin Fase 4.5               |
+| v0.8        | Plugin hooks (lifecycle, decoradores)                                                                              | Fin Fase 9                 |
+| v1.0        | Gramática estable, congelada bajo semver. Cualquier extensión posterior será aditiva.                              | Fin Fase 10                |
+
+Esta tabla está realineada por `ADR-0007` (Fase 4.5). Las capacidades de
+multi-tenancy y migración de datos previstas para versiones intermedias del
+DSL en revisiones anteriores quedan diferidas: se especificarán en RFCs
+propios cuando el alcance lo justifique, sin ocupar un slot numerado fijo
+hasta entonces. Esto evita prometer features que no tienen tracción
+verificada.
 
 ### 7.3 Ejemplo completo de schema (v1.0 target)
 
@@ -653,6 +692,146 @@ El módulo SSR existe para casos donde un frontend SPA es excesivo: dashboards i
 
 Este módulo es explícitamente *no* un competidor de React, Vue, Svelte o Next.js. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend con un frontend Next.js (u otro) que consume el cliente TypeScript generado.
 
+### 8.8 `ag-mail` — Comunicación transaccional (estándar diferido)
+
+Introducido por `ADR-0007` en la Fase 4.5. `ag-mail` es un módulo estándar
+**diferido**: tiene la madurez y el alcance de un estándar, pero NO se instala
+por defecto en los templates oficiales. Se incorpora cuando el proyecto
+requiere correo transaccional outbound (verificación de cuentas, magic links,
+recuperación de contraseña, alertas, notificaciones).
+
+El alcance v1 es **exclusivamente outbound**. `ag-mail` NO es un MTA, NO
+recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
+antispam, filtrado ni gestión de reputación de IP. Esta restricción es
+deliberada y está fijada en el ADR: las capacidades inbound y de servidor
+de correo completo son trabajo de un proyecto distinto, no de Anti-Gravital.
+
+El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
+sender SMTP nativo (coherente con The Shield). Los adapters de proveedor se
+declaran como features de Cargo (`--features resend,ses,postmark`) y cada
+uno implementa el mismo trait `MailSender`:
+
+```rust
+#[async_trait::async_trait]
+pub trait MailSender: Send + Sync {
+    async fn send(&self, msg: &Email) -> Result<MessageId, AgMailError>;
+    fn provider_name(&self) -> &'static str;
+    fn dns_requirements(&self, domain: &str) -> Vec<DnsRecordSpec>;
+}
+
+pub enum AgMail {
+    Native(SmtpSender),                // lettre + rustls
+    Adapter(Box<dyn MailSender>),      // Resend, SES, Postmark, ...
+}
+```
+
+El patrón Native | Adapter es idéntico al usado por `ag-storage`
+(`Native | S3`) y `ag-cache` (`moka | Redis`), reforzando la regla de
+interoperabilidad del proyecto: integrar proveedores dominantes, no
+reemplazarlos.
+
+Los **templates** se construyen con `askama` (ya utilizado por `ag-ui`) y se
+validan en build-time contra el `schema.ag`: si el `from` declarado no
+referencia un `domain` válido, si el archivo del template no existe o si
+las variables del HTML no coinciden con las `vars` tipadas declaradas, el
+compilador del DSL rechaza el build. Un correo mal formado deja de ser un
+bug de runtime y se convierte en un error de compilación. Este es el
+**diferenciador real** frente a Resend, no la entregabilidad: la
+entregabilidad es trabajo del proveedor; la corrección del contrato es
+trabajo del framework.
+
+La **cola asíncrona** acepta jobs con reintentos y backoff exponencial.
+Backend por defecto en memoria (Tokio task + canal). Backend opcional
+persistente vía `ag-data` (tabla de jobs) para sobrevivir reinicios.
+Integración opcional con `ag-realtime` para fan-out de eventos. Cada job
+emite métricas hacia `ag-observe`: `ag_mail_sent_total`,
+`ag_mail_failed_total`, `ag_mail_retry_total`, histograma de latencia.
+
+La **integración con `ag-auth`** es estrictamente unidireccional: `ag-auth`
+consume `ag-mail` invocando un trait pequeño que `ag-auth` define. `ag-mail`
+NO conoce a `ag-auth`. La sexta regla de la sección 5.3 documenta esta
+direccionalidad.
+
+Bloque `mail` del DSL v0.7 (ejemplo):
+
+```ag
+mail WelcomeEmail {
+    from "hello@plenty.market"      # debe referenciar un bloque domain
+    subject "Welcome to Plenty"
+    template "emails/welcome.html"  # debe existir
+    vars {
+        name String
+        activation_url String        # debe usarse en el HTML
+    }
+}
+```
+
+### 8.9 `ag-domains` — Gestión de dominios y TLS (opcional infra)
+
+Introducido por `ADR-0007` en la Fase 4.5. `ag-domains` es un módulo
+**opcional de infraestructura**: no todo backend administra DNS (muchos
+despliegan tras un proxy o PaaS que ya lo resuelve), pero cuando un proyecto
+quiere que `ag deploy` entregue una URL `https://miapi.example.com` con
+certificado válido en un comando, `ag-domains` es el módulo responsable.
+
+El módulo **NO es un registrador de dominios**: el dominio se compra
+externamente (Namecheap, Cloudflare Registrar, etc.) y se delega vía
+nameservers al proveedor configurado. `ag-domains` tampoco reemplaza
+Terraform ni Pulumi: para infraestructura compleja multi-cloud o gestión
+centralizada de zonas DNS arbitrarias, el proyecto debe usar las
+herramientas dominantes. La frontera está fijada en el ADR.
+
+El núcleo del módulo es el trait `DnsProvider`:
+
+```rust
+#[async_trait::async_trait]
+pub trait DnsProvider: Send + Sync {
+    async fn list_records(&self, zone: &str) -> Result<Vec<DnsRecord>, AgDomainsError>;
+    async fn upsert_record(&self, zone: &str, record: &DnsRecord) -> Result<(), AgDomainsError>;
+    async fn delete_record(&self, zone: &str, id: &str) -> Result<(), AgDomainsError>;
+    fn provider_name(&self) -> &'static str;
+}
+```
+
+Pequeño, versionado, con **tests de contrato** que todo adapter debe pasar.
+El adapter inicial es Cloudflare (autenticación por API token). El trait
+está diseñado para añadir Route53, Namecheap, DigitalOcean, etc. en
+iteraciones posteriores sin tocar la superficie pública.
+
+El **cliente ACME** (`instant-acme`) emite y renueva certificados de
+Let's Encrypt. Soporta el challenge DNS-01 (preferido, usa el propio
+`DnsProvider` para crear el TXT requerido) y HTTP-01 (alternativo). La
+renovación corre como tarea Tokio en segundo plano, vigilando expiración
+y renovando antes del umbral configurado. El almacenamiento de certificados
+es filesystem por defecto, o `ag-storage` opcional.
+
+La cooperación con `ag-mail` se materializa en `generate_mail_records`:
+`ag-mail` declara sus requisitos vía `MailSender::dns_requirements` y
+`ag-domains` los materializa como registros (SPF, DKIM, DMARC). Esta es una
+relación de **cooperación**, no de control: `ag-mail` no depende de
+`ag-domains`; un proyecto puede usar `ag-mail` con un adapter gestionado
+(Resend) sin que `ag-domains` participe.
+
+La **verificación de propagación** usa `hickory-resolver` para consultar
+múltiples resolvers públicos y confirmar que los registros propagaron antes
+de marcar una operación como exitosa. Esto bloquea `ag deploy` hasta que el
+dominio responde, evitando entregar URLs que el operador prometió pero que
+no resuelven todavía.
+
+Bloque `domain` del DSL v0.7 (ejemplo):
+
+```ag
+domain plenty.market {
+    provider "cloudflare"
+    tls { mode auto  acme true }
+    dns {
+        CNAME "api"     -> "ag-cloud-target"
+        TXT   "_dmarc"  -> "v=DMARC1; p=quarantine"
+    }
+    mail { spf auto  dkim auto  dmarc quarantine }
+}
+```
+
 
 ---
 
@@ -724,9 +903,9 @@ A partir de la versión 1.0 del framework, se publica un registro oficial en `pl
 
 ---
 
-## 10. Subsistema de despliegue (`ag-cloud`)
+## 10. Subsistema de despliegue (`ag-cloud` + `ag-domains`)
 
-Una de las correcciones estructurales más importantes derivadas del análisis crítico es que `ag-cloud` no es un competidor de Terraform ni de Kubernetes. Su rango objetivo es el mismo que cubren Railway, Fly.io, Render y Coolify: simplificar el despliegue de aplicaciones backend a entornos típicos sin obligar al equipo a operar infraestructura completa.
+Una de las correcciones estructurales más importantes derivadas del análisis crítico es que `ag-cloud` no es un competidor de Terraform ni de Kubernetes. Su rango objetivo es el mismo que cubren Railway, Fly.io, Render y Coolify: simplificar el despliegue de aplicaciones backend a entornos típicos sin obligar al equipo a operar infraestructura completa. Desde la Fase 4.5 (`ADR-0007`), `ag-cloud` coopera con `ag-domains` para resolver dominio, TLS y registros de correo dentro del propio flujo de `ag deploy`, sin reemplazar a los proveedores dominantes (Let's Encrypt, Cloudflare, Resend) y sin convertirse en un panel de hosting.
 
 ### 10.1 Filosofía de `ag-cloud`
 
@@ -801,6 +980,34 @@ El comando `ag deploy` ejecuta un pipeline estandarizado: validación del schema
 ### 10.5 Reverse proxy y TLS
 
 Para despliegues docker-compose, `ag-cloud` configura Caddy como reverse proxy con TLS automático. Caddy obtiene y renueva certificados Let's Encrypt sin configuración explícita. Para entornos donde TLS lo gestiona un balanceador externo (Cloudflare, AWS ALB), Caddy se desactiva.
+
+### 10.6 Integración con `ag-domains`
+
+Introducida por `ADR-0007`. Cuando un proyecto declara dominios en su contrato
+`.ag` (bloque `domain` del DSL v0.7), `ag deploy` resuelve un flujo de seis
+pasos coordinado con `ag-domains`:
+
+1. **Validar control del dominio.** Inserción de un registro TXT de verificación
+   vía el `DnsProvider` configurado y confirmación de su presencia.
+2. **Configurar DNS de aplicación.** `upsert_record` para apuntar el dominio al
+   target del despliegue (CNAME al host de Fly/Railway, o registros A/AAAA en
+   docker-compose).
+3. **Emitir o renovar TLS.** Cliente ACME contra Let's Encrypt (DNS-01
+   preferido). El certificado se almacena en filesystem o `ag-storage`.
+4. **Asociar el dominio al target.** Configurar el reverse proxy (Caddy en
+   docker-compose, fly cert en Fly, etc.) para servir el dominio con el
+   certificado emitido.
+5. **Materializar SPF/DKIM/DMARC** que `ag-mail` haya declarado en sus
+   `MailSender::dns_requirements`.
+6. **Verificar propagación** contra múltiples resolvers públicos antes de
+   marcar el despliegue como exitoso.
+
+`ag-cloud` **NO depende rígidamente** de `ag-domains` en todos los targets:
+si el proyecto no declara dominios, el flujo se omite. Si el target es uno
+donde el TLS lo gestiona un balanceador externo (Cloudflare en frente,
+AWS ALB), `ag-cloud` puede saltarse el paso 3 sin afectar el resto del
+pipeline. Esta flexibilidad es lo que mantiene a `ag-domains` como módulo
+opcional, no como pieza obligatoria del runtime.
 
 ---
 
@@ -1075,6 +1282,13 @@ Aunque Rust elimina muchas categorías de vulnerabilidades, no elimina las lógi
 | WebAuthn                      | Estándar W3C para autenticación con factores hardware (passkeys, security keys).                                          |
 | Zero-copy                     | Transferencia de datos sin copiarlos en memoria. Reduce overhead de CPU.                                                  |
 | Zero-overhead abstraction     | Principio de Rust: una abstracción no debe costar rendimiento frente al código manual equivalente.                       |
+| ACME                          | Automatic Certificate Management Environment. Protocolo de emisión y renovación automática de certificados TLS (Let's Encrypt). Usado por `ag-domains` desde la Fase 4.5. |
+| DKIM                          | DomainKeys Identified Mail. Mecanismo de autenticación de correo por firma criptográfica del dominio remitente. Generado por `ag-domains` para `ag-mail`. |
+| SPF                           | Sender Policy Framework. Registro DNS que enumera servidores autorizados a enviar correo en nombre del dominio. Generado por `ag-domains` para `ag-mail`. |
+| DMARC                         | Domain-based Message Authentication, Reporting and Conformance. Política que indica cómo tratar correo que falla SPF o DKIM. Generado por `ag-domains`. |
+| MTA                           | Mail Transfer Agent. Servidor de correo completo (Postfix, Stalwart). `ag-mail` v1 **NO es un MTA**: solo envía outbound, no recibe inbound. |
+| DnsProvider                   | Trait de `ag-domains` que abstrae proveedores DNS mediante adapters. Adapter inicial: Cloudflare. Diseñado para añadir Route53, Namecheap, etc. con tests de contrato. |
+| Estándar diferido             | Clasificación de crate introducida por `ADR-0007`. Crate con madurez de estándar que NO se instala por defecto en templates oficiales. `ag-mail` es el primer caso. |
 
 ---
 

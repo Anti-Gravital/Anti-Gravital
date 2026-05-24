@@ -44,6 +44,13 @@
 | WebAuthn                      | Estándar W3C para autenticación con factores hardware (passkeys, security keys).                                          |
 | Zero-copy                     | Transferencia de datos sin copiarlos en memoria. Reduce overhead de CPU.                                                  |
 | Zero-overhead abstraction     | Principio de Rust: una abstracción no debe costar rendimiento frente al código manual equivalente.                       |
+| ACME                          | Automatic Certificate Management Environment. Protocolo de emisión y renovación automática de certificados TLS (Let's Encrypt). Usado por `ag-domains` desde la Fase 4.5. |
+| DKIM                          | DomainKeys Identified Mail. Mecanismo de autenticación de correo por firma criptográfica del dominio remitente. Generado por `ag-domains` para `ag-mail`. |
+| SPF                           | Sender Policy Framework. Registro DNS que enumera servidores autorizados a enviar correo en nombre del dominio. Generado por `ag-domains` para `ag-mail`. |
+| DMARC                         | Domain-based Message Authentication, Reporting and Conformance. Política que indica cómo tratar correo que falla SPF o DKIM. Generado por `ag-domains`. |
+| MTA                           | Mail Transfer Agent. Servidor de correo completo (Postfix, Stalwart). `ag-mail` v1 **NO es un MTA**: solo envía outbound, no recibe inbound. |
+| DnsProvider                   | Trait de `ag-domains` que abstrae proveedores DNS mediante adapters. Adapter inicial: Cloudflare. Diseñado para añadir Route53, Namecheap, etc. con tests de contrato. |
+| Estándar diferido             | Clasificación de crate introducida por `ADR-0007`. Crate con madurez de estándar que NO se instala por defecto en templates oficiales. `ag-mail` es el primer caso. |
 
 ---
 

@@ -20,9 +20,11 @@ workspace = true
 [features]
 default = []
 persistent = ["dep:ag-data"]
+mail = ["dep:ag-mail"]
 
 [dependencies]
 ag-data = { workspace = true, optional = true }
+ag-mail = { path = "../ag-mail", version = "0.0.0", optional = true, features = ["smtp"] }
 blake3 = { workspace = true }
 base64ct = { workspace = true }
 getrandom = { workspace = true }
@@ -44,6 +46,7 @@ ed25519-dalek = { workspace = true }
 url           = { workspace = true }
 
 [dev-dependencies]
+ag-mail = { path = "../ag-mail", version = "0.0.0", features = ["test-utils"] }
 tokio = { workspace = true }
 testcontainers = { workspace = true }
 testcontainers-modules = { workspace = true }

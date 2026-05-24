@@ -23,6 +23,8 @@
 pub mod api_keys;
 pub mod config;
 pub mod jwt;
+#[cfg(feature = "mail")]
+pub mod mailer;
 pub mod oauth;
 pub mod refresh;
 pub mod webauthn;
@@ -30,6 +32,8 @@ pub mod webauthn;
 pub use api_keys::{generate as generate_api_key, verify as verify_api_key};
 pub use config::{AuthConfig, AuthConfigError};
 pub use jwt::{Claims, JwtError, JwtSigner};
+#[cfg(feature = "mail")]
+pub use mailer::{AuthMailer, AuthMailerError};
 pub use oauth::{OAuthClient, OAuthError, OAuthProvider, OAuthUser};
 pub use refresh::RefreshBlacklist;
 pub use webauthn::{
@@ -47,6 +51,9 @@ pub struct AgAuth {
     pub oauth: Option<oauth::OAuthClient>,
     /// Blacklist de refresh tokens.
     pub refresh_blacklist: std::sync::Arc<refresh::RefreshBlacklist>,
+    /// Mailer para verificacion, recuperacion y magic links. Requiere feature `mail`.
+    #[cfg(feature = "mail")]
+    pub mailer: Option<std::sync::Arc<mailer::AuthMailer>>,
 }
 
 impl AgAuth {
@@ -84,7 +91,19 @@ impl AgAuth {
             webauthn: webauthn_rp,
             oauth: oauth_client,
             refresh_blacklist: std::sync::Arc::new(refresh::RefreshBlacklist::new()),
+            #[cfg(feature = "mail")]
+            mailer: None,
         })
+    }
+
+    /// Inyecta un `AuthMailer` en la instancia.
+    ///
+    /// Disponible solo con la feature `mail`. Devuelve `self` para
+    /// permitir encadenamiento: `AgAuth::new(...)?.with_mail(mailer)`.
+    #[cfg(feature = "mail")]
+    pub fn with_mail(mut self, mailer: std::sync::Arc<mailer::AuthMailer>) -> Self {
+        self.mailer = Some(mailer);
+        self
     }
 
     /// Genera una nueva API key y su hash BLAKE3.

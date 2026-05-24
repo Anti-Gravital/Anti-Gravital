@@ -128,7 +128,129 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
+    // v0.7 validaciones — bloques mail y domain
+    check_mail_blocks(schema, &mut diags);
+    check_domain_blocks(schema, &mut diags);
+
     diags
+}
+
+/// Valida los bloques `mail`: proveedor reconocido, `from` con arroba, templates con vars.
+fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    const VALID_PROVIDERS: &[&str] = &["smtp", "resend", "ses", "postmark"];
+
+    let mut seen_names: HashMap<&str, usize> = HashMap::new();
+    for mail in &schema.mails {
+        let name = mail.name.value.as_str();
+        if let Some(prev) = seen_names.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                mail.name.span.clone(),
+                format!("nombre de bloque mail duplicado: '{name}'"),
+                format!("el primer 'mail {name}' esta en el byte {prev}"),
+            ));
+        } else {
+            seen_names.insert(name, mail.name.span.start);
+        }
+
+        if let Some(ref provider) = mail.provider {
+            if !VALID_PROVIDERS.contains(&provider.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    mail.span.clone(),
+                    format!("proveedor de correo desconocido: '{provider}'"),
+                    format!(
+                        "los proveedores validos son: {}",
+                        VALID_PROVIDERS.join(", ")
+                    ),
+                ));
+            }
+        } else {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                mail.span.clone(),
+                format!("el bloque mail '{}' no declara 'provider'", mail.name.value),
+                "agrega 'provider smtp' (u otro proveedor) al bloque",
+            ));
+        }
+
+        if let Some(ref from) = mail.from {
+            if !from.contains('@') {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    mail.span.clone(),
+                    format!(
+                        "el campo 'from' del bloque mail '{}' no parece un email: '{from}'",
+                        mail.name.value
+                    ),
+                    "usa un email valido, e.g. \"noreply@tu-dominio.com\"",
+                ));
+            }
+        }
+
+        for tpl in &mail.templates {
+            if tpl.vars.is_empty() && tpl.subject.as_deref().unwrap_or("").contains("{{") {
+                diags.push(Diagnostic::warning(
+                    tpl.span.clone(),
+                    format!(
+                        "template '{}' usa variables en el subject pero no declara 'vars'",
+                        tpl.name.value
+                    ),
+                ));
+            }
+        }
+    }
+}
+
+/// Valida los bloques `domain`: proveedor reconocido, FQDN con punto, politica DMARC valida.
+fn check_domain_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
+    const VALID_DNS_PROVIDERS: &[&str] = &["cloudflare"];
+    const VALID_DMARC: &[&str] = &["none", "quarantine", "reject"];
+
+    let mut seen_names: HashMap<&str, usize> = HashMap::new();
+    for domain in &schema.domains {
+        let name = domain.name.value.as_str();
+        if let Some(prev) = seen_names.get(name) {
+            diags.push(Diagnostic::semantic_error_with_hint(
+                domain.name.span.clone(),
+                format!("nombre de bloque domain duplicado: '{name}'"),
+                format!("el primer 'domain {name}' esta en el byte {prev}"),
+            ));
+        } else {
+            seen_names.insert(name, domain.name.span.start);
+        }
+
+        if let Some(ref provider) = domain.provider {
+            if !VALID_DNS_PROVIDERS.contains(&provider.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    domain.span.clone(),
+                    format!("proveedor DNS desconocido: '{provider}'"),
+                    format!(
+                        "los proveedores validos son: {}",
+                        VALID_DNS_PROVIDERS.join(", ")
+                    ),
+                ));
+            }
+        }
+
+        if let Some(ref fqdn) = domain.domain_name {
+            if !fqdn.contains('.') {
+                diags.push(Diagnostic::warning(
+                    domain.span.clone(),
+                    format!(
+                        "el nombre de dominio '{}' no parece un FQDN valido (debe contener '.')",
+                        fqdn
+                    ),
+                ));
+            }
+        }
+
+        if let Some(ref policy) = domain.dmarc_policy {
+            if !VALID_DMARC.contains(&policy.as_str()) {
+                diags.push(Diagnostic::semantic_error_with_hint(
+                    domain.span.clone(),
+                    format!("politica DMARC invalida: '{policy}'"),
+                    "los valores validos son: none, quarantine, reject",
+                ));
+            }
+        }
+    }
 }
 
 fn check_duplicate_model_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
@@ -1158,5 +1280,111 @@ request CreateUser {
             errors.is_empty(),
             "unexpected errors in request: {errors:?}"
         );
+    }
+
+    // ---- Tests semanticos DSL v0.7 ----
+
+    #[test]
+    fn v07_valid_mail_block_no_errors() {
+        let src = r#"
+mail transaccional {
+    provider smtp
+    from "noreply@ejemplo.com"
+    template bienvenida {
+        subject "Hola {{nombre}}"
+        vars [nombre]
+    }
+}
+"#;
+        let (_, diags) = compile(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(errors.is_empty(), "errores inesperados: {errors:?}");
+    }
+
+    #[test]
+    fn v07_mail_block_unknown_provider_is_error() {
+        let src = r#"
+mail transaccional {
+    provider mailgun
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("mailgun")));
+    }
+
+    #[test]
+    fn v07_mail_block_missing_provider_is_error() {
+        let src = r#"
+mail transaccional {
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("provider")));
+    }
+
+    #[test]
+    fn v07_mail_block_invalid_from_is_error() {
+        let src = r#"
+mail transaccional {
+    provider smtp
+    from "no-es-un-email"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("from")));
+    }
+
+    #[test]
+    fn v07_domain_block_valid_no_errors() {
+        let src = r#"
+domain prod {
+    name "ejemplo.com"
+    provider cloudflare
+    dkim_selector "s1"
+    dmarc_policy quarantine
+    dmarc_rua "admin@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        let errors: Vec<_> = diags.iter().filter(|d| d.is_error()).collect();
+        assert!(errors.is_empty(), "errores inesperados: {errors:?}");
+    }
+
+    #[test]
+    fn v07_domain_block_invalid_dmarc_is_error() {
+        let src = r#"
+domain prod {
+    name "ejemplo.com"
+    provider cloudflare
+    dmarc_policy strict
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("strict")));
+    }
+
+    #[test]
+    fn v07_domain_block_unknown_provider_is_error() {
+        let src = r#"
+domain prod {
+    name "ejemplo.com"
+    provider route53
+    dmarc_policy none
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("route53")));
     }
 }

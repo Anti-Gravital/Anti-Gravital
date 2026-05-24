@@ -13,8 +13,9 @@
 use chumsky::prelude::*;
 
 use crate::ast::{
-    Annotation, AuthMode, Config, DefaultValue, EndpointDef, ErrorDef, EventDef, FieldDef,
-    FieldType, HttpMethod, ModelDef, RequestDef, ResponseDef, Schema, Spanned,
+    Annotation, AuthMode, Config, DefaultValue, DomainBlock, EndpointDef, ErrorDef, EventDef,
+    FieldDef, FieldType, HttpMethod, MailBlock, MailTemplateDef, ModelDef, RequestDef, ResponseDef,
+    Schema, Spanned,
 };
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
@@ -53,6 +54,8 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         error_def_parser().map(SchemaItem::Error),
         endpoint_parser().map(SchemaItem::Endpoint),
         event_parser().map(SchemaItem::Event),
+        mail_parser().map(SchemaItem::Mail),
+        domain_parser().map(SchemaItem::Domain),
     ))
     .recover_with(skip_then_retry_until([
         Token::Model,
@@ -62,6 +65,8 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         Token::ErrorKw,
         Token::Endpoint,
         Token::Event,
+        Token::Mail,
+        Token::Domain,
     ]));
 
     item.repeated().then_ignore(end()).map(|items| {
@@ -75,6 +80,8 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
                 SchemaItem::Error(e) => schema.errors.push(e),
                 SchemaItem::Endpoint(ep) => schema.endpoints.push(ep),
                 SchemaItem::Event(ev) => schema.events.push(ev),
+                SchemaItem::Mail(mb) => schema.mails.push(mb),
+                SchemaItem::Domain(db) => schema.domains.push(db),
             }
         }
         schema
@@ -90,6 +97,8 @@ enum SchemaItem {
     Error(ErrorDef),
     Endpoint(EndpointDef),
     Event(EventDef),
+    Mail(MailBlock),
+    Domain(DomainBlock),
 }
 
 /// Parser de bloque `config { ... }`.
@@ -571,6 +580,168 @@ fn event_parser() -> impl Parser<Token, crate::ast::EventDef, Error = ParseErr> 
 enum EventField {
     Payload(Spanned<String>),
     Retain(Spanned<i64>),
+}
+
+// ============================================================
+// DSL v0.7 — parsers mail y domain
+// ============================================================
+
+/// Parser del bloque `template nombre { ... }` dentro de un bloque `mail`.
+fn template_parser() -> impl Parser<Token, MailTemplateDef, Error = ParseErr> {
+    let tpl_name = just(Token::Template)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del template"))
+        .map_with_span(|s, span: Span| Spanned::new(s, span));
+
+    // Par clave-valor del cuerpo del template.
+    let tpl_field = select! { Token::Ident(k) => k }
+        .then(choice((
+            select! { Token::StringLit(v) => v },
+            select! { Token::Ident(v) => v },
+        )))
+        .map(|(k, v)| (k, v));
+
+    // `vars [nombre, token, ...]`
+    let vars_field = select! { Token::Ident(k) if k == "vars" => () }.ignore_then(
+        select! { Token::Ident(s) => s }
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .collect::<Vec<_>>()
+            .delimited_by(just(Token::LBracket), just(Token::RBracket)),
+    );
+
+    enum TplEntry {
+        Kv(String, String),
+        Vars(Vec<String>),
+    }
+
+    let entry = choice((
+        vars_field.map(TplEntry::Vars),
+        tpl_field.map(|(k, v)| TplEntry::Kv(k, v)),
+    ));
+
+    tpl_name
+        .then(
+            entry
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, entries), span: Span| {
+            let mut subject = None;
+            let mut vars = Vec::new();
+            for entry in entries {
+                match entry {
+                    TplEntry::Kv(k, v) if k == "subject" => subject = Some(v),
+                    TplEntry::Kv(_, _) => {}
+                    TplEntry::Vars(vs) => vars = vs,
+                }
+            }
+            MailTemplateDef {
+                name,
+                subject,
+                vars,
+                span,
+            }
+        })
+        .labelled("bloque template")
+}
+
+/// Parser del bloque `mail nombre { ... }`.
+fn mail_parser() -> impl Parser<Token, MailBlock, Error = ParseErr> {
+    let mail_name = just(Token::Mail)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del bloque mail"))
+        .map_with_span(|s, span: Span| Spanned::new(s, span));
+
+    let kv_field = select! { Token::Ident(k) => k }.then(choice((
+        select! { Token::StringLit(v) => v },
+        select! { Token::Ident(v) => v },
+    )));
+
+    enum MailEntry {
+        Kv(String, String),
+        Template(MailTemplateDef),
+    }
+
+    let entry = choice((
+        template_parser().map(MailEntry::Template),
+        kv_field.map(|(k, v)| MailEntry::Kv(k, v)),
+    ));
+
+    mail_name
+        .then(
+            entry
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, entries), span: Span| {
+            let mut provider = None;
+            let mut from = None;
+            let mut templates = Vec::new();
+            for entry in entries {
+                match entry {
+                    MailEntry::Kv(k, v) if k == "provider" => provider = Some(v),
+                    MailEntry::Kv(k, v) if k == "from" => from = Some(v),
+                    MailEntry::Kv(_, _) => {}
+                    MailEntry::Template(t) => templates.push(t),
+                }
+            }
+            MailBlock {
+                name,
+                provider,
+                from,
+                templates,
+                span,
+            }
+        })
+        .labelled("bloque mail")
+}
+
+/// Parser del bloque `domain nombre { ... }`.
+fn domain_parser() -> impl Parser<Token, DomainBlock, Error = ParseErr> {
+    let domain_name = just(Token::Domain)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del bloque domain"))
+        .map_with_span(|s, span: Span| Spanned::new(s, span));
+
+    let kv_field = select! { Token::Ident(k) => k }.then(choice((
+        select! { Token::StringLit(v) => v },
+        select! { Token::Ident(v) => v },
+    )));
+
+    domain_name
+        .then(
+            kv_field
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, fields), span: Span| {
+            let mut domain_name_val = None;
+            let mut provider = None;
+            let mut dkim_selectors = Vec::new();
+            let mut dmarc_policy = None;
+            let mut dmarc_rua = None;
+            for (k, v) in fields {
+                match k.as_str() {
+                    "name" => domain_name_val = Some(v),
+                    "provider" => provider = Some(v),
+                    "dkim_selector" => dkim_selectors.push(v),
+                    "dmarc_policy" => dmarc_policy = Some(v),
+                    "dmarc_rua" => dmarc_rua = Some(v),
+                    _ => {}
+                }
+            }
+            DomainBlock {
+                name,
+                domain_name: domain_name_val,
+                provider,
+                dkim_selectors,
+                dmarc_policy,
+                dmarc_rua,
+                span,
+            }
+        })
+        .labelled("bloque domain")
 }
 
 // ---- Conversion de errores de chumsky a Diagnostic ------------------
@@ -1094,5 +1265,103 @@ model Country {
         let ep = &schema.endpoints[0];
         assert_eq!(ep.emits.len(), 1);
         assert_eq!(ep.emits[0].value, "user.created");
+    }
+
+    // ---- Tests DSL v0.7 ----
+
+    #[test]
+    fn parse_mail_block_minimal() {
+        let src = r#"
+mail transaccional {
+    provider smtp
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.mails.len(), 1);
+        let mail = &schema.mails[0];
+        assert_eq!(mail.name.value, "transaccional");
+        assert_eq!(mail.provider.as_deref(), Some("smtp"));
+        assert_eq!(mail.from.as_deref(), Some("noreply@ejemplo.com"));
+        assert!(mail.templates.is_empty());
+    }
+
+    #[test]
+    fn parse_mail_block_with_templates() {
+        let src = r#"
+mail transaccional {
+    provider resend
+    from "noreply@ejemplo.com"
+
+    template bienvenida {
+        subject "Bienvenido {{nombre}}"
+        vars [nombre, token]
+    }
+
+    template recuperacion {
+        subject "Recupera tu acceso, {{nombre}}"
+        vars [nombre, link]
+    }
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        let mail = &schema.mails[0];
+        assert_eq!(mail.templates.len(), 2);
+        assert_eq!(mail.templates[0].name.value, "bienvenida");
+        assert_eq!(
+            mail.templates[0].subject.as_deref(),
+            Some("Bienvenido {{nombre}}")
+        );
+        assert_eq!(mail.templates[0].vars, vec!["nombre", "token"]);
+        assert_eq!(mail.templates[1].name.value, "recuperacion");
+        assert_eq!(mail.templates[1].vars, vec!["nombre", "link"]);
+    }
+
+    #[test]
+    fn parse_domain_block() {
+        let src = r#"
+domain mi_dominio {
+    name "ejemplo.com"
+    provider cloudflare
+    dkim_selector "s1"
+    dmarc_policy quarantine
+    dmarc_rua "admin@ejemplo.com"
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.domains.len(), 1);
+        let domain = &schema.domains[0];
+        assert_eq!(domain.name.value, "mi_dominio");
+        assert_eq!(domain.domain_name.as_deref(), Some("ejemplo.com"));
+        assert_eq!(domain.provider.as_deref(), Some("cloudflare"));
+        assert_eq!(domain.dkim_selectors, vec!["s1"]);
+        assert_eq!(domain.dmarc_policy.as_deref(), Some("quarantine"));
+        assert_eq!(domain.dmarc_rua.as_deref(), Some("admin@ejemplo.com"));
+    }
+
+    #[test]
+    fn parse_mail_and_domain_coexist() {
+        let src = r#"
+mail notif {
+    provider smtp
+    from "ops@ejemplo.com"
+}
+domain prod {
+    name "ejemplo.com"
+    provider cloudflare
+    dkim_selector "s1"
+}
+"#;
+        let (ast, diags) = parse(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
+        let schema = ast.unwrap();
+        assert_eq!(schema.mails.len(), 1);
+        assert_eq!(schema.domains.len(), 1);
     }
 }

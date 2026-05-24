@@ -35,9 +35,16 @@ jobs:
       - name: Verify SHA-256 of master documents
         run: |
           set -euo pipefail
+          # Los hashes deben mantenerse en sync con docs/master/VERSION.md.
+          # Cambios a los maestros requieren ADR aprobado y actualizacion
+          # coordinada de VERSION.md y este workflow en el mismo PR.
+          # Estado actual: suplemento Fase 4.5 (ADR-0007), 2026-05-23.
+          # Blueprint PDF queda en v4.0 como deuda explicita pendiente de
+          # re-export a v4.1; los maestros markdown gobiernan (VERSION.md
+          # politica #4).
           expected_blueprint="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
-          expected_arch="c6f16879cd8c4d7772dbe2911043e31cce9196a31f75a235fdd8bcf72afd67ae"
-          expected_road="534f15ac103cdd45fdca7e91f1c5bd0e3a81527d72c59b0a25eb0425a02a80d4"
+          expected_arch="5f56cadcf03f49289b7f4a141eccf4c6289543caf65041f38b54a4830b6bd76d"
+          expected_road="ff5e322f568e2ecf416d09235c91d8f4eb004531b6844f513a68b63042b64590"
           got_blueprint="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"
           got_road="$(sha256sum docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md | awk '{print $1}')"

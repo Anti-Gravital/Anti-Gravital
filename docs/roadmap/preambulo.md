@@ -39,6 +39,7 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 | 2    | The Core MVP + roundtrip                   | 2 meses           | Pendiente |
 | 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Pendiente |
 | 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Pendiente |
+| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Pendiente |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Pendiente |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
@@ -46,8 +47,8 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 | 9    | Sistema de plugins WASI                    | 2 meses           | Pendiente |
 | 10   | Endurecimiento y hito 1.0                  | 3 meses           | Pendiente |
 
-**Duración total estimada:** 24–28 meses desde el inicio.
-**Hito de versión beta pública (0.5):** final de fase 5 (~14 meses).
-**Hito de versión 1.0 estable:** final de fase 10 (~28 meses).
+**Duración total estimada:** 25–30 meses desde el inicio.
+**Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
+**Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
 
 ---

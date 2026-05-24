@@ -1,4 +1,4 @@
-//! Adapter Resend (https://resend.com).
+//! Adapter Resend (<https://resend.com>).
 //!
 //! Implementa `MailSender` via la API REST de Resend. Solo requiere
 //! un token de API; no tiene dependencias nativas de correo.

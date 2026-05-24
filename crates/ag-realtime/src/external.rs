@@ -117,10 +117,7 @@ impl NatsExternalClient {
 fn build_connect_options(config: &RealtimeConfig) -> Result<ConnectOptions, NatsError> {
     let mut opts = ConnectOptions::new();
 
-    if config.nats_tls
-        || config.nats_tls_ca_path.is_some()
-        || config.nats_tls_cert_path.is_some()
-    {
+    if config.nats_tls || config.nats_tls_ca_path.is_some() || config.nats_tls_cert_path.is_some() {
         opts = opts.require_tls(true);
     }
 

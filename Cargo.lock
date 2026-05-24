@@ -153,9 +153,12 @@ version = "0.0.0"
 dependencies = [
  "ag-auth",
  "ag-cache",
+ "ag-domains",
+ "ag-mail",
  "ag-observe",
  "ag-realtime",
  "ag-storage",
+ "async-trait",
  "bytes",
  "ed25519-dalek",
  "getrandom 0.2.17",

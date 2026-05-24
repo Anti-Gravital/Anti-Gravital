@@ -17,10 +17,12 @@
 
 pub mod config;
 pub mod image;
+pub mod signed;
 pub mod store;
 
 pub use config::{StorageBackend, StorageConfig};
 pub use image::ImageProcessor;
+pub use signed::{sign_url, verify_signed_url, SignedUrlError};
 pub use store::AgStore;
 
 use thiserror::Error;
@@ -134,6 +136,23 @@ impl AgStorage {
     /// Retorna un [`ImageProcessor`] para procesar imagenes.
     pub fn processor(&self) -> ImageProcessor {
         ImageProcessor::new()
+    }
+
+    /// Genera un token firmado para acceso temporal a `key`.
+    ///
+    /// `ttl_secs`: tiempo de vida en segundos. Error si `sign_secret` esta vacio.
+    pub fn signed_url(&self, key: &str, ttl_secs: u64) -> Result<String, SignedUrlError> {
+        let expires_at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            + ttl_secs;
+        crate::signed::sign_url(&self.config.sign_secret, key, expires_at)
+    }
+
+    /// Verifica que el token permite acceso a `key`.
+    pub fn verify_signed_url(&self, key: &str, token: &str) -> Result<(), SignedUrlError> {
+        crate::signed::verify_signed_url(&self.config.sign_secret, key, token)
     }
 }
 

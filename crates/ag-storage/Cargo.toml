@@ -39,6 +39,10 @@ tower         = { workspace = true }
 tower-http    = { workspace = true }
 tracing       = { workspace = true }
 object_store  = { version = "0.11", features = ["aws"], optional = true }
+hmac          = { workspace = true }
+sha2          = { workspace = true }
+base64ct      = { workspace = true }
+futures-util  = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

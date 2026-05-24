@@ -42,6 +42,9 @@ pub struct StorageConfig {
     pub secret_key: Option<String>,
     /// Nombre del bucket S3/MinIO. Default: "ag-storage".
     pub bucket: String,
+    /// Clave secreta HMAC para firmar URLs. Vacia = URLs firmadas deshabilitadas.
+    /// Variable: `STORAGE_SIGN_SECRET`.
+    pub sign_secret: String,
 }
 
 impl Default for StorageConfig {
@@ -59,6 +62,7 @@ impl Default for StorageConfig {
             access_key: None,
             secret_key: None,
             bucket: "ag-storage".into(),
+            sign_secret: String::new(),
         }
     }
 }
@@ -127,6 +131,7 @@ impl StorageConfig {
             access_key: std::env::var("AWS_ACCESS_KEY_ID").ok(),
             secret_key: std::env::var("AWS_SECRET_ACCESS_KEY").ok(),
             bucket: std::env::var("STORAGE_BUCKET").unwrap_or_else(|_| "ag-storage".into()),
+            sign_secret: std::env::var("STORAGE_SIGN_SECRET").unwrap_or_default(),
         }
     }
 }
@@ -171,5 +176,19 @@ mod tests {
             None => std::env::remove_var("STORAGE_SERVER"),
         }
         assert!(cfg.server_mode);
+    }
+
+    #[test]
+    fn config_sign_secret_default_empty() {
+        let cfg = StorageConfig::default();
+        assert!(cfg.sign_secret.is_empty());
+    }
+
+    #[test]
+    fn config_from_env_reads_sign_secret() {
+        std::env::set_var("STORAGE_SIGN_SECRET", "my-secret-key");
+        let cfg = StorageConfig::from_env();
+        std::env::remove_var("STORAGE_SIGN_SECRET");
+        assert_eq!(cfg.sign_secret, "my-secret-key");
     }
 }

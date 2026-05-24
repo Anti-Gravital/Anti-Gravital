@@ -25,6 +25,7 @@ tracing = { workspace = true }
 axum = { workspace = true }
 futures-util = { workspace = true }
 rmp-serde = { workspace = true }
+tokio-stream = { workspace = true }
 async-nats = { workspace = true, optional = true }
 
 [features]
@@ -32,4 +33,5 @@ nats-external = ["dep:async-nats"]
 
 [dev-dependencies]
 tokio-test = { workspace = true }
-tokio = { workspace = true, features = ["test-util"] }
+tokio = { workspace = true, features = ["test-util", "fs"] }
+rcgen = { workspace = true }

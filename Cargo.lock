@@ -165,10 +165,12 @@ dependencies = [
  "async-nats",
  "axum 0.7.9",
  "futures-util",
+ "rcgen",
  "rmp-serde",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-stream",
  "tokio-test",
  "tracing",
 ]

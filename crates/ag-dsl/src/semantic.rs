@@ -189,7 +189,7 @@ fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
                     .iter()
                     .filter_map(|d| d.domain_name.as_deref())
                     .collect();
-                if !known.is_empty() && !known.iter().any(|d| *d == hostname) {
+                if !known.is_empty() && !known.contains(&hostname) {
                     diags.push(Diagnostic::warning(
                         mail.span.clone(),
                         format!(

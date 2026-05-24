@@ -286,7 +286,9 @@ Se favorece:
 
 ## 14. Regla de crates
 
-La separacion es estricta:
+La separacion es estricta. El ecosistema tiene 17 crates clasificados en
+cuatro niveles. La clasificacion "estandar diferido" fue introducida por
+`ADR-0007` (Fase 4.5):
 
 Nucleo:
 
@@ -304,6 +306,14 @@ Estandar:
 - `ag-storage`
 - `ag-observe`
 
+Estandar diferido (madurez de estandar, no instalado por defecto en
+templates oficiales; se incorpora cuando el proyecto lo necesita):
+
+- `ag-mail` — comunicacion transaccional outbound + adapters. Solo
+  outbound en v1. NO es un MTA. Consumido por `ag-auth` para
+  verificacion, recuperacion y magic links. `ag-mail` NO depende de
+  `ag-auth` (sexta regla de dependencias).
+
 Opcionales:
 
 - `ag-ui`
@@ -311,6 +321,14 @@ Opcionales:
 - `ag-ai`
 - `ag-mobile`
 - `ag-migrate`
+
+Opcionales de infraestructura:
+
+- `ag-domains` — gestion DNS via trait `DnsProvider` + adapters
+  (Cloudflare), certificados ACME (Let's Encrypt), generacion
+  SPF/DKIM/DMARC. NO es registrador. NO reemplaza Terraform. Consumido
+  opcionalmente por `ag-cloud` durante `ag deploy` (septima regla de
+  dependencias).
 
 ---
 

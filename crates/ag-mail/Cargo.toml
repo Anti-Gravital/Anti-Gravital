@@ -20,13 +20,13 @@ workspace = true
 [features]
 # Sender SMTP nativo (lettre + rustls) - activo por defecto.
 default = ["smtp", "templates", "metrics"]
-smtp = []
+smtp = ["dep:lettre"]
 templates = []
-metrics = []
+metrics = ["dep:metrics"]
 # Adapters de proveedor - opcionales (cargo features) para no inflar el binario.
-resend = []
-ses = []
-postmark = []
+resend = ["dep:reqwest"]
+ses = ["dep:reqwest"]
+postmark = ["dep:reqwest"]
 # Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
 queue-persistent = []
 
@@ -39,5 +39,15 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
+# SMTP nativo
+lettre = { workspace = true, optional = true }
+
+# Adapters HTTP (Resend, SES, Postmark)
+reqwest = { workspace = true, optional = true }
+
+# Metricas
+metrics = { workspace = true, optional = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
+wiremock = { workspace = true }

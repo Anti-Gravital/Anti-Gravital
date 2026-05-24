@@ -29,9 +29,9 @@
 
 pub mod error;
 pub mod message;
+pub mod metrics;
+pub mod queue;
 pub mod sender;
 pub mod template;
-pub mod queue;
-pub mod metrics;
 
 pub use error::AgMailError;

@@ -33,6 +33,7 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 | 2    | The Core MVP + roundtrip                   | 2 meses           | Pendiente |
 | 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Pendiente |
 | 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Pendiente |
+| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Pendiente |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Pendiente |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
@@ -40,9 +41,15 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 | 9    | Sistema de plugins WASI                    | 2 meses           | Pendiente |
 | 10   | Endurecimiento y hito 1.0                  | 3 meses           | Pendiente |
 
-**Duración total estimada:** 24–28 meses desde el inicio.
-**Hito de versión beta pública (0.5):** final de fase 5 (~14 meses).
-**Hito de versión 1.0 estable:** final de fase 10 (~28 meses).
+**Duración total estimada:** 25–30 meses desde el inicio.
+**Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
+**Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
+
+**Nota sobre la Fase 4.5.** La Fase 4.5 es una fase **aditiva** introducida por
+`ADR-0007` después de cerrar la Fase 4. No modifica el alcance ni los
+entregables de la Fase 4 ya completada. No adelanta el hito v0.5 BETA, que
+permanece al final de la Fase 5. La cuenta del ecosistema pasa de 15 a 17
+crates con la incorporación de `ag-mail` y `ag-domains`.
 
 ---
 
@@ -258,6 +265,97 @@ El riesgo secundario son los mensajes de error del compilador. Un compilador con
 ### 4.4 Riesgos de la fase
 
 El riesgo principal es la fragmentación del esfuerzo entre cinco módulos paralelos. La mitigación es secuenciar la implementación: primero auth (bloquea muchos casos de uso), luego data avanzado, luego realtime, luego cache, luego storage, luego observe.
+
+---
+
+## Fase 4.5 — `ag-mail` + `ag-domains`: comunicación y dominios
+
+**Objetivo.** Añadir capacidades operativas de comunicación transaccional, DNS,
+TLS y dominios sin sobrecargar la Fase 4 ni retrasar los módulos estándar.
+Prepara el terreno para que `ag-cloud` (Fase 5) despliegue aplicaciones con
+dominio, certificado y correo transaccional usando una experiencia integrada.
+La introducción de esta fase está oficializada en `ADR-0007`.
+
+**Duración:** 1–2 meses.
+
+### 4.5.1 Criterios de entrada
+
+- [ ] Fase 4 completada con todos sus criterios de salida marcados.
+- [ ] `ag-auth` expone hooks/eventos para verificación de correo, recuperación
+  de contraseña y magic links.
+- [ ] `ag-observe` registra métricas y trazas de jobs asíncronos.
+- [ ] RFC aprobado para el alcance inicial de `ag-mail`.
+- [ ] RFC aprobado para el alcance inicial de `ag-domains`.
+
+### 4.5.2 Entregables
+
+- [ ] Crate `ag-mail` (estándar diferido): sender SMTP outbound nativo
+  (`lettre` + `rustls`) más trait `MailSender` con adapters (Resend, SES,
+  Postmark) como features de Cargo.
+- [ ] Templates HTML/plaintext con `askama` tipados, validados en compile-time
+  contra `schema.ag`.
+- [ ] Declaración de correos en `schema.ag` (bloque `mail`).
+- [ ] Integración `ag-auth` → `ag-mail` para verificación, recuperación y
+  magic links, vía trait pequeño definido en `ag-auth`.
+- [ ] Cola asíncrona con reintentos y backoff exponencial; backend en memoria
+  por defecto, persistente vía `ag-data` opcional.
+- [ ] Métricas hacia `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`,
+  `ag_mail_retry_total`, histograma de latencia.
+- [ ] Crate `ag-domains` (opcional infra): trait `DnsProvider` con adapter
+  Cloudflare; modelo declarativo A/AAAA/CNAME/TXT/MX.
+- [ ] Soporte ACME (Let's Encrypt) vía `instant-acme`: emisión y renovación
+  automática, challenge DNS-01 preferido, HTTP-01 alternativo.
+- [ ] Generación de SPF/DKIM/DMARC requeridos por `ag-mail` (cooperación
+  `ag-mail` ↔ `ag-domains` sin ciclo de dependencia).
+- [ ] Verificación de propagación contra múltiples resolvers públicos
+  (`hickory-resolver`).
+- [ ] DSL v0.7: bloques `mail`, `domain`, `dns`, `tls`; el compilador valida
+  que el `from` referencia un `domain` declarado, que el template existe y
+  que las variables del HTML coinciden con las `vars` tipadas.
+- [ ] Actualización del LSP `ag-lsp` para los bloques nuevos.
+- [ ] Comandos CLI: `ag domains check`, `ag domains sync`, `ag mail test`.
+- [ ] Example `auth-mail-demo` en `examples/`: registro + verificación por
+  correo + magic link.
+- [ ] Documentación: "Configurar dominio, TLS y correo transaccional con
+  Anti-Gravital".
+
+### 4.5.3 Criterios de salida (puerta antes de Fase 5)
+
+- [ ] `ag-mail` envía correo transaccional HTML y plaintext desde un proyecto
+  Anti-Gravital vía sender nativo **y** vía al menos un adapter.
+- [ ] `ag-auth` usa `ag-mail` para verificación de correo y recuperación de
+  contraseña en el example `auth-mail-demo`.
+- [ ] `ag-domains` crea y verifica registros DNS en al menos un proveedor
+  real.
+- [ ] `ag-domains` emite y renueva certificados TLS vía ACME en entorno de
+  prueba (Let's Encrypt staging).
+- [ ] `ag-domains` genera SPF/DKIM/DMARC requeridos por `ag-mail`.
+- [ ] `ag domains check`, `ag domains sync` y `ag mail test` funcionan en CI
+  reproducible.
+- [ ] Cobertura de tests unitarios e integración ≥ 75 % en ambos crates.
+- [ ] Cero dependencias circulares con `ag-core`, `ag-dsl`, `ag-auth` o
+  `ag-cloud` (job de CI verde).
+- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` y
+  `cargo deny check` verdes.
+
+### 4.5.4 Riesgos de la fase
+
+El riesgo principal es **confundir `ag-mail` con un MTA completo**. La
+mitigación es la restricción explícita del alcance v1 a outbound + adapters;
+inbound, IMAP/POP, buzones persistentes y antispam quedan documentados como
+fuera de alcance, no como "diferidos a v2".
+
+El segundo riesgo es la **dependencia de upstreams jóvenes** (`instant-acme`,
+`hickory-resolver`) en dominios donde los bugs se pagan caro: un certificado
+que no renueva tumba el sitio. La mitigación es un trait `DnsProvider`
+pequeño y versionado con tests de contrato, pinning explícito en el
+workspace, y vigilancia activa de la evolución de los crates.
+
+El tercer riesgo es **convertir Anti-Gravital en un panel de hosting** por
+acumulación de capacidades. La mitigación es la regla de interoperabilidad
+del proyecto: ambos crates son abstracciones con adapters, no reemplazos de
+proveedores. La frontera está fijada en `ADR-0007` y no se mueve sin un nuevo
+ADR.
 
 ---
 

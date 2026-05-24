@@ -44,7 +44,7 @@ pub trait MailSender: Send + Sync {
     async fn send(&self, email: &Email) -> Result<SendResult, AgMailError>;
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
     //! Helpers para tests: `NullSender` que captura los correos enviados.
 

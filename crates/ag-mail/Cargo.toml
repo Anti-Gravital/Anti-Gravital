@@ -29,6 +29,8 @@ ses = ["dep:reqwest"]
 postmark = ["dep:reqwest"]
 # Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
 queue-persistent = []
+# NullSender y helpers disponibles para tests en crates externos.
+test-utils = []
 
 [dependencies]
 ag-core = { workspace = true }

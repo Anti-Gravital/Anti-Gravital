@@ -17,6 +17,7 @@ name = "ag-auth"
 version = "0.0.0"
 dependencies = [
  "ag-data",
+ "ag-mail",
  "base64ct",
  "blake3",
  "ciborium",

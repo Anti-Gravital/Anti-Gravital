@@ -120,6 +120,10 @@ impl RealtimeConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Serializa acceso a variables de entorno entre tests paralelos.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn default_uses_inprocess_mode() {
@@ -141,41 +145,46 @@ mod tests {
 
     #[test]
     fn from_env_external_mode_and_custom_url() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_MODE", "external");
         std::env::set_var("NATS_URL", "nats://myserver:4222");
         let cfg = RealtimeConfig::from_env();
-        assert!(matches!(cfg.nats_mode, NatsMode::External));
-        assert_eq!(cfg.nats_url, "nats://myserver:4222");
         std::env::remove_var("NATS_MODE");
         std::env::remove_var("NATS_URL");
+        assert!(matches!(cfg.nats_mode, NatsMode::External));
+        assert_eq!(cfg.nats_url, "nats://myserver:4222");
     }
 
     #[test]
     fn from_env_unknown_mode_defaults_to_inprocess() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_MODE", "other_value");
         let cfg = RealtimeConfig::from_env();
-        assert!(matches!(cfg.nats_mode, NatsMode::InProcess));
         std::env::remove_var("NATS_MODE");
+        assert!(matches!(cfg.nats_mode, NatsMode::InProcess));
     }
 
     #[test]
     fn from_env_custom_broadcast_capacity() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("RT_BROADCAST_CAPACITY", "256");
         let cfg = RealtimeConfig::from_env();
-        assert_eq!(cfg.broadcast_capacity, 256);
         std::env::remove_var("RT_BROADCAST_CAPACITY");
+        assert_eq!(cfg.broadcast_capacity, 256);
     }
 
     #[test]
     fn from_env_invalid_capacity_uses_default() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("RT_BROADCAST_CAPACITY", "not_a_number");
         let cfg = RealtimeConfig::from_env();
-        assert_eq!(cfg.broadcast_capacity, 1024);
         std::env::remove_var("RT_BROADCAST_CAPACITY");
+        assert_eq!(cfg.broadcast_capacity, 1024);
     }
 
     #[test]
     fn from_env_no_vars_uses_defaults() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::remove_var("NATS_MODE");
         std::env::remove_var("NATS_URL");
         std::env::remove_var("RT_BROADCAST_CAPACITY");
@@ -187,6 +196,7 @@ mod tests {
 
     #[test]
     fn from_env_external_mode() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_MODE", "external");
         let cfg = RealtimeConfig::from_env();
         std::env::remove_var("NATS_MODE");
@@ -195,6 +205,7 @@ mod tests {
 
     #[test]
     fn from_env_custom_url() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_URL", "nats://my-nats:4222");
         let cfg = RealtimeConfig::from_env();
         std::env::remove_var("NATS_URL");
@@ -203,6 +214,7 @@ mod tests {
 
     #[test]
     fn from_env_custom_capacity() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("RT_BROADCAST_CAPACITY", "2048");
         let cfg = RealtimeConfig::from_env();
         std::env::remove_var("RT_BROADCAST_CAPACITY");
@@ -211,6 +223,7 @@ mod tests {
 
     #[test]
     fn from_env_tls_enabled() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_TLS", "true");
         let cfg = RealtimeConfig::from_env();
         std::env::remove_var("NATS_TLS");
@@ -219,6 +232,7 @@ mod tests {
 
     #[test]
     fn from_env_jetstream_stream_name() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("NATS_JS_STREAM", "MY_STREAM");
         let cfg = RealtimeConfig::from_env();
         std::env::remove_var("NATS_JS_STREAM");

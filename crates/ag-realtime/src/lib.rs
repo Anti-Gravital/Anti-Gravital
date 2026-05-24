@@ -188,8 +188,10 @@ mod tests {
 
     #[tokio::test]
     async fn external_mode_without_nats_feature_falls_back() {
-        let mut config = RealtimeConfig::default();
-        config.nats_mode = NatsMode::External;
+        let config = RealtimeConfig {
+            nats_mode: NatsMode::External,
+            ..RealtimeConfig::default()
+        };
         let result = AgRealtime::new(config).await;
         let _ = result;
     }

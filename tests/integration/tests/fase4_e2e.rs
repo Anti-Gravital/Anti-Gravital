@@ -38,8 +38,8 @@ fn uuid_like() -> String {
         u16::from_be_bytes(b[8..10].try_into().unwrap()),
         {
             let mut n = 0u64;
-            for i in 10..16 {
-                n = (n << 8) | b[i] as u64;
+            for &byte in &b[10..16] {
+                n = (n << 8) | byte as u64;
             }
             n
         }

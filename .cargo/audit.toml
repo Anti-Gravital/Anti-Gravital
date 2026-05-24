@@ -31,4 +31,10 @@ ignore = [
     # Transitivo de testcontainers -> bollard (dev-dependency).
     # No afecta codigo de produccion.
     "RUSTSEC-2025-0134",
+
+    # RUSTSEC-2026-0119: CPU exhaustion en hickory-proto BinEncoder (O(n^2)).
+    # ag-domains usa hickory-resolver solo como cliente de consulta DNS saliente.
+    # No codificamos mensajes con datos hostiles; el riesgo DoS no aplica.
+    # Solucion oficial: actualizar hickory a >=0.26.1 cuando sea compatible.
+    "RUSTSEC-2026-0119",
 ]

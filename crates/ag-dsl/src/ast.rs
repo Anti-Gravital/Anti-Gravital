@@ -2,8 +2,9 @@
 //!
 //! Todas las construcciones del lenguaje se representan como nodos del AST.
 //! Los nodos clave llevan informacion de span para reportar errores precisos.
-//! En DSL v0.1–v0.6 el AST cubre modelos, request/response/error types,
-//! endpoints HTTP, anotaciones, auth/policy (v0.5) y declaraciones de evento (v0.6).
+//! En DSL v0.1–v0.7 el AST cubre modelos, request/response/error types,
+//! endpoints HTTP, anotaciones, auth/policy (v0.5), declaraciones de evento (v0.6)
+//! y bloques de correo/dominio (v0.7).
 
 use crate::lexer::Span;
 
@@ -26,7 +27,8 @@ impl<T> Spanned<T> {
 /// Schema completo: punto de entrada del AST.
 ///
 /// Contiene configuracion, modelos (v0.1), tipos de API y endpoints (v0.2),
-/// validaciones (v0.3), relaciones (v0.4), auth/policy (v0.5) y eventos (v0.6).
+/// validaciones (v0.3), relaciones (v0.4), auth/policy (v0.5), eventos (v0.6)
+/// y bloques de correo y dominio (v0.7).
 #[derive(Debug, Clone, Default)]
 pub struct Schema {
     /// Bloque `config { ... }` opcional.
@@ -43,6 +45,10 @@ pub struct Schema {
     pub endpoints: Vec<EndpointDef>,
     /// Declaraciones de evento (v0.6): `event nombre { payload T retain Nd }`.
     pub events: Vec<EventDef>,
+    /// Bloques de correo transaccional (v0.7): `mail nombre { ... }`.
+    pub mails: Vec<MailBlock>,
+    /// Bloques de dominio DNS (v0.7): `domain nombre { ... }`.
+    pub domains: Vec<DomainBlock>,
 }
 
 /// Bloque `config { ... }`.
@@ -453,6 +459,86 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         result.push(ch.to_lowercase().next().unwrap());
     }
     result
+}
+
+// ============================================================
+// DSL v0.7 — bloques mail y domain
+// ============================================================
+
+/// Bloque de correo transaccional: `mail nombre { ... }`.
+///
+/// ```text
+/// mail transaccional {
+///     provider smtp
+///     from "noreply@ejemplo.com"
+///
+///     template bienvenida {
+///         subject "Bienvenido {{nombre}}"
+///         vars [nombre, token]
+///     }
+/// }
+/// ```
+#[derive(Debug, Clone)]
+pub struct MailBlock {
+    /// Nombre del bloque (identificador logico, e.g., `"transaccional"`).
+    pub name: Spanned<std::string::String>,
+    /// Proveedor de envio: `"smtp"`, `"resend"`, `"ses"`, `"postmark"`.
+    pub provider: Option<std::string::String>,
+    /// Direccion de remitente por defecto.
+    pub from: Option<std::string::String>,
+    /// Templates de correo definidos en este bloque.
+    pub templates: Vec<MailTemplateDef>,
+    /// Span del bloque completo.
+    pub span: Span,
+}
+
+/// Definicion de template de correo dentro de un bloque `mail`.
+///
+/// ```text
+/// template bienvenida {
+///     subject "Bienvenido {{nombre}}"
+///     vars [nombre, token]
+/// }
+/// ```
+#[derive(Debug, Clone)]
+pub struct MailTemplateDef {
+    /// Nombre del template (identificador, e.g., `"bienvenida"`).
+    pub name: Spanned<std::string::String>,
+    /// Asunto del correo (puede contener `{{var}}`).
+    pub subject: Option<std::string::String>,
+    /// Nombres de las variables que el template acepta.
+    pub vars: Vec<std::string::String>,
+    /// Span del bloque del template.
+    pub span: Span,
+}
+
+/// Bloque de dominio DNS: `domain nombre { ... }`.
+///
+/// ```text
+/// domain mi_dominio {
+///     name "ejemplo.com"
+///     provider cloudflare
+///     dkim_selector "s1"
+///     dmarc_policy quarantine
+///     dmarc_rua "admin@ejemplo.com"
+/// }
+/// ```
+#[derive(Debug, Clone)]
+pub struct DomainBlock {
+    /// Nombre logico del bloque (identificador, no el FQDN).
+    pub name: Spanned<std::string::String>,
+    /// FQDN del dominio (e.g., `"ejemplo.com"`).
+    pub domain_name: Option<std::string::String>,
+    /// Proveedor DNS: `"cloudflare"` por ahora.
+    pub provider: Option<std::string::String>,
+    /// Selectores DKIM activos.
+    pub dkim_selectors: Vec<std::string::String>,
+    /// Politica DMARC: `"none"`, `"quarantine"`, `"reject"`.
+    pub dmarc_policy: Option<std::string::String>,
+    /// Email destino de reportes DMARC.
+    pub dmarc_rua: Option<std::string::String>,
+    /// Span del bloque completo.
+    pub span: Span,
 }
 
 #[cfg(test)]

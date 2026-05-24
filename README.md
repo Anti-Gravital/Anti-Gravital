@@ -1,7 +1,7 @@
 # Anti-Gravital
 
-> Estado: Fase 3 implementacion tecnica completa — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, plugin VS Code, cargo-fuzz y benchmark Neon 2h completados.
-> Status: Phase 3 technical implementation complete — Anti-DSL alpha. DSL v0.1-v0.4, ag-lsp, VS Code plugin, cargo-fuzz and 2h Neon benchmark complete.
+> Estado: Fase 4 implementacion tecnica completa — modulos estandar. ag-auth (WebAuthn+OAuth2+JWT), ag-cache (L1 moka), ag-realtime (NATS+WS+SSE), ag-storage (filesystem+S3+URLs firmadas), ag-observe (tracing+OTLP+Prometheus), DSL v0.5-v0.6, tests E2E cross-module.
+> Status: Phase 4 technical implementation complete — standard modules. ag-auth (WebAuthn+OAuth2+JWT), ag-cache (L1 moka), ag-realtime (NATS+WS+SSE), ag-storage (filesystem+S3+signed URLs), ag-observe (tracing+OTLP+Prometheus), DSL v0.5-v0.6, cross-module E2E tests.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
@@ -36,7 +36,7 @@ computo cientifico. Vease el capitulo de alcance en
 
 ### Estado del proyecto
 
-El proyecto ha completado las fases 1 y 2 de implementacion tecnica.
+El proyecto ha completado las fases 1, 2, 3 y 4 de implementacion tecnica.
 Existe codigo funcional, probado y benchmarkeado.
 
 **Fase 1 — The Shield MVP:** completada. El crate `ag-core` contiene
@@ -65,9 +65,31 @@ autocompletado y hover. Plugin VS Code con syntax highlighting e integracion
 LSP (`.vsix` empaquetado). Harness cargo-fuzz con 3 targets activo en CI.
 129 tests verdes (119 ag-dsl + 10 ag-lsp), cobertura 95.26%.
 Benchmark real de 2 horas contra Neon PostgreSQL: 255.805 requests,
-0 errores, peak 43 req/s. Prueba de saturacion: 800 workers sin errores,
-quiebre a 1600 (limite del pool de conexiones, no de Neon).
-Criterios externos (comunidad) pendientes.
+0 errores, peak 43 req/s. Criterios externos (comunidad) pendientes.
+
+**Fase 4 — Modulos estandar:** implementacion tecnica completa (rama `fase-4`).
+Los cinco modulos batteries-included estan operativos como crates independientes:
+
+- `ag-auth`: WebAuthn/FIDO2 (registro+autenticacion, verificacion COSE ES256/EdDSA),
+  OAuth2 PKCE (Google, GitHub), JWT Ed25519, API keys BLAKE3, refresh tokens con
+  blacklist en memoria. 32 tests.
+- `ag-cache`: cache L1 en memoria con moka, invalidacion por tags, TTL configurable.
+  Cobertura >= 80%. RFC-0005 (servidor nativo RESP2) propuesto, pendiente de aprobacion.
+- `ag-realtime`: bus de eventos InProcess pub/sub, cliente NATS externo con TLS 3 niveles
+  (sistema/CA custom/mTLS) y JetStream, helpers Axum para WebSocket y SSE (EventSource-
+  compatible). `AgRealtime::new` es asincrono. Examples `realtime-chat` y `ai-backend`
+  operativos.
+- `ag-storage`: store filesystem nativo con servidor HTTP Axum embebido, seguridad de path
+  por construccion, procesamiento de imagen (resize/thumbnail/webp), backend S3/MinIO via
+  `object_store`, URLs firmadas con HMAC-SHA256. `AgStore` es un enum `Native | S3`.
+- `ag-observe`: tracing estructurado, exporter OTLP, metricas Prometheus via `axum::Router`,
+  layer personalizado, LogFormat (JSON/Text). Init idempotente.
+
+DSL ampliado a v0.5 (auth/politicas en endpoints) y v0.6 (eventos declarados). Generadores
+actualizados: rust_gen (Claims extractor), openapi_gen (securitySchemes), ts_gen
+(payload de eventos), nuevo async_api_gen (AsyncAPI 2.6). 136 tests en ag-dsl, cobertura
+95.88%. Crate `tests/integration` con 7 tests E2E cross-module (auth+cache+realtime+storage+observe).
+Cobertura >= 80% en todos los modulos. Criterios externos (comunidad, publicacion en crates.io) pendientes.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 
@@ -239,7 +261,7 @@ scientific computing framework. See the scope chapter at
 
 ### Project status
 
-Phases 1 and 2 have been technically completed. There is functional,
+Phases 1, 2, 3 and 4 have been technically completed. There is functional,
 tested, and benchmarked code.
 
 **Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
@@ -268,9 +290,33 @@ FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI). The CLI exposes
 plugin with syntax highlighting and LSP integration (`.vsix` packaged).
 cargo-fuzz harness with 3 active targets in CI. 129 green tests (119
 ag-dsl + 10 ag-lsp), 95.26% coverage. Real 2-hour benchmark against Neon
-PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. Saturation test:
-800 workers error-free, break at 1600 (connection pool limit, not Neon).
-External community criteria pending.
+PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. External community
+criteria pending.
+
+**Phase 4 — Standard modules:** technical implementation complete (branch
+`fase-4`). Five batteries-included modules operational as independent crates:
+
+- `ag-auth`: WebAuthn/FIDO2 (registration+authentication, COSE ES256/EdDSA
+  verification), OAuth2 PKCE (Google, GitHub), JWT Ed25519, BLAKE3 API keys,
+  refresh tokens with in-memory blacklist. 32 tests.
+- `ag-cache`: L1 in-memory cache with moka, tag-based invalidation, configurable TTL.
+  >= 80% coverage. RFC-0005 (native RESP2 server) proposed, pending approval.
+- `ag-realtime`: InProcess pub/sub event bus, external NATS client with 3-level TLS
+  (system/custom CA/mTLS) and JetStream, Axum helpers for WebSocket and SSE
+  (EventSource-compatible). `AgRealtime::new` is async. `realtime-chat` and
+  `ai-backend` examples operational.
+- `ag-storage`: native filesystem store with embedded Axum HTTP server, path-safe
+  by construction, image processing (resize/thumbnail/webp), S3/MinIO backend via
+  `object_store`, HMAC-SHA256 signed URLs. `AgStore` is a `Native | S3` enum.
+- `ag-observe`: structured tracing, OTLP exporter, Prometheus metrics via
+  `axum::Router`, custom layer, LogFormat (JSON/Text). Idempotent init.
+
+DSL extended to v0.5 (auth/policies in endpoints) and v0.6 (declared events).
+Updated generators: rust_gen (Claims extractor), openapi_gen (securitySchemes),
+ts_gen (event payloads), new async_api_gen (AsyncAPI 2.6). 136 tests in ag-dsl,
+95.88% coverage. `tests/integration` crate with 7 cross-module E2E tests
+(auth+cache+realtime+storage+observe). >= 80% coverage in all modules. External
+criteria (community, crates.io publication) pending.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -404,7 +450,7 @@ maintainer: Angel Nereira.
 | 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
 | 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
 | 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
-| 4            | Modulos estandar              | Pendiente / Pending                                     |
+| 4            | Modulos estandar              | Implementacion completa / Technical implementation complete |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
 | 7            | ag-migrate importadores       | Pendiente / Pending                                     |

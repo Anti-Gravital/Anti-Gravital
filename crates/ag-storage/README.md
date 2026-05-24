@@ -38,22 +38,65 @@ POST   /v1/copy?from=&to=   copiar
 GET    /v1/health            health check
 ```
 
+## Modo S3 / MinIO
+
+```bash
+STORAGE_BACKEND=s3 \
+AWS_REGION=us-east-1 \
+AWS_ACCESS_KEY_ID=minioadmin \
+AWS_SECRET_ACCESS_KEY=minioadmin \
+S3_ENDPOINT=http://localhost:9000 \
+S3_BUCKET=my-bucket \
+cargo run
+```
+
+El feature `s3` usa `object_store 0.11` (Apache-2.0). Para MinIO se configura
+`S3_ENDPOINT` con la URL del servidor local y se permite HTTP via
+`with_allow_http(true)`.
+
+## URLs firmadas
+
+```rust
+use ag_storage::AgStorage;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+let storage = AgStorage::new(config).await?;
+
+// Generar token valido 3600 segundos
+let expires_at = SystemTime::now()
+    .duration_since(UNIX_EPOCH)?.as_secs() + 3600;
+let token = storage.signed_url("docs/readme.txt", expires_at)?;
+
+// Verificar
+storage.verify_signed_url("docs/readme.txt", &token)?;
+```
+
+Token HMAC-SHA256 en formato `{base64url_hmac}_{expires_at}`.
+Comparacion en tiempo constante; expiracion verificada.
+Variable de entorno: `STORAGE_SIGN_SECRET` (string arbitrario).
+
 ## Variables de entorno
 
 | Variable | Default | Descripcion |
 |---|---|---|
-| `STORAGE_BACKEND` | `native` | `native`, `s3` (feature), `minio` (feature) |
-| `STORAGE_ROOT` | `./ag-store-data` | Directorio raiz del store |
+| `STORAGE_BACKEND` | `native` | `native`, `s3` (feature) |
+| `STORAGE_ROOT` | `./ag-store-data` | Directorio raiz (native) |
 | `STORAGE_SERVER` | `false` | Levantar servidor HTTP |
 | `STORAGE_PORT` | `4280` | Puerto del servidor |
 | `STORE_TOKEN` | `""` | Bearer token (vacio = sin auth) |
 | `STORAGE_MAX_OBJECT_SIZE_MB` | `100` | Tamano maximo de objeto |
 | `STORAGE_RATE_LIMIT_RPS` | `100` | Requests/segundo del servidor |
+| `STORAGE_SIGN_SECRET` | `""` | Secreto para URLs firmadas |
+| `S3_ENDPOINT` | `""` | URL endpoint S3/MinIO (feature `s3`) |
+| `S3_BUCKET` | `""` | Nombre del bucket S3 (feature `s3`) |
+| `AWS_REGION` | `""` | Region AWS (feature `s3`) |
+| `AWS_ACCESS_KEY_ID` | `""` | Credenciales AWS/MinIO (feature `s3`) |
+| `AWS_SECRET_ACCESS_KEY` | `""` | Credenciales AWS/MinIO (feature `s3`) |
 
 ## Features
 
 - `auth` -- Valida JWT via `ag-auth` en el servidor HTTP.
-- `s3` -- Adaptadores AWS S3 y MinIO via `object_store`.
+- `s3` -- Adaptadores AWS S3 y MinIO via `object_store 0.11`.
 
 ## Seguridad
 

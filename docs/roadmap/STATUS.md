@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-22, Fase 3 entregables tecnicos completados: ag-lsp, plugin VS Code, cargo-fuzz. Fix lexer panic i64 overflow.
+Ultima actualizacion: 2026-05-23, Fase 4 implementacion tecnica completa: ag-auth (WebAuthn+OAuth2), ag-cache (L1), ag-realtime (NATS+WS+SSE), ag-storage (S3+URLs firmadas), ag-observe, DSL v0.5-v0.6, tests E2E cross-module.
 
 ---
 
@@ -254,7 +254,43 @@ RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.
 
 ## Fase 4 - Modulos estandar
 
-Estado: Pendiente. Vease `docs/roadmap/fase-04-modulos-estandar.md`.
+Estado: Implementacion tecnica completa (rama `fase-4`, 2026-05-23).
+Criterios externos (publicacion en crates.io, comunidad) pendientes.
+
+### Criterios de entrada (4.1)
+
+- [/] Fase 3 completada. (Excepcion RFC-0001: implementacion tecnica completa;
+  criterios externos pendientes.)
+- [x] DSL version 0.5 (auth y politicas) iniciada.
+
+### Entregables (4.2)
+
+- [x] DSL version 0.5: declaracion de auth/policies en endpoints (AuthMode enum, validacion semantica).
+- [x] DSL version 0.6: declaracion de eventos (EventDef, bloque event, emits en endpoint).
+- [x] rust_gen: Claims extractor + stubs de eventos.
+- [x] openapi_gen: securitySchemes BearerAuth + security por endpoint.
+- [x] ts_gen: tipos de payload de eventos (UserCreatedEvent pattern).
+- [x] async_api_gen: nuevo generador AsyncAPI 2.6.
+- [x] ag-dsl: 136 tests, cobertura 95.88%.
+- [x] Crate `ag-auth`: WebAuthn/FIDO2 (registro+autenticacion, CBOR ciborium, COSE ES256 p256 + EdDSA ed25519-dalek), OAuth2 PKCE (Google+GitHub, oauth2 v5 + reqwest 0.12 manual), JWT Ed25519 (JwtSigner/JwtVerifier), API keys BLAKE3, refresh tokens con RwLock<HashSet<String>> blacklist. `AgAuth::new(config, http_client)`. 32 tests.
+- [x] Crate `ag-cache`: L1 con moka, invalidacion por tags, TTL configurable, cobertura >= 80%.
+- [x] Crate `ag-realtime`: bus InProcess pub/sub (EventBus broadcast), cliente NATS externo (NatsExternalClient, TLS 3 niveles, JetStream ACK), helpers Axum ws_handler + sse_handler (EventSource-compatible), `AgRealtime::new` async, `RealtimeBus` enum. Cobertura >= 80%.
+- [x] Crate `ag-storage`: store filesystem nativo (atomic write-then-rename, path confinement), servidor HTTP Axum embebido, procesamiento de imagen (ImageProcessor: resize/thumbnail/webp), backend S3/MinIO (S3Store via object_store 0.11, feature `s3`), URLs firmadas HMAC-SHA256 (sign_url/verify_signed_url, comparacion en tiempo constante), `AgStore` enum Native|S3. Cobertura >= 80%.
+- [x] Crate `ag-observe`: tracing estructurado, exporter OTLP, metricas Prometheus via axum::Router, layer personalizado, LogFormat JSON/Text, init idempotente. Cobertura >= 80%.
+- [x] Example `realtime-chat` en `examples/`: chat SSE in-memory, EventBus, puerto 3000.
+- [x] Example `ai-backend` en `examples/`: AiProvider trait, ClaudeProvider+GeminiProvider+OpenAiProvider (streaming SSE real), router Axum puerto 3001.
+- [x] Tests de integracion cross-module: crate `tests/integration` con 7 tests (6 unitarios por modulo + 1 E2E 15 pasos).
+- [/] RFC-0005 ag-cache L2 nativo RESP2: propuesto en `docs/rfc/RFC-0005-ag-cache-native-l2.md`. Pendiente de aprobacion para implementar.
+
+### Criterios de salida (4.3)
+
+- [ ] Los cinco modulos publicados en crates.io con releases independientes.
+- [x] Cobertura de tests >= 80% en cada modulo. Verificada 2026-05-23.
+- [/] Documentacion cada modulo: README actualizado (ag-storage completo; ag-auth, ag-cache, ag-realtime, ag-observe actualizados 2026-05-23). Guia de API pendiente de expansion.
+- [ ] Performance: ag-realtime sostiene 50K conexiones WebSocket en 2 vCPU. Pendiente benchmark.
+- [ ] Performance: ag-cache >= 1M ops/segundo en L1. Pendiente benchmark.
+- [ ] Al menos cinco issues bug reports cerrados por la comunidad.
+- [ ] Al menos 500 stars en el repositorio.
 
 ## Fase 5 - ag-cloud
 

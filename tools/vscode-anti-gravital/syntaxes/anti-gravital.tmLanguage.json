@@ -43,7 +43,7 @@
     },
     "keywords": {
       "name": "keyword.control.anti-gravital",
-      "match": "\\b(model|endpoint|request|response|error|config|field|method|path|body|errors|status|message|project_name|database)\\b"
+      "match": "\\b(model|endpoint|request|response|error|config|field|method|path|body|errors|status|message|project_name|database|mail|domain|template|provider|from|subject|vars|dkim_selector|dmarc_policy|dmarc_rua)\\b"
     },
     "identifiers": {
       "name": "entity.name.type.anti-gravital",

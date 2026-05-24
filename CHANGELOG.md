@@ -7,6 +7,66 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
+
+Anadido:
+
+- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls)
+  + `ResendSender` (HTTP). `InMemoryQueue` con reintentos y backoff exponencial.
+  `StringTemplate` + `MailTemplate` trait. `NullSender` (feature `test-utils`). 38 tests.
+
+- `crates/ag-domains` (opcional infra): `DnsProvider` trait + `CloudflareProvider` (reqwest).
+  `apply_mail_records`: upsert idempotente de SPF/DKIM/DMARC. `PropagationChecker`
+  con hickory-resolver. Soporte ACME completo via instant-acme + rcgen (DNS-01,
+  renovacion automatica). 28 tests.
+
+- `crates/ag-dsl` v0.7: tokens `mail`, `domain`, `template` en el lexer; nodos
+  `MailBlock`, `DomainBlock`, `MailTemplateDef` en el AST; parsers y analisis
+  semantico para los nuevos bloques. 151 tests.
+
+- `crates/ag-auth` (feature `mail`): `AuthMailer` con `send_verification`,
+  `send_password_reset`, `send_magic_link`. `AgAuth::with_mail()` builder. 37 tests.
+
+- `crates/ag-cli`: subcomandos `ag domains check`, `ag domains sync`, `ag mail test`.
+
+- `examples/auth-mail-demo`: ejemplo ejecutable de los tres flujos con `NullSender`.
+
+- `tests/integration/tests/fase45_e2e.rs`: 7 tests E2E cross-module (total: 14).
+
+### Fase 4.5 - Pendientes: ag-lsp v0.7 + DSL from->domain + ACME fix + docs (2026-05-24)
+
+Anadido:
+
+- `crates/ag-lsp/src/backend.rs`: hover y completions para los bloques DSL v0.7.
+  `mail`, `domain`, `template` con ejemplos de codigo; propiedades `provider`,
+  `from`, `subject`, `vars`, `dkim_selector`, `dmarc_policy`, `dmarc_rua`. 6 tests nuevos (15 total).
+
+- `docs/manual/03-dominio-tls-correo.md`: guia completa "Configurar dominio, TLS
+  y correo transaccional con Anti-Gravital". Seis secciones: declaracion DSL,
+  DNS sync, verificacion de propagacion, ACME, correo transaccional, ag-auth+ag-mail.
+
+Corregido:
+
+- `crates/ag-dsl/src/semantic.rs`: warning cuando el hostname del campo `from` de
+  un bloque `mail` no coincide con ningun `domain_name` declarado en los bloques
+  `domain` del schema. 2 tests nuevos (153 total en ag-dsl).
+
+- `crates/ag-domains/src/acme/renewal.rs`: bug de underflow en `spawn_renewal_task`.
+  `check_interval - renew_threshold` panickea en debug mode si `renew_before_days >= 1`.
+  Nuevo calculo: `sleep_secs = renew_before_days.max(1) * 86400`. 4 tests nuevos.
+
+- `tools/vscode-anti-gravital/syntaxes/anti-gravital.tmLanguage.json`: keywords DSL v0.7
+  anadidos al resaltado de sintaxis: `mail`, `domain`, `template`, `provider`, `from`,
+  `subject`, `vars`, `dkim_selector`, `dmarc_policy`, `dmarc_rua`.
+
+Cambiado:
+
+- `docs/roadmap/STATUS.md`: Fase 4.5 marcada como completada con todos los criterios
+  de salida marcados. Commits de referencia: PR #42 (implementacion) y PR #43 (pendientes).
+
+- `README.md`: banner y tabla de calendario actualizados a "Fase 4.5 implementacion
+  tecnica completa".
+
 ### Fase 4.5 - Integracion documental: ag-mail + ag-domains (2026-05-23)
 
 Anadido:

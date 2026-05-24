@@ -75,6 +75,78 @@ El módulo SSR existe para casos donde un frontend SPA es excesivo: dashboards i
 
 Este módulo es explícitamente *no* un competidor de React, Vue, Svelte o Next.js. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend con un frontend Next.js (u otro) que consume el cliente TypeScript generado.
 
+### 8.8 `ag-mail` — Comunicación transaccional (estándar diferido)
+
+Introducido por `ADR-0007` en la Fase 4.5. `ag-mail` es un módulo estándar
+**diferido**: tiene la madurez y el alcance de un estándar, pero NO se instala
+por defecto en los templates oficiales. Se incorpora cuando el proyecto
+requiere correo transaccional outbound (verificación de cuentas, magic links,
+recuperación de contraseña, alertas, notificaciones).
+
+El alcance v1 es **exclusivamente outbound**. `ag-mail` NO es un MTA, NO
+recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
+antispam, filtrado ni gestión de reputación de IP. Esta restricción es
+deliberada y está fijada en el ADR.
+
+El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
+sender SMTP nativo. Los adapters de proveedor se declaran como features de
+Cargo (`--features resend,ses,postmark`) y cada uno implementa el trait
+`MailSender`. El patrón Native | Adapter es idéntico al usado por
+`ag-storage` (`Native | S3`) y `ag-cache` (`moka | Redis`).
+
+Los **templates** se construyen con `askama` (ya utilizado por `ag-ui`) y se
+validan en build-time contra el `schema.ag`: si el `from` declarado no
+referencia un `domain` válido, si el archivo del template no existe o si
+las variables del HTML no coinciden con las `vars` tipadas declaradas, el
+compilador del DSL rechaza el build. Un correo mal formado deja de ser un
+bug de runtime y se convierte en un error de compilación. Este es el
+diferenciador real frente a Resend, no la entregabilidad.
+
+La **cola asíncrona** acepta jobs con reintentos y backoff exponencial.
+Backend por defecto en memoria; backend opcional persistente vía `ag-data`
+(tabla de jobs) para sobrevivir reinicios. Cada job emite métricas hacia
+`ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`,
+`ag_mail_retry_total`, histograma de latencia.
+
+La **integración con `ag-auth`** es estrictamente unidireccional: `ag-auth`
+consume `ag-mail` invocando un trait pequeño que `ag-auth` define. `ag-mail`
+NO conoce a `ag-auth`. La sexta regla del capítulo 5 documenta esta
+direccionalidad.
+
+Detalle completo en `docs/modules/ag-mail/`.
+
+### 8.9 `ag-domains` — Gestión de dominios y TLS (opcional infra)
+
+Introducido por `ADR-0007` en la Fase 4.5. `ag-domains` es un módulo
+**opcional de infraestructura**: no todo backend administra DNS, pero cuando
+un proyecto quiere que `ag deploy` entregue una URL con certificado válido
+en un comando, `ag-domains` es el módulo responsable.
+
+El módulo **NO es un registrador de dominios**: el dominio se compra
+externamente (Namecheap, Cloudflare Registrar, etc.) y se delega vía
+nameservers al proveedor configurado. `ag-domains` tampoco reemplaza
+Terraform ni Pulumi: para infraestructura compleja multi-cloud o gestión
+centralizada de zonas DNS arbitrarias, el proyecto debe usar las
+herramientas dominantes.
+
+El núcleo del módulo es el trait `DnsProvider` (pequeño, versionado, con
+**tests de contrato** que todo adapter debe pasar). Adapter inicial:
+Cloudflare. Diseñado para añadir Route53, Namecheap, DigitalOcean, etc.
+
+El **cliente ACME** (`instant-acme`) emite y renueva certificados de
+Let's Encrypt. Soporta DNS-01 (preferido) y HTTP-01. Renovación automática
+en background con vigilancia de expiración. Almacenamiento por defecto en
+filesystem; opcionalmente `ag-storage`.
+
+La cooperación con `ag-mail` se materializa en `generate_mail_records`:
+`ag-mail` declara sus requisitos vía `MailSender::dns_requirements` y
+`ag-domains` los materializa como registros (SPF, DKIM, DMARC). La
+**verificación de propagación** usa `hickory-resolver` contra múltiples
+resolvers públicos antes de marcar una operación como exitosa, bloqueando
+`ag deploy` hasta que el dominio responde.
+
+Detalle completo en `docs/modules/ag-domains/`.
+
 
 ---
 

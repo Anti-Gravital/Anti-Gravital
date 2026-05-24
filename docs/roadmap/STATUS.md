@@ -292,6 +292,49 @@ Criterios externos (publicacion en crates.io, comunidad) pendientes.
 - [ ] Al menos cinco issues bug reports cerrados por la comunidad.
 - [ ] Al menos 500 stars en el repositorio.
 
+## Fase 4.5 - ag-mail y ag-domains
+
+Estado: Pendiente. Fase aditiva introducida por `docs/adr/0007-ag-mail-ag-domains.md`.
+Vease `docs/roadmap/fase-04-5-ag-mail-y-ag-domains.md`.
+
+### Criterios de entrada (4.5.1)
+
+- [ ] Fase 4 completada con todos sus criterios de salida marcados.
+- [ ] ag-auth expone hooks/eventos para verificacion de correo, recuperacion de contrasena y magic links.
+- [ ] ag-observe registra metricas y trazas de jobs asincronos.
+- [ ] RFC aprobado para el alcance inicial de ag-mail.
+- [ ] RFC aprobado para el alcance inicial de ag-domains.
+
+### Entregables (4.5.2)
+
+- [ ] Crate ag-mail (estandar diferido): sender SMTP outbound nativo (lettre + rustls) mas trait MailSender con adapters (Resend, SES, Postmark) como features de Cargo.
+- [ ] Templates HTML/plaintext con askama tipados, validados en compile-time contra schema.ag.
+- [ ] Declaracion de correos en schema.ag (bloque mail).
+- [ ] Integracion ag-auth -> ag-mail para verificacion, recuperacion y magic links, via trait pequeno definido en ag-auth.
+- [ ] Cola asincrona con reintentos y backoff exponencial; backend en memoria por defecto, persistente via ag-data opcional.
+- [ ] Metricas hacia ag-observe: ag_mail_sent_total, ag_mail_failed_total, ag_mail_retry_total, histograma de latencia.
+- [ ] Crate ag-domains (opcional infra): trait DnsProvider con adapter Cloudflare; modelo declarativo A/AAAA/CNAME/TXT/MX.
+- [ ] Soporte ACME (Let's Encrypt) via instant-acme: emision y renovacion automatica, challenge DNS-01 preferido, HTTP-01 alternativo.
+- [ ] Generacion de SPF/DKIM/DMARC requeridos por ag-mail (cooperacion ag-mail <-> ag-domains sin ciclo de dependencia).
+- [ ] Verificacion de propagacion contra multiples resolvers publicos (hickory-resolver).
+- [ ] DSL v0.7: bloques mail, domain, dns, tls; el compilador valida que el from referencia un domain declarado, que el template existe y que las variables del HTML coinciden con las vars tipadas.
+- [ ] Actualizacion del LSP ag-lsp para los bloques nuevos.
+- [ ] Comandos CLI: ag domains check, ag domains sync, ag mail test.
+- [ ] Example auth-mail-demo en examples/: registro + verificacion por correo + magic link.
+- [ ] Documentacion: "Configurar dominio, TLS y correo transaccional con Anti-Gravital".
+
+### Criterios de salida (4.5.3, puerta antes de Fase 5)
+
+- [ ] ag-mail envia correo transaccional HTML y plaintext desde un proyecto Anti-Gravital via sender nativo Y via al menos un adapter.
+- [ ] ag-auth usa ag-mail para verificacion de correo y recuperacion de contrasena en el example auth-mail-demo.
+- [ ] ag-domains crea y verifica registros DNS en al menos un proveedor real.
+- [ ] ag-domains emite y renueva certificados TLS via ACME en entorno de prueba (Let's Encrypt staging).
+- [ ] ag-domains genera SPF/DKIM/DMARC requeridos por ag-mail.
+- [ ] ag domains check, ag domains sync y ag mail test funcionan en CI reproducible.
+- [ ] Cobertura de tests unitarios e integracion >= 75% en ambos crates.
+- [ ] Cero dependencias circulares con ag-core, ag-dsl, ag-auth o ag-cloud (job de CI verde).
+- [ ] cargo fmt, cargo clippy -D warnings, cargo test, cargo audit y cargo deny check verdes.
+
 ## Fase 5 - ag-cloud
 
 Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`.

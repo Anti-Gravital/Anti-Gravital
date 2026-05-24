@@ -11,9 +11,9 @@ desde el origen autorizado antes de continuar.
 
 ## Versión vigente
 
-- Versión documental: 4.0
-- Fecha de la versión documental: Mayo 2026
-- Fecha de instalación en el repositorio: 2026-05-19
+- Versión documental: 4.1 (markdown) — Blueprint PDF pendiente de re-export
+- Fecha de la versión documental: 2026-05-23 (suplemento Fase 4.5)
+- Fecha de instalación en el repositorio: 2026-05-19 (v4.0 inicial)
 - Origen: aporte directo de Gravital Labs (Nereira Technology and
   Business Solutions), República de Panamá.
 - Licencia de la documentación: Apache 2.0, igual que el código.
@@ -23,8 +23,26 @@ desde el origen autorizado antes de continuar.
 | Archivo | Tamano (bytes) | SHA-256 |
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 88066 | `c6f16879cd8c4d7772dbe2911043e31cce9196a31f75a235fdd8bcf72afd67ae` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 28433 | `534f15ac103cdd45fdca7e91f1c5bd0e3a81527d72c59b0a25eb0425a02a80d4` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 102322 | `5f56cadcf03f49289b7f4a141eccf4c6289543caf65041f38b54a4830b6bd76d` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 33516 | `ff5e322f568e2ecf416d09235c91d8f4eb004531b6844f513a68b63042b64590` |
+
+### Deuda explícita — Blueprint PDF v4.1
+
+El PDF `ANTI-GRAVITAL-Blueprint-v4.0.pdf` está **desfasado** respecto a los
+dos maestros markdown, que ya incorporan los cambios de la Fase 4.5 según
+`ADR-0007` (Hoja de Ruta: fila 4.5, duración total 25–30 meses, nueva
+sección 4.5 completa; Arquitectura Técnica: ag-mail/ag-domains en §5.1/§5.2,
+sextas y séptimas reglas de dependencia en §5.3, tabla DSL realineada en
+§7.2, subsecciones 8.8/8.9, integración §10.6 con `ag-domains`). El
+re-export a `ANTI-GRAVITAL-Blueprint-v4.1.pdf` queda como **tarea pendiente
+de tooling de exportación** y se ejecuta fuera del scope de esta rama
+documental. La política #4 de este mismo archivo gobierna la discrepancia:
+**los maestros markdown gobiernan**.
+
+Cuando se ejecute la re-export, la entrada del PDF se reemplaza por
+`ANTI-GRAVITAL-Blueprint-v4.1.pdf` con tamaño y hash actualizados, y el
+PDF antiguo se mueve a un archivo de historial documentado en una entrada
+nueva del historial de revisiones.
 
 ## Historial de revisiones de maestros
 
@@ -32,6 +50,7 @@ desde el origen autorizado antes de continuar.
 | --- | --- | --- |
 | 2026-05-19 | Instalacion inicial de los tres maestros v4.0. | Aporte directo de Gravital Labs. |
 | 2026-05-19 | Reemplazo de placeholders de email: `security@gravital.io` y `hello@antigravital.dev` por `anti@gravitalcloud.com` (raiz) con `angelnereira@gravitalcloud.com` como respaldo de seguridad. Registrado en `docs/adr/0005-contact-identities.md`. | Decision del BDFL inicial. |
+| 2026-05-23 | Suplemento Fase 4.5: Hoja-de-Ruta y Arquitectura-Técnica actualizados con `ag-mail` (estándar diferido) y `ag-domains` (opcional infra), 15→17 crates, 24–28→25–30 meses, tabla DSL realineada, dirección de dependencia `ag-auth → ag-mail` documentada. Registrado en `docs/adr/0007-ag-mail-ag-domains.md`. Blueprint PDF queda como deuda explícita pendiente de re-export. | Decisión del BDFL vía ADR-0007. |
 
 ## Verificación local
 

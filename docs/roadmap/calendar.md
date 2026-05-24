@@ -14,6 +14,7 @@ exige una fecha externa."
 | 2 | The Core MVP | 2 meses | Implementacion tecnica completa |
 | 3 | Anti-DSL alpha (v0.1 a v0.4) | 3 meses | Proxima |
 | 4 | Modulos estandar | 3 meses | Pendiente |
+| 4.5 | ag-mail + ag-domains: comunicacion y dominios | 1-2 meses | Pendiente |
 | 5 | ag-cloud y version 0.5 beta publica | 2 meses | Pendiente |
 | 6 | ag-ai y Knowledge Graph | 2 meses | Pendiente |
 | 7 | ag-migrate importadores | 2 meses | Pendiente |
@@ -21,10 +22,11 @@ exige una fecha externa."
 | 9 | Sistema de plugins WASI | 2 meses | Pendiente |
 | 10 | Endurecimiento y version 1.0 | 3 meses | Pendiente |
 
-Duracion total estimada: 24 a 28 meses.
+Duracion total estimada: 25 a 30 meses.
 Hito de version beta publica (0.5): final de Fase 5, aproximadamente
-mes 14.
-Hito de version 1.0 estable: final de Fase 10, aproximadamente mes 28.
+mes 15. La Fase 4.5 es aditiva (introducida por ADR-0007) y no adelanta
+este hito.
+Hito de version 1.0 estable: final de Fase 10, aproximadamente mes 30.
 
 ## Cadencia post-1.0
 

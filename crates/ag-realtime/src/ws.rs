@@ -1,6 +1,6 @@
 //! Helper WebSocket para Axum que conecta al bus de eventos.
 
-use crate::bus::{Event, EventBus};
+use crate::bus::EventBus;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},

@@ -37,7 +37,7 @@ pub struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     observe_init(&ObserveConfig::from_env()).ok();
 
-    let realtime = Arc::new(AgRealtime::new(RealtimeConfig::default()));
+    let realtime = Arc::new(AgRealtime::new(RealtimeConfig::default()).await?);
     let state = AppState { realtime };
 
     let app = Router::new()

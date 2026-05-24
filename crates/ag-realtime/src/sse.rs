@@ -29,22 +29,20 @@ pub fn bus_to_sse_stream(
     bus: Arc<EventBus>,
 ) -> impl Stream<Item = Result<SseEvent, Infallible>> + Send + 'static {
     let rx = bus.subscribe();
-    tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|result| {
-        match result {
-            Ok(event) => {
-                let data = match serde_json::to_string(&serde_json::json!({
-                    "subject": event.subject,
-                    "payload": String::from_utf8_lossy(&event.payload),
-                })) {
-                    Ok(s) => s,
-                    Err(_) => return None,
-                };
-                Some(Ok(SseEvent::default().event(&event.subject).data(data)))
-            }
-            Err(tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(n)) => {
-                tracing::warn!("SSE client lagged: {n} eventos perdidos");
-                None
-            }
+    tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|result| match result {
+        Ok(event) => {
+            let data = match serde_json::to_string(&serde_json::json!({
+                "subject": event.subject,
+                "payload": String::from_utf8_lossy(&event.payload),
+            })) {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
+            Some(Ok(SseEvent::default().event(&event.subject).data(data)))
+        }
+        Err(tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(n)) => {
+            tracing::warn!("SSE client lagged: {n} eventos perdidos");
+            None
         }
     })
 }

@@ -20,6 +20,7 @@ members = [
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
+    "tests/integration",
 ]
 
 [workspace.package]

@@ -181,6 +181,23 @@ fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
                     ),
                     "usa un email valido, e.g. \"noreply@tu-dominio.com\"",
                 ));
+            } else if !schema.domains.is_empty() {
+                // Validar que el hostname del from coincide con algun domain declarado.
+                let hostname = from.split('@').nth(1).unwrap_or("");
+                let known: Vec<&str> = schema
+                    .domains
+                    .iter()
+                    .filter_map(|d| d.domain_name.as_deref())
+                    .collect();
+                if !known.is_empty() && !known.contains(&hostname) {
+                    diags.push(Diagnostic::warning(
+                        mail.span.clone(),
+                        format!(
+                            "el 'from' del bloque mail '{}' usa el dominio '{}' que no esta declarado en ningun bloque 'domain'",
+                            mail.name.value, hostname,
+                        ),
+                    ));
+                }
             }
         }
 
@@ -1386,5 +1403,48 @@ domain prod {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("route53")));
+    }
+
+    #[test]
+    fn v07_mail_from_matches_declared_domain_no_warning() {
+        let src = r#"
+domain prod {
+    name "ejemplo.com"
+    provider cloudflare
+}
+mail transaccional {
+    provider smtp
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        let domain_warning = diags
+            .iter()
+            .any(|d| !d.is_error() && d.message.contains("domain") && d.message.contains("from"));
+        assert!(
+            !domain_warning,
+            "no debe haber warning cuando from coincide con domain declarado"
+        );
+    }
+
+    #[test]
+    fn v07_mail_from_undeclared_domain_is_warning() {
+        let src = r#"
+domain prod {
+    name "ejemplo.com"
+    provider cloudflare
+}
+mail transaccional {
+    provider smtp
+    from "noreply@otro-dominio.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(
+            diags
+                .iter()
+                .any(|d| !d.is_error() && d.message.contains("otro-dominio.com")),
+            "debe haber warning cuando from usa un dominio no declarado"
+        );
     }
 }

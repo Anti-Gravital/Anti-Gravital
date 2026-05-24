@@ -17,6 +17,8 @@ members = [
     "crates/ag-migrate",
     "crates/ag-wasm-host",
     "crates/ag-lsp",
+    "crates/ag-mail",
+    "crates/ag-domains",
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
@@ -109,6 +111,7 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 tempfile = "3"
 testcontainers = "0.27"
 testcontainers-modules = { version = "0.15", features = ["postgres", "redis"] }
+wiremock = "0.6"
 
 [workspace.lints.rust]
 # Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.

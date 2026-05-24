@@ -1,0 +1,43 @@
+[package]
+name = "ag-mail"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Correo transaccional outbound para Anti-Gravital: sender SMTP nativo + adapters Resend/SES/Postmark con templates tipados validados en compile-time"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+# Sender SMTP nativo (lettre + rustls) - activo por defecto.
+default = ["smtp", "templates", "metrics"]
+smtp = []
+templates = []
+metrics = []
+# Adapters de proveedor - opcionales (cargo features) para no inflar el binario.
+resend = []
+ses = []
+postmark = []
+# Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
+queue-persistent = []
+
+[dependencies]
+ag-core = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

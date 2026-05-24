@@ -1,0 +1,50 @@
+[package]
+name = "ag-domains"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Gestion de dominios y TLS para Anti-Gravital: trait DnsProvider con adapters, ACME (Let's Encrypt), SPF/DKIM/DMARC, verificacion de propagacion"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+# Cliente ACME y verificacion de propagacion activos por defecto.
+default = ["acme", "propagation"]
+acme = ["dep:instant-acme", "dep:rcgen"]
+propagation = ["dep:hickory-resolver"]
+# Adapters de proveedor DNS - opcionales (feature de Cargo).
+cloudflare = ["dep:reqwest"]
+
+[dependencies]
+ag-core = { workspace = true }
+async-trait = { workspace = true }
+metrics = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+# Cloudflare adapter
+reqwest = { workspace = true, optional = true }
+
+# Propagacion DNS (hickory-resolver)
+hickory-resolver = { version = "0.24", default-features = false, features = ["tokio-runtime"], optional = true }
+
+# ACME / Let's Encrypt
+instant-acme = { version = "0.7", optional = true }
+rcgen = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+wiremock = { workspace = true }

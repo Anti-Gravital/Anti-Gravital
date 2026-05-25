@@ -920,6 +920,37 @@ que aparece cuando el autofill no encuentra descriptor.
 Si un agente o colaborador commitea sin crear o actualizar el
 descriptor correspondiente, la PR no se acepta.
 
+### Politica de idioma (ADR-0008)
+
+El ingles es el idioma canonico del codigo y de la documentacion tecnica.
+Regla fijada por `ADR-0008` (supersede el "espanol predeterminado" de
+`ADR-0002`) al cierre de la Fase 4.5.
+
+Codigo:
+
+- Todos los comentarios de codigo (`//`, `///`, `//!`) se escriben en
+  ingles. Sin excepciones para codigo nuevo.
+- Los identificadores van en ingles (ya era la practica).
+
+Documentacion:
+
+- Ingles canonico para la documentacion tecnica profunda: `docs/architecture/`,
+  `docs/modules/`, `docs/dsl/`, `docs/rfc/`, `docs/adr/`, `docs/benchmarks/`,
+  `docs/security/`, `docs/governance/`.
+- Documentos vitrina bilingues (EN+ES en el mismo archivo, seccion inglesa
+  primero y canonica, seccion espanola despues, separadas por regla
+  horizontal, con ancla `English | Espanol` al inicio):
+  - `README.md` (raiz),
+  - los tres maestros de `docs/master/`,
+  - los capitulos de `docs/manual/`.
+- Si la seccion inglesa y la espanola divergen, gana la inglesa; la espanola
+  se marca como pendiente de actualizacion.
+
+Esta regla NO se aplica retroactivamente como bloqueo: la documentacion
+tecnica preexistente en espanol se migra a ingles de forma gradual al
+tocarse. El codigo se convirtio integramente en la fase de cierre documental
+4.0-4.5.
+
 ### Prohibicion absoluta de emojis
 
 No se usan emojis en ningun lugar del proyecto: ni en documentacion, ni

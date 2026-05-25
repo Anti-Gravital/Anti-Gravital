@@ -1,15 +1,15 @@
-//! Indice de tags para invalidacion agrupada de entradas de cache.
+//! Tag index for grouped invalidation of cache entries.
 
 use std::collections::{HashMap, HashSet};
 
-/// Mapea tags a conjuntos de keys para invalidacion por grupo.
+/// Maps tags to sets of keys for group invalidation.
 #[derive(Default)]
 pub struct TagIndex {
     tag_to_keys: HashMap<String, HashSet<String>>,
 }
 
 impl TagIndex {
-    /// Registra que `key` pertenece a los `tags` dados.
+    /// Registers that `key` belongs to the given `tags`.
     pub fn insert(&mut self, key: &str, tags: &[&str]) {
         for tag in tags {
             self.tag_to_keys
@@ -19,14 +19,14 @@ impl TagIndex {
         }
     }
 
-    /// Elimina `key` de todos los tags donde aparezca.
+    /// Removes `key` from all tags where it appears.
     pub fn remove(&mut self, key: &str) {
         for keys in self.tag_to_keys.values_mut() {
             keys.remove(key);
         }
     }
 
-    /// Retorna todos los keys asociados a `tag`.
+    /// Returns all keys associated with `tag`.
     pub fn keys_for_tag(&self, tag: &str) -> Vec<String> {
         self.tag_to_keys
             .get(tag)

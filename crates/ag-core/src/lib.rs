@@ -1,37 +1,37 @@
-//! Nucleo de Anti-Gravital: runtime HTTP, pipeline Shield y extractores tipados.
+//! Anti-Gravital core: HTTP runtime, Shield pipeline and typed extractors.
 //!
-//! `ag-core` es la pieza obligatoria del ecosistema Anti-Gravital. Provee
-//! la pipeline de seguridad **Shield** sobre [Tower] mas la base del
-//! router **Core** sobre [Axum] + [Tokio]. Las dos capas conviven en un
-//! mismo proceso Rust, se comunican por llamada de funcion (sin IPC ni
-//! FFI) y se componen en una unica peticion HTTP de extremo a extremo.
+//! `ag-core` is the mandatory piece of the Anti-Gravital ecosystem. It
+//! provides the **Shield** security pipeline on top of [Tower] plus the
+//! base of the **Core** router on top of [Axum] + [Tokio]. The two layers
+//! coexist in a single Rust process, communicate by function call (no IPC
+//! or FFI) and compose into a single end-to-end HTTP request.
 //!
 //! [Tower]: https://docs.rs/tower
 //! [Axum]: https://docs.rs/axum
 //! [Tokio]: https://docs.rs/tokio
 //!
-//! # Pipeline Shield
+//! # Shield pipeline
 //!
-//! La pipeline se construye a partir de [`ShieldConfig`] y se aplica
-//! a cualquier [`axum::Router`] con [`Shield::apply`]. Cada capa se
-//! activa con su feature Cargo y con la seccion correspondiente del
-//! TOML de configuracion:
+//! The pipeline is built from [`ShieldConfig`] and is applied to any
+//! [`axum::Router`] with [`Shield::apply`]. Each layer is enabled with
+//! its Cargo feature and the corresponding section of the configuration
+//! TOML:
 //!
-//! | Capa            | Feature        | Seccion TOML       | Que aporta                                        |
+//! | Layer           | Feature        | TOML section       | What it provides                                  |
 //! | --- | --- | --- | --- |
-//! | Logging         | `logging`      | (siempre activa)   | Tracing estructurado, latencia por request.       |
-//! | Rate limit      | `rate-limit`   | `[rate_limit]`     | Token bucket por IP con `governor`.               |
-//! | CORS            | `cors`         | `[cors]`           | Defaults seguros sobre `tower-http`.              |
-//! | Auth JWT        | `auth-jwt`     | `[auth]`           | Verificacion `Authorization: Bearer` Ed25519.     |
-//! | CSRF            | `csrf`         | `[csrf]`           | Double-submit cookie apatrida.                    |
-//! | Validation      | `validation`   | (per-handler)      | Extractor [`ValidatedJson<T>`].                   |
-//! | TLS 1.3         | `tls`          | `[tls]`            | Terminacion con `rustls` via [`Shield::serve`].   |
+//! | Logging         | `logging`      | (always active)    | Structured tracing, per-request latency.          |
+//! | Rate limit      | `rate-limit`   | `[rate_limit]`     | Per-IP token bucket with `governor`.              |
+//! | CORS            | `cors`         | `[cors]`           | Secure defaults on top of `tower-http`.           |
+//! | Auth JWT        | `auth-jwt`     | `[auth]`           | Ed25519 `Authorization: Bearer` verification.     |
+//! | CSRF            | `csrf`         | `[csrf]`           | Stateless double-submit cookie.                   |
+//! | Validation      | `validation`   | (per-handler)      | The [`ValidatedJson<T>`] extractor.               |
+//! | TLS 1.3         | `tls`          | `[tls]`            | Termination with `rustls` via [`Shield::serve`].  |
 //!
 //! [`Shield::apply`]: crate::shield::Shield::apply
 //! [`Shield::serve`]: crate::shield::Shield::serve
 //! [`ValidatedJson<T>`]: crate::shield::validation::ValidatedJson
 //!
-//! # Ejemplo minimo
+//! # Minimal example
 //!
 //! ```no_run
 //! use ag_core::{Shield, ShieldConfig};
@@ -50,12 +50,12 @@
 //! # }
 //! ```
 //!
-//! # Cargar configuracion desde TOML
+//! # Loading configuration from TOML
 //!
-//! El operador entrega un archivo TOML con todas las secciones
-//! relevantes. Vease `crates/ag-core/config.example.toml` y el
-//! [capitulo del manual](https://github.com/anti-gravital/anti-gravital/blob/main/docs/manual/01-shield-as-library.md)
-//! para una referencia completa.
+//! The operator provides a TOML file with all the relevant sections.
+//! See `crates/ag-core/config.example.toml` and the
+//! [manual chapter](https://github.com/anti-gravital/anti-gravital/blob/main/docs/manual/01-shield-as-library.md)
+//! for a complete reference.
 //!
 //! ```no_run
 //! use ag_core::{Shield, ShieldConfig};
@@ -68,35 +68,34 @@
 //! # }
 //! ```
 //!
-//! # Tipos publicos clave
+//! # Key public types
 //!
-//! - [`Shield`]: pipeline y helper de servicio.
-//! - [`ShieldConfig`]: configuracion completa, deserializable desde
+//! - [`Shield`]: pipeline and service helper.
+//! - [`ShieldConfig`]: complete configuration, deserializable from
 //!   TOML.
-//! - [`AgError`] y [`AgResult`]: tipos de error con mapeo automatico a
-//!   respuestas HTTP via `axum::response::IntoResponse`.
-//! - [`shield::Claims<T>`]: extractor de claims JWT tipados.
-//! - [`shield::validation::ValidatedJson<T>`]: extractor JSON con
-//!   validacion declarativa via el trait [`shield::validation::Validate`].
+//! - [`AgError`] and [`AgResult`]: error types with automatic mapping to
+//!   HTTP responses via `axum::response::IntoResponse`.
+//! - [`shield::Claims<T>`]: extractor for typed JWT claims.
+//! - [`shield::validation::ValidatedJson<T>`]: JSON extractor with
+//!   declarative validation via the [`shield::validation::Validate`] trait.
 //!
-//! # Estado del crate
+//! # Crate status
 //!
-//! Fase 1 (Shield MVP) cerrada en cuanto a contenido en repositorio.
-//! Las metricas duras de cierre de fase (throughput, latencia p99,
-//! memoria idle, tiempo de arranque) requieren medicion sobre hardware
-//! de referencia y se registran en `docs/benchmarks/` siguiendo la
-//! plantilla `measurement-template.md`. Vease
-//! `docs/roadmap/fase-01-shield-mvp.md` para los criterios completos
-//! y `docs/roadmap/STATUS.md` para el estado vivo.
+//! Phase 1 (Shield MVP) closed in terms of repository content. The hard
+//! phase-closure metrics (throughput, p99 latency, idle memory, startup
+//! time) require measurement on reference hardware and are recorded in
+//! `docs/benchmarks/` following the `measurement-template.md` template.
+//! See `docs/roadmap/fase-01-shield-mvp.md` for the complete criteria and
+//! `docs/roadmap/STATUS.md` for the live status.
 //!
-//! # Reglas aplicables
+//! # Applicable rules
 //!
-//! - Sin `unsafe` en codigo propio. El lint del workspace tiene
+//! - No `unsafe` in our own code. The workspace lint has
 //!   `unsafe_code = "deny"`.
-//! - Defaults seguros: las capas que mutan estado (CORS, CSRF,
-//!   rate-limit, JWT, TLS) estan deshabilitadas hasta declaracion
-//!   explicita en la configuracion.
-//! - Claves desconocidas en TOML se rechazan con [`AgError::Config`].
+//! - Secure defaults: layers that mutate state (CORS, CSRF, rate-limit,
+//!   JWT, TLS) are disabled until explicitly declared in the
+//!   configuration.
+//! - Unknown keys in TOML are rejected with [`AgError::Config`].
 
 #![deny(missing_docs)]
 

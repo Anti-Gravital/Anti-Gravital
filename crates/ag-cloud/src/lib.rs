@@ -1,5 +1,5 @@
-//! Subsistema de despliegue simplificado: docker-compose, Fly.io, Railway y Kubernetes.
+//! Simplified deployment subsystem: docker-compose, Fly.io, Railway and Kubernetes.
 //!
-//! Estado: Fase 0 (Fundaciones y Gobernanza). Este crate aun no contiene
-//! codigo funcional. La implementacion se entrega en la fase declarada
-//! en el README del crate y en la Hoja de Ruta del proyecto.
+//! Status: Phase 0 (Foundations and Governance). This crate does not yet
+//! contain functional code. The implementation is delivered in the phase
+//! declared in the crate's README and in the project's Roadmap.

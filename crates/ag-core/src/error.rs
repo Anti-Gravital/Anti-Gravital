@@ -1,9 +1,9 @@
-//! Sistema de errores del nucleo.
+//! Core error system.
 //!
-//! `AgError` enumera las clases de error que la pipeline Shield puede
-//! producir. Cada variante mapea a una respuesta HTTP estable con un
-//! codigo `snake_case` en el cuerpo JSON. La conversion a
-//! `axum::response::Response` es automatica via `IntoResponse`.
+//! `AgError` enumerates the error classes the Shield pipeline can
+//! produce. Each variant maps to a stable HTTP response with a
+//! `snake_case` code in the JSON body. The conversion to
+//! `axum::response::Response` is automatic via `IntoResponse`.
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -11,67 +11,67 @@ use axum::Json;
 use serde::Serialize;
 use thiserror::Error;
 
-/// Resultado estandar del nucleo.
+/// Standard core result.
 pub type AgResult<T> = Result<T, AgError>;
 
-/// Errores producidos por el nucleo y por la pipeline Shield.
+/// Errors produced by the core and by the Shield pipeline.
 #[derive(Debug, Error)]
 pub enum AgError {
-    /// Error de carga o validacion de la configuracion.
+    /// Configuration load or validation error.
     #[error("config error: {0}")]
     Config(String),
 
-    /// Error de capa TLS.
+    /// TLS layer error.
     #[error("tls error: {0}")]
     Tls(String),
 
-    /// Error de autenticacion.
+    /// Authentication error.
     #[error("auth error: {0}")]
     Auth(String),
 
-    /// Limite de tasa excedido.
+    /// Rate limit exceeded.
     #[error("rate limit exceeded")]
     RateLimit,
 
-    /// Error de validacion de payload.
+    /// Payload validation error.
     #[error("validation error: {0}")]
     Validation(String),
 
-    /// Error de CORS.
+    /// CORS error.
     #[error("cors error: {0}")]
     Cors(String),
 
-    /// Error de CSRF.
+    /// CSRF error.
     #[error("csrf error: {0}")]
     Csrf(String),
 
-    /// Recurso no encontrado.
+    /// Resource not found.
     #[error("not found: {0}")]
     NotFound(String),
 
-    /// Solicitud incorrecta (parametros invalidos, semantica incorrecta).
+    /// Bad request (invalid parameters, incorrect semantics).
     #[error("bad request: {0}")]
     BadRequest(String),
 
-    /// Conflicto de estado (duplicado, restriccion de unicidad, etc.).
+    /// State conflict (duplicate, uniqueness constraint, etc.).
     #[error("conflict: {0}")]
     Conflict(String),
 
-    /// Error de capa de datos (base de datos, migraciones).
+    /// Data layer error (database, migrations).
     #[error("database error: {0}")]
     Database(String),
 
-    /// Error de I/O.
+    /// I/O error.
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
-    /// Cualquier otro error no clasificado.
+    /// Any other unclassified error.
     #[error("internal error: {0}")]
     Other(String),
 }
 
 impl AgError {
-    /// Codigo estable `snake_case` para serializacion publica.
+    /// Stable `snake_case` code for public serialization.
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {
@@ -91,7 +91,7 @@ impl AgError {
         }
     }
 
-    /// Codigo HTTP correspondiente a la variante.
+    /// HTTP code corresponding to the variant.
     #[must_use]
     pub fn status(&self) -> StatusCode {
         match self {

@@ -1,120 +1,120 @@
-//! Tipos del AST del Anti-DSL.
+//! Anti-DSL AST types.
 //!
-//! Todas las construcciones del lenguaje se representan como nodos del AST.
-//! Los nodos clave llevan informacion de span para reportar errores precisos.
-//! En DSL v0.1–v0.7 el AST cubre modelos, request/response/error types,
-//! endpoints HTTP, anotaciones, auth/policy (v0.5), declaraciones de evento (v0.6)
-//! y bloques de correo/dominio (v0.7).
+//! All language constructs are represented as AST nodes.
+//! Key nodes carry span information to report precise errors.
+//! In DSL v0.1-v0.7 the AST covers models, request/response/error types,
+//! HTTP endpoints, annotations, auth/policy (v0.5), event declarations (v0.6)
+//! and mail/domain blocks (v0.7).
 
 use crate::lexer::Span;
 
-/// Rango de bytes en el texto fuente adjunto a un valor.
+/// Byte range in the source text attached to a value.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Spanned<T> {
-    /// Valor del nodo.
+    /// Node value.
     pub value: T,
-    /// Posicion en el texto fuente (bytes).
+    /// Position in the source text (bytes).
     pub span: Span,
 }
 
 impl<T> Spanned<T> {
-    /// Construye un nodo con su span.
+    /// Builds a node with its span.
     pub fn new(value: T, span: Span) -> Self {
         Self { value, span }
     }
 }
 
-/// Schema completo: punto de entrada del AST.
+/// Full schema: AST entry point.
 ///
-/// Contiene configuracion, modelos (v0.1), tipos de API y endpoints (v0.2),
-/// validaciones (v0.3), relaciones (v0.4), auth/policy (v0.5), eventos (v0.6)
-/// y bloques de correo y dominio (v0.7).
+/// Contains configuration, models (v0.1), API types and endpoints (v0.2),
+/// validations (v0.3), relations (v0.4), auth/policy (v0.5), events (v0.6)
+/// and mail and domain blocks (v0.7).
 #[derive(Debug, Clone, Default)]
 pub struct Schema {
-    /// Bloque `config { ... }` opcional.
+    /// Optional `config { ... }` block.
     pub config: Option<Config>,
-    /// Definiciones de modelo en orden de aparicion.
+    /// Model definitions in order of appearance.
     pub models: Vec<ModelDef>,
-    /// Tipos de cuerpo de peticion: `request Nombre { ... }`.
+    /// Request body types: `request Name { ... }`.
     pub requests: Vec<RequestDef>,
-    /// Tipos de cuerpo de respuesta: `response Nombre { ... }`.
+    /// Response body types: `response Name { ... }`.
     pub responses: Vec<ResponseDef>,
-    /// Tipos de error HTTP: `error Nombre { status N message "..." }`.
+    /// HTTP error types: `error Name { status N message "..." }`.
     pub errors: Vec<ErrorDef>,
-    /// Definiciones de endpoint: `endpoint Nombre { method path body response errors }`.
+    /// Endpoint definitions: `endpoint Name { method path body response errors }`.
     pub endpoints: Vec<EndpointDef>,
-    /// Declaraciones de evento (v0.6): `event nombre { payload T retain Nd }`.
+    /// Event declarations (v0.6): `event name { payload T retain Nd }`.
     pub events: Vec<EventDef>,
-    /// Bloques de correo transaccional (v0.7): `mail nombre { ... }`.
+    /// Transactional mail blocks (v0.7): `mail name { ... }`.
     pub mails: Vec<MailBlock>,
-    /// Bloques de dominio DNS (v0.7): `domain nombre { ... }`.
+    /// DNS domain blocks (v0.7): `domain name { ... }`.
     pub domains: Vec<DomainBlock>,
 }
 
-/// Bloque `config { ... }`.
+/// `config { ... }` block.
 ///
-/// Campos reconocidos en v0.1: `project_name` y `database`.
-/// Campos desconocidos se reportan como warnings en el paso semantico.
+/// Fields recognized in v0.1: `project_name` and `database`.
+/// Unknown fields are reported as warnings in the semantic pass.
 #[derive(Debug, Clone, Default)]
 pub struct Config {
-    /// Nombre del proyecto.
+    /// Project name.
     pub project_name: Option<String>,
-    /// Backend de base de datos: `"postgres"`, `"sqlite"`, etc.
+    /// Database backend: `"postgres"`, `"sqlite"`, etc.
     pub database: Option<String>,
 }
 
-/// Definicion de modelo: `model Nombre { campos... }`.
+/// Model definition: `model Name { fields... }`.
 #[derive(Debug, Clone)]
 pub struct ModelDef {
-    /// Nombre del modelo con span para reportar errores.
+    /// Model name with span for error reporting.
     pub name: Spanned<String>,
-    /// Campos del modelo en orden de aparicion.
+    /// Model fields in order of appearance.
     pub fields: Vec<FieldDef>,
-    /// Span del bloque completo (del `model` al `}`).
+    /// Span of the full block (from `model` to `}`).
     pub span: Span,
 }
 
-/// Definicion de campo dentro de un modelo.
+/// Field definition within a model.
 #[derive(Debug, Clone)]
 pub struct FieldDef {
-    /// Nombre del campo.
+    /// Field name.
     pub name: Spanned<String>,
-    /// Tipo del campo.
+    /// Field type.
     pub ty: Spanned<FieldType>,
-    /// Si el campo es opcional (`?` al final del tipo).
+    /// Whether the field is optional (`?` at the end of the type).
     pub optional: bool,
-    /// Lista de anotaciones en orden de aparicion.
+    /// List of annotations in order of appearance.
     pub annotations: Vec<Spanned<Annotation>>,
-    /// true cuando el campo es ModelRef/ModelRefList con @relation.
-    /// SQL codegen lo omite; Rust/TS/OpenAPI lo incluyen como tipo anidado.
+    /// true when the field is a ModelRef/ModelRefList with @relation.
+    /// SQL codegen omits it; Rust/TS/OpenAPI include it as a nested type.
     pub virtual_field: bool,
 }
 
-/// Tipos primitivos soportados en DSL v0.1 y referencias a modelos (v0.4).
+/// Primitive types supported in DSL v0.1 and model references (v0.4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FieldType {
-    /// `UUID` — identificador unico universal.
+    /// `UUID` — universally unique identifier.
     Uuid,
-    /// `String` — texto sin limite definido (el limite se pone con @max).
+    /// `String` — text with no defined limit (the limit is set with @max).
     String,
-    /// `Int` — entero de 64 bits con signo.
+    /// `Int` — signed 64-bit integer.
     Int,
-    /// `Float` — punto flotante de 64 bits.
+    /// `Float` — 64-bit floating point.
     Float,
-    /// `Bool` — booleano.
+    /// `Bool` — boolean.
     Bool,
-    /// `Timestamp` — fecha y hora con zona (UTC por defecto).
+    /// `Timestamp` — date and time with zone (UTC by default).
     Timestamp,
-    /// `Decimal` — numero decimal de precision arbitraria (para dinero).
+    /// `Decimal` — arbitrary-precision decimal number (for money).
     Decimal,
-    /// Referencia a otro modelo — campo virtual N:1 o 1:1, sin columna SQL.
+    /// Reference to another model — virtual N:1 or 1:1 field, no SQL column.
     ModelRef(std::string::String),
-    /// Lista de referencias — campo virtual 1:N, sin columna SQL.
+    /// List of references — virtual 1:N field, no SQL column.
     ModelRefList(std::string::String),
 }
 
 impl FieldType {
-    /// Nombre Rust del tipo generado.
+    /// Rust name of the generated type.
     pub fn rust_type(&self, optional: bool) -> std::string::String {
         if let FieldType::ModelRef(m) | FieldType::ModelRefList(m) = self {
             return if optional {
@@ -140,7 +140,7 @@ impl FieldType {
         }
     }
 
-    /// Tipo SQL correspondiente. Vacio para campos virtuales (nunca generan columna).
+    /// Corresponding SQL type. Empty for virtual fields (they never generate a column).
     pub fn sql_type(&self) -> &'static str {
         match self {
             FieldType::Uuid => "UUID",
@@ -154,7 +154,7 @@ impl FieldType {
         }
     }
 
-    /// Tipo TypeScript correspondiente.
+    /// Corresponding TypeScript type.
     pub fn ts_type(&self) -> &'static str {
         match self {
             FieldType::Uuid => "string",
@@ -168,7 +168,7 @@ impl FieldType {
         }
     }
 
-    /// Formato OpenAPI del tipo (pares type/format).
+    /// OpenAPI format of the type (type/format pairs).
     pub fn openapi_type(&self) -> (&'static str, Option<&'static str>) {
         match self {
             FieldType::Uuid => ("string", Some("uuid")),
@@ -183,55 +183,55 @@ impl FieldType {
     }
 }
 
-/// Anotaciones DSL v0.1–v0.4.
+/// DSL v0.1-v0.4 annotations.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Annotation {
-    /// `@primary` — clave primaria.
+    /// `@primary` — primary key.
     Primary,
-    /// `@unique` — restriccion UNIQUE.
+    /// `@unique` — UNIQUE constraint.
     Unique,
-    /// `@auto` — valor autogenerado (UUID, SERIAL, NOW()).
+    /// `@auto` — auto-generated value (UUID, SERIAL, NOW()).
     Auto,
-    /// `@auto_update` — actualizado en cada UPDATE.
+    /// `@auto_update` — updated on every UPDATE.
     AutoUpdate,
-    /// `@default(valor)` — valor por defecto.
+    /// `@default(value)` — default value.
     Default(DefaultValue),
-    // ---- Validaciones v0.3 ----
-    /// `@min(N)` — longitud minima (String) o valor minimo (Int/Float/Decimal).
+    // ---- v0.3 validations ----
+    /// `@min(N)` — minimum length (String) or minimum value (Int/Float/Decimal).
     Min(i64),
-    /// `@max(N)` — longitud maxima (String) o valor maximo (Int/Float/Decimal).
+    /// `@max(N)` — maximum length (String) or maximum value (Int/Float/Decimal).
     Max(i64),
-    /// `@email` — valida formato de email RFC 5321 basico.
+    /// `@email` — validates basic RFC 5321 email format.
     Email,
-    /// `@regex("patron")` — valida contra expresion regular.
+    /// `@regex("pattern")` — validates against a regular expression.
     Regex(std::string::String),
-    /// `@length(N)` — longitud exacta de caracteres (solo String).
+    /// `@length(N)` — exact character length (String only).
     Length(i64),
-    // ---- Relaciones v0.4 ----
-    /// `@references(Modelo.campo)` — clave foranea con columna SQL real.
+    // ---- v0.4 relations ----
+    /// `@references(Model.field)` — foreign key with a real SQL column.
     References {
-        /// Nombre del modelo destino.
+        /// Target model name.
         model: std::string::String,
-        /// Nombre del campo destino (normalmente la clave primaria).
+        /// Target field name (normally the primary key).
         field: std::string::String,
     },
-    /// `@relation(campo)` o `@relation(modelo.campo)` — campo virtual sin columna SQL.
+    /// `@relation(field)` or `@relation(model.field)` — virtual field with no SQL column.
     Relation {
-        /// Path de la relacion: `campo` para N:1, `modelo.campo` para 1:N.
+        /// Relation path: `field` for N:1, `model.field` for 1:N.
         path: std::string::String,
     },
 }
 
-/// Valor para la anotacion `@default(...)`.
+/// Value for the `@default(...)` annotation.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DefaultValue {
-    /// Literal entero: `@default(0)`.
+    /// Integer literal: `@default(0)`.
     Int(i64),
-    /// Literal string: `@default("activo")`.
+    /// String literal: `@default("activo")`.
     String(std::string::String),
-    /// Literal booleano: `@default(true)`.
+    /// Boolean literal: `@default(true)`.
     Bool(bool),
-    /// Identificador (variante de enum u otra referencia): `@default(USER)`.
+    /// Identifier (enum variant or other reference): `@default(USER)`.
     Ident(std::string::String),
 }
 
@@ -247,62 +247,62 @@ impl std::fmt::Display for DefaultValue {
 }
 
 // ============================================================
-// DSL v0.2 — API types y endpoints
+// DSL v0.2 — API types and endpoints
 // ============================================================
 
-/// Definicion de tipo de cuerpo de peticion: `request Nombre { campos... }`.
+/// Request body type definition: `request Name { fields... }`.
 #[derive(Debug, Clone)]
 pub struct RequestDef {
-    /// Nombre del tipo con span.
+    /// Type name with span.
     pub name: Spanned<std::string::String>,
-    /// Campos del cuerpo de peticion.
+    /// Request body fields.
     pub fields: Vec<FieldDef>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
-/// Definicion de tipo de cuerpo de respuesta: `response Nombre { campos... }`.
+/// Response body type definition: `response Name { fields... }`.
 #[derive(Debug, Clone)]
 pub struct ResponseDef {
-    /// Nombre del tipo con span.
+    /// Type name with span.
     pub name: Spanned<std::string::String>,
-    /// Campos del cuerpo de respuesta.
+    /// Response body fields.
     pub fields: Vec<FieldDef>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
-/// Definicion de error HTTP: `error Nombre { status N message "texto" }`.
+/// HTTP error definition: `error Name { status N message "text" }`.
 #[derive(Debug, Clone)]
 pub struct ErrorDef {
-    /// Nombre del tipo de error con span.
+    /// Error type name with span.
     pub name: Spanned<std::string::String>,
-    /// Codigo de estado HTTP (ej. 409, 422).
+    /// HTTP status code (e.g. 409, 422).
     pub status: Spanned<u16>,
-    /// Mensaje legible para el cliente.
+    /// Client-readable message.
     pub message: Spanned<std::string::String>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
 // ============================================================
-// DSL v0.5 — auth/policy en endpoints
+// DSL v0.5 — auth/policy on endpoints
 // ============================================================
 
-/// Modo de autenticacion declarado en un endpoint (DSL v0.5).
+/// Authentication mode declared on an endpoint (DSL v0.5).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum AuthMode {
-    /// Sin autenticacion requerida (valor por defecto).
+    /// No authentication required (default value).
     #[default]
     None,
-    /// El token JWT es requerido; la Shield rechaza requests sin token.
+    /// The JWT token is required; the Shield rejects requests without a token.
     Required,
-    /// El token JWT es opcional; el handler decide como tratar la ausencia.
+    /// The JWT token is optional; the handler decides how to treat its absence.
     Optional,
 }
 
 impl AuthMode {
-    /// Representacion textual del modo tal como aparece en el schema.
+    /// Textual representation of the mode as it appears in the schema.
     pub fn as_str(&self) -> &'static str {
         match self {
             AuthMode::None => "none",
@@ -313,23 +313,23 @@ impl AuthMode {
 }
 
 // ============================================================
-// DSL v0.6 — declaracion de eventos
+// DSL v0.6 — event declaration
 // ============================================================
 
-/// Declaracion de evento en DSL v0.6: `event nombre { payload T retain Nd }`.
+/// Event declaration in DSL v0.6: `event name { payload T retain Nd }`.
 #[derive(Debug, Clone)]
 pub struct EventDef {
-    /// Nombre del evento en formato `entidad.accion`.
+    /// Event name in `entity.action` format.
     pub name: Spanned<std::string::String>,
-    /// Nombre del tipo de payload (referencia a model/request/response).
+    /// Payload type name (reference to model/request/response).
     pub payload: Spanned<std::string::String>,
-    /// Retencion en dias. `None` si no se declara.
+    /// Retention in days. `None` if not declared.
     pub retain_days: Option<u32>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
-/// Definicion de endpoint HTTP.
+/// HTTP endpoint definition.
 ///
 /// ```text
 /// endpoint CreateUser {
@@ -342,45 +342,45 @@ pub struct EventDef {
 /// ```
 #[derive(Debug, Clone)]
 pub struct EndpointDef {
-    /// Nombre del endpoint con span.
+    /// Endpoint name with span.
     pub name: Spanned<std::string::String>,
-    /// Metodo HTTP.
+    /// HTTP method.
     pub method: Spanned<HttpMethod>,
-    /// Path HTTP (ej. `/users/{id}`).
+    /// HTTP path (e.g. `/users/{id}`).
     pub path: Spanned<std::string::String>,
-    /// Nombre del tipo de cuerpo de peticion (referencia a `RequestDef`).
+    /// Request body type name (reference to `RequestDef`).
     pub body: Option<Spanned<std::string::String>>,
-    /// Nombre del tipo de respuesta (referencia a `ResponseDef`).
+    /// Response type name (reference to `ResponseDef`).
     pub response: Option<Spanned<std::string::String>>,
-    /// Nombres de tipos de error (referencias a `ErrorDef`).
+    /// Error type names (references to `ErrorDef`).
     pub errors: Vec<Spanned<std::string::String>>,
-    /// Modo de autenticacion del endpoint (v0.5). Default: None.
+    /// Endpoint authentication mode (v0.5). Default: None.
     pub auth: AuthMode,
-    /// Expresion de politica RBAC (v0.5). Solo valida cuando auth != None.
+    /// RBAC policy expression (v0.5). Only valid when auth != None.
     pub policy: Option<Spanned<std::string::String>>,
-    /// Nombres de eventos emitidos por este endpoint (v0.6).
+    /// Names of events emitted by this endpoint (v0.6).
     pub emits: Vec<Spanned<std::string::String>>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
-/// Metodo HTTP soportado en DSL v0.2.
+/// HTTP method supported in DSL v0.2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HttpMethod {
-    /// HTTP GET — lectura.
+    /// HTTP GET — read.
     Get,
-    /// HTTP POST — creacion.
+    /// HTTP POST — create.
     Post,
-    /// HTTP PUT — reemplazo completo.
+    /// HTTP PUT — full replacement.
     Put,
-    /// HTTP PATCH — actualizacion parcial.
+    /// HTTP PATCH — partial update.
     Patch,
-    /// HTTP DELETE — eliminacion.
+    /// HTTP DELETE — removal.
     Delete,
 }
 
 impl HttpMethod {
-    /// Retorna la representacion textual del metodo en mayusculas.
+    /// Returns the uppercase textual representation of the method.
     pub fn as_str(&self) -> &'static str {
         match self {
             HttpMethod::Get => "GET",

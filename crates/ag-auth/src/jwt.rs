@@ -1,27 +1,27 @@
-//! Firma y verificacion de JSON Web Tokens con el algoritmo Ed25519 (EdDSA).
+//! Signing and verification of JSON Web Tokens with the Ed25519 (EdDSA) algorithm.
 //!
-//! Usa [`jsonwebtoken`] con claves en formato PEM PKCS#8. Las claves deben
-//! generarse fuera del crate (openssl, age, etc.) y pasarse via `AuthConfig`.
+//! Uses [`jsonwebtoken`] with keys in PEM PKCS#8 format. The keys must be
+//! generated outside the crate (openssl, age, etc.) and passed via `AuthConfig`.
 
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-/// Claims estandar de un JWT emitido por Anti-Gravital.
+/// Standard claims of a JWT issued by Anti-Gravital.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Claims {
-    /// Sujeto del token (normalmente el UUID del usuario).
+    /// Subject of the token (usually the user's UUID).
     pub sub: String,
-    /// Timestamp de expiracion (segundos desde Unix epoch).
+    /// Expiration timestamp (seconds since Unix epoch).
     pub exp: u64,
-    /// Timestamp de emision (segundos desde Unix epoch).
+    /// Issued-at timestamp (seconds since Unix epoch).
     pub iat: u64,
-    /// Identificador unico del token. Permite revocacion por JTI.
+    /// Unique identifier of the token. Allows revocation by JTI.
     pub jti: String,
-    /// Rol del usuario en el momento de la emision.
+    /// User role at the moment of issuance.
     pub role: String,
 }
 
-/// Firmador y verificador de JWTs Ed25519.
+/// Ed25519 JWT signer and verifier.
 #[derive(Clone)]
 pub struct JwtSigner {
     private_key_pem: String,
@@ -29,10 +29,10 @@ pub struct JwtSigner {
 }
 
 impl JwtSigner {
-    /// Crea un nuevo `JwtSigner` a partir de claves PEM.
+    /// Creates a new `JwtSigner` from PEM keys.
     ///
-    /// Las claves deben estar en formato PKCS#8 Ed25519.
-    /// La validacion de formato ocurre en [`JwtSigner::sign`] y [`JwtSigner::verify`], no aqui.
+    /// The keys must be in PKCS#8 Ed25519 format.
+    /// Format validation occurs in [`JwtSigner::sign`] and [`JwtSigner::verify`], not here.
     pub fn new(private_key_pem: String, public_key_pem: String) -> Self {
         Self {
             private_key_pem,
@@ -40,12 +40,12 @@ impl JwtSigner {
         }
     }
 
-    /// Firma un conjunto de claims y retorna el JWT compacto.
+    /// Signs a set of claims and returns the compact JWT.
     ///
     /// # Errors
     ///
-    /// Retorna [`JwtError::Signing`] si la clave privada es invalida o la
-    /// firma falla.
+    /// Returns [`JwtError::Signing`] if the private key is invalid or
+    /// signing fails.
     pub fn sign(&self, claims: &Claims) -> Result<String, JwtError> {
         let key = EncodingKey::from_ed_pem(self.private_key_pem.as_bytes())
             .map_err(|e| JwtError::Signing(e.to_string()))?;
@@ -53,19 +53,19 @@ impl JwtSigner {
         jsonwebtoken::encode(&header, claims, &key).map_err(|e| JwtError::Signing(e.to_string()))
     }
 
-    /// Verifica un JWT y retorna los claims si la firma y expiracion son validos.
+    /// Verifies a JWT and returns the claims if the signature and expiration are valid.
     ///
-    /// Emite un warning de tracing cuando la verificacion falla, incluyendo el motivo.
+    /// Emits a tracing warning when verification fails, including the reason.
     ///
     /// # Errors
     ///
-    /// - [`JwtError::Verification`] si la firma es invalida o el token esta expirado.
-    /// - [`JwtError::InvalidToken`] si el formato del token es incorrecto.
+    /// - [`JwtError::Verification`] if the signature is invalid or the token is expired.
+    /// - [`JwtError::InvalidToken`] if the token format is incorrect.
     pub fn verify(&self, token: &str) -> Result<Claims, JwtError> {
         let key = DecodingKey::from_ed_pem(self.public_key_pem.as_bytes())
             .map_err(|e| JwtError::Verification(e.to_string()))?;
         let mut validation = Validation::new(Algorithm::EdDSA);
-        // No validar `aud` por defecto; ag-auth no emite audiencia en los tokens.
+        // Do not validate `aud` by default; ag-auth does not emit an audience in tokens.
         validation.validate_aud = false;
         jsonwebtoken::decode::<Claims>(token, &key, &validation)
             .map(|data| data.claims)
@@ -79,16 +79,16 @@ impl JwtSigner {
     }
 }
 
-/// Errores del modulo JWT.
+/// Errors of the JWT module.
 #[derive(Debug, thiserror::Error)]
 pub enum JwtError {
-    /// Error al firmar: clave invalida o fallo interno.
+    /// Signing error: invalid key or internal failure.
     #[error("error de firma JWT: {0}")]
     Signing(String),
-    /// Token con firma incorrecta, expirado u otro problema de verificacion.
+    /// Token with an incorrect signature, expired, or another verification problem.
     #[error("verificacion JWT fallida: {0}")]
     Verification(String),
-    /// Formato del token incorrecto (no es JWT valido).
+    /// Incorrect token format (not a valid JWT).
     #[error("formato de token JWT invalido")]
     InvalidToken,
 }

@@ -1,7 +1,7 @@
-//! Backend del servidor LSP Anti-Gravital.
+//! Backend of the Anti-Gravital LSP server.
 //!
-//! Implementa el trait `LanguageServer` de tower-lsp. Cada documento `.ag`
-//! abierto se mantiene en memoria para publicar diagnostics en tiempo real.
+//! Implements tower-lsp's `LanguageServer` trait. Each open `.ag` document
+//! is kept in memory to publish diagnostics in real time.
 
 use std::collections::HashMap;
 
@@ -17,15 +17,15 @@ use tower_lsp::lsp_types::{
 };
 use tower_lsp::{Client, LanguageServer};
 
-/// Estado interno del servidor LSP.
+/// Internal state of the LSP server.
 pub struct Backend {
     client: Client,
-    /// Texto actual de cada documento abierto, indexado por URI.
+    /// Current text of each open document, indexed by URI.
     documents: Mutex<HashMap<Url, String>>,
 }
 
 impl Backend {
-    /// Crea un nuevo Backend con el cliente LSP dado.
+    /// Creates a new Backend with the given LSP client.
     pub fn new(client: Client) -> Self {
         Self {
             client,
@@ -139,7 +139,7 @@ impl LanguageServer for Backend {
     }
 }
 
-// ---- helpers internos ------------------------------------------------
+// ---- internal helpers ------------------------------------------------
 
 fn ag_diag_to_lsp(source: &str, d: &AgDiag) -> Diagnostic {
     let range = span_to_range(source, d.span.start, d.span.end);
@@ -197,14 +197,14 @@ fn word_at_position<'a>(source: &'a str, pos: &Position) -> Option<&'a str> {
 
 fn hover_content_for_word(word: &str) -> Option<String> {
     let s = match word {
-        // Tipos escalares
+        // Scalar types
         "UUID" => "**UUID** — Identificador unico universal v4. SQL: `UUID`.",
         "String" => "**String** — Cadena de texto UTF-8. SQL: `TEXT`.",
         "Int" => "**Int** — Entero de 64 bits con signo. SQL: `BIGINT`.",
         "Float" => "**Float** — Punto flotante 64 bits. SQL: `DOUBLE PRECISION`.",
         "Bool" => "**Bool** — Valor booleano. SQL: `BOOLEAN`.",
         "DateTime" => "**DateTime** — Fecha y hora UTC. SQL: `TIMESTAMPTZ`.",
-        // Anotaciones de modelo
+        // Model annotations
         "@primary" => "**@primary** — Clave primaria de la tabla.",
         "@unique" => "**@unique** — Restriccion UNIQUE en la columna.",
         "@auto" => "**@auto** — Valor generado automaticamente (UUID o serial).",
@@ -217,7 +217,7 @@ fn hover_content_for_word(word: &str) -> Option<String> {
         "@length" => "**@length(n)** — Longitud exacta del string.",
         "@relation" => "**@relation(campo_fk)** — Relacion virtual. No genera columna SQL.",
         "@references" => "**@references(Modelo.campo)** — Clave foranea hacia otro modelo.",
-        // Bloques DSL v0.7 — correo transaccional
+        // DSL v0.7 blocks — transactional mail
         "mail" => {
             "**mail** (DSL v0.7) — Bloque de configuracion de correo transaccional.\n\n\
             ```ag\nmail nombre {\n    provider smtp\n    from \"noreply@ejemplo.com\"\n    template bienvenida {\n        subject \"Bienvenido {{nombre}}\"\n        vars [nombre, token]\n    }\n}\n```\n\n\
@@ -233,7 +233,7 @@ fn hover_content_for_word(word: &str) -> Option<String> {
             ```ag\ntemplate bienvenida {\n    subject \"Bienvenido {{nombre}}\"\n    vars [nombre, token]\n}\n```\n\n\
             Las `vars` declaradas son validadas en compile-time contra el HTML del template."
         }
-        // Propiedades de bloques mail/domain
+        // Properties of mail/domain blocks
         "provider" => "**provider** — Proveedor del bloque. En `mail`: `smtp`, `resend`, `ses`, `postmark`. En `domain`: `cloudflare`.",
         "from" => "**from** — Direccion de correo remitente. Debe referenciar un `domain` declarado en el mismo schema.",
         "subject" => "**subject** — Asunto del correo. Admite variables `{{nombre}}` declaradas en `vars`.",
@@ -259,7 +259,7 @@ fn static_completion_items() -> Vec<CompletionItem> {
         ("PUT", "Metodo HTTP PUT"),
         ("PATCH", "Metodo HTTP PATCH"),
         ("DELETE", "Metodo HTTP DELETE"),
-        // DSL v0.7 — bloques mail/domain
+        // DSL v0.7 — mail/domain blocks
         ("mail", "Bloque de correo transaccional (DSL v0.7)"),
         ("domain", "Bloque de configuracion DNS (DSL v0.7)"),
         ("template", "Sub-bloque de template de correo (DSL v0.7)"),
@@ -286,7 +286,7 @@ fn static_completion_items() -> Vec<CompletionItem> {
         ("@relation", "@relation(campo_fk) — relacion virtual"),
         ("@references", "@references(Modelo.campo) — clave foranea"),
     ];
-    // Propiedades de bloques mail/domain (DSL v0.7)
+    // Properties of mail/domain blocks (DSL v0.7)
     let mail_domain_props: &[(&str, &str)] = &[
         (
             "provider",

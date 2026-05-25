@@ -1,7 +1,7 @@
-//! Binario del servidor LSP Anti-Gravital.
+//! Anti-Gravital LSP server binary.
 //!
-//! Escucha en stdin/stdout con el protocolo LSP. El cliente (VS Code, etc.)
-//! lanza este proceso como hijo y se comunica por stdio.
+//! Listens on stdin/stdout with the LSP protocol. The client (VS Code, etc.)
+//! launches this process as a child and communicates over stdio.
 
 mod backend;
 

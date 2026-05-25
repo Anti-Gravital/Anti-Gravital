@@ -1,34 +1,34 @@
-//! Configuracion de autenticacion leida desde variables de entorno.
+//! Authentication configuration read from environment variables.
 
-/// Configuracion del modulo de autenticacion.
+/// Configuration of the authentication module.
 #[derive(Debug, Clone)]
 pub struct AuthConfig {
-    /// Clave privada Ed25519 en formato PEM para firmar JWTs.
+    /// Ed25519 private key in PEM format for signing JWTs.
     /// Variable: `JWT_PRIVATE_KEY`
     pub jwt_private_key_pem: String,
-    /// Clave publica Ed25519 en formato PEM para verificar JWTs.
+    /// Ed25519 public key in PEM format for verifying JWTs.
     /// Variable: `JWT_PUBLIC_KEY`
     pub jwt_public_key_pem: String,
-    /// Identificador del relying party para WebAuthn (ej: `"example.com"`).
+    /// Relying party identifier for WebAuthn (e.g.: `"example.com"`).
     /// Variable: `WEBAUTHN_RP_ID`
     pub webauthn_rp_id: String,
-    /// URL de origen para WebAuthn (ej: `"https://example.com"`).
+    /// Origin URL for WebAuthn (e.g.: `"https://example.com"`).
     /// Variable: `WEBAUTHN_ORIGIN`
     pub webauthn_origin: String,
-    /// Client ID de OAuth2 Google. `None` deshabilita el provider.
+    /// Google OAuth2 client ID. `None` disables the provider.
     pub oauth_google_client_id: Option<String>,
-    /// Client secret de OAuth2 Google.
+    /// Google OAuth2 client secret.
     pub oauth_google_client_secret: Option<String>,
-    /// Client ID de OAuth2 GitHub. `None` deshabilita el provider.
+    /// GitHub OAuth2 client ID. `None` disables the provider.
     pub oauth_github_client_id: Option<String>,
-    /// Client secret de OAuth2 GitHub.
+    /// GitHub OAuth2 client secret.
     pub oauth_github_client_secret: Option<String>,
 }
 
 impl AuthConfig {
-    /// Lee la configuracion desde variables de entorno.
+    /// Reads the configuration from environment variables.
     ///
-    /// Retorna un error si las claves JWT obligatorias no estan definidas.
+    /// Returns an error if the required JWT keys are not defined.
     pub fn from_env() -> Result<Self, AuthConfigError> {
         let jwt_private_key_pem = std::env::var("JWT_PRIVATE_KEY")
             .map_err(|_| AuthConfigError::MissingVar("JWT_PRIVATE_KEY"))?;
@@ -51,10 +51,10 @@ impl AuthConfig {
     }
 }
 
-/// Error de configuracion de autenticacion.
+/// Authentication configuration error.
 #[derive(Debug)]
 pub enum AuthConfigError {
-    /// Variable de entorno obligatoria no definida.
+    /// Required environment variable not defined.
     MissingVar(&'static str),
 }
 
@@ -75,7 +75,7 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    // Serializa el acceso a JWT_PRIVATE_KEY / JWT_PUBLIC_KEY entre tests paralelos.
+    // Serializes access to JWT_PRIVATE_KEY / JWT_PUBLIC_KEY across parallel tests.
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]

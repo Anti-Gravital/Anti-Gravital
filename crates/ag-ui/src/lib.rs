@@ -1,5 +1,5 @@
-//! Renderizado del lado del servidor con askama e integracion progresiva HTMX.
+//! Server-side rendering with askama and progressive HTMX integration.
 //!
-//! Estado: Fase 0 (Fundaciones y Gobernanza). Este crate aun no contiene
-//! codigo funcional. La implementacion se entrega en la fase declarada
-//! en el README del crate y en la Hoja de Ruta del proyecto.
+//! Status: Phase 0 (Foundations and Governance). This crate does not yet
+//! contain functional code. The implementation is delivered in the phase
+//! declared in the crate's README and in the project's Roadmap.

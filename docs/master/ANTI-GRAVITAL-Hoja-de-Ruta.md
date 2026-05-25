@@ -28,13 +28,13 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 
 | Fase | Nombre                                     | Duración estimada | Estado    |
 |------|--------------------------------------------|-------------------|-----------|
-| 0    | Fundaciones y gobernanza                   | 1–2 meses         | Pendiente |
-| 1    | The Shield MVP                             | 2–3 meses         | Pendiente |
-| 2    | The Core MVP + roundtrip                   | 2 meses           | Pendiente |
-| 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Pendiente |
-| 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Pendiente |
-| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Pendiente |
-| 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Pendiente |
+| 0    | Fundaciones y gobernanza                   | 1–2 meses         | En curso (entregables externos pendientes) |
+| 1    | The Shield MVP                             | 2–3 meses         | Implementación técnica completa |
+| 2    | The Core MVP + roundtrip                   | 2 meses           | Implementación técnica completa |
+| 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Implementación técnica completa |
+| 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementación técnica completa |
+| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementación técnica completa |
+| 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
 | 8    | `ag-mobile` — Flutter bridge               | 2 meses           | Pendiente |
@@ -44,6 +44,16 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 **Duración total estimada:** 25–30 meses desde el inicio.
 **Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
 **Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
+
+**Estado al cierre de la Fase 4.5 (2026-05-24).** Las fases 1 a 4.5 tienen su
+implementación técnica completa y mergeada a `main`. "Implementación técnica
+completa" significa que los entregables de código, tests, fmt, clippy, audit y
+deny están cumplidos; los criterios de salida de adopción comunitaria (stars,
+contribuidores externos, blog posts) son métricas externas que se rastrean
+aparte y no bloquean el avance técnico. El detalle granular de cada casilla
+vive en `docs/roadmap/STATUS.md`, que es el tablero de mando operativo. La
+Fase 0 permanece en curso por entregables externos (Discord, landing, dominio).
+La Fase 5 (`ag-cloud`) es la próxima.
 
 **Nota sobre la Fase 4.5.** La Fase 4.5 es una fase **aditiva** introducida por
 `ADR-0007` después de cerrar la Fase 4. No modifica el alcance ni los
@@ -97,6 +107,8 @@ El principal riesgo es la procrastinación por perfeccionismo. La fase 0 no prod
 ---
 
 ## Fase 1 — The Shield MVP
+
+**Estado: Implementación técnica completa.** Detalle de casillas en `docs/roadmap/STATUS.md`.
 
 **Objetivo.** Implementar la capa Shield del núcleo: una pipeline de middleware Tower que valida, autentica básicamente, aplica rate limiting y entrega requests a un handler placeholder. Sin Core completo todavía. Sin DSL todavía. El producto es un binario que responde HTTP con seguridad básica y benchmark publicable.
 

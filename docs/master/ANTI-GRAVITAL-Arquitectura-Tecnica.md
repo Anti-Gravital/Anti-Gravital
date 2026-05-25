@@ -630,7 +630,7 @@ Esta sección especifica cada uno de los módulos estándar del ecosistema. Cada
 
 El módulo de autenticación implementa los esquemas modernos de identidad. La decisión arquitectónica central es soportar Passkeys/WebAuthn como primera clase, no como afterthought; las passwords son un mecanismo legacy soportado pero no recomendado.
 
-El stack técnico es `webauthn-rs` para FIDO2, `jsonwebtoken` para JWT, `ring` para criptografía, `argon2` para hashing de passwords (cuando se usan), y `oauth2` como cliente OAuth2.
+El stack técnico implementado es WebAuthn propio con `ciborium` (CBOR) y verificación COSE (`p256` para ES256, `ed25519-dalek` para EdDSA) en lugar de `webauthn-rs`, por compatibilidad de licencia Apache-2.0 (vease `ADR-0006`); `jsonwebtoken` para JWT, `argon2` para hashing de passwords (cuando se usan), y `oauth2` como cliente OAuth2 (Google, GitHub) con flujo PKCE.
 
 Los flujos soportados son: registro y autenticación con passkey, autenticación con email + password (legacy), OAuth2 con providers preconfigurados (Google, GitHub, Microsoft, Gravital ID), API keys para integraciones servidor-servidor, y refresh tokens con rotación.
 
@@ -664,7 +664,7 @@ La persistencia de eventos usa JetStream (componente de NATS) cuando está dispo
 
 ### 8.4 `ag-cache` — Caché multinivel
 
-El módulo de caché ofrece dos niveles. El nivel L1 es caché en memoria con `moka`, una implementación concurrente sin locks contenciosos basada en TinyLFU. El nivel L2 es Redis (con `fred` como cliente), opcional, para caché distribuida entre instancias.
+El módulo de caché ofrece dos niveles. El nivel L1, ya implementado, es caché en memoria con `moka`, una implementación concurrente sin locks contenciosos basada en TinyLFU, con invalidación por tags. El nivel L2 (caché distribuida entre instancias) aún no está implementado: `RFC-0005` propone un L2 nativo compatible con el protocolo RESP2, sin dependencia de Redis como servicio externo, y queda pendiente de aprobación e implementación.
 
 La invalidación se hace por eventos. Cuando un endpoint emite un evento (`user.updated`), `ag-cache` invalida automáticamente las entradas relacionadas en ambos niveles. La política de invalidación se declara en el schema.
 
@@ -726,16 +726,19 @@ pub enum AgMail {
 ```
 
 El patrón Native | Adapter es idéntico al usado por `ag-storage`
-(`Native | S3`) y `ag-cache` (`moka | Redis`), reforzando la regla de
+(`Native | S3`) y al previsto para el L2 de `ag-cache` (L1 `moka` nativo
+hoy; L2 RESP2 nativo propuesto en `RFC-0005`), reforzando la regla de
 interoperabilidad del proyecto: integrar proveedores dominantes, no
 reemplazarlos.
 
-Los **templates** se construyen con `askama` (ya utilizado por `ag-ui`) y se
-validan en build-time contra el `schema.ag`: si el `from` declarado no
-referencia un `domain` válido, si el archivo del template no existe o si
-las variables del HTML no coinciden con las `vars` tipadas declaradas, el
-compilador del DSL rechaza el build. Un correo mal formado deja de ser un
-bug de runtime y se convierte en un error de compilación. Este es el
+Los **templates** se modelan con el trait `MailTemplate` y una
+implementación `StringTemplate` de sustitución `{{var}}`; cualquier motor
+externo (askama, minijinja) puede conectarse implementando el trait. La
+validación de variables se hace contra el `schema.ag`: el compilador del
+DSL emite un aviso cuando el `from` de un bloque `mail` no referencia un
+`domain` declarado, y verifica que las `vars` tipadas del template
+coincidan con los marcadores usados. Un correo mal formado deja de ser un
+bug de runtime y se acerca a un error detectable en build. Este es el
 **diferenciador real** frente a Resend, no la entregabilidad: la
 entregabilidad es trabajo del proveedor; la corrección del contrato es
 trabajo del framework.

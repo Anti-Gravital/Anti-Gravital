@@ -12,19 +12,22 @@ desde el origen autorizado antes de continuar.
 ## Versión vigente
 
 - Versión documental: 4.1 (markdown) — Blueprint PDF pendiente de re-export
-- Fecha de la versión documental: 2026-05-23 (suplemento Fase 4.5)
+- Fecha de la versión documental: 2026-05-25 (cierre documental Fase 4.0-4.5)
 - Fecha de instalación en el repositorio: 2026-05-19 (v4.0 inicial)
 - Origen: aporte directo de Gravital Labs (Nereira Technology and
   Business Solutions), República de Panamá.
 - Licencia de la documentación: Apache 2.0, igual que el código.
+- Idioma: maestros markdown bilingües (inglés canónico primero, español
+  después) según `ADR-0008`. El Blueprint v4.1.md es la fuente markdown.
 
 ## Maestros instalados
 
 | Archivo | Tamano (bytes) | SHA-256 |
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 102322 | `5f56cadcf03f49289b7f4a141eccf4c6289543caf65041f38b54a4830b6bd76d` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 33516 | `ff5e322f568e2ecf416d09235c91d8f4eb004531b6844f513a68b63042b64590` |
+| `ANTI-GRAVITAL-Blueprint-v4.1.md` | 10007 | `a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 203145 | `d511e96b4a00a6eb2aec09efe7a7fd6c15a0cef7ff89d055f3e2f9fff7b8de31` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 67324 | `24a5fa50a02a167d32bd2c3e650d65344a16f01735dc6a358ec5f303017cd3b9` |
 
 ### Deuda explícita — Blueprint PDF v4.1
 
@@ -51,6 +54,7 @@ nueva del historial de revisiones.
 | 2026-05-19 | Instalacion inicial de los tres maestros v4.0. | Aporte directo de Gravital Labs. |
 | 2026-05-19 | Reemplazo de placeholders de email: `security@gravital.io` y `hello@antigravital.dev` por `anti@gravitalcloud.com` (raiz) con `angelnereira@gravitalcloud.com` como respaldo de seguridad. Registrado en `docs/adr/0005-contact-identities.md`. | Decision del BDFL inicial. |
 | 2026-05-23 | Suplemento Fase 4.5: Hoja-de-Ruta y Arquitectura-Técnica actualizados con `ag-mail` (estándar diferido) y `ag-domains` (opcional infra), 15→17 crates, 24–28→25–30 meses, tabla DSL realineada, dirección de dependencia `ag-auth → ag-mail` documentada. Registrado en `docs/adr/0007-ag-mail-ag-domains.md`. Blueprint PDF queda como deuda explícita pendiente de re-export. | Decisión del BDFL vía ADR-0007. |
+| 2026-05-25 | Cierre documental Fase 4.0-4.5: (1) maestros markdown convertidos a bilingüe (inglés canónico primero, español después) según `ADR-0008`; (2) fidelidad a implementación real — fases 1-4.5 marcadas técnicamente completas en la Hoja-de-Ruta, y en la Arquitectura se corrigió WebAuthn (ciborium/p256/ed25519 vía ADR-0006), templates de correo (StringTemplate), y caché L2 (RFC-0005, no implementado); (3) nuevo `ANTI-GRAVITAL-Blueprint-v4.1.md` como fuente markdown versionable del Blueprint. Blueprint PDF sigue como deuda pendiente de re-export. | Decisión del BDFL vía ADR-0008. |
 
 ## Verificación local
 

@@ -1,11 +1,640 @@
 # Anti-Gravital — Hoja de Ruta y Puertas de Verificación
 
+**[English](#english) | [Espanol](#espanol)**
+
 **Versión:** 4.0 — Mayo 2026
 **Organización:** Gravital Labs — Nereira Technology and Business Solutions
 **Origen:** República de Panamá
 **Estado:** Documento vivo. Se actualiza con cada release.
 
 ---
+
+## English
+
+## How to read this document
+
+This document defines the sequence of phases that the Anti-Gravital project must pass through from its inception until it becomes a stable, market-ready version 1.0, with the promise fulfilled.
+
+Each phase contains four blocks:
+
+1. **Entry criteria**: conditions that must be met before the phase can begin. These come from the previous phase.
+2. **Deliverables**: concrete artifacts that the phase must produce.
+3. **Exit criteria (gate)**: conditions that must be met before moving to the next phase. They function as blocking gates: if they are not met, there is no advancement. This is non-negotiable.
+4. **Phase-specific risks and mitigations**.
+
+The deliverables and exit criteria are expressed as checkable boxes. This document is kept in the repository and is updated by crossing off what has been accomplished. It serves as the project's public dashboard.
+
+The main rule is: **a phase is not considered concluded until all of its exit criteria boxes are checked**. The project may be temporarily paused between phases, but it cannot skip steps due to external pressure or urgency.
+
+---
+
+## Phase summary
+
+| Phase | Name                                       | Estimated duration | Status    |
+|-------|--------------------------------------------|--------------------|-----------|
+| 0     | Foundations and governance                 | 1–2 months         | In progress (external deliverables pending) |
+| 1     | The Shield MVP                             | 2–3 months         | Technical implementation complete |
+| 2     | The Core MVP + roundtrip                   | 2 months           | Technical implementation complete |
+| 3     | Anti-DSL alpha (v0.1–v0.4)                 | 3 months           | Technical implementation complete |
+| 4     | Standard modules (auth, data, realtime)    | 3 months           | Technical implementation complete |
+| 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Technical implementation complete |
+| 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
+| 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
+| 7     | `ag-migrate` — importers                   | 2 months           | Pending |
+| 8     | `ag-mobile` — Flutter bridge               | 2 months           | Pending |
+| 9     | WASI plugin system                         | 2 months           | Pending |
+| 10    | Hardening and 1.0 milestone                | 3 months           | Pending |
+
+**Total estimated duration:** 25–30 months from the start.
+**Public beta version milestone (0.5):** end of phase 5 (~15 months).
+**Stable version 1.0 milestone:** end of phase 10 (~30 months).
+
+**Status at the close of Phase 4.5 (2026-05-24).** Phases 1 through 4.5 have their
+technical implementation complete and merged to `main`. "Technical implementation
+complete" means that the deliverables of code, tests, fmt, clippy, audit and
+deny are fulfilled; the exit criteria of community adoption (stars,
+external contributors, blog posts) are external metrics that are tracked
+separately and do not block technical advancement. The granular detail of each box
+lives in `docs/roadmap/STATUS.md`, which is the operational dashboard. The
+Phase 0 remains in progress due to external deliverables (Discord, landing, domain).
+Phase 5 (`ag-cloud`) is next.
+
+**Note on Phase 4.5.** Phase 4.5 is an **additive** phase introduced by
+`ADR-0007` after closing Phase 4. It does not modify the scope nor the
+deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA milestone, which
+remains at the end of Phase 5. The ecosystem count goes from 15 to 17
+crates with the incorporation of `ag-mail` and `ag-domains`.
+
+---
+
+## Phase 0 — Foundations and governance
+
+**Objective.** Create the project's foundations: repository, license, governance documentation, CI, contributors, communication with the community. No code yet. The product of this phase is an open source project fit to receive collaborators.
+
+### 0.1 Entry criteria
+
+- [ ] Final decision to begin Anti-Gravital as a formal Gravital Labs project.
+- [ ] Approval of Apache 2.0 license without restrictions.
+- [ ] Public commitment from Ángel Nereira as initial maintainer.
+
+### 0.2 Deliverables
+
+- [ ] Repository `github.com/gravital-labs/anti-gravital` created and public.
+- [ ] `LICENSE` file with complete Apache 2.0 text.
+- [ ] Bilingual `README.md` file (Spanish + English) with value proposition.
+- [ ] `CONTRIBUTING.md` file with contribution guide, code conventions, pull request process.
+- [ ] `CODE_OF_CONDUCT.md` file adopting Contributor Covenant 2.1.
+- [ ] `SECURITY.md` file with responsible disclosure policy and address `anti@gravitalcloud.com` (backup: `angelnereira@gravitalcloud.com`).
+- [ ] `GOVERNANCE.md` file describing initial BDFL model and transition plan.
+- [ ] CI configuration with GitHub Actions: build on Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
+- [ ] Issue templates (bug report, feature request, RFC) and pull request template.
+- [ ] Basic branding: logo, color palette, typography. Applied to the README.
+- [ ] Official project Discord with channels `#español`, `#english`, `#announcements`, `#help`.
+- [ ] Project account on X/Bluesky for announcements.
+- [ ] Domain `antigravital.dev` registered and pointing to a minimal landing page.
+- [ ] Institutional email `anti@gravitalcloud.com` operational (project root email).
+- [ ] Public release calendar published.
+
+### 0.3 Exit criteria (gate before Phase 1)
+
+- [ ] The repository receives its first unsolicited external star.
+- [ ] At least five external people have joined the Discord.
+- [ ] The monorepo's folder structure is defined and committed (although without functional content).
+- [ ] The Cargo workspace is initialized with the empty crates: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`.
+- [ ] The CI successfully builds the empty workspace on the four target platforms.
+- [ ] The landing page describes in one paragraph what the project is, what it is not, and where it is on the roadmap.
+
+### 0.4 Phase risks
+
+The main risk is procrastination due to perfectionism. Phase 0 does not produce code that runs, which tempts to postpone it. The mitigation is a strict timebox: 8 weeks maximum. If by the end not all deliverables are in place, it concludes with whatever exists and the pending items are documented as phase 0 technical debt to be resolved during phase 1.
+
+---
+
+## Phase 1 — The Shield MVP
+
+**Status: Technical implementation complete.** Detail of boxes in `docs/roadmap/STATUS.md`.
+
+**Objective.** Implement the core's Shield layer: a Tower middleware pipeline that validates, performs basic authentication, applies rate limiting and delivers requests to a placeholder handler. No complete Core yet. No DSL yet. The product is a binary that responds over HTTP with basic security and a publishable benchmark.
+
+### 1.1 Entry criteria
+
+- [ ] Phase 0 completed with all of its exit criteria checked.
+- [ ] At least one contributor in addition to the main maintainer is active in the repository.
+
+### 1.2 Deliverables
+
+- [ ] `ag-core` crate with operational `shield` module.
+- [ ] HTTP/1.1 and HTTP/2 support via Axum + Tokio.
+- [ ] TLS 1.3 termination with rustls.
+- [ ] Basic payload validation middleware (deserialization with serde and simple constraints).
+- [ ] JWT authentication middleware with Ed25519 verification.
+- [ ] Rate limiting middleware with governor (token bucket per IP).
+- [ ] CORS and CSRF middleware with secure defaults.
+- [ ] Structured logging middleware with `tracing`.
+- [ ] Minimal configuration from a TOML file.
+- [ ] Unit tests with coverage ≥ 80% of the `ag-core` crate.
+- [ ] End-to-end integration tests of the Shield pipeline.
+- [ ] Executable Hello World benchmark: `cargo bench` produces reproducible figures.
+- [ ] Crate API documentation generated with `cargo doc`, published on `docs.rs`.
+- [ ] User manual chapter explaining how to use the Shield directly as a library.
+
+### 1.3 Exit criteria (gate before Phase 2)
+
+- [ ] Hello World benchmark reaches ≥ 300 K req/s on documented reference hardware.
+- [ ] Shield pipeline p99 latency ≤ 1 ms at 100 K req/s.
+- [ ] Idle process memory ≤ 15 MB.
+- [ ] Startup time ≤ 100 ms.
+- [ ] CI passes on the four target platforms.
+- [ ] Static analysis with `clippy` without warnings.
+- [ ] Dependency analysis with `cargo-audit` without known vulnerabilities.
+- [ ] Zero undocumented `unsafe` blocks.
+- [ ] At least one technical blog post published about the Shield architecture.
+- [ ] At least ten stars on the repository.
+
+### 1.4 Phase risks
+
+The main risk is underestimating the complexity of TLS and rate limiting in production. The mitigation is to use exclusively proven crates (rustls, governor) and not to roll our own implementations. The secondary risk is that the benchmark figures do not reach the target; the mitigation is to publish what is measured with honesty and document the shortfall.
+
+---
+
+## Phase 2 — The Core MVP and complete roundtrip
+
+**Objective.** Complete the core with the Core layer: Axum router, typed extractors, error system, shared state. Implement the complete roundtrip Request → Shield → Core → Handler → Response. Connect to real PostgreSQL for a minimal CRUD. The product is a binary that serves a real API, although written manually without DSL.
+
+### 2.1 Entry criteria
+
+- [ ] Phase 1 completed with all of its exit criteria checked.
+- [ ] The `ag-data` crate has been started with sqlx as a dependency.
+
+### 2.2 Deliverables
+
+- [ ] `ag-core` crate with operational `core` module.
+- [ ] Axum router integrated with the Shield.
+- [ ] Extractors: `State<T>`, `ValidatedBody<T>`, `Claims<T>`, `Path<T>`, `Query<T>`.
+- [ ] `AgError` error system with automatic conversion to HTTP response.
+- [ ] Response system: JSON, plaintext, streams.
+- [ ] `ag-data` crate with PostgreSQL connection pool via sqlx.
+- [ ] Embedded migrations system with `sqlx::migrate!`.
+- [ ] Example app `todo-api` in `examples/` with complete CRUD.
+- [ ] Executable CRUD + DB benchmark.
+- [ ] `ag-cli` crate with commands `new` (creates project from template), `dev` (starts server with hot reload via `cargo-watch`), `build` (compiles release).
+- [ ] Three templates: `rest`, `realtime`, `fullstack`.
+
+### 2.3 Exit criteria (gate before Phase 3)
+
+- [ ] CRUD + PostgreSQL benchmark reaches ≥ 40 K req/s on reference hardware.
+- [ ] CRUD p99 latency ≤ 5 ms.
+- [ ] The `todo-api` app runs successfully with `ag new` + `ag dev`.
+- [ ] The `todo-api` app deploys as a single binary (`FROM scratch` Docker).
+- [ ] The release binary of `todo-api` occupies ≤ 20 MB.
+- [ ] Documentation: "Your first API with Anti-Gravital" published.
+- [ ] At least 50 stars on the repository.
+- [ ] At least three external contributors with merged PRs.
+
+### 2.4 Phase risks
+
+The main risk is scope drift: wanting to add features not strictly necessary for the Core MVP. The mitigation is an explicit scope declaration in the phase ticket: the Core of this phase does not include complex RBAC authorization, does not include events, does not include cache, does not include complete observability. Those arrive in later phases.
+
+---
+
+## Phase 3 — Anti-DSL alpha (versions 0.1 to 0.4 of the DSL)
+
+**Objective.** Build the DSL compiler with a deliverable subset of the grammar. This phase delivers the first functional codegen: models, basic endpoints, validations and relations. No declarative auth yet, no events yet. The product is the first version of the "define → generate → implement" flow.
+
+### 3.1 Entry criteria
+
+- [ ] Phase 2 completed with all of its exit criteria checked.
+- [ ] `ag-dsl` crate started.
+- [ ] Final decision on the compiler's base libraries (logos for lexer, chumsky for parser, askama and quote for codegen). Documented in RFC.
+
+### 3.2 Deliverables
+
+- [ ] DSL version 0.1: basic models with primitive annotations (`@primary`, `@unique`, `@auto`).
+- [ ] DSL version 0.2: endpoints (method, path, body, response).
+- [ ] DSL version 0.3: validations (`@min`, `@max`, `@email`, `@regex`, `@length`).
+- [ ] DSL version 0.4: relations between models (`1:1`, `1:N`, `N:M`).
+- [ ] Rust generator: structs with serde, validators, sqlx query builders.
+- [ ] SQL generator: idempotent migrations.
+- [ ] TypeScript generator: types and HTTP client.
+- [ ] OpenAPI 3.1 generator.
+- [ ] `ag generate` command that reads `schema.ag` and produces all the artifacts.
+- [ ] `ag schema lint` command that reports best-practices warnings.
+- [ ] `ag schema diff <ref>` command that reports breaking vs non-breaking changes.
+- [ ] Readable diagnostics for common DSL errors (model not found, unknown type, invalid annotation).
+- [ ] Basic LSP server (`ag-lsp`) with autocompletion and diagnostics.
+- [ ] VS Code plugin published on the marketplace.
+- [ ] Compiler test suite with coverage ≥ 85%.
+- [ ] Parser fuzzing with `cargo-fuzz`: 24 hours without crashes.
+- [ ] DSL reference documentation version by version.
+
+### 3.3 Exit criteria (gate before Phase 4)
+
+- [ ] A complete project can be created, defined in `schema.ag`, generated, and executed using only the CLI.
+- [ ] The `ecommerce-api` example is completely rewritten with DSL and works.
+- [ ] The benchmarks are maintained: DSL-generated CRUD is not slower than hand-written CRUD.
+- [ ] The VS Code plugin has ≥ 100 installations.
+- [ ] At least one external collaborator has contributed to the compiler.
+- [ ] The DSL documentation is complete and reviewed by at least two people.
+- [ ] At least 200 stars on the repository.
+
+### 3.4 Phase risks
+
+The DSL compiler is the technically most complex component of the project. The main risk is underestimating the effort and exceeding the schedule. The mitigation is incremental implementation by subversions: if the phase runs long, subversion 0.4 (relations) can be postponed to phase 4 without blocking advancement.
+
+The secondary risk is the compiler's error messages. A compiler with incomprehensible messages ruins the experience. The mitigation is to prioritize readable diagnostics from day one, with specific tests that verify that the messages are useful.
+
+---
+
+## Phase 4 — Standard modules
+
+**Objective.** Complete the batteries-included modules: auth, realtime, cache, storage, observe. Each as an independent crate, with tests, documentation and examples.
+
+### 4.1 Entry criteria
+
+- [ ] Phase 3 completed.
+- [ ] DSL version 0.5 (auth and policies) started.
+
+### 4.2 Deliverables
+
+- [ ] DSL version 0.5: auth declaration and RBAC policies.
+- [ ] DSL version 0.6: events declaration.
+- [ ] Complete `ag-auth` crate: WebAuthn, JWT Ed25519, OAuth2 (Google, GitHub), API keys, refresh tokens with rotation.
+- [ ] Complete `ag-realtime` crate: binary WebSocket, SSE fallback, embedded NATS for small cases, external NATS client for production.
+- [ ] Complete `ag-cache` crate: moka L1 + Redis L2 with fred, event-based invalidation.
+- [ ] Complete `ag-storage` crate: S3, MinIO, local filesystem adapters. Signed URLs. Image processing.
+- [ ] Complete `ag-observe` crate: tracing, OpenTelemetry exporter, Prometheus metrics, Grafana JSON dashboards included.
+- [ ] tokio-console integration in dev mode.
+- [ ] `realtime-chat` example in `examples/`.
+- [ ] `ai-backend` example in `examples/` that demonstrates SSE streaming.
+- [ ] Cross-module integration tests.
+
+### 4.3 Exit criteria (gate before Phase 5)
+
+- [ ] The five modules published on crates.io with their respective independent releases.
+- [ ] Test coverage ≥ 80% in each module.
+- [ ] Documentation for each module: README, usage guide, API reference.
+- [ ] Performance: the `ag-realtime` module sustains 50 K WebSocket connections on a 2 vCPU instance without degradation.
+- [ ] Performance: the `ag-cache` module shows ≥ 1 M ops/second in L1.
+- [ ] At least five bug report issues closed by the community.
+- [ ] At least 500 stars on the repository.
+
+### 4.4 Phase risks
+
+The main risk is the fragmentation of effort among five parallel modules. The mitigation is to sequence the implementation: first auth (blocks many use cases), then advanced data, then realtime, then cache, then storage, then observe.
+
+---
+
+## Phase 4.5 — `ag-mail` + `ag-domains`: communication and domains
+
+**Objective.** Add operational capabilities for transactional communication, DNS,
+TLS and domains without overloading Phase 4 nor delaying the standard modules.
+It prepares the ground so that `ag-cloud` (Phase 5) deploys applications with
+domain, certificate and transactional email using an integrated
+experience. The introduction of this phase is made official in `ADR-0007`.
+
+**Duration:** 1–2 months.
+
+### 4.5.1 Entry criteria
+
+- [ ] Phase 4 completed with all of its exit criteria checked.
+- [ ] `ag-auth` exposes hooks/events for email verification, password
+  recovery and magic links.
+- [ ] `ag-observe` records metrics and traces of asynchronous jobs.
+- [ ] RFC approved for the initial scope of `ag-mail`.
+- [ ] RFC approved for the initial scope of `ag-domains`.
+
+### 4.5.2 Deliverables
+
+- [ ] `ag-mail` crate (deferred standard): native outbound SMTP sender
+  (`lettre` + `rustls`) plus `MailSender` trait with adapters (Resend, SES,
+  Postmark) as Cargo features.
+- [ ] HTML/plaintext templates with typed `askama`, validated at compile-time
+  against `schema.ag`.
+- [ ] Email declaration in `schema.ag` (`mail` block).
+- [ ] `ag-auth` → `ag-mail` integration for verification, recovery and
+  magic links, via a small trait defined in `ag-auth`.
+- [ ] Asynchronous queue with retries and exponential backoff; in-memory backend
+  by default, persistent via optional `ag-data`.
+- [ ] Metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`,
+  `ag_mail_retry_total`, latency histogram.
+- [ ] `ag-domains` crate (optional infra): `DnsProvider` trait with Cloudflare
+  adapter; declarative A/AAAA/CNAME/TXT/MX model.
+- [ ] ACME support (Let's Encrypt) via `instant-acme`: automatic issuance and
+  renewal, DNS-01 challenge preferred, HTTP-01 alternative.
+- [ ] Generation of SPF/DKIM/DMARC required by `ag-mail` (cooperation
+  `ag-mail` ↔ `ag-domains` without dependency cycle).
+- [ ] Propagation verification against multiple public resolvers
+  (`hickory-resolver`).
+- [ ] DSL v0.7: `mail`, `domain`, `dns`, `tls` blocks; the compiler validates
+  that the `from` references a declared `domain`, that the template exists and
+  that the HTML variables match the typed `vars`.
+- [ ] Update of the `ag-lsp` LSP for the new blocks.
+- [ ] CLI commands: `ag domains check`, `ag domains sync`, `ag mail test`.
+- [ ] `auth-mail-demo` example in `examples/`: registration + verification by
+  email + magic link.
+- [ ] Documentation: "Configure domain, TLS and transactional email with
+  Anti-Gravital".
+
+### 4.5.3 Exit criteria (gate before Phase 5)
+
+- [ ] `ag-mail` sends transactional HTML and plaintext email from an
+  Anti-Gravital project via the native sender **and** via at least one adapter.
+- [ ] `ag-auth` uses `ag-mail` for email verification and password
+  recovery in the `auth-mail-demo` example.
+- [ ] `ag-domains` creates and verifies DNS records on at least one
+  real provider.
+- [ ] `ag-domains` issues and renews TLS certificates via ACME in a test
+  environment (Let's Encrypt staging).
+- [ ] `ag-domains` generates SPF/DKIM/DMARC required by `ag-mail`.
+- [ ] `ag domains check`, `ag domains sync` and `ag mail test` work in reproducible
+  CI.
+- [ ] Unit and integration test coverage ≥ 75 % in both crates.
+- [ ] Zero circular dependencies with `ag-core`, `ag-dsl`, `ag-auth` or
+  `ag-cloud` (green CI job).
+- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` and
+  `cargo deny check` green.
+
+### 4.5.4 Phase risks
+
+The main risk is **confusing `ag-mail` with a complete MTA**. The
+mitigation is the explicit restriction of the v1 scope to outbound + adapters;
+inbound, IMAP/POP, persistent mailboxes and antispam remain documented as
+out of scope, not as "deferred to v2".
+
+The second risk is the **dependency on young upstreams** (`instant-acme`,
+`hickory-resolver`) in domains where bugs are paid for dearly: a certificate
+that does not renew brings down the site. The mitigation is a small
+and versioned `DnsProvider` trait with contract tests, explicit pinning in the
+workspace, and active monitoring of the evolution of the crates.
+
+The third risk is **turning Anti-Gravital into a hosting panel** by
+accumulation of capabilities. The mitigation is the project's interoperability
+rule: both crates are abstractions with adapters, not replacements for
+providers. The boundary is fixed in `ADR-0007` and does not move without a new
+ADR.
+
+---
+
+## Phase 5 — `ag-cloud` simplified deployment
+
+**Objective.** Build the deployment subsystem in the style of Railway/Fly.io. Support for the four targets: docker-compose, fly, railway, k8s. This is the **public beta version (0.5)** milestone.
+
+### 5.1 Entry criteria
+
+- [ ] Phase 4 completed.
+- [ ] RFC decision on the deployment targets supported in 1.0.
+
+### 5.2 Deliverables
+
+- [ ] `ag-cloud` crate with modules for each target.
+- [ ] Specification of the `deploy.ag` file.
+- [ ] Multi-stage Dockerfile generator optimized for minimal image.
+- [ ] docker-compose target: complete stack generation with Caddy as reverse proxy and automatic TLS.
+- [ ] fly target: integration with flyctl.
+- [ ] railway target: integration with its API.
+- [ ] k8s target: generation of standard manifests.
+- [ ] `ag deploy` command.
+- [ ] `ag rollback` command.
+- [ ] Database migrations pipeline integrated into the deployment.
+- [ ] Documentation: "From zero to production in 15 minutes" with each target.
+
+### 5.3 Exit criteria (gate before Phase 6 and version 0.5)
+
+- [ ] The `todo-api` example deploys successfully to Fly.io with `ag deploy`.
+- [ ] The `ecommerce-api` example deploys successfully with docker-compose to a VPS and is accessed via domain with TLS.
+- [ ] The `realtime-chat` example deploys successfully to Railway.
+- [ ] Version 0.5 (public beta) released on GitHub Releases.
+- [ ] Public announcement on Hacker News, Reddit `/r/rust`, Twitter/X, Bluesky, LinkedIn.
+- [ ] At least ten external projects report that they have deployed Anti-Gravital in production or staging.
+- [ ] At least 1 500 stars on the repository.
+
+### 5.4 Phase risks
+
+The main risk is the dependency on external APIs (Fly, Railway) that can change. The mitigation is to structure each target as a decoupled module with contract tests.
+
+---
+
+## Phase 6 — `ag-ai` and Knowledge Graph
+
+**Objective.** Build the AI module with the knowledge graph and the assisted capabilities.
+
+### 6.1 Entry criteria
+
+- [ ] Version 0.5 (public beta) released.
+- [ ] Feedback from the first users incorporated into the backlog.
+
+### 6.2 Deliverables
+
+- [ ] Knowledge graph generator from the DSL AST.
+- [ ] Persistence of the graph in `.ag/knowledge-graph.json`.
+- [ ] Markdown architectural documentation generator from the graph.
+- [ ] C4 diagram generator (Context, Container, Component) in Mermaid.
+- [ ] Interactive graph dashboard in the dev server (`ag dev`).
+- [ ] `ag ai suggest-schema` command with integration to a configurable provider.
+- [ ] `ag ai review-migration` command.
+- [ ] `ag ai analyze-architecture` command.
+- [ ] Support for providers: Anthropic Claude, OpenAI, local Ollama, local vLLM.
+- [ ] Offline mode where the AI functions are disabled but the framework works.
+- [ ] Documentation: "Anti-Gravital + AI agents: the schema-first flow" with complete examples.
+
+### 6.3 Exit criteria (gate before Phase 7)
+
+- [ ] The knowledge graph regenerates correctly with each `ag generate`.
+- [ ] The generated architectural documentation is readable and useful (reviewed by three people external to the team).
+- [ ] At least one user organization reports that it has integrated `ag ai` into its workflow.
+- [ ] At least 2 500 stars on the repository.
+
+### 6.4 Phase risks
+
+The main risk is the dependency on external AI providers. The mitigation is provider abstraction and offline mode.
+
+---
+
+## Phase 7 — `ag-migrate` importers
+
+**Objective.** Build the migration importers from legacy frameworks. It is probably the phase with the greatest impact on real adoption.
+
+### 7.1 Entry criteria
+
+- [ ] Phase 6 completed.
+- [ ] Research of real samples: at least ten schemas/projects of each target framework collected as a testing corpus.
+
+### 7.2 Deliverables
+
+- [ ] `ag-migrate` crate with five importers:
+  - [ ] OpenAPI 3.0 and 3.1 importer.
+  - [ ] Prisma importer.
+  - [ ] Django importer.
+  - [ ] FastAPI importer.
+  - [ ] Sequelize importer.
+  - [ ] GraphQL SDL importer.
+- [ ] `ag migrate from <framework> <path>` command.
+- [ ] Official migration guides per framework with complete examples.
+- [ ] Documented case study: real migration of a medium-sized FastAPI application.
+
+### 7.3 Exit criteria (gate before Phase 8)
+
+- [ ] Each importer has test coverage ≥ 80% over the corpus of real projects.
+- [ ] The FastAPI migration guide has been validated by at least one external team that migrated its application.
+- [ ] At least 3 500 stars on the repository.
+
+### 7.4 Phase risks
+
+The importers cover the translation of the contract, not the business logic. The risk is generating exaggerated expectations. The mitigation is honest documentation about what is imported and what is not.
+
+---
+
+## Phase 8 — `ag-mobile` Flutter bridge
+
+**Objective.** Build the integration with Flutter as the priority mobile target. Generation of complete Dart SDK, native auth, realtime.
+
+### 8.1 Entry criteria
+
+- [ ] Phase 7 completed.
+- [ ] At least one collaborator with significant Flutter experience has joined the project.
+
+### 8.2 Deliverables
+
+- [ ] `ag-mobile` crate with Dart generator.
+- [ ] `anti_gravital` pub package published on pub.dev:
+  - [ ] Types generated with freezed.
+  - [ ] HTTP client with dio + interceptors.
+  - [ ] WebSocket client.
+  - [ ] SSE client.
+  - [ ] Mocks for tests.
+- [ ] Authentication widgets: registration and login with native WebAuthn (Android Credential Manager, iOS Passkeys), OAuth2.
+- [ ] `flutter-fullstack` example in `examples/`: complete Flutter app with Anti-Gravital backend.
+- [ ] Documentation: Flutter user guide.
+
+### 8.3 Exit criteria (gate before Phase 9)
+
+- [ ] The `anti_gravital` package on pub.dev has at least 50 likes.
+- [ ] The `flutter-fullstack` example runs on Android, iOS and web.
+- [ ] At least one external Flutter application uses Anti-Gravital in staging or production.
+- [ ] At least 4 500 stars on the repository.
+
+### 8.4 Phase risks
+
+The main risk is that the Rust → Dart context switch has unforeseen frictions. The mitigation is to start with the simplest case (CRUD) and build incrementally.
+
+---
+
+## Phase 9 — WASI plugin system
+
+**Objective.** Build the WASI plugin system with wasmtime, define the stable ABI, publish the official plugins, and start the public registry.
+
+### 9.1 Entry criteria
+
+- [ ] Phase 8 completed.
+- [ ] RFC decision on the scope of the 1.0 plugin ABI. Approved by the technical committee (formed in phase 4 or earlier).
+
+### 9.2 Deliverables
+
+- [ ] `ag-wasm-host` crate operational over wasmtime.
+- [ ] Definition of WIT interfaces (WebAssembly Interface Types) for the host.
+- [ ] Specification of `plugin.toml`.
+- [ ] Implementation of the plugin life cycle (discovery, validation, loading, activation, unloading).
+- [ ] Sandbox with memory, fuel and timeout limits.
+- [ ] Official plugins: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`.
+- [ ] `ag plugin add/remove/list` command.
+- [ ] Public registry at `plugins.antigravital.dev`.
+- [ ] Guide: "How to write a plugin for Anti-Gravital" with examples in Rust, Go (TinyGo) and AssemblyScript.
+
+### 9.3 Exit criteria (gate before Phase 10)
+
+- [ ] The registry publishes at least the six official plugins.
+- [ ] At least three third-party external plugins published in the registry.
+- [ ] The benchmark shows plugin overhead ≤ 1% over an equivalent native handler.
+- [ ] At least 6 000 stars on the repository.
+
+### 9.4 Phase risks
+
+The main risk is the complexity of the WebAssembly component model, which keeps evolving. The mitigation is conservative pinning of the supported version and early commitment with the wasmtime community.
+
+---
+
+## Phase 10 — Hardening and 1.0 milestone
+
+**Objective.** Bring the project to stable version 1.0. It is the phase of audits, hardening, final optimization, and public declaration of stability.
+
+### 10.1 Entry criteria
+
+- [ ] Phase 9 completed.
+- [ ] DSL version 1.0 (stable grammar) ready for freeze.
+- [ ] The technical committee is active and operational.
+
+### 10.2 Deliverables
+
+- [ ] DSL version 1.0 (stable grammar, frozen).
+- [ ] Test coverage ≥ 85% in all workspace crates.
+- [ ] 72-hour fuzzing over the DSL parser without crashes.
+- [ ] 72-hour fuzzing over the HTTP parser without crashes.
+- [ ] External security audit of the Shield component, contracted with a specialized company (Trail of Bits, NCC Group or equivalent). Public report.
+- [ ] Resolution of all critical and high findings of the audit.
+- [ ] Load test: 500 K req/s sustained for 30 minutes with degradation ≤ 5%.
+- [ ] Memory leak test: 24 hours of continuous load without detectable memory growth.
+- [ ] Compilation verified on: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
+- [ ] Compilation to `wasm32-wasi` to serve Anti-Gravital in edge functions.
+- [ ] Official manual published: "The Anti-Gravital Book" in Spanish and English.
+- [ ] Framework introduction course on YouTube (minimum six videos).
+- [ ] Position in TechEmpower Framework Benchmarks: top 10 in Plaintext and JSON Serialization categories.
+
+### 10.3 Exit criteria (version 1.0)
+
+- [ ] At least three external projects using Anti-Gravital in production for at least 30 days without critical incidents.
+- [ ] At least one internal Gravital Cloud service using Anti-Gravital in production for 30 days without critical incidents.
+- [ ] Public announcement of version 1.0 with complete changelog.
+- [ ] Commitment to strict semver from 1.0.
+- [ ] Announcement of the LTS version calendar.
+- [ ] Talk at at least one international conference (RustConf, EuroRust, RustNation or equivalent).
+- [ ] At least 10 000 stars on the repository.
+- [ ] The technical committee ratifies the promotion to version 1.0 unanimously.
+
+### 10.4 Phase risks
+
+The main risk is the pressure to release 1.0 before time. The mitigation is the project's strictest rule: the exit criteria are non-negotiable. If they are not met, 1.0 is not released. 0.9.5, 0.9.6 are released, until they are met.
+
+---
+
+## Beyond 1.0: future roadmaps
+
+Once 1.0 is released, the project enters stable maintenance mode with minor releases every 3 months. The candidate topics for future versions include:
+
+- Version 1.x: additional performance optimizations, support for additional protocols (HTTP/3 via QUIC).
+- Version 2.x: refactoring of the plugin ABI if the WebAssembly community makes major changes. Support for new deployment targets.
+- Swift generator for native iOS.
+- Kotlin Multiplatform generator for native Android and cross-platform cases.
+- More sophisticated multi-tenant support with instance federation.
+
+This extended roadmap is not a commitment. It is documented to signal direction, but it will be reserved for specific RFCs when the time comes.
+
+---
+
+## Golden rules of the process
+
+By way of closing, the five rules that govern this end-to-end process:
+
+**First rule.** A phase is not considered concluded until all of its exit criteria boxes are checked. No exceptions.
+
+**Second rule.** If a phase requires more time than estimated, it is extended. If the original scope is not attainable, it is reduced with a public RFC; the quality criteria are not relaxed.
+
+**Third rule.** Every significant architectural decision requires an RFC. The iteration speed does not justify skipping the process.
+
+**Fourth rule.** The project is released when it is ready, not when an external date demands it. Technical credibility is the project's most valuable asset.
+
+**Fifth rule.** Every public promise (benchmark, feature, date) is documented with evidence. If there is no evidence, it is not promised.
+
+These rules exist for a reason. Anti-Gravital sets out to compete with frameworks that have matured over decades. The only way to be taken seriously is to build with the same seriousness.
+
+---
+
+**End of the Roadmap document.**
+Complementary document: *Technical Architecture and Implementation.*
+Unified PDF version: *Anti-Gravital Blueprint v4.0 — Master Document.*
+
+---
+
+## Espanol
 
 ## Cómo leer este documento
 

@@ -17,6 +17,10 @@
   to 50,000 subscribers in < 35 ms. `EventBuffer` append-only NDJSON persistence with
   `replay_into_bus`. Closes DEBT-007 and DEBT-008.
 - **P5 — ag-cache RESP2 L2:** BLOCKED — awaiting RFC-0005 approval. No changes.
+- **Security — hickory-resolver CVE:** Upgraded hickory-resolver 0.24 → 0.26.1 in
+  ag-domains to patch the hickory-proto CPU-exhaustion vulnerability (O(n²) name
+  compression). Migrated propagation checker to new 0.26 API: `TokioResolver` builder
+  pattern, `NameServerConfig::udp()`, `RData` field access for TXT record iteration.
 - **P6 — Tooling and onboarding:** `install.sh` + `install.ps1` auditable installers.
   cargo-tarpaulin coverage gate (>=80%) in `quality.yml`. E2E cross-module test
   ag-domains + ag-mail. Interactive `ag new` template prompt (non-interactive safe via
@@ -47,6 +51,7 @@ Pre-Phase-5 corrective (all phases 0-4.5).
 - [ ] `cargo build --workspace` — compiles clean
 - [ ] `cargo test -p ag-mail --features queue-persistent` — 0 failures
 - [ ] `cargo test -p ag-domains --features acme` — 32 passed
+- [ ] `cargo test -p ag-domains --features propagation` — 32 passed
 - [ ] `cargo test -p ag-realtime --features event-persistence` — 27 passed
 - [ ] `cargo test -p ag-realtime --test load_50k -- --ignored --nocapture` — PASS
 - [ ] `cargo test -p ag-integration-tests auth_sends_verification` — PASS
@@ -66,6 +71,7 @@ Pre-Phase-5 corrective (all phases 0-4.5).
 - DEBT-007, DEBT-008: ag-realtime 50k proof + event persistence
 - DEBT-010, DEBT-011: CI coverage gate + unified installer
 - ADR-0009: real-status governance rule in effect
+- Security: hickory-proto CPU-exhaustion CVE closed via hickory-resolver 0.26.1 upgrade
 
 ## Final checklist
 

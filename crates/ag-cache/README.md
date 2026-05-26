@@ -3,8 +3,10 @@
 Cache de dos niveles para Anti-Gravital: L1 en memoria del proceso con
 invalidacion por etiquetas (moka), L2 Redis opcional (fred).
 
-> Estado: Fase 4 -- L1 implementado. L2 Redis disponible via feature `redis`.
-> RFC-0005 propone L2 nativo Anti-Gravital con protocolo RESP2 sin dependencia de Redis.
+> Status: Phase 4 — L1 implemented (in-process, tag-based invalidation, moka).
+> L2 is NOT functional yet: when `redis_url` is set the cache only logs a tracing
+> warning (`src/lib.rs`). RFC-0005 proposes a native Anti-Gravital L2 over RESP2
+> (no Redis dependency); see `docs/DEBT.md` and `docs/rfc/RFC-0005-ag-cache-native-l2.md`.
 
 ## Uso minimo (L1)
 

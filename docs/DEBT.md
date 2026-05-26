@@ -13,13 +13,16 @@ CLAUDE.md section 29.
 - Reason: the queue is in-memory only; messages are lost on restart.
 - Impact: no delivery guarantees across restarts; no retry durability.
 - Expected removal: plan P2 (`queue-persistent` feature over `ag-data`).
-- Status: open. Target: before Phase 5.
+- Status: closed (P2, 2026-05-26). `PersistentQueue` implemented in
+  `crates/ag-mail/src/queue/store.rs` with `FOR UPDATE SKIP LOCKED` worker.
 
 ### DEBT-002 — Custom SMTP headers ignored
 - Reason: lettre limitations drop arbitrary custom headers in the SMTP adapter.
 - Impact: custom headers set on `Email` are silently ignored over SMTP.
 - Expected removal: plan P2 (review lettre API or contribute upstream).
-- Status: open. Target: before Phase 5.
+- Status: closed (P2, 2026-05-26). Implemented via `lettre::message::HeaderValue::new`
+  + `MessageBuilder::raw_header` in `SmtpSender`. Non-ASCII header names are logged
+  and skipped gracefully.
 
 ### DEBT-003 — External template engines
 - Reason: only the built-in `StringTemplate` engine exists.

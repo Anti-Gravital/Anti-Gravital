@@ -3,9 +3,9 @@
 Correo transaccional outbound para Anti-Gravital.
 
 Status: **Phase 4.5 — implemented.** Native SMTP sender, Resend/SES/Postmark
-adapters, in-memory retry queue, string templating and `ag-observe` metrics are
-functional. Pending tech debt (persistent queue, custom SMTP headers, external
-template engines) is tracked in `docs/DEBT.md`.
+adapters, in-memory and persistent retry queues, custom SMTP headers, string
+templating and `ag-observe` metrics are functional. Remaining tech debt
+(external template engines) is tracked in `docs/DEBT.md`.
 Decision: `docs/adr/0007-ag-mail-ag-domains.md`. Technical plan:
 `docs/rfc/RFC-0006-ag-mail-alcance.md`. Module sheet: `docs/modules/ag-mail/README.md`.
 
@@ -37,4 +37,5 @@ esta documentada como sexta regla de dependencias en
 - `templates` (default): built-in StringTemplate rendering.
 - `metrics` (default): metricas hacia ag-observe.
 - `resend`, `ses`, `postmark`: adapters de proveedor (opcionales).
-- `queue-persistent`: backend persistente de cola via ag-data.
+- `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
+  migration in `migrations/0001_mail_queue.sql`).

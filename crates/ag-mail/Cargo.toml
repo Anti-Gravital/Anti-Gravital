@@ -28,7 +28,7 @@ resend = ["dep:reqwest"]
 ses = ["dep:reqwest"]
 postmark = ["dep:reqwest"]
 # Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
-queue-persistent = []
+queue-persistent = ["dep:ag-data", "dep:sqlx", "dep:chrono", "dep:uuid"]
 # NullSender y helpers disponibles para tests en crates externos.
 test-utils = []
 
@@ -49,6 +49,12 @@ reqwest = { workspace = true, optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }
+
+# Cola persistente (opcional)
+ag-data = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

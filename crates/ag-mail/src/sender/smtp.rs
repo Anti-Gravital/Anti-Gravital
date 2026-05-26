@@ -29,15 +29,13 @@
 
 use async_trait::async_trait;
 use lettre::{
-    message::{header::ContentType, Mailbox, MessageBuilder, MultiPart, SinglePart},
+    message::{
+        header::{ContentType, HeaderName, HeaderValue},
+        Mailbox, MessageBuilder, MultiPart, SinglePart,
+    },
     transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-// TECH-DEBT: custom headers (Email::headers) are not propagated to the
-// lettre message because the lettre 0.11 API requires static Header types, not strings.
-// reason: complexity of the lettre API for arbitrary headers
-// impact: the X-Custom fields of the Email are ignored in the SMTP transport
-// expected removal: when upgrading to lettre 0.12+
 
 use crate::{
     error::AgMailError,
@@ -149,7 +147,13 @@ fn build_lettre_message(email: &Email) -> Result<lettre::Message, AgMailError> {
     if let Some(reply_to) = &email.reply_to {
         builder = builder.reply_to(to_mailbox(reply_to)?);
     }
-    // custom headers: see TECH-DEBT above
+    for (name, value) in &email.headers {
+        if let Ok(header_name) = HeaderName::new_from_ascii(name.clone()) {
+            builder = builder.raw_header(HeaderValue::new(header_name, value.clone()));
+        } else {
+            tracing::warn!(name = %name, "skipping custom SMTP header with non-ASCII name");
+        }
+    }
 
     let msg = match (&email.html_body, &email.text_body) {
         (Some(html), Some(text)) => builder
@@ -276,5 +280,24 @@ mod tests {
             .build()
             .unwrap();
         assert!(build_lettre_message(&email).is_ok());
+    }
+
+    #[test]
+    fn custom_headers_are_applied() {
+        use crate::message::EmailBuilder;
+        let email = EmailBuilder::new()
+            .from(Address::new("a@x.com"))
+            .to(Address::new("b@y.com"))
+            .subject("s")
+            .text_body("t")
+            .header("X-Campaign", "spring")
+            .build()
+            .unwrap();
+        let message = build_lettre_message(&email).unwrap();
+        let formatted = String::from_utf8(message.formatted()).unwrap();
+        assert!(
+            formatted.contains("X-Campaign"),
+            "custom header must appear in formatted message"
+        );
     }
 }

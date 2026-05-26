@@ -8,10 +8,12 @@
 //!
 //! # Status
 //!
-//! Phase 4.5 skeleton (Stage 2-1). The trait and types are completed
-//! in Stage 2-2. The Cloudflare adapter in 2-3. ACME and propagation
-//! in 2-4. The governing decision is `ADR-0007` and the technical plan
-//! lives in `RFC-0007`.
+//! Phase 4.5 — implemented. `DnsProvider` trait with a Cloudflare adapter, the
+//! declarative A/AAAA/CNAME/TXT/MX record model, SPF/DKIM/DMARC generation for
+//! `ag-mail`, an ACME client (Let's Encrypt) for issuance/renewal, and DNS
+//! propagation checks against public resolvers. Outstanding tech debt
+//! (`notAfter` parsing for scheduled renewal, extra DNS adapters) is tracked in
+//! `docs/DEBT.md`. Governing decision: `ADR-0007`; technical plan: `RFC-0007`.
 //!
 //! # Scope
 //!

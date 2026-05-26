@@ -33,3 +33,10 @@ rigida en todos los targets (septima regla de dependencias en
 - `propagation` (default): verificacion via resolvers DNS publicos.
 - `cloudflare`: adapter Cloudflare (DnsProvider). Otros adapters se añaden
   en iteraciones futuras detras de su propia feature.
+
+## Tech Debt
+
+- `notAfter` parsing for date-based certificate renewal (currently renews every
+  cycle). Tracked in `docs/DEBT.md`.
+- Additional DNS provider adapters (Namecheap, Route 53, Google Domains) — optional,
+  not required. Tracked in `docs/DEBT.md`.

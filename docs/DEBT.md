@@ -60,13 +60,16 @@ CLAUDE.md section 29.
 - Reason: no load test demonstrates the Phase 4 criterion of 50,000 connections.
 - Impact: scalability claim is unverified.
 - Expected removal: plan P4.
-- Status: open. Target: before Phase 5.
+- Status: closed (P4, 2026-05-26). `tests/load_50k.rs` runs 50k subscribers, achieves
+  100% delivery in < 35 ms (debug). Methodology in `docs/benchmarks/ag-realtime-load.md`.
+  Marked `#[ignore]`; run in manual gate.
 
 ### DEBT-008 — Event persistence buffer
 - Reason: in-memory event bus loses critical events on restart.
 - Impact: no durability for critical events.
 - Expected removal: plan P4 (optional `event-persistence` feature).
-- Status: open. Target: before Phase 5.
+- Status: closed (P4, 2026-05-26). `EventBuffer` (append-only NDJSON) + `replay_into_bus`
+  implemented in `crates/ag-realtime/src/persistence.rs` under `event-persistence` feature.
 
 ## ag-data
 

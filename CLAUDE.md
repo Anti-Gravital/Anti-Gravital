@@ -992,6 +992,27 @@ Nunca en un commit separado posterior. Nunca "lo actualizo despues".
 Un README que dice "Fase 3 proxima" cuando el codigo ya implementa el
 compilador DSL es una mentira tecnica y viola esta regla.
 
+### Reglas de estado real y autosuficiencia (ADR-0009)
+
+1. Prohibido marcar un modulo, crate o API como "vacio", "skeleton", "no
+   implementado" o equivalente cuando ya contiene codigo funcional y/o pruebas.
+   El estado declarado en README y en la cabecera `//!` debe corresponder a la
+   realidad del codigo. La deuda se enumera en `docs/DEBT.md`, no se disfraza de
+   "skeleton".
+2. Toda integracion con un servicio externo (Redis, NATS, S3, Cloudflare, SMTP de
+   terceros, etc.) debe pasar por un adaptador detras de una feature de Cargo, y el
+   crate debe conservar un modo de operacion nativo por defecto. La dependencia
+   externa nunca es un requisito para usar el modulo.
+3. La documentacion tecnica afectada se actualiza en la MISMA PR que el codigo y se
+   revisa junto a el. Una PR que cambia comportamiento observable sin actualizar la
+   documentacion correspondiente no se acepta.
+4. Los scripts de instalacion (`install.sh`, `install.ps1`) deben ser auditables y
+   verificar integridad/firma antes de ejecutar acciones privilegiadas. No se
+   distribuye un instalador que descargue y ejecute sin verificacion.
+5. Toda dependencia externa de infraestructura (bases de datos, colas, caches
+   distribuidas) debe ser reemplazable por una implementacion nativa o auto-alojable,
+   salvo justificacion explicita en una RFC.
+
 ### Cierre
 
 Esta es la constitucion tecnica del repositorio. Primero documentacion,

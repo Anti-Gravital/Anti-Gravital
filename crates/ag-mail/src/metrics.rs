@@ -50,6 +50,18 @@ pub fn record_send_latency(provider: &str, seconds: f64) {
     let _ = (provider, seconds);
 }
 
+/// Increments the persistent queue depth gauge by one.
+pub fn queue_depth_inc() {
+    #[cfg(feature = "metrics")]
+    metrics::gauge!("ag_mail_queue_depth").increment(1.0);
+}
+
+/// Decrements the persistent queue depth gauge by one.
+pub fn queue_depth_dec() {
+    #[cfg(feature = "metrics")]
+    metrics::gauge!("ag_mail_queue_depth").decrement(1.0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

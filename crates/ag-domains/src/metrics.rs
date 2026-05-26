@@ -3,7 +3,7 @@
 //! Records counters of DNS and ACME operations, and histograms of
 //! propagation latency, using the `metrics` crate.
 
-use metrics::{counter, histogram};
+use metrics::{counter, gauge, histogram};
 
 /// Records a DNS record upsert (creation or update).
 ///
@@ -30,6 +30,18 @@ pub fn record_acme_renewal(domain: &str, success: bool) {
         "success" => success.to_string(),
     )
     .increment(1);
+}
+
+/// Reports the days remaining until the TLS certificate expires.
+///
+/// Called after each successful renewal so dashboards show how long
+/// before the next renewal is due. `days` is 0 when expired.
+pub fn set_cert_days_until_expiry(domain: &str, days: i64) {
+    gauge!(
+        "ag_domains_cert_days_until_expiry",
+        "domain" => domain.to_owned(),
+    )
+    .set(days as f64);
 }
 
 /// Records the DNS propagation latency in seconds.

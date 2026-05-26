@@ -44,7 +44,9 @@ CLAUDE.md section 29.
 - Reason: `acme/renewal.rs` renews every cycle because `notAfter` is not parsed.
 - Impact: unnecessary ACME calls; no date-based renewal or near-expiry alerts.
 - Expected removal: plan P3.
-- Status: open. Target: before Phase 5.
+- Status: closed (P3, 2026-05-26). `parse_not_after` implemented via `x509-parser`.
+  `spawn_renewal_task` now sleeps until the renewal window using `seconds_until_renewal`.
+  `ag_domains_cert_days_until_expiry` gauge exported after each successful issuance.
 
 ### DEBT-006 — Additional DNS adapters
 - Reason: only Cloudflare adapter exists.

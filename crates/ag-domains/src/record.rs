@@ -1,20 +1,20 @@
-//! Tipos de registro DNS.
+//! DNS record types.
 
 use serde::{Deserialize, Serialize};
 
-/// Tipos de registro DNS soportados por `ag-domains`.
+/// DNS record types supported by `ag-domains`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum RecordType {
-    /// Direccion IPv4.
+    /// IPv4 address.
     A,
-    /// Direccion IPv6.
+    /// IPv6 address.
     Aaaa,
-    /// Alias canonico.
+    /// Canonical alias.
     Cname,
-    /// Registro de texto arbitrario (SPF, DKIM, ACME, etc.).
+    /// Arbitrary text record (SPF, DKIM, ACME, etc.).
     Txt,
-    /// Intercambiador de correo.
+    /// Mail exchanger.
     Mx,
 }
 
@@ -30,52 +30,52 @@ impl std::fmt::Display for RecordType {
     }
 }
 
-/// Especificacion para crear o actualizar un registro DNS.
+/// Specification for creating or updating a DNS record.
 ///
-/// No incluye `id` ni `zone_id`: esos los asigna el proveedor. Esta
-/// separacion refleja el patron Command/DTO: el caller describe el estado
-/// deseado sin necesitar conocer la identidad interna del proveedor.
+/// Does not include `id` or `zone_id`: those are assigned by the provider. This
+/// separation reflects the Command/DTO pattern: the caller describes the desired
+/// state without needing to know the provider's internal identity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DnsRecordSpec {
-    /// Nombre del registro (e.g., `"api.ejemplo.com"` o `"@"`).
+    /// Record name (e.g., `"api.ejemplo.com"` or `"@"`).
     pub name: String,
-    /// Tipo de registro DNS.
+    /// DNS record type.
     pub record_type: RecordType,
-    /// Contenido del registro (IP, FQDN, valor TXT, prioridad MX, etc.).
+    /// Record content (IP, FQDN, TXT value, MX priority, etc.).
     pub content: String,
-    /// Time-to-live en segundos. `1` = "automatico" en Cloudflare.
+    /// Time-to-live in seconds. `1` = "automatic" on Cloudflare.
     pub ttl: u32,
-    /// Proxy de Cloudflare activo. Ignorado por otros proveedores.
+    /// Cloudflare proxy enabled. Ignored by other providers.
     #[serde(default)]
     pub proxied: bool,
 }
 
-/// Registro DNS con identidad asignada por el proveedor.
+/// DNS record with an identity assigned by the provider.
 ///
-/// Representa el estado actual en el proveedor DNS. Se obtiene como
-/// respuesta de `DnsProvider::create_record`, `update_record` o
+/// Represents the current state in the DNS provider. Obtained as the
+/// response of `DnsProvider::create_record`, `update_record` or
 /// `list_records`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DnsRecord {
-    /// Identificador opaco del registro asignado por el proveedor.
+    /// Opaque record identifier assigned by the provider.
     pub id: String,
-    /// Identificador de la zona DNS a la que pertenece el registro.
+    /// Identifier of the DNS zone the record belongs to.
     pub zone_id: String,
-    /// Nombre del registro.
+    /// Record name.
     pub name: String,
-    /// Tipo de registro DNS.
+    /// DNS record type.
     pub record_type: RecordType,
-    /// Contenido del registro.
+    /// Record content.
     pub content: String,
-    /// Time-to-live en segundos.
+    /// Time-to-live in seconds.
     pub ttl: u32,
-    /// Proxy de Cloudflare activo.
+    /// Cloudflare proxy enabled.
     #[serde(default)]
     pub proxied: bool,
 }
 
 impl DnsRecord {
-    /// Extrae la especificacion sin identidad para reusar en actualizaciones.
+    /// Extracts the identity-less specification for reuse in updates.
     pub fn spec(&self) -> DnsRecordSpec {
         DnsRecordSpec {
             name: self.name.clone(),

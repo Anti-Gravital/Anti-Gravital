@@ -1,50 +1,50 @@
-//! Configuracion del subsistema de tiempo real.
+//! Real-time subsystem configuration.
 
-/// Modo de conexion al bus de eventos NATS.
+/// Connection mode to the NATS event bus.
 #[derive(Debug, Clone, Default)]
 pub enum NatsMode {
-    /// Bus en memoria via tokio::sync::broadcast (sin servidor NATS externo).
+    /// In-memory bus via tokio::sync::broadcast (no external NATS server).
     #[default]
     InProcess,
-    /// Conexion a un servidor NATS externo.
+    /// Connection to an external NATS server.
     External,
 }
 
-/// Configuracion del subsistema de tiempo real.
+/// Real-time subsystem configuration.
 #[derive(Debug, Clone)]
 pub struct RealtimeConfig {
-    /// Modo del bus de eventos. Default: InProcess.
+    /// Event bus mode. Default: InProcess.
     pub nats_mode: NatsMode,
-    /// URL del servidor NATS externo (solo relevante en modo External).
-    /// Variable de entorno: `NATS_URL`.
+    /// External NATS server URL (only relevant in External mode).
+    /// Environment variable: `NATS_URL`.
     pub nats_url: String,
-    /// Capacidad del canal broadcast interno (solo modo InProcess).
+    /// Capacity of the internal broadcast channel (InProcess mode only).
     pub broadcast_capacity: usize,
     // TLS
-    /// Si `true`, activa TLS con CA del sistema.
-    /// Variable de entorno: `NATS_TLS`.
+    /// If `true`, enables TLS with the system CA.
+    /// Environment variable: `NATS_TLS`.
     pub nats_tls: bool,
-    /// Ruta a CA personalizada (nivel 2: CA custom).
-    /// Variable de entorno: `NATS_TLS_CA`.
+    /// Path to a custom CA (level 2: custom CA).
+    /// Environment variable: `NATS_TLS_CA`.
     pub nats_tls_ca_path: Option<String>,
-    /// Ruta al certificado de cliente (nivel 3: mTLS).
-    /// Variable de entorno: `NATS_TLS_CERT`.
+    /// Path to the client certificate (level 3: mTLS).
+    /// Environment variable: `NATS_TLS_CERT`.
     pub nats_tls_cert_path: Option<String>,
-    /// Ruta a la clave privada del cliente (nivel 3: mTLS).
-    /// Variable de entorno: `NATS_TLS_KEY`.
+    /// Path to the client private key (level 3: mTLS).
+    /// Environment variable: `NATS_TLS_KEY`.
     pub nats_tls_key_path: Option<String>,
     // JetStream
-    /// Si `true`, publica y consume via JetStream con ACK.
-    /// Variable de entorno: `NATS_JETSTREAM`.
+    /// If `true`, publishes and consumes via JetStream with ACK.
+    /// Environment variable: `NATS_JETSTREAM`.
     pub jetstream_enabled: bool,
-    /// Nombre del stream JetStream. Default: `AG_EVENTS`.
-    /// Variable de entorno: `NATS_JS_STREAM`.
+    /// JetStream stream name. Default: `AG_EVENTS`.
+    /// Environment variable: `NATS_JS_STREAM`.
     pub jetstream_stream_name: String,
-    /// Limite de mensajes del stream. Default: 1_000_000.
-    /// Variable de entorno: `NATS_JS_MAX_MSGS`.
+    /// Stream message limit. Default: 1_000_000.
+    /// Environment variable: `NATS_JS_MAX_MSGS`.
     pub jetstream_max_msgs: i64,
-    /// Limite de bytes del stream. Default: 1 GiB.
-    /// Variable de entorno: `NATS_JS_MAX_BYTES`.
+    /// Stream byte limit. Default: 1 GiB.
+    /// Environment variable: `NATS_JS_MAX_BYTES`.
     pub jetstream_max_bytes: i64,
 }
 
@@ -67,20 +67,20 @@ impl Default for RealtimeConfig {
 }
 
 impl RealtimeConfig {
-    /// Lee la configuracion desde variables de entorno.
+    /// Reads the configuration from environment variables.
     ///
-    /// Variables reconocidas:
-    /// - `NATS_MODE`: `"external"` activa el modo External; cualquier otro valor usa InProcess.
-    /// - `NATS_URL`: URL del servidor NATS (default: `nats://localhost:4222`).
-    /// - `RT_BROADCAST_CAPACITY`: capacidad del canal broadcast (default: 1024).
-    /// - `NATS_TLS`: `"true"` activa TLS con CA del sistema.
-    /// - `NATS_TLS_CA`: ruta a CA personalizada.
-    /// - `NATS_TLS_CERT`: ruta al certificado del cliente (mTLS).
-    /// - `NATS_TLS_KEY`: ruta a la clave privada del cliente (mTLS).
-    /// - `NATS_JETSTREAM`: `"true"` activa JetStream con ACK.
-    /// - `NATS_JS_STREAM`: nombre del stream JetStream (default: `AG_EVENTS`).
-    /// - `NATS_JS_MAX_MSGS`: limite de mensajes (default: 1_000_000).
-    /// - `NATS_JS_MAX_BYTES`: limite de bytes (default: 1_073_741_824).
+    /// Recognized variables:
+    /// - `NATS_MODE`: `"external"` enables External mode; any other value uses InProcess.
+    /// - `NATS_URL`: NATS server URL (default: `nats://localhost:4222`).
+    /// - `RT_BROADCAST_CAPACITY`: broadcast channel capacity (default: 1024).
+    /// - `NATS_TLS`: `"true"` enables TLS with the system CA.
+    /// - `NATS_TLS_CA`: path to a custom CA.
+    /// - `NATS_TLS_CERT`: path to the client certificate (mTLS).
+    /// - `NATS_TLS_KEY`: path to the client private key (mTLS).
+    /// - `NATS_JETSTREAM`: `"true"` enables JetStream with ACK.
+    /// - `NATS_JS_STREAM`: JetStream stream name (default: `AG_EVENTS`).
+    /// - `NATS_JS_MAX_MSGS`: message limit (default: 1_000_000).
+    /// - `NATS_JS_MAX_BYTES`: byte limit (default: 1_073_741_824).
     pub fn from_env() -> Self {
         let nats_mode = match std::env::var("NATS_MODE").as_deref() {
             Ok("external") => NatsMode::External,
@@ -122,7 +122,7 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    // Serializa acceso a variables de entorno entre tests paralelos.
+    // Serializes access to environment variables across parallel tests.
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]

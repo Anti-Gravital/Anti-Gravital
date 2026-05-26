@@ -1,14 +1,14 @@
-//! Demostracion del flujo de autenticacion con envio de correos.
+//! Demonstration of the authentication flow with email sending.
 //!
-//! Muestra como conectar ag-auth y ag-mail para los tres flujos
-//! transaccionales principales:
+//! Shows how to connect ag-auth and ag-mail for the three main
+//! transactional flows:
 //!
-//! 1. Registro con verificacion de email.
-//! 2. Recuperacion de contrasena.
-//! 3. Autenticacion sin contrasena (magic link).
+//! 1. Registration with email verification.
+//! 2. Password recovery.
+//! 3. Passwordless authentication (magic link).
 //!
-//! El ejemplo usa `NullSender` — no requiere servidor SMTP real.
-//! Para usar SMTP real, sustituye `NullSender` por `SmtpSender`:
+//! The example uses `NullSender` — no real SMTP server required.
+//! To use real SMTP, replace `NullSender` with `SmtpSender`:
 //!
 //! ```no_run
 //! use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
@@ -27,9 +27,9 @@ async fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    // --- Configuracion de autenticacion (valores de demo) ---
+    // --- Authentication configuration (demo values) ---
     let auth_config = AuthConfig {
-        // En produccion estas claves se generan con: ag new --with-auth
+        // In production these keys are generated with: ag new --with-auth
         jwt_private_key_pem: "demo-private-key".to_owned(),
         jwt_public_key_pem: "demo-public-key".to_owned(),
         webauthn_rp_id: String::new(),
@@ -40,7 +40,7 @@ async fn main() {
         oauth_github_client_secret: None,
     };
 
-    // --- NullSender: captura los correos sin enviarlos ---
+    // --- NullSender: captures the emails without sending them ---
     let null_sender = Arc::new(NullSender::new());
     let sender: Arc<dyn ag_mail::sender::MailSender> = null_sender.clone();
 
@@ -60,7 +60,7 @@ async fn main() {
 
     let base_url = "https://miapp.example.com";
 
-    // ---- Flujo 1: Registro con verificacion de email ---
+    // ---- Flow 1: Registration with email verification ---
     println!("--- Flujo 1: verificacion de email ---");
     let verification_token = ag_auth::generate_api_key("vrf").0;
     println!("Token de verificacion generado: {verification_token}");
@@ -80,7 +80,7 @@ async fn main() {
     }
     println!();
 
-    // ---- Flujo 2: Recuperacion de contrasena ---
+    // ---- Flow 2: Password recovery ---
     println!("--- Flujo 2: recuperacion de contrasena ---");
     let reset_token = ag_auth::generate_api_key("rst").0;
     println!("Token de recuperacion generado: {reset_token}");
@@ -96,7 +96,7 @@ async fn main() {
     );
     println!();
 
-    // ---- Flujo 3: Magic link ---
+    // ---- Flow 3: Magic link ---
     println!("--- Flujo 3: magic link ---");
     let magic_token = ag_auth::generate_api_key("mgk").0;
     println!("Token de magic link generado: {magic_token}");
@@ -112,7 +112,7 @@ async fn main() {
     );
     println!();
 
-    // ---- Resumen ---
+    // ---- Summary ---
     println!(
         "Demo completado: {} correos enviados sin necesitar SMTP real.",
         null_sender.emails_sent()

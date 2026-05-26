@@ -1,10 +1,10 @@
-//! Verificacion de propagacion DNS contra multiples resolvers publicos.
+//! DNS propagation verification against multiple public resolvers.
 //!
-//! Usado por `ag deploy` para bloquear hasta que el dominio responde
-//! correctamente en al menos N resolvers publicos. Esto previene que el
-//! despliegue avance antes de que el DNS sea visible para los usuarios.
+//! Used by `ag deploy` to block until the domain responds
+//! correctly on at least N public resolvers. This prevents the
+//! deployment from proceeding before DNS is visible to users.
 //!
-//! # Ejemplo
+//! # Example
 //!
 //! ```rust,no_run
 //! use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
@@ -30,7 +30,7 @@ use tracing::{debug, info};
 
 use crate::error::AgDomainsError;
 
-/// Resolvers publicos usados por defecto: Google y Cloudflare.
+/// Public resolvers used by default: Google and Cloudflare.
 pub const DEFAULT_RESOLVERS: &[SocketAddr] = &[
     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)), 53),
     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 8, 4, 4)), 53),
@@ -38,22 +38,22 @@ pub const DEFAULT_RESOLVERS: &[SocketAddr] = &[
     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)), 53),
 ];
 
-/// Resultado de una comprobacion de propagacion.
+/// Result of a propagation check.
 #[derive(Debug, Clone)]
 pub struct PropagationResult {
-    /// Cuantos resolvers ya ven el valor esperado.
+    /// How many resolvers already see the expected value.
     pub confirmed: usize,
-    /// Total de resolvers consultados.
+    /// Total resolvers queried.
     pub total: usize,
 }
 
 impl PropagationResult {
-    /// `true` si todos los resolvers confirmaron el valor.
+    /// `true` if all resolvers confirmed the value.
     pub fn is_fully_propagated(&self) -> bool {
         self.confirmed == self.total
     }
 
-    /// Porcentaje de propagacion (0.0 - 1.0).
+    /// Propagation percentage (0.0 - 1.0).
     pub fn ratio(&self) -> f64 {
         if self.total == 0 {
             return 0.0;
@@ -62,17 +62,17 @@ impl PropagationResult {
     }
 }
 
-/// Verifica propagacion DNS contra un conjunto de resolvers configurados.
+/// Verifies DNS propagation against a set of configured resolvers.
 pub struct PropagationChecker {
     resolvers: Vec<TokioAsyncResolver>,
     min_confirmed: usize,
 }
 
 impl PropagationChecker {
-    /// Crea un checker con los nameservers y minimo de confirmaciones dados.
+    /// Creates a checker with the given nameservers and minimum confirmations.
     ///
-    /// `nameservers` es una lista de `SocketAddr` (IP:port) de resolvers DNS.
-    /// `min_confirmed` es cuantos de ellos deben responder correctamente.
+    /// `nameservers` is a list of `SocketAddr` (IP:port) of DNS resolvers.
+    /// `min_confirmed` is how many of them must respond correctly.
     pub fn new(nameservers: &[SocketAddr], min_confirmed: usize) -> Self {
         let resolvers = nameservers
             .iter()
@@ -84,8 +84,8 @@ impl PropagationChecker {
         }
     }
 
-    /// Consulta un registro TXT en todos los resolvers y cuenta cuantos
-    /// contienen `expected_value`.
+    /// Queries a TXT record on all resolvers and counts how many
+    /// contain `expected_value`.
     pub async fn check_txt(&self, name: &str, expected_value: &str) -> PropagationResult {
         let mut confirmed = 0usize;
         let fqdn = ensure_fqdn(name);
@@ -124,8 +124,8 @@ impl PropagationChecker {
         }
     }
 
-    /// Consulta un registro A en todos los resolvers y cuenta cuantos
-    /// devuelven `expected_ip`.
+    /// Queries an A record on all resolvers and counts how many
+    /// return `expected_ip`.
     pub async fn check_a(&self, name: &str, expected_ip: std::net::IpAddr) -> PropagationResult {
         let mut confirmed = 0usize;
         let fqdn = ensure_fqdn(name);
@@ -148,10 +148,10 @@ impl PropagationChecker {
         }
     }
 
-    /// Espera hasta que `min_confirmed` resolvers vean el valor TXT,
-    /// con reintentos cada `retry_interval` segundos.
+    /// Waits until `min_confirmed` resolvers see the TXT value,
+    /// retrying every `retry_interval` seconds.
     ///
-    /// `max_attempts` limita el numero de sondeos para evitar bucles infinitos.
+    /// `max_attempts` limits the number of probes to avoid infinite loops.
     pub async fn wait_for_txt(
         &self,
         name: &str,
@@ -182,14 +182,14 @@ impl PropagationChecker {
 
         Err(AgDomainsError::PropagationPending(format!(
             "{name}: solo {}/{} resolvers confirmaron tras {max_attempts} intentos",
-            // Hacemos una comprobacion final para el mensaje.
+            // We do a final check for the message.
             self.check_txt(name, expected_value).await.confirmed,
             self.resolvers.len(),
         )))
     }
 }
 
-// ---- helpers internos -------------------------------------------------------
+// ---- internal helpers -------------------------------------------------------
 
 fn build_resolver(addr: SocketAddr) -> TokioAsyncResolver {
     let ns = NameServerConfig::new(addr, Protocol::Udp);
@@ -202,7 +202,7 @@ fn build_resolver(addr: SocketAddr) -> TokioAsyncResolver {
     }
 
     let mut opts = ResolverOpts::default();
-    // No usar cache para medir propagacion real.
+    // Do not use a cache so we measure real propagation.
     opts.cache_size = 0;
 
     TokioAsyncResolver::tokio(config, opts)

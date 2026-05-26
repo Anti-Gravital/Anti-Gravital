@@ -1,11 +1,11 @@
-//! Cliente NATS externo con TLS y JetStream.
+//! External NATS client with TLS and JetStream.
 //!
-//! Solo disponible con la feature `nats-external`.
+//! Only available with the `nats-external` feature.
 //!
-//! Soporta tres niveles de TLS:
-//! - Nivel 1: `nats_tls = true` — TLS con CA del sistema.
-//! - Nivel 2: `nats_tls_ca_path` — TLS con CA personalizada.
-//! - Nivel 3: `nats_tls_cert_path` + `nats_tls_key_path` — mTLS.
+//! Supports three TLS levels:
+//! - Level 1: `nats_tls = true` — TLS with the system CA.
+//! - Level 2: `nats_tls_ca_path` — TLS with a custom CA.
+//! - Level 3: `nats_tls_cert_path` + `nats_tls_key_path` — mTLS.
 
 use crate::{bus::Event, config::RealtimeConfig};
 use async_nats::{jetstream, Client, ConnectOptions};
@@ -13,37 +13,37 @@ use futures_util::StreamExt;
 use std::{path::PathBuf, pin::Pin};
 use tokio_stream::wrappers::ReceiverStream;
 
-/// Error del cliente NATS externo.
+/// External NATS client error.
 #[derive(Debug, thiserror::Error)]
 pub enum NatsError {
-    /// Error de conexion al servidor NATS.
+    /// Connection error to the NATS server.
     #[error("error de conexion NATS: {0}")]
     Connect(String),
-    /// Error al publicar un mensaje.
+    /// Error publishing a message.
     #[error("error de publicacion: {0}")]
     Publish(String),
-    /// Error al suscribirse a un subject.
+    /// Error subscribing to a subject.
     #[error("error de suscripcion: {0}")]
     Subscribe(String),
-    /// Error de configuracion TLS.
+    /// TLS configuration error.
     #[error("error de TLS: {0}")]
     Tls(String),
-    /// Error de JetStream (stream o publicacion con ACK).
+    /// JetStream error (stream or publish with ACK).
     #[error("error de JetStream: {0}")]
     JetStream(String),
 }
 
-/// Stream de eventos del bus externo.
+/// Event stream from the external bus.
 pub type EventStream = Pin<Box<dyn futures_util::Stream<Item = Event> + Send + 'static>>;
 
-/// Cliente NATS externo con TLS opcional y soporte JetStream.
+/// External NATS client with optional TLS and JetStream support.
 pub struct NatsExternalClient {
     client: Client,
     js: Option<jetstream::Context>,
 }
 
 impl NatsExternalClient {
-    /// Conecta al servidor NATS y, si JetStream esta habilitado, asegura el stream.
+    /// Connects to the NATS server and, if JetStream is enabled, ensures the stream.
     pub async fn connect(config: &RealtimeConfig) -> Result<Self, NatsError> {
         let options = build_connect_options(config)?;
         let client = options
@@ -64,7 +64,7 @@ impl NatsExternalClient {
         Ok(Self { client, js })
     }
 
-    /// Publica un evento. Si JetStream esta habilitado, espera ACK del servidor.
+    /// Publishes an event. If JetStream is enabled, waits for the server ACK.
     pub async fn publish(&self, subject: &str, payload: Vec<u8>) -> Result<(), NatsError> {
         if let Some(js) = &self.js {
             js.publish(subject.to_string(), payload.into())
@@ -81,10 +81,10 @@ impl NatsExternalClient {
         Ok(())
     }
 
-    /// Suscribe a un subject y retorna un stream de eventos.
+    /// Subscribes to a subject and returns a stream of events.
     ///
-    /// Usa un canal interno de capacidad 512 para desacoplar la recepcion
-    /// NATS del consumidor del stream, evitando bloqueos de back-pressure.
+    /// Uses an internal channel with capacity 512 to decouple the NATS
+    /// reception from the stream consumer, avoiding back-pressure blocking.
     pub async fn subscribe(&self, subject: &str) -> Result<EventStream, NatsError> {
         let mut sub = self
             .client
@@ -109,11 +109,11 @@ impl NatsExternalClient {
     }
 }
 
-/// Construye las opciones de conexion NATS segun el nivel de TLS configurado.
+/// Builds the NATS connection options according to the configured TLS level.
 ///
-/// - Nivel 1: `nats_tls = true` — activa `require_tls`.
-/// - Nivel 2: `nats_tls_ca_path` — anade CA personalizada via `add_root_certificates`.
-/// - Nivel 3: `nats_tls_cert_path` + `nats_tls_key_path` — mTLS via `add_client_certificate`.
+/// - Level 1: `nats_tls = true` — enables `require_tls`.
+/// - Level 2: `nats_tls_ca_path` — adds a custom CA via `add_root_certificates`.
+/// - Level 3: `nats_tls_cert_path` + `nats_tls_key_path` — mTLS via `add_client_certificate`.
 fn build_connect_options(config: &RealtimeConfig) -> Result<ConnectOptions, NatsError> {
     let mut opts = ConnectOptions::new();
 
@@ -121,12 +121,12 @@ fn build_connect_options(config: &RealtimeConfig) -> Result<ConnectOptions, Nats
         opts = opts.require_tls(true);
     }
 
-    // Nivel 2: CA personalizada
+    // Level 2: custom CA
     if let Some(ca_path) = &config.nats_tls_ca_path {
         opts = opts.add_root_certificates(PathBuf::from(ca_path));
     }
 
-    // Nivel 3: mTLS (cert + key del cliente)
+    // Level 3: mTLS (client cert + key)
     if let (Some(cert_path), Some(key_path)) =
         (&config.nats_tls_cert_path, &config.nats_tls_key_path)
     {
@@ -136,7 +136,7 @@ fn build_connect_options(config: &RealtimeConfig) -> Result<ConnectOptions, Nats
     Ok(opts)
 }
 
-/// Crea el stream JetStream si no existe, usando la configuracion del crate.
+/// Creates the JetStream stream if it does not exist, using the crate config.
 async fn ensure_stream(ctx: &jetstream::Context, config: &RealtimeConfig) -> Result<(), NatsError> {
     let stream_config = jetstream::stream::Config {
         name: config.jetstream_stream_name.clone(),
@@ -162,7 +162,7 @@ mod tests {
     use super::*;
     use crate::config::NatsMode;
 
-    /// Retorna true si NATS_URL esta definida en el entorno (servidor real disponible).
+    /// Returns true if NATS_URL is defined in the environment (real server available).
     fn nats_available() -> bool {
         std::env::var("NATS_URL").is_ok()
     }
@@ -171,7 +171,7 @@ mod tests {
     fn connect_options_no_tls_by_default() {
         let config = RealtimeConfig::default();
         assert!(!config.nats_tls);
-        // Verificamos que build_connect_options no falla con config por defecto.
+        // We verify that build_connect_options does not fail with the default config.
         let result = build_connect_options(&config);
         assert!(result.is_ok());
     }
@@ -204,11 +204,11 @@ mod tests {
     #[tokio::test]
     async fn connect_fails_without_server() {
         if nats_available() {
-            return; // skip si hay servidor real disponible
+            return; // skip if a real server is available
         }
         let mut config = RealtimeConfig::default();
         config.nats_mode = NatsMode::External;
-        config.nats_url = "nats://127.0.0.1:14222".to_string(); // puerto inexistente
+        config.nats_url = "nats://127.0.0.1:14222".to_string(); // nonexistent port
         let result = NatsExternalClient::connect(&config).await;
         assert!(result.is_err(), "debe fallar sin servidor NATS");
     }
@@ -216,7 +216,7 @@ mod tests {
     #[tokio::test]
     async fn publish_and_subscribe_with_real_nats() {
         if !nats_available() {
-            return; // skip en CI sin NATS
+            return; // skip in CI without NATS
         }
         let mut config = RealtimeConfig::default();
         config.nats_mode = NatsMode::External;

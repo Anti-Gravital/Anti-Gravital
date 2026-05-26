@@ -1,11 +1,11 @@
-//! Sistema de templates para correo electronico.
+//! Template system for email.
 //!
-//! `MailTemplate` es el trait que cualquier template debe implementar.
-//! `StringTemplate` es la implementacion de uso general: sustituye
-//! `{{var}}` por valores del mapa de variables.
+//! `MailTemplate` is the trait that any template must implement.
+//! `StringTemplate` is the general-purpose implementation: it substitutes
+//! `{{var}}` with values from the variable map.
 //!
-//! La validacion build-time de variables (para el compilador `ag-dsl`)
-//! esta en el submodulo `validate`.
+//! The build-time variable validation (for the `ag-dsl` compiler)
+//! is in the `validate` submodule.
 
 pub mod validate;
 
@@ -13,38 +13,38 @@ use std::collections::HashMap;
 
 use crate::error::AgMailError;
 
-/// Abstraccion sobre un template de correo.
+/// Abstraction over an email template.
 ///
-/// Los proyectos pueden implementar `MailTemplate` con cualquier motor de
-/// plantillas (askama, minijinja, Handlebars, etc.) o usar `StringTemplate`
-/// para templates simples.
+/// Projects can implement `MailTemplate` with any template engine
+/// (askama, minijinja, Handlebars, etc.) or use `StringTemplate`
+/// for simple templates.
 pub trait MailTemplate: Send + Sync {
-    /// Renderiza el asunto del correo con las variables dadas.
+    /// Renders the email subject with the given variables.
     fn render_subject(&self, vars: &HashMap<String, String>) -> Result<String, AgMailError>;
 
-    /// Renderiza el cuerpo HTML con las variables dadas.
+    /// Renders the HTML body with the given variables.
     fn render_html(&self, vars: &HashMap<String, String>) -> Result<Option<String>, AgMailError>;
 
-    /// Renderiza el cuerpo en texto plano con las variables dadas.
+    /// Renders the plain text body with the given variables.
     fn render_text(&self, vars: &HashMap<String, String>) -> Result<Option<String>, AgMailError>;
 }
 
-/// Template basado en sustitucion de `{{var}}` en strings.
+/// Template based on `{{var}}` substitution in strings.
 ///
-/// Adecuado para templates simples. Para templates complejos con loops
-/// o condicionales, usar un motor externo e implementar `MailTemplate`.
+/// Suitable for simple templates. For complex templates with loops
+/// or conditionals, use an external engine and implement `MailTemplate`.
 #[derive(Debug, Clone)]
 pub struct StringTemplate {
-    /// Template del asunto (puede contener `{{var}}`).
+    /// Subject template (may contain `{{var}}`).
     pub subject_tpl: String,
-    /// Template HTML (puede contener `{{var}}`).
+    /// HTML template (may contain `{{var}}`).
     pub html_tpl: Option<String>,
-    /// Template de texto plano (puede contener `{{var}}`).
+    /// Plain text template (may contain `{{var}}`).
     pub text_tpl: Option<String>,
 }
 
 impl StringTemplate {
-    /// Crea un template con solo cuerpo HTML.
+    /// Creates a template with only an HTML body.
     pub fn html(subject: impl Into<String>, html: impl Into<String>) -> Self {
         Self {
             subject_tpl: subject.into(),
@@ -53,7 +53,7 @@ impl StringTemplate {
         }
     }
 
-    /// Crea un template con cuerpo HTML y texto plano.
+    /// Creates a template with HTML body and plain text.
     pub fn html_and_text(
         subject: impl Into<String>,
         html: impl Into<String>,
@@ -66,7 +66,7 @@ impl StringTemplate {
         }
     }
 
-    /// Crea un template con solo texto plano.
+    /// Creates a template with only plain text.
     pub fn text(subject: impl Into<String>, text: impl Into<String>) -> Self {
         Self {
             subject_tpl: subject.into(),
@@ -96,10 +96,10 @@ impl MailTemplate for StringTemplate {
     }
 }
 
-/// Sustituye `{{var}}` por el valor del mapa.
+/// Substitutes `{{var}}` with the value from the map.
 ///
-/// Si una variable del template no esta en el mapa, retorna
-/// `AgMailError::Template` con el nombre de la variable faltante.
+/// If a template variable is not in the map, returns
+/// `AgMailError::Template` with the name of the missing variable.
 fn render_string(template: &str, vars: &HashMap<String, String>) -> Result<String, AgMailError> {
     let used = validate::extract_vars(template);
     let mut output = template.to_owned();

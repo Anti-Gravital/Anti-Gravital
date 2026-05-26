@@ -1,29 +1,29 @@
-//! Configuracion de observabilidad leida desde variables de entorno.
+//! Observability configuration read from environment variables.
 
-/// Formato de los logs estructurados.
+/// Structured log format.
 #[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LogFormat {
-    /// Formato legible para desarrollo local.
+    /// Human-readable format for local development.
     #[default]
     Pretty,
-    /// JSON estructurado para produccion.
+    /// Structured JSON for production.
     Json,
 }
 
-/// Configuracion del subsistema de observabilidad.
+/// Observability subsystem configuration.
 #[derive(Debug, Clone)]
 pub struct ObserveConfig {
-    /// Endpoint OTLP para exportar trazas. None deshabilita el exporter.
+    /// OTLP endpoint for exporting traces. None disables the exporter.
     /// Variable: OTEL_EXPORTER_OTLP_ENDPOINT
     pub otlp_endpoint: Option<String>,
-    /// Puerto donde se expone /metrics en formato Prometheus.
+    /// Port where /metrics is exposed in Prometheus format.
     /// Variable: PROMETHEUS_PORT (default 9090)
     pub prometheus_port: u16,
-    /// Formato de los logs a stdout.
+    /// Log format written to stdout.
     /// Variable: LOG_FORMAT=pretty|json (default pretty)
     pub log_format: LogFormat,
-    /// Habilitar tokio-console en modo dev (feature dev-console).
+    /// Enable tokio-console in dev mode (feature dev-console).
     /// Variable: AG_DEV_CONSOLE=true|false (default false)
     pub dev_console: bool,
 }
@@ -40,7 +40,7 @@ impl Default for ObserveConfig {
 }
 
 impl ObserveConfig {
-    /// Lee la configuracion desde variables de entorno.
+    /// Reads the configuration from environment variables.
     pub fn from_env() -> Self {
         let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok();
         let prometheus_port = std::env::var("PROMETHEUS_PORT")
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn config_reads_log_format_json() {
-        // Guarda y restaura la variable de entorno para no contaminar otros tests
+        // Save and restore the environment variable to avoid polluting other tests
         let prev = std::env::var("LOG_FORMAT").ok();
         std::env::set_var("LOG_FORMAT", "json");
         let cfg = ObserveConfig::from_env();

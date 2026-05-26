@@ -1,15 +1,15 @@
-//! Metricas de `ag-domains` exportadas a `ag-observe`.
+//! `ag-domains` metrics exported to `ag-observe`.
 //!
-//! Registra contadores de operaciones DNS y ACME, e histogramas de
-//! latencia de propagacion, usando el crate `metrics`.
+//! Records counters of DNS and ACME operations, and histograms of
+//! propagation latency, using the `metrics` crate.
 
 use metrics::{counter, histogram};
 
-/// Registra un upsert de registro DNS (creacion o actualizacion).
+/// Records a DNS record upsert (creation or update).
 ///
-/// `provider` identifica el adapter (e.g., `"cloudflare"`).
-/// `record_type` es el tipo de registro (e.g., `"TXT"`, `"A"`).
-/// `success` distingue exito de fallo.
+/// `provider` identifies the adapter (e.g., `"cloudflare"`).
+/// `record_type` is the record type (e.g., `"TXT"`, `"A"`).
+/// `success` distinguishes success from failure.
 pub fn record_dns_upsert(provider: &str, record_type: &str, success: bool) {
     counter!(
         "ag_domains_records_upsert_total",
@@ -20,9 +20,9 @@ pub fn record_dns_upsert(provider: &str, record_type: &str, success: bool) {
     .increment(1);
 }
 
-/// Registra una renovacion ACME completada o fallida.
+/// Records a completed or failed ACME renewal.
 ///
-/// `domain` identifica el dominio. `success` distingue exito de fallo.
+/// `domain` identifies the domain. `success` distinguishes success from failure.
 pub fn record_acme_renewal(domain: &str, success: bool) {
     counter!(
         "ag_domains_acme_renewal_total",
@@ -32,11 +32,11 @@ pub fn record_acme_renewal(domain: &str, success: bool) {
     .increment(1);
 }
 
-/// Registra la latencia de propagacion DNS en segundos.
+/// Records the DNS propagation latency in seconds.
 ///
-/// Se llama cuando `PropagationChecker::wait_for_txt` completa
-/// (exitosamente o no) para tener visibilidad del tiempo real de
-/// propagacion en el entorno de produccion.
+/// Called when `PropagationChecker::wait_for_txt` completes
+/// (successfully or not) to have visibility into the real
+/// propagation time in the production environment.
 pub fn record_propagation_latency(domain: &str, seconds: f64) {
     histogram!(
         "ag_domains_propagation_latency_seconds",
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn metrics_do_not_panic() {
-        // Las llamadas no deben entrar en panico aunque no haya recorder registrado.
+        // The calls must not panic even when no recorder is registered.
         record_dns_upsert("cloudflare", "TXT", true);
         record_dns_upsert("cloudflare", "A", false);
         record_acme_renewal("ejemplo.com", true);

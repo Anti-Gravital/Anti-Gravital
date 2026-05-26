@@ -63,77 +63,77 @@ impl Default for ShieldConfig {
     }
 }
 
-/// Configuracion TLS 1.3.
+/// TLS 1.3 configuration.
 ///
-/// Por defecto deshabilitada para no exigir certificado en
-/// desarrollo. Cuando se activa, `cert_path` y `key_path` deben
-/// apuntar a archivos PEM con la cadena de certificados y la clave
-/// privada respectivamente. Cuando el server vive detras de un
-/// balanceador que termina TLS (Cloudflare, AWS ALB, Nginx) la capa
-/// se deja deshabilitada.
+/// Disabled by default so as not to require a certificate in
+/// development. When enabled, `cert_path` and `key_path` must point to
+/// PEM files with the certificate chain and the private key
+/// respectively. When the server lives behind a load balancer that
+/// terminates TLS (Cloudflare, AWS ALB, Nginx) the layer is left
+/// disabled.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TlsConfig {
-    /// Activa la capa TLS.
+    /// Enables the TLS layer.
     #[serde(default)]
     pub enabled: bool,
 
-    /// Ruta al archivo PEM con la cadena de certificados.
+    /// Path to the PEM file with the certificate chain.
     #[serde(default)]
     pub cert_path: Option<std::path::PathBuf>,
 
-    /// Ruta al archivo PEM con la clave privada (PKCS#8, RSA o EC).
+    /// Path to the PEM file with the private key (PKCS#8, RSA or EC).
     #[serde(default)]
     pub key_path: Option<std::path::PathBuf>,
 }
 
-/// Configuracion CORS.
+/// CORS configuration.
 ///
-/// Por defecto la capa esta deshabilitada para no permitir cross-origin
-/// implicito. Para habilitarla declare `enabled = true` y al menos un
-/// origen.
+/// By default the layer is disabled so as not to allow implicit
+/// cross-origin requests. To enable it declare `enabled = true` and at
+/// least one origin.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CorsConfig {
-    /// Activa la capa CORS.
+    /// Enables the CORS layer.
     #[serde(default)]
     pub enabled: bool,
 
-    /// Origenes permitidos. Ej: `["https://app.example.com"]`.
+    /// Allowed origins. Example: `["https://app.example.com"]`.
     #[serde(default)]
     pub allow_origins: Vec<String>,
 
-    /// Metodos HTTP permitidos. Ej: `["GET", "POST"]`.
+    /// Allowed HTTP methods. Example: `["GET", "POST"]`.
     #[serde(default)]
     pub allow_methods: Vec<String>,
 
-    /// Headers permitidos. Ej: `["content-type", "authorization"]`.
+    /// Allowed headers. Example: `["content-type", "authorization"]`.
     #[serde(default)]
     pub allow_headers: Vec<String>,
 
-    /// Si se permiten credenciales en peticiones cross-origin.
+    /// Whether credentials are allowed on cross-origin requests.
     #[serde(default)]
     pub allow_credentials: bool,
 }
 
-/// Configuracion CSRF.
+/// CSRF configuration.
 ///
-/// Por defecto deshabilitada. Cuando se activa, las peticiones que mutan
-/// estado deben presentar el header y la cookie configurados con
-/// valores identicos (patron double-submit cookie).
+/// Disabled by default. When enabled, state-mutating requests must
+/// present the configured header and cookie with identical values
+/// (double-submit cookie pattern).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CsrfConfig {
-    /// Activa la capa CSRF.
+    /// Enables the CSRF layer.
     #[serde(default)]
     pub enabled: bool,
 
-    /// Nombre del header que transporta el token. Por defecto
-    /// `X-CSRF-Token`. Se compara en minusculas.
+    /// Name of the header that carries the token. Defaults to
+    /// `X-CSRF-Token`. Compared in lowercase.
     #[serde(default = "default_csrf_header")]
     pub token_header: String,
 
-    /// Nombre de la cookie que transporta el token. Por defecto
+    /// Name of the cookie that carries the token. Defaults to
     /// `ag_csrf`.
     #[serde(default = "default_csrf_cookie")]
     pub token_cookie: String,
@@ -157,23 +157,23 @@ fn default_csrf_cookie() -> String {
     "ag_csrf".to_owned()
 }
 
-/// Configuracion de rate limiting por IP.
+/// Per-IP rate limiting configuration.
 ///
-/// Por defecto deshabilitada. Cuando se activa aplica un token bucket
-/// por direccion IP de origen con `per_ip_rps` peticiones por segundo
-/// como tasa sostenida y `burst` peticiones como pico instantaneo.
+/// Disabled by default. When enabled it applies a token bucket per
+/// source IP address with `per_ip_rps` requests per second as the
+/// sustained rate and `burst` requests as the instantaneous peak.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RateLimitConfig {
-    /// Activa la capa de rate limiting.
+    /// Enables the rate limiting layer.
     #[serde(default)]
     pub enabled: bool,
 
-    /// Peticiones por segundo permitidas por IP en regimen sostenido.
+    /// Requests per second allowed per IP under sustained load.
     #[serde(default = "default_per_ip_rps")]
     pub per_ip_rps: u32,
 
-    /// Capacidad maxima del token bucket por IP.
+    /// Maximum capacity of the per-IP token bucket.
     #[serde(default = "default_burst")]
     pub burst: u32,
 }
@@ -196,60 +196,60 @@ const fn default_burst() -> u32 {
     200
 }
 
-/// Configuracion de autenticacion JWT Ed25519.
+/// Ed25519 JWT authentication configuration.
 ///
-/// Por defecto deshabilitada. Cuando se activa, la pipeline exige un
-/// header `Authorization: Bearer <token>` valido en todas las
-/// peticiones que la capa Auth cubre. La clave publica se entrega como
-/// PEM inline (`public_key_pem`) o como ruta (`public_key_path`).
+/// Disabled by default. When enabled, the pipeline requires a valid
+/// `Authorization: Bearer <token>` header on every request the Auth
+/// layer covers. The public key is provided as inline PEM
+/// (`public_key_pem`) or as a path (`public_key_path`).
 ///
-/// Opcionalmente se valida que el claim `iss` coincida con
-/// `expected_issuer` y que `aud` contenga `expected_audience`.
+/// Optionally it validates that the `iss` claim matches
+/// `expected_issuer` and that `aud` contains `expected_audience`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AuthConfig {
-    /// Activa la capa de autenticacion JWT.
+    /// Enables the JWT authentication layer.
     #[serde(default)]
     pub enabled: bool,
 
-    /// Clave publica Ed25519 en formato PEM. Mutuamente excluyente con
+    /// Ed25519 public key in PEM format. Mutually exclusive with
     /// `public_key_path`.
     #[serde(default)]
     pub public_key_pem: Option<String>,
 
-    /// Ruta a un archivo PEM con la clave publica Ed25519. Mutuamente
-    /// excluyente con `public_key_pem`.
+    /// Path to a PEM file with the Ed25519 public key. Mutually
+    /// exclusive with `public_key_pem`.
     #[serde(default)]
     pub public_key_path: Option<std::path::PathBuf>,
 
-    /// Issuer esperado en el claim `iss`. `None` desactiva la
-    /// verificacion.
+    /// Issuer expected in the `iss` claim. `None` disables the
+    /// verification.
     #[serde(default)]
     pub expected_issuer: Option<String>,
 
-    /// Audience esperado en el claim `aud`. `None` desactiva la
-    /// verificacion.
+    /// Audience expected in the `aud` claim. `None` disables the
+    /// verification.
     #[serde(default)]
     pub expected_audience: Option<String>,
 }
 
 impl ShieldConfig {
-    /// Carga la configuracion desde una cadena TOML.
+    /// Loads the configuration from a TOML string.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Config` si el TOML no parsea o contiene
-    /// claves desconocidas.
+    /// Returns `AgError::Config` if the TOML does not parse or contains
+    /// unknown keys.
     pub fn from_toml_str(toml_text: &str) -> AgResult<Self> {
         toml::from_str(toml_text).map_err(|e| AgError::Config(e.to_string()))
     }
 
-    /// Carga la configuracion desde un archivo TOML en disco.
+    /// Loads the configuration from a TOML file on disk.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Config` si el archivo no existe, no se puede
-    /// leer, o el contenido no es un TOML valido.
+    /// Returns `AgError::Config` if the file does not exist, cannot be
+    /// read, or the contents are not valid TOML.
     pub fn from_path(path: impl AsRef<Path>) -> AgResult<Self> {
         let path = path.as_ref();
         let bytes = std::fs::read_to_string(path).map_err(|e| {
@@ -258,26 +258,26 @@ impl ShieldConfig {
         Self::from_toml_str(&bytes)
     }
 
-    /// Serializa la configuracion a cadena TOML.
+    /// Serializes the configuration to a TOML string.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Config` en el caso extremadamente improbable
-    /// de que la serializacion falle (tipos no representables en TOML).
+    /// Returns `AgError::Config` in the extremely unlikely case that
+    /// serialization fails (types not representable in TOML).
     pub fn to_toml_string(&self) -> AgResult<String> {
         toml::to_string(self).map_err(|e| AgError::Config(e.to_string()))
     }
 }
 
-/// Configuracion del runtime Tokio.
+/// Tokio runtime configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RuntimeConfig {
-    /// Numero de workers. `None` significa uno por CPU disponible.
+    /// Number of workers. `None` means one per available CPU.
     #[serde(default)]
     pub workers: Option<usize>,
 
-    /// Maximo de threads bloqueantes.
+    /// Maximum number of blocking threads.
     #[serde(default = "default_blocking_threads")]
     pub blocking_threads: usize,
 }
@@ -471,7 +471,7 @@ mod tests {
     fn from_path_loads_example_config() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("config.example.toml");
         let cfg = ShieldConfig::from_path(&path).expect("config.example.toml must parse cleanly");
-        // El ejemplo trae defaults seguros: todas las capas deshabilitadas.
+        // The example ships secure defaults: all layers disabled.
         assert!(!cfg.cors.enabled);
         assert!(!cfg.csrf.enabled);
         assert!(!cfg.rate_limit.enabled);

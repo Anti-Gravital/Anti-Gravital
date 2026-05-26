@@ -1,4 +1,4 @@
-//! Tests E2E de la capa CORS.
+//! E2E tests for the CORS layer.
 
 #![cfg(feature = "cors")]
 
@@ -82,8 +82,8 @@ async fn cors_enabled_rejects_unlisted_origin() {
         .send()
         .await
         .unwrap();
-    // El request pasa (200 OK); pero el navegador rechaza por ausencia
-    // del header `access-control-allow-origin` para este origen.
+    // The request passes (200 OK), but the browser rejects it due to the
+    // absence of the `access-control-allow-origin` header for this origin.
     assert_eq!(resp.status(), reqwest::StatusCode::OK);
     assert!(resp.headers().get("access-control-allow-origin").is_none());
     handle.abort();

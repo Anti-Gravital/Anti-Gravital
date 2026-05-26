@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-23, Fase 4 implementacion tecnica completa: ag-auth (WebAuthn+OAuth2), ag-cache (L1), ag-realtime (NATS+WS+SSE), ag-storage (S3+URLs firmadas), ag-observe, DSL v0.5-v0.6, tests E2E cross-module.
+Ultima actualizacion: 2026-05-24, Fase 4.5 implementacion tecnica completa: ag-mail (SMTP+Resend+adapters, cola async, metricas), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module (7 Fase 4 + 7 Fase 4.5).
 
 ---
 

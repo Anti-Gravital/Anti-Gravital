@@ -1,16 +1,16 @@
-//! Metricas de `ag-mail` exportadas a `ag-observe`.
+//! `ag-mail` metrics exported to `ag-observe`.
 //!
-//! Contadores: `ag_mail_sent_total`, `ag_mail_retry_total`.
-//! Histograma: `ag_mail_send_latency_seconds`.
-//! Las etiquetas `provider` y `result` permiten desagregar por adapter y exito/fallo.
+//! Counters: `ag_mail_sent_total`, `ag_mail_retry_total`.
+//! Histogram: `ag_mail_send_latency_seconds`.
+//! The `provider` and `result` labels allow breaking down by adapter and success/failure.
 
 #[cfg(feature = "metrics")]
 use metrics::{counter, histogram};
 
-/// Registra un intento de envio completado.
+/// Records a completed send attempt.
 ///
-/// `provider` es el nombre del adapter (e.g., `"smtp"`, `"resend"`).
-/// `success` distingue exito de fallo.
+/// `provider` is the adapter name (e.g., `"smtp"`, `"resend"`).
+/// `success` distinguishes success from failure.
 pub fn record_send(provider: &str, success: bool) {
     #[cfg(feature = "metrics")]
     {
@@ -26,7 +26,7 @@ pub fn record_send(provider: &str, success: bool) {
     let _ = (provider, success);
 }
 
-/// Registra un reintento de envio.
+/// Records a send retry.
 pub fn record_retry(provider: &str) {
     #[cfg(feature = "metrics")]
     counter!(
@@ -38,7 +38,7 @@ pub fn record_retry(provider: &str) {
     let _ = provider;
 }
 
-/// Registra la latencia de un envio exitoso en segundos.
+/// Records the latency of a successful send in seconds.
 pub fn record_send_latency(provider: &str, seconds: f64) {
     #[cfg(feature = "metrics")]
     histogram!(

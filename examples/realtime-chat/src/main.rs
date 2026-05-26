@@ -1,16 +1,16 @@
-//! realtime-chat: chat en tiempo real con ag-realtime y SSE.
+//! realtime-chat: real-time chat with ag-realtime and SSE.
 //!
-//! Ejecutar:
+//! Run:
 //! ```sh
 //! cargo run -p realtime-chat
-//! # Abrir http://localhost:3000 en dos ventanas del browser
+//! # Open http://localhost:3000 in two browser windows
 //! ```
 //!
-//! | Ruta             | Descripcion                    |
+//! | Route            | Description                    |
 //! |------------------|--------------------------------|
-//! | GET  /           | UI de chat embebida            |
-//! | GET  /events     | Stream SSE de mensajes         |
-//! | POST /messages   | Publicar un mensaje            |
+//! | GET  /           | Embedded chat UI               |
+//! | GET  /events     | SSE message stream             |
+//! | POST /messages   | Publish a message              |
 //! | GET  /health     | Health check                   |
 
 #![allow(missing_docs)]
@@ -26,10 +26,10 @@ use axum::{
 };
 use std::sync::Arc;
 
-/// Estado compartido entre todos los handlers.
+/// Shared state across all handlers.
 #[derive(Clone)]
 pub struct AppState {
-    /// Subsistema de tiempo real para broadcast de mensajes.
+    /// Real-time subsystem for message broadcast.
     pub realtime: Arc<AgRealtime>,
 }
 
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let addr = format!("0.0.0.0:{port}");
-    tracing::info!(addr = %addr, "realtime-chat iniciando");
+    tracing::info!(addr = %addr, "realtime-chat starting");
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;

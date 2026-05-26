@@ -1,15 +1,15 @@
-//! Capa de rate limiting por IP con governor (token bucket).
+//! Per-IP rate limiting layer with governor (token bucket).
 //!
-//! Mantiene un keyed rate limiter en memoria con clave `IpAddr` del
-//! cliente. Cuando un cliente excede `per_ip_rps` peticiones por
-//! segundo (con permiso de pico hasta `burst`), las peticiones
-//! adicionales se rechazan con `AgError::RateLimit` (status 429).
+//! Keeps an in-memory keyed rate limiter keyed by the client `IpAddr`.
+//! When a client exceeds `per_ip_rps` requests per second (with a burst
+//! allowance up to `burst`), the additional requests are rejected with
+//! `AgError::RateLimit` (status 429).
 //!
-//! La IP de origen se determina por el `SocketAddr` reportado por
-//! Axum a traves del extractor `ConnectInfo`. Cuando el server vive
-//! detras de un proxy de confianza que setea cabeceras como
-//! `X-Forwarded-For`, la resolucion correcta de la IP real se entrega
-//! por configuracion en una PR posterior.
+//! The source IP is determined from the `SocketAddr` reported by Axum
+//! through the `ConnectInfo` extractor. When the server lives behind a
+//! trusted proxy that sets headers like `X-Forwarded-For`, correct
+//! resolution of the real IP is delivered via configuration in a later
+//! PR.
 
 use std::future::Future;
 use std::net::{IpAddr, SocketAddr};
@@ -37,7 +37,7 @@ type IpLimiter =
 #[cfg(test)]
 type DirectLimiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock>;
 
-/// Tower layer de rate limiting por IP.
+/// Per-IP rate limiting Tower layer.
 #[derive(Clone)]
 pub struct RateLimitLayer {
     limiter: Arc<IpLimiter>,
@@ -50,11 +50,11 @@ impl std::fmt::Debug for RateLimitLayer {
 }
 
 impl RateLimitLayer {
-    /// Construye una capa con los parametros indicados.
+    /// Builds a layer with the given parameters.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Config` si `per_ip_rps` o `burst` son 0.
+    /// Returns `AgError::Config` if `per_ip_rps` or `burst` is 0.
     pub fn new(config: &RateLimitConfig) -> Result<Self, AgError> {
         let rps = NonZeroU32::new(config.per_ip_rps)
             .ok_or_else(|| AgError::Config("rate_limit.per_ip_rps must be > 0".to_owned()))?;
@@ -68,7 +68,7 @@ impl RateLimitLayer {
         })
     }
 
-    /// Acceso al limiter interno (uso interno y tests).
+    /// Access to the internal limiter (internal use and tests).
     #[cfg(test)]
     fn limiter(&self) -> Arc<IpLimiter> {
         Arc::clone(&self.limiter)
@@ -86,7 +86,7 @@ impl<S> Layer<S> for RateLimitLayer {
     }
 }
 
-/// Servicio Tower que aplica el rate limit.
+/// Tower service that applies the rate limit.
 #[derive(Clone)]
 pub struct RateLimitService<S> {
     inner: S,
@@ -120,9 +120,10 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let Some(ip) = client_ip(&req) else {
-            // Sin informacion de IP no aplicamos rate limit: en este caso
-            // la pipeline va detras de un transporte que no expone IP
-            // (tests con TcpListener sin ConnectInfo, por ejemplo).
+            // Without IP information we do not apply rate limit: in this
+            // case the pipeline runs behind a transport that does not
+            // expose the IP (tests with TcpListener without ConnectInfo,
+            // for example).
             return RateLimitFuture {
                 state: RateLimitState::Inner {
                     future: self.inner.call(req),
@@ -146,7 +147,7 @@ where
 }
 
 pin_project! {
-    /// Future del servicio rate limit.
+    /// Future of the rate limit service.
     #[derive(Debug)]
     pub struct RateLimitFuture<F> {
         #[pin]
@@ -218,7 +219,7 @@ mod tests {
         let layer = RateLimitLayer::new(&cfg(1, 2)).unwrap();
         let limiter = layer.limiter();
         let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
-        // Burst de 2: las dos primeras pasan, la tercera rebota.
+        // Burst of 2: the first two pass, the third bounces.
         assert!(limiter.check_key(&ip).is_ok());
         assert!(limiter.check_key(&ip).is_ok());
         assert!(limiter.check_key(&ip).is_err());
@@ -231,14 +232,14 @@ mod tests {
         let ip_a: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
         let ip_b: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
         assert!(limiter.check_key(&ip_a).is_ok());
-        // ip_a agotada, ip_b sigue con cupo.
+        // ip_a exhausted, ip_b still has quota.
         assert!(limiter.check_key(&ip_a).is_err());
         assert!(limiter.check_key(&ip_b).is_ok());
     }
 
     #[test]
     fn rejects_a_well_known_direct_limiter_too() {
-        // Sanity: comportamiento basico de governor sin nuestro wrapper.
+        // Sanity: basic governor behavior without our wrapper.
         let quota =
             Quota::per_second(NonZeroU32::new(1).unwrap()).allow_burst(NonZeroU32::new(1).unwrap());
         let limiter: DirectLimiter = RateLimiter::direct(quota);

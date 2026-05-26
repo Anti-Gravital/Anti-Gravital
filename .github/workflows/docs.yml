@@ -38,7 +38,7 @@ jobs:
           # Los hashes deben mantenerse en sync con docs/master/VERSION.md.
           # Cambios a los maestros requieren ADR aprobado y actualizacion
           # coordinada de VERSION.md y este workflow en el mismo PR.
-          # Estado actual: cierre documental Fase 4.0-4.5 (ADR-0008), 2026-05-25.
+          # Estado actual: cierre documental Fase 4.0-4.5 (ADR-0008), 2026-05-26.
           # Arquitectura y Hoja-de-Ruta ahora bilingues (EN-primero). Se anade
           # el Blueprint v4.1.md como fuente markdown versionable. Blueprint PDF
           # queda en v4.0 como deuda explicita pendiente de re-export a v4.1;
@@ -46,7 +46,7 @@ jobs:
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6"
           expected_arch="d511e96b4a00a6eb2aec09efe7a7fd6c15a0cef7ff89d055f3e2f9fff7b8de31"
-          expected_road="24a5fa50a02a167d32bd2c3e650d65344a16f01735dc6a358ec5f303017cd3b9"
+          expected_road="24bc86759f6a26617a5f7a3d655f7083db7c3d11f48c5e6572da6ab080322678"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"

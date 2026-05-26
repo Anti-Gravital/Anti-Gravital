@@ -1,4 +1,4 @@
-//! Tests E2E de la capa rate-limit (token bucket por IP).
+//! E2E tests for the rate-limit layer (per-IP token bucket).
 
 #![cfg(feature = "rate-limit")]
 
@@ -55,7 +55,7 @@ async fn rate_limit_enabled_blocks_after_burst() {
     let (addr, handle) = start_server(rl).await;
     let client = reqwest::Client::builder().build().unwrap();
 
-    // Burst de 2: las primeras dos pasan inmediatamente.
+    // Burst of 2: the first two pass immediately.
     for _ in 0..2 {
         let resp = client
             .get(format!("http://{addr}/ping"))
@@ -65,7 +65,7 @@ async fn rate_limit_enabled_blocks_after_burst() {
         assert_eq!(resp.status(), reqwest::StatusCode::OK);
     }
 
-    // La siguiente, sin esperar reposicion del bucket, debe rebotar.
+    // The next one, without waiting for the bucket to refill, must be rejected.
     let resp = client
         .get(format!("http://{addr}/ping"))
         .send()

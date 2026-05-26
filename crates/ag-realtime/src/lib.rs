@@ -1,9 +1,9 @@
-//! Tiempo real para el ecosistema Anti-Gravital.
+//! Real-time for the Anti-Gravital ecosystem.
 //!
-//! Ofrece un bus de eventos pub/sub en memoria (InProcess) y, con la feature
-//! `nats-external`, conexion a un servidor NATS real con TLS y JetStream.
+//! Offers an in-memory pub/sub event bus (InProcess) and, with the
+//! `nats-external` feature, connection to a real NATS server with TLS and JetStream.
 //!
-//! # Uso InProcess (sin servidor NATS)
+//! # InProcess usage (no NATS server)
 //!
 //! ```no_run
 //! use ag_realtime::{AgRealtime, RealtimeConfig};
@@ -31,12 +31,12 @@ use std::sync::Arc;
 #[cfg(feature = "nats-external")]
 use external::{NatsError, NatsExternalClient};
 
-/// Error del subsistema de tiempo real.
+/// Real-time subsystem error.
 #[derive(Debug)]
 pub enum RealtimeError {
-    /// Error en el bus interno.
+    /// Error in the internal bus.
     Bus(BusError),
-    /// Error en el cliente NATS externo.
+    /// Error in the external NATS client.
     #[cfg(feature = "nats-external")]
     Nats(NatsError),
 }
@@ -65,17 +65,17 @@ enum RealtimeBus {
     External(Arc<NatsExternalClient>),
 }
 
-/// Subsistema de tiempo real de Anti-Gravital.
+/// Anti-Gravital real-time subsystem.
 pub struct AgRealtime {
     inner: RealtimeBus,
     event_bus: Option<Arc<EventBus>>,
 }
 
 impl AgRealtime {
-    /// Crea una nueva instancia.
+    /// Creates a new instance.
     ///
-    /// En modo `External` con la feature `nats-external`, conecta al servidor NATS.
-    /// Sin la feature, el modo External usa InProcess con un warning.
+    /// In `External` mode with the `nats-external` feature, connects to the NATS server.
+    /// Without the feature, External mode uses InProcess with a warning.
     pub async fn new(config: RealtimeConfig) -> Result<Self, RealtimeError> {
         match config.nats_mode {
             NatsMode::InProcess => {
@@ -111,7 +111,7 @@ impl AgRealtime {
         }
     }
 
-    /// Publica un evento en el bus (fire-and-forget).
+    /// Publishes an event on the bus (fire-and-forget).
     pub fn broadcast(
         &self,
         subject: impl Into<String>,
@@ -133,7 +133,7 @@ impl AgRealtime {
         }
     }
 
-    /// Publica un evento serializado como JSON.
+    /// Publishes an event serialized as JSON.
     pub fn broadcast_json<T: serde::Serialize>(
         &self,
         subject: impl Into<String>,
@@ -144,7 +144,7 @@ impl AgRealtime {
         self.broadcast(subject, payload)
     }
 
-    /// Retorna el bus InProcess si esta en modo InProcess.
+    /// Returns the InProcess bus if running in InProcess mode.
     pub fn bus(&self) -> Option<Arc<EventBus>> {
         self.event_bus.clone()
     }

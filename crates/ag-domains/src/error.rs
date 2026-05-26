@@ -1,49 +1,49 @@
-//! Tipo de error del crate `ag-domains`.
+//! Error type for the `ag-domains` crate.
 //!
-//! Las conversiones `From` para errores de upstreams concretos
-//! (`reqwest`, `instant_acme`, `hickory_resolver`) se añaden cuando esos
-//! upstreams se introducen en las Etapas 2-3 y 2-4.
+//! The `From` conversions for errors from concrete upstreams
+//! (`reqwest`, `instant_acme`, `hickory_resolver`) are added when those
+//! upstreams are introduced in Stages 2-3 and 2-4.
 
 use thiserror::Error;
 
-/// Errores producidos por las operaciones de `ag-domains`.
+/// Errors produced by `ag-domains` operations.
 #[derive(Debug, Error)]
 pub enum AgDomainsError {
-    /// La zona DNS solicitada no existe en el proveedor.
+    /// The requested DNS zone does not exist in the provider.
     #[error("zona DNS no encontrada: {0}")]
     ZoneNotFound(String),
 
-    /// El registro DNS solicitado no existe.
+    /// The requested DNS record does not exist.
     #[error("registro DNS no encontrado: {0}")]
     RecordNotFound(String),
 
-    /// Error de autenticacion contra el proveedor DNS.
+    /// Authentication error against the DNS provider.
     #[error("autenticacion fallida con el proveedor ({provider}): {message}")]
     Auth {
-        /// Nombre del proveedor reportando el fallo.
+        /// Name of the provider reporting the failure.
         provider: &'static str,
-        /// Mensaje propagado.
+        /// Propagated message.
         message: String,
     },
 
-    /// Error de propagacion: los registros aun no se ven en los resolvers.
+    /// Propagation error: records are not yet visible on the resolvers.
     #[error("propagacion DNS pendiente: {0}")]
     PropagationPending(String),
 
-    /// Error de ACME (emision o renovacion de certificado).
+    /// ACME error (certificate issuance or renewal).
     #[error("error ACME: {0}")]
     Acme(String),
 
-    /// Error generico del proveedor DNS.
+    /// Generic DNS provider error.
     #[error("error del proveedor DNS ({provider}): {message}")]
     Provider {
-        /// Nombre del proveedor reportando el fallo.
+        /// Name of the provider reporting the failure.
         provider: &'static str,
-        /// Mensaje propagado.
+        /// Propagated message.
         message: String,
     },
 
-    /// Error generico de configuracion.
+    /// Generic configuration error.
     #[error("configuracion invalida: {0}")]
     Config(String),
 }

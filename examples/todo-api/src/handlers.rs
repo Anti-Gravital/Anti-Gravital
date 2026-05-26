@@ -1,8 +1,8 @@
-//! Handlers HTTP de la todo-api.
+//! HTTP handlers for the todo-api.
 //!
-//! Cada handler recibe los extractores necesarios y devuelve
-//! `Result<_, AgError>` para que la conversion a respuesta HTTP sea
-//! automatica via `IntoResponse`.
+//! Each handler receives the necessary extractors and returns
+//! `Result<_, AgError>` so that the HTTP response conversion is
+//! automatic via `IntoResponse`.
 
 use axum::{
     extract::{Path, State},
@@ -59,7 +59,7 @@ pub(crate) async fn create_todo(
     Json(req): Json<CreateTodo>,
 ) -> Result<(StatusCode, Json<Todo>), AgError> {
     if req.title.trim().is_empty() {
-        return Err(AgError::BadRequest("el titulo no puede estar vacio".into()));
+        return Err(AgError::BadRequest("title cannot be empty".into()));
     }
 
     let todo = sqlx::query_as::<_, Todo>(
@@ -78,7 +78,7 @@ pub(crate) async fn update_todo(
     Path(id): Path<i64>,
     Json(req): Json<UpdateTodo>,
 ) -> Result<Json<Todo>, AgError> {
-    // Verifica que exista antes de actualizar.
+    // Verify it exists before updating.
     let existing = sqlx::query_as::<_, Todo>("SELECT id, title, done FROM todos WHERE id = $1")
         .bind(id)
         .fetch_optional(&state.db)

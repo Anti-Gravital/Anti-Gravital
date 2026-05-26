@@ -1,13 +1,13 @@
-//! Generador AsyncAPI 2.6 desde el AST del Anti-DSL.
+//! AsyncAPI 2.6 generator from the Anti-DSL AST.
 //!
-//! Produce la especificacion AsyncAPI 2.6 en formato YAML para todos los
-//! eventos declarados en el schema (v0.6). Retorna None si no hay eventos.
+//! Produces the AsyncAPI 2.6 spec in YAML format for all
+//! events declared in the schema (v0.6). Returns None if there are no events.
 
 use crate::ast::Schema;
 use std::path::PathBuf;
 
-/// Genera la especificacion AsyncAPI 2.6 como YAML.
-/// Retorna None si el schema no tiene eventos declarados.
+/// Generates the AsyncAPI 2.6 specification as YAML.
+/// Returns None if the schema has no declared events.
 pub fn generate(schema: &Schema) -> Option<(PathBuf, String)> {
     if schema.events.is_empty() {
         return None;
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn generates_valid_asyncapi_yaml() {
         let schema = schema_with_event();
-        let (path, yaml) = generate(&schema).expect("debe generar");
+        let (path, yaml) = generate(&schema).expect("should generate");
         assert_eq!(path.to_str().unwrap(), "asyncapi.yaml");
         assert!(yaml.contains("asyncapi: '2.6.0'"));
         assert!(yaml.contains("user/created"));
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn includes_retention_binding() {
         let schema = schema_with_event();
-        let (_, yaml) = generate(&schema).expect("debe generar");
+        let (_, yaml) = generate(&schema).expect("should generate");
         assert!(yaml.contains("retentionDays: 30"));
     }
 

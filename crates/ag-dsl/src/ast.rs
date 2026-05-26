@@ -398,7 +398,7 @@ impl std::fmt::Display for HttpMethod {
     }
 }
 
-/// Convierte un path DSL (`/users/{id}`) a formato Axum (`/users/:id`).
+/// Converts a DSL path (`/users/{id}`) to Axum format (`/users/:id`).
 pub fn dsl_path_to_axum(path: &str) -> std::string::String {
     let mut result = std::string::String::new();
     let mut chars = path.chars().peekable();
@@ -418,7 +418,7 @@ pub fn dsl_path_to_axum(path: &str) -> std::string::String {
     result
 }
 
-/// Extrae los nombres de los parametros de path de un path DSL.
+/// Extracts the path parameter names from a DSL path.
 ///
 /// `/users/{id}/posts/{postId}` → `["id", "postId"]`
 pub fn extract_path_params(path: &str) -> Vec<std::string::String> {
@@ -442,9 +442,9 @@ pub fn extract_path_params(path: &str) -> Vec<std::string::String> {
     params
 }
 
-/// Convierte PascalCase o camelCase a snake_case.
+/// Converts PascalCase or camelCase to snake_case.
 ///
-/// Usado para convertir nombres de endpoints/modelos a nombres de funcion Rust.
+/// Used to convert endpoint/model names into Rust function names.
 pub fn to_snake_case(s: &str) -> std::string::String {
     let mut result = std::string::String::with_capacity(s.len() + 4);
     for (i, ch) in s.chars().enumerate() {
@@ -452,20 +452,20 @@ pub fn to_snake_case(s: &str) -> std::string::String {
             result.push('_');
         }
         // TECH-DEBT:
-        // motivo: char::to_lowercase() garantiza al menos 1 caracter; unwrap() es seguro pero viola
-        //         la regla del proyecto de no usar unwrap() fuera de tests.
-        // impacto: bajo (no puede panic en practica)
-        // eliminacion esperada: PR de limpieza post-Fase 4
+        // reason: char::to_lowercase() guarantees at least 1 character; unwrap() is safe but violates
+        //         the project rule of not using unwrap() outside tests.
+        // impact: low (cannot panic in practice)
+        // expected removal: cleanup PR post-Phase 4
         result.push(ch.to_lowercase().next().unwrap());
     }
     result
 }
 
 // ============================================================
-// DSL v0.7 — bloques mail y domain
+// DSL v0.7 — mail and domain blocks
 // ============================================================
 
-/// Bloque de correo transaccional: `mail nombre { ... }`.
+/// Transactional mail block: `mail name { ... }`.
 ///
 /// ```text
 /// mail transaccional {
@@ -480,19 +480,19 @@ pub fn to_snake_case(s: &str) -> std::string::String {
 /// ```
 #[derive(Debug, Clone)]
 pub struct MailBlock {
-    /// Nombre del bloque (identificador logico, e.g., `"transaccional"`).
+    /// Block name (logical identifier, e.g., `"transaccional"`).
     pub name: Spanned<std::string::String>,
-    /// Proveedor de envio: `"smtp"`, `"resend"`, `"ses"`, `"postmark"`.
+    /// Sending provider: `"smtp"`, `"resend"`, `"ses"`, `"postmark"`.
     pub provider: Option<std::string::String>,
-    /// Direccion de remitente por defecto.
+    /// Default sender address.
     pub from: Option<std::string::String>,
-    /// Templates de correo definidos en este bloque.
+    /// Mail templates defined in this block.
     pub templates: Vec<MailTemplateDef>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 
-/// Definicion de template de correo dentro de un bloque `mail`.
+/// Mail template definition inside a `mail` block.
 ///
 /// ```text
 /// template bienvenida {
@@ -502,17 +502,17 @@ pub struct MailBlock {
 /// ```
 #[derive(Debug, Clone)]
 pub struct MailTemplateDef {
-    /// Nombre del template (identificador, e.g., `"bienvenida"`).
+    /// Template name (identifier, e.g., `"bienvenida"`).
     pub name: Spanned<std::string::String>,
-    /// Asunto del correo (puede contener `{{var}}`).
+    /// Mail subject (may contain `{{var}}`).
     pub subject: Option<std::string::String>,
-    /// Nombres de las variables que el template acepta.
+    /// Names of the variables the template accepts.
     pub vars: Vec<std::string::String>,
-    /// Span del bloque del template.
+    /// Span of the template block.
     pub span: Span,
 }
 
-/// Bloque de dominio DNS: `domain nombre { ... }`.
+/// DNS domain block: `domain name { ... }`.
 ///
 /// ```text
 /// domain mi_dominio {
@@ -525,19 +525,19 @@ pub struct MailTemplateDef {
 /// ```
 #[derive(Debug, Clone)]
 pub struct DomainBlock {
-    /// Nombre logico del bloque (identificador, no el FQDN).
+    /// Logical block name (identifier, not the FQDN).
     pub name: Spanned<std::string::String>,
-    /// FQDN del dominio (e.g., `"ejemplo.com"`).
+    /// Domain FQDN (e.g., `"ejemplo.com"`).
     pub domain_name: Option<std::string::String>,
-    /// Proveedor DNS: `"cloudflare"` por ahora.
+    /// DNS provider: `"cloudflare"` for now.
     pub provider: Option<std::string::String>,
-    /// Selectores DKIM activos.
+    /// Active DKIM selectors.
     pub dkim_selectors: Vec<std::string::String>,
-    /// Politica DMARC: `"none"`, `"quarantine"`, `"reject"`.
+    /// DMARC policy: `"none"`, `"quarantine"`, `"reject"`.
     pub dmarc_policy: Option<std::string::String>,
-    /// Email destino de reportes DMARC.
+    /// Destination email for DMARC reports.
     pub dmarc_rua: Option<std::string::String>,
-    /// Span del bloque completo.
+    /// Span of the full block.
     pub span: Span,
 }
 

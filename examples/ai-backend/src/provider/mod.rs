@@ -1,4 +1,4 @@
-//! Trait AiProvider y registro dinamico de proveedores de IA.
+//! AiProvider trait and dynamic registry of AI providers.
 
 pub mod claude;
 pub mod gemini;
@@ -13,7 +13,7 @@ pub use claude::ClaudeProvider;
 pub use gemini::GeminiProvider;
 pub use openai::OpenAiProvider;
 
-/// Error del subsistema de proveedores de IA.
+/// AI provider subsystem error.
 #[derive(Debug, thiserror::Error)]
 pub enum AiError {
     #[error("error HTTP: {0}")]
@@ -22,21 +22,21 @@ pub enum AiError {
     Parse(String),
 }
 
-/// Interfaz comun para todos los proveedores de IA.
+/// Common interface for all AI providers.
 ///
-/// Implementar este trait para agregar un nuevo proveedor.
+/// Implement this trait to add a new provider.
 #[async_trait]
 pub trait AiProvider: Send + Sync {
-    /// Identificador del proveedor: "claude", "gemini", "openai".
+    /// Provider identifier: "claude", "gemini", "openai".
     fn name(&self) -> &'static str;
 
-    /// Modelo por defecto si el cliente no especifica uno.
+    /// Default model if the client does not specify one.
     fn default_model(&self) -> &'static str;
 
-    /// Inicia un stream de completion. Cada item es un fragmento de texto.
+    /// Starts a completion stream. Each item is a text fragment.
     ///
-    /// El stream termina cuando el proveedor cierra la conexion.
-    /// Los errores a mitad del stream se propagan como `Err(AiError)`.
+    /// The stream ends when the provider closes the connection.
+    /// Errors mid-stream are propagated as `Err(AiError)`.
     async fn stream_completion(
         &self,
         prompt: &str,
@@ -44,28 +44,28 @@ pub trait AiProvider: Send + Sync {
     ) -> Result<BoxStream<'static, Result<String, AiError>>, AiError>;
 }
 
-/// Informacion de un proveedor para el endpoint GET /providers.
+/// Provider information for the GET /providers endpoint.
 #[derive(serde::Serialize)]
 pub struct ProviderInfo {
     pub name: String,
     pub default_model: String,
 }
 
-/// Registro de proveedores disponibles segun las API keys del entorno.
+/// Registry of available providers based on the environment API keys.
 pub struct ProviderRegistry {
     providers: HashMap<String, Arc<dyn AiProvider>>,
     default: Option<String>,
 }
 
 impl ProviderRegistry {
-    /// Construye el registry detectando API keys en variables de entorno.
+    /// Builds the registry by detecting API keys in environment variables.
     ///
-    /// Proveedores registrados segun keys presentes:
+    /// Providers registered based on present keys:
     /// - `ANTHROPIC_API_KEY` -> `ClaudeProvider`
     /// - `GEMINI_API_KEY`    -> `GeminiProvider`
     /// - `OPENAI_API_KEY`    -> `OpenAiProvider`
     ///
-    /// `AI_DEFAULT_PROVIDER` sobreescribe el proveedor por defecto.
+    /// `AI_DEFAULT_PROVIDER` overrides the default provider.
     pub fn from_env() -> Self {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
@@ -103,17 +103,17 @@ impl ProviderRegistry {
         Self { providers, default }
     }
 
-    /// Obtiene un proveedor por nombre. `None` si no esta registrado.
+    /// Gets a provider by name. `None` if it is not registered.
     pub fn get(&self, name: &str) -> Option<Arc<dyn AiProvider>> {
         self.providers.get(name).cloned()
     }
 
-    /// Nombre del proveedor por defecto. `None` si el registry esta vacio.
+    /// Name of the default provider. `None` if the registry is empty.
     pub fn default_name(&self) -> Option<&str> {
         self.default.as_deref()
     }
 
-    /// Proveedor por defecto. `None` si el registry esta vacio.
+    /// Default provider. `None` if the registry is empty.
     pub fn default_provider(&self) -> Option<Arc<dyn AiProvider>> {
         self.default
             .as_ref()
@@ -121,7 +121,7 @@ impl ProviderRegistry {
             .cloned()
     }
 
-    /// Lista informacion de todos los proveedores disponibles.
+    /// Lists information for all available providers.
     pub fn available(&self) -> Vec<ProviderInfo> {
         let mut list: Vec<ProviderInfo> = self
             .providers
@@ -135,7 +135,7 @@ impl ProviderRegistry {
         list
     }
 
-    /// `true` si no hay ningun proveedor registrado.
+    /// `true` if no provider is registered.
     pub fn is_empty(&self) -> bool {
         self.providers.is_empty()
     }

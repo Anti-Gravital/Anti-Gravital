@@ -1,9 +1,9 @@
-//! Test E2E del pipeline Shield completo.
+//! E2E test of the complete Shield pipeline.
 //!
-//! Arranca un servidor con TODAS las capas activas (TLS, auth-jwt,
-//! csrf, cors, rate-limit, validation, logging) y verifica que una
-//! peticion legitima atraviesa el pipeline mientras que peticiones
-//! invalidas se rechazan en la capa correcta.
+//! Starts a server with ALL layers active (TLS, auth-jwt, csrf, cors,
+//! rate-limit, validation, logging) and verifies that a legitimate
+//! request traverses the pipeline while invalid requests are rejected at
+//! the correct layer.
 
 #![cfg(all(
     feature = "tls",
@@ -315,9 +315,9 @@ async fn unlisted_origin_does_not_receive_allow_origin_header() {
         .send()
         .await
         .unwrap();
-    // El request pasa la capa CORS (no es preflight), pero el navegador
-    // bloqueara la respuesta porque no hay header allow-origin para
-    // este origen.
+    // The request passes the CORS layer (it is not a preflight), but the
+    // browser will block the response because there is no allow-origin
+    // header for this origin.
     assert!(resp.headers().get("access-control-allow-origin").is_none());
     fixture.handle.abort();
 }

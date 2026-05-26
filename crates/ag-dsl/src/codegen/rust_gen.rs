@@ -1,14 +1,14 @@
-//! Generador Rust para DSL v0.1–v0.2.
+//! Rust generator for DSL v0.1-v0.2.
 //!
-//! Produce structs Rust con serde a partir de los modelos del schema (v0.1),
-//! y tipos API + handler stubs + router a partir de endpoints (v0.2).
+//! Produces Rust structs with serde from the schema models (v0.1),
+//! and API types + handler stubs + router from endpoints (v0.2).
 
 use crate::ast::{
     extract_path_params, to_snake_case, Annotation, AuthMode, EndpointDef, FieldDef, FieldType,
     HttpMethod, ModelDef, RequestDef, ResponseDef, Schema,
 };
 
-/// Genera el contenido del archivo `src/models.rs` para el schema dado.
+/// Generates the contents of the `src/models.rs` file for the given schema.
 pub fn generate_models(schema: &Schema) -> String {
     let mut out = String::new();
 
@@ -16,7 +16,7 @@ pub fn generate_models(schema: &Schema) -> String {
     out.push_str("//! NO editar manualmente. Regenerar con `ag generate`.\n\n");
     out.push_str("#![allow(dead_code)]\n\n");
 
-    // Imports base
+    // Base imports
     let needs_uuid = schema
         .models
         .iter()
@@ -54,7 +54,7 @@ pub fn generate_models(schema: &Schema) -> String {
     out
 }
 
-/// Struct completo del modelo (todos los campos).
+/// Full model struct (all fields).
 fn generate_model_struct(model: &ModelDef) -> String {
     let name = &model.name.value;
     let mut out = String::new();
@@ -84,7 +84,7 @@ fn generate_model_struct(model: &ModelDef) -> String {
     out
 }
 
-/// Request de creacion: excluye campos @auto y @auto_update.
+/// Creation request: excludes @auto and @auto_update fields.
 fn generate_create_request(model: &ModelDef) -> String {
     let name = &model.name.value;
     let create_fields: Vec<_> = model
@@ -94,7 +94,7 @@ fn generate_create_request(model: &ModelDef) -> String {
         .collect();
 
     if create_fields.is_empty() {
-        // Todos los campos son auto; no tiene sentido un create request.
+        // All fields are auto-generated; a create request makes no sense.
         return format!(
             "/// Todos los campos de '{name}' son autogenerados.\n\
              /// No se necesita CreateRequest.\n\n"
@@ -116,7 +116,7 @@ fn generate_create_request(model: &ModelDef) -> String {
     out
 }
 
-/// Request de actualizacion: todos los campos no-auto son Option<T>.
+/// Update request: all non-auto fields are Option<T>.
 fn generate_update_request(model: &ModelDef) -> String {
     let name = &model.name.value;
     let update_fields: Vec<_> = model
@@ -145,14 +145,14 @@ fn generate_update_request(model: &ModelDef) -> String {
     out
 }
 
-/// Retorna el tipo Rust del campo, considerando opcionalidad.
+/// Returns the Rust type of the field, taking optionality into account.
 fn rust_field_type(field: &FieldDef) -> String {
-    // Campos @auto o @auto_update son siempre presentes en la DB,
-    // pero en los structs de respuesta se incluyen como requeridos.
+    // @auto or @auto_update fields are always present in the DB,
+    // but in response structs they are included as required.
     field.ty.value.rust_type(field.optional)
 }
 
-/// True si el campo tiene @auto o @auto_update.
+/// True if the field has @auto or @auto_update.
 fn is_auto_generated(field: &FieldDef) -> bool {
     field
         .annotations
@@ -403,12 +403,12 @@ fn generate_validate_impl(struct_name: &str, fields: &[FieldDef]) -> String {
                 )),
                 Annotation::Length(n) => checks.push(format!(
                     "    if self.{fname}.len() != {n} {{\n\
-                             errors.push(format!(\"{fname}: longitud exacta requerida es {n}, encontrado {{}} caracteres\", self.{fname}.len()));\n\
+                             errors.push(format!(\"{fname}: exact length required is {n}, found {{}} characters\", self.{fname}.len()));\n\
                      }}"
                 )),
                 Annotation::Regex(pattern) => checks.push(format!(
-                    "    // TODO: validar {fname} contra regex: {pattern:?}\n\
-                     // Añade la crate `regex` y verifica: Regex::new({pattern:?}).unwrap().is_match(&self.{fname})"
+                    "    // TODO: validate {fname} against regex: {pattern:?}\n\
+                     // Add the `regex` crate and verify: Regex::new({pattern:?}).unwrap().is_match(&self.{fname})"
                 )),
                 _ => {}
             }

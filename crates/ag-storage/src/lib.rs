@@ -1,7 +1,7 @@
-//! Store nativo Anti-Gravital: filesystem, servidor HTTP Axum embebido,
-//! adaptadores S3/MinIO opcionales y procesamiento de imagen.
+//! Anti-Gravital native store: filesystem, embedded Axum HTTP server,
+//! optional S3/MinIO adapters and image processing.
 //!
-//! # Uso minimo (embebido)
+//! # Minimal usage (embedded)
 //!
 //! ```no_run
 //! use ag_storage::{AgStorage, StorageConfig};
@@ -27,53 +27,53 @@ pub use store::AgStore;
 
 use thiserror::Error;
 
-/// Error del subsistema de almacenamiento.
+/// Storage subsystem error.
 #[derive(Debug, Error)]
 pub enum StorageError {
-    /// Objeto no encontrado con la clave dada.
+    /// No object found with the given key.
     #[error("objeto no encontrado: {0}")]
     NotFound(String),
-    /// Clave de objeto invalida (caracteres prohibidos, path traversal, etc.).
+    /// Invalid object key (forbidden characters, path traversal, etc.).
     #[error("clave invalida: {0}")]
     InvalidKey(String),
-    /// Intento de escapar del directorio raiz del store.
+    /// Attempt to escape the store root directory.
     #[error("acceso fuera del store denegado")]
     PathEscape(String),
-    /// Payload supera el limite configurado.
+    /// Payload exceeds the configured limit.
     #[error("objeto demasiado grande: {size} bytes (limite: {limit} bytes)")]
     TooLarge {
-        /// Tamano del objeto recibido en bytes.
+        /// Size of the received object in bytes.
         size: usize,
-        /// Limite maximo permitido en bytes.
+        /// Maximum allowed size in bytes.
         limit: usize,
     },
-    /// Error de I/O del sistema operativo.
+    /// Operating system I/O error.
     #[error("error de I/O: {0}")]
     Io(#[from] std::io::Error),
-    /// Error de procesamiento de imagen.
+    /// Image processing error.
     #[error("error de imagen: {0}")]
     Image(String),
-    /// Configuracion invalida.
+    /// Invalid configuration.
     #[error("error de configuracion: {0}")]
     Config(String),
     #[cfg(feature = "s3")]
-    /// Error del backend S3/MinIO.
+    /// S3/MinIO backend error.
     #[error("error S3: {0}")]
     S3(#[from] object_store::Error),
 }
 
-/// Facade principal del subsistema de almacenamiento.
+/// Main facade of the storage subsystem.
 ///
-/// Construir con [`AgStorage::new`] pasando un [`StorageConfig`].
-/// Si `config.server_mode` es `true`, levanta un servidor HTTP en background.
+/// Construct with [`AgStorage::new`] passing a [`StorageConfig`].
+/// If `config.server_mode` is `true`, it spins up an HTTP server in the background.
 pub struct AgStorage {
     store: std::sync::Arc<AgStore>,
     config: StorageConfig,
 }
 
 impl AgStorage {
-    /// Crea una nueva instancia. Si `config.server_mode` es `true`, inicia
-    /// el servidor HTTP en background via `tokio::spawn`.
+    /// Creates a new instance. If `config.server_mode` is `true`, starts
+    /// the HTTP server in the background via `tokio::spawn`.
     pub async fn new(config: StorageConfig) -> Result<Self, StorageError> {
         let store = std::sync::Arc::new(AgStore::new(&config)?);
         if config.server_mode {
@@ -88,39 +88,39 @@ impl AgStorage {
         Ok(Self { store, config })
     }
 
-    /// Almacena `data` bajo la clave `key`.
+    /// Stores `data` under the key `key`.
     pub async fn put(&self, key: &str, data: bytes::Bytes) -> Result<(), StorageError> {
         self.store.put(key, data).await
     }
 
-    /// Recupera el contenido del objeto con clave `key`.
+    /// Retrieves the content of the object with key `key`.
     pub async fn get(&self, key: &str) -> Result<bytes::Bytes, StorageError> {
         self.store.get(key).await
     }
 
-    /// Borra el objeto con clave `key`.
+    /// Deletes the object with key `key`.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
         self.store.delete(key).await
     }
 
-    /// Retorna `true` si existe un objeto con clave `key`.
+    /// Returns `true` if an object with key `key` exists.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
         self.store.exists(key).await
     }
 
-    /// Lista las claves de objetos, opcionalmente filtradas por prefijo.
+    /// Lists object keys, optionally filtered by prefix.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
         self.store.list(prefix).await
     }
 
-    /// Copia el objeto `from` a la clave `to`.
+    /// Copies the object `from` to the key `to`.
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
         self.store.copy(from, to).await
     }
 
-    /// Retorna la URL de acceso al objeto.
-    /// - Native embebido: `file://{root}/{key}`
-    /// - Servidor activo: `http://localhost:{port}/v1/objects/{key}`
+    /// Returns the access URL for the object.
+    /// - Embedded native: `file://{root}/{key}`
+    /// - Active server: `http://localhost:{port}/v1/objects/{key}`
     pub fn object_url(&self, key: &str) -> Result<String, StorageError> {
         if self.config.server_mode {
             Ok(format!(
@@ -133,14 +133,14 @@ impl AgStorage {
         }
     }
 
-    /// Retorna un [`ImageProcessor`] para procesar imagenes.
+    /// Returns an [`ImageProcessor`] for processing images.
     pub fn processor(&self) -> ImageProcessor {
         ImageProcessor::new()
     }
 
-    /// Genera un token firmado para acceso temporal a `key`.
+    /// Generates a signed token for temporary access to `key`.
     ///
-    /// `ttl_secs`: tiempo de vida en segundos. Error si `sign_secret` esta vacio.
+    /// `ttl_secs`: time to live in seconds. Errors if `sign_secret` is empty.
     pub fn signed_url(&self, key: &str, ttl_secs: u64) -> Result<String, SignedUrlError> {
         let expires_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -150,7 +150,7 @@ impl AgStorage {
         crate::signed::sign_url(&self.config.sign_secret, key, expires_at)
     }
 
-    /// Verifica que el token permite acceso a `key`.
+    /// Verifies that the token grants access to `key`.
     pub fn verify_signed_url(&self, key: &str, token: &str) -> Result<(), SignedUrlError> {
         crate::signed::verify_signed_url(&self.config.sign_secret, key, token)
     }

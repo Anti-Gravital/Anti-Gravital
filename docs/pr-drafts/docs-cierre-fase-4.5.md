@@ -30,7 +30,8 @@ implementación y establece la política de idioma antes de Fase 5.
 
 **Maestros (fieles + bilingües, inglés-primero):**
 - `ANTI-GRAVITAL-Hoja-de-Ruta.md`: fases 1-4.5 marcadas técnicamente
-  completas (antes todas "Pendiente"); bilingüe.
+  completas (inglés y español). Phase 4.5 checkboxes (4.5.1, 4.5.2, 4.5.3)
+  marcados `[x]` con notas de implementación real. Estado 2026-05-24.
 - `ANTI-GRAVITAL-Arquitectura-Tecnica.md`: corregida la fidelidad —
   WebAuthn con ciborium/p256/ed25519 (ADR-0006, no webauthn-rs), templates
   de correo con StringTemplate/MailTemplate (no askama), caché L2 no
@@ -41,12 +42,18 @@ implementación y establece la política de idioma antes de Fase 5.
   y Blueprint v4.1.md registrado en la verificación de integridad.
 
 **Vitrina:**
-- `README.md`: inglés primero con ancla de idioma; ya fiel a 4.5.
+- `README.md`: inglés primero; párrafo narrativo de Fase 4.5 (ag-mail +
+  ag-domains) añadido en EN y ES; "Phases 1-4" → "Phases 1-4.5".
+- `docs/roadmap/STATUS.md`: cabecera "Ultima actualizacion" actualizada a
+  2026-05-24 Fase 4.5.
 
 **Código:**
 - Comentarios de código (`//`, `///`, `//!`) traducidos de español a inglés
-  en los crates, examples y tests. Identificadores y mensajes de error de
-  usuario sin cambios.
+  en 95 archivos `.rs` (3217+ comentarios). Crates cubiertos: ag-core,
+  ag-auth, ag-cache, ag-data, ag-domains, ag-dsl (todos los codegen), ag-mail,
+  ag-observe, ag-realtime, ag-storage. Examples: ai-backend, auth-mail-demo,
+  ecommerce-api, realtime-chat, todo-api. Strings de error generados por DSL
+  también convertidos. Sin cambios de lógica ni de API pública.
 
 **Limpieza de ramas:**
 - Borradas las ramas mergeadas (locales y remotas) dejando solo `main` y la

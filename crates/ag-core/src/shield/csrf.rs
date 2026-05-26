@@ -1,18 +1,18 @@
-//! Capa CSRF de Anti-Gravital.
+//! Anti-Gravital CSRF layer.
 //!
-//! Implementa proteccion CSRF apatrida via patron double-submit cookie:
-//! en peticiones que mutan estado (POST, PUT, PATCH, DELETE), el
-//! servidor exige que la cookie configurada y el header configurado
-//! contengan exactamente el mismo valor opaco. Si faltan o no
-//! coinciden, la peticion se rechaza con `AgError::Csrf` (status 403).
+//! Implements stateless CSRF protection via the double-submit cookie
+//! pattern: on state-mutating requests (POST, PUT, PATCH, DELETE), the
+//! server requires that the configured cookie and the configured header
+//! contain exactly the same opaque value. If they are missing or do not
+//! match, the request is rejected with `AgError::Csrf` (status 403).
 //!
-//! Las peticiones seguras (GET, HEAD, OPTIONS, TRACE) pasan sin
-//! verificacion porque por definicion no mutan estado del servidor.
+//! Safe requests (GET, HEAD, OPTIONS, TRACE) pass without verification
+//! because by definition they do not mutate server state.
 //!
-//! El emisor del token (cookie) es responsabilidad del proyecto: la
-//! Shield no asume sesion ni storage. Una implementacion tipica usa
-//! un endpoint dedicado (por ejemplo, GET `/csrf-token`) que setea
-//! la cookie en la respuesta.
+//! Issuing the token (cookie) is the project's responsibility: the
+//! Shield assumes no session or storage. A typical implementation uses a
+//! dedicated endpoint (for example, GET `/csrf-token`) that sets the
+//! cookie on the response.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -27,14 +27,14 @@ use tower::{Layer, Service};
 use crate::config::CsrfConfig;
 use crate::error::AgError;
 
-/// Tower layer que aplica double-submit cookie CSRF.
+/// Tower layer that applies double-submit cookie CSRF.
 #[derive(Debug, Clone)]
 pub struct CsrfLayer {
     config: CsrfConfig,
 }
 
 impl CsrfLayer {
-    /// Construye una `CsrfLayer` con la configuracion dada.
+    /// Builds a `CsrfLayer` with the given configuration.
     #[must_use]
     pub fn new(config: CsrfConfig) -> Self {
         Self { config }
@@ -52,7 +52,7 @@ impl<S> Layer<S> for CsrfLayer {
     }
 }
 
-/// Servicio que valida CSRF antes de delegar al inner.
+/// Service that validates CSRF before delegating to the inner.
 #[derive(Debug, Clone)]
 pub struct CsrfService<S> {
     inner: S,
@@ -136,7 +136,7 @@ where
 }
 
 pin_project! {
-    /// Future del servicio CSRF.
+    /// Future of the CSRF service.
     #[derive(Debug)]
     pub struct CsrfFuture<F> {
         #[pin]

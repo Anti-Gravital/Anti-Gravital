@@ -1,13 +1,13 @@
-//! Generacion y aplicacion de registros DNS para la entrega de correo.
+//! Generation and application of DNS records for mail delivery.
 //!
-//! `ag-mail` declara sus requisitos a traves de `MailDnsRequirements`
-//! y este modulo los materializa como `DnsRecordSpec` y los aplica via
-//! `DnsProvider`. Sin ciclo de dependencia: `ag-mail` y `ag-domains` se
-//! conocen solo por estos tipos intermedios.
+//! `ag-mail` declares its requirements through `MailDnsRequirements`
+//! and this module materializes them as `DnsRecordSpec` and applies them via
+//! `DnsProvider`. No dependency cycle: `ag-mail` and `ag-domains` know
+//! each other only through these intermediate types.
 //!
-//! La funcion principal del flujo de cooperacion es `apply_mail_records`:
-//! genera los registros necesarios y hace upsert contra la zona DNS,
-//! creando los que no existen y actualizando los que difieren en contenido.
+//! The main function of the cooperation flow is `apply_mail_records`:
+//! it generates the necessary records and upserts them against the DNS zone,
+//! creating the ones that do not exist and updating those whose content differs.
 
 use crate::{
     error::AgDomainsError,
@@ -16,50 +16,50 @@ use crate::{
     record::{DnsRecordSpec, RecordType},
 };
 
-/// Requisitos DNS para la entrega de correo de un dominio.
+/// DNS requirements for a domain's mail delivery.
 ///
-/// El caller (tipicamente `ag-mail`) rellena esta estructura y la pasa a
-/// `generate_mail_records`. `ag-domains` la materializa en registros DNS.
+/// The caller (typically `ag-mail`) fills this struct and passes it to
+/// `generate_mail_records`. `ag-domains` materializes it into DNS records.
 #[derive(Debug, Clone)]
 pub struct MailDnsRequirements {
-    /// Dominio raiz (e.g., `"ejemplo.com"`).
+    /// Root domain (e.g., `"ejemplo.com"`).
     pub domain: String,
 
-    /// Selectores DKIM activos. Cada selector produce un registro TXT
+    /// Active DKIM selectors. Each selector produces a TXT record
     /// `{selector}._domainkey.{domain}`.
     pub dkim_selectors: Vec<DkimSelector>,
 
-    /// Incluidos SPF adicionales (e.g., `"include:sendgrid.net"`).
+    /// Additional SPF includes (e.g., `"include:sendgrid.net"`).
     pub spf_includes: Vec<String>,
 
-    /// IP addresses autorizadas en SPF (mecanismo `ip4:`/`ip6:`).
+    /// IP addresses authorized in SPF (`ip4:`/`ip6:` mechanism).
     pub spf_ips: Vec<String>,
 
-    /// Politica DMARC: `"none"`, `"quarantine"` o `"reject"`.
+    /// DMARC policy: `"none"`, `"quarantine"` or `"reject"`.
     pub dmarc_policy: DmarcPolicy,
 
-    /// Email al que enviar los reportes DMARC agregados.
+    /// Email to which the aggregated DMARC reports are sent.
     pub dmarc_rua: Option<String>,
 }
 
-/// Selector DKIM con su clave publica.
+/// DKIM selector with its public key.
 #[derive(Debug, Clone)]
 pub struct DkimSelector {
-    /// Nombre del selector (e.g., `"s1"`, `"mail"`).
+    /// Selector name (e.g., `"s1"`, `"mail"`).
     pub name: String,
-    /// Valor del registro TXT DKIM (contenido completo, sin el prefijo `v=DKIM1`).
+    /// DKIM TXT record value (full content, without the `v=DKIM1` prefix).
     pub public_key_record: String,
 }
 
-/// Politica DMARC (RFC 7489).
+/// DMARC policy (RFC 7489).
 #[derive(Debug, Clone, Default)]
 pub enum DmarcPolicy {
-    /// Solo recopilar reportes, no afectar entrega.
+    /// Only collect reports, do not affect delivery.
     #[default]
     None,
-    /// Marcar como spam los mensajes que fallen.
+    /// Mark failing messages as spam.
     Quarantine,
-    /// Rechazar los mensajes que fallen.
+    /// Reject failing messages.
     Reject,
 }
 
@@ -73,18 +73,18 @@ impl DmarcPolicy {
     }
 }
 
-/// Genera los registros DNS necesarios para la entrega de correo.
+/// Generates the DNS records needed for mail delivery.
 ///
-/// Retorna una lista de `DnsRecordSpec` listos para aplicar via
-/// `DnsProvider::create_record`. El caller debe verificar si ya existen
-/// y hacer upsert si procede.
+/// Returns a list of `DnsRecordSpec` ready to apply via
+/// `DnsProvider::create_record`. The caller must check whether they already
+/// exist and upsert if appropriate.
 pub fn generate_mail_records(req: &MailDnsRequirements) -> Vec<DnsRecordSpec> {
     let mut records = Vec::new();
 
     // SPF
     records.push(spf_record(req));
 
-    // DKIM por selector
+    // DKIM per selector
     for selector in &req.dkim_selectors {
         records.push(dkim_record(&req.domain, selector));
     }
@@ -151,26 +151,26 @@ fn dmarc_record(req: &MailDnsRequirements) -> DnsRecordSpec {
     }
 }
 
-/// Resultado del upsert de registros DNS de correo.
+/// Result of the mail DNS records upsert.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct MailRecordsResult {
-    /// Registros creados porque no existian.
+    /// Records created because they did not exist.
     pub created: usize,
-    /// Registros actualizados porque el contenido diferia.
+    /// Records updated because the content differed.
     pub updated: usize,
-    /// Registros sin cambios (ya existian con el contenido correcto).
+    /// Records unchanged (already existed with the correct content).
     pub unchanged: usize,
 }
 
-/// Aplica los registros DNS necesarios para la entrega de correo.
+/// Applies the DNS records needed for mail delivery.
 ///
-/// Para cada registro que `generate_mail_records` produce:
-/// - Si no existe en la zona: se crea con `DnsProvider::create_record`.
-/// - Si existe pero el contenido es diferente: se actualiza.
-/// - Si existe con el mismo contenido: se omite (idempotente).
+/// For each record that `generate_mail_records` produces:
+/// - If it does not exist in the zone: it is created with `DnsProvider::create_record`.
+/// - If it exists but the content is different: it is updated.
+/// - If it exists with the same content: it is skipped (idempotent).
 ///
-/// La funcion es segura de llamar repetidamente; las re-ejecuciones
-/// devuelven `unchanged` para todos los registros ya correctos.
+/// The function is safe to call repeatedly; re-runs
+/// return `unchanged` for all already-correct records.
 pub async fn apply_mail_records<P: DnsProvider>(
     req: &MailDnsRequirements,
     provider: &P,
@@ -182,7 +182,7 @@ pub async fn apply_mail_records<P: DnsProvider>(
     let mut result = MailRecordsResult::default();
 
     for spec in &desired {
-        // Busca un registro existente con el mismo nombre y tipo.
+        // Look for an existing record with the same name and type.
         let existing_match = existing
             .iter()
             .find(|r| r.name == spec.name && r.record_type == spec.record_type);
@@ -226,7 +226,7 @@ mod tests {
     use super::*;
     use crate::record::DnsRecord;
 
-    // --- InMemoryProvider para tests de apply_mail_records -------------------
+    // --- InMemoryProvider for apply_mail_records tests -----------------------
 
     #[derive(Default)]
     struct InMemoryProvider {
@@ -382,7 +382,7 @@ mod tests {
         assert!(spf.content.contains("ip6:2001:db8::1"));
     }
 
-    // --- Tests de apply_mail_records -----------------------------------------
+    // --- apply_mail_records tests --------------------------------------------
 
     #[tokio::test]
     async fn apply_creates_all_records_on_empty_zone() {
@@ -399,11 +399,11 @@ mod tests {
     #[tokio::test]
     async fn apply_is_idempotent_when_content_matches() {
         let provider = InMemoryProvider::default();
-        // Primera pasada: crea todo
+        // First pass: creates everything
         apply_mail_records(&base_req(), &provider, "zone-1")
             .await
             .unwrap();
-        // Segunda pasada: nada debe cambiar
+        // Second pass: nothing should change
         let result = apply_mail_records(&base_req(), &provider, "zone-1")
             .await
             .unwrap();
@@ -415,12 +415,12 @@ mod tests {
     #[tokio::test]
     async fn apply_updates_record_when_content_changes() {
         let provider = InMemoryProvider::default();
-        // Crea los registros con la configuracion base.
+        // Create the records with the base configuration.
         apply_mail_records(&base_req(), &provider, "zone-1")
             .await
             .unwrap();
 
-        // Cambia la politica DMARC — el registro _dmarc debe actualizarse.
+        // Change the DMARC policy — the _dmarc record must be updated.
         let req_v2 = MailDnsRequirements {
             dmarc_policy: DmarcPolicy::Reject,
             ..base_req()
@@ -428,8 +428,8 @@ mod tests {
         let result = apply_mail_records(&req_v2, &provider, "zone-1")
             .await
             .unwrap();
-        assert_eq!(result.updated, 1); // solo DMARC
-        assert_eq!(result.unchanged, 2); // SPF y DKIM sin cambio
+        assert_eq!(result.updated, 1); // only DMARC
+        assert_eq!(result.unchanged, 2); // SPF and DKIM unchanged
 
         let dmarc = provider
             .all_records()
@@ -446,7 +446,7 @@ mod tests {
             .await
             .unwrap();
 
-        // Añade un segundo selector DKIM.
+        // Add a second DKIM selector.
         let req_v2 = MailDnsRequirements {
             dkim_selectors: vec![
                 DkimSelector {
@@ -463,8 +463,8 @@ mod tests {
         let result = apply_mail_records(&req_v2, &provider, "zone-1")
             .await
             .unwrap();
-        assert_eq!(result.created, 1); // s2 es nuevo
-        assert_eq!(result.unchanged, 3); // SPF, s1, DMARC sin cambio
+        assert_eq!(result.created, 1); // s2 is new
+        assert_eq!(result.unchanged, 3); // SPF, s1, DMARC unchanged
         assert_eq!(provider.all_records().len(), 4);
     }
 }

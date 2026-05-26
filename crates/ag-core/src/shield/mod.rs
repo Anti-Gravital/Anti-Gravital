@@ -1,9 +1,9 @@
-//! Capa Shield: pipeline Tower de middleware que protege el Core.
+//! Shield layer: Tower middleware pipeline that protects the Core.
 //!
-//! En Fase 1 la pipeline crece capa por capa segun el orden de
-//! `docs/rfc/RFC-0002-diseno-shield-mvp.md`. La API publica es
-//! `Shield::apply(router)` que recibe un `axum::Router` y devuelve el
-//! mismo router con todas las capas configuradas activas.
+//! In Phase 1 the pipeline grows layer by layer following the order in
+//! `docs/rfc/RFC-0002-diseno-shield-mvp.md`. The public API is
+//! `Shield::apply(router)`, which takes an `axum::Router` and returns the
+//! same router with all configured layers active.
 
 use axum::Router;
 
@@ -30,12 +30,12 @@ pub use auth::{AuthContext, Claims};
 #[cfg(feature = "validation")]
 pub use validation::{FieldError, Validate, ValidatedJson, ValidationErrors};
 
-/// Pipeline Shield configurable.
+/// Configurable Shield pipeline.
 ///
-/// La construccion valida la configuracion (por ejemplo, formato de
-/// origenes CORS). Si la configuracion es invalida, `try_new` devuelve
-/// el error correspondiente y `new` entra en panic. Por convencion el
-/// arranque del proceso usa `try_new` para fallar rapido y limpio.
+/// Construction validates the configuration (for example, the format of
+/// CORS origins). If the configuration is invalid, `try_new` returns the
+/// corresponding error and `new` panics. By convention, process startup
+/// uses `try_new` to fail fast and cleanly.
 #[derive(Clone)]
 pub struct Shield {
     config: ShieldConfig,
@@ -58,12 +58,12 @@ impl std::fmt::Debug for Shield {
 }
 
 impl Shield {
-    /// Construye un Shield validando la configuracion declarativa.
+    /// Builds a Shield, validating the declarative configuration.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError` si alguna seccion de la configuracion es
-    /// invalida en el momento del arranque.
+    /// Returns `AgError` if any section of the configuration is invalid
+    /// at startup time.
     pub fn try_new(config: ShieldConfig) -> AgResult<Self> {
         #[cfg(feature = "cors")]
         let cors_layer = if config.cors.enabled {
@@ -106,14 +106,14 @@ impl Shield {
         })
     }
 
-    /// Sirve la aplicacion sobre el listener dado. Si TLS esta
-    /// activado en la configuracion, envuelve cada conexion con
-    /// rustls; en caso contrario delega en `axum::serve`.
+    /// Serves the application over the given listener. If TLS is enabled
+    /// in the configuration, it wraps each connection with rustls;
+    /// otherwise it delegates to `axum::serve`.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Propaga errores de I/O y de TLS. Las desconexiones individuales
-    /// se logean y no detienen el accept loop.
+    /// Propagates I/O and TLS errors. Individual disconnections are
+    /// logged and do not stop the accept loop.
     #[cfg(feature = "tls")]
     pub async fn serve(&self, listener: tokio::net::TcpListener, router: Router) -> AgResult<()> {
         if let Some(acceptor) = self.tls_acceptor.clone() {
@@ -128,7 +128,7 @@ impl Shield {
         }
     }
 
-    /// Variante de `serve` cuando la feature `tls` no esta activa.
+    /// Variant of `serve` when the `tls` feature is not active.
     #[cfg(not(feature = "tls"))]
     pub async fn serve(&self, listener: tokio::net::TcpListener, router: Router) -> AgResult<()> {
         axum::serve(
@@ -139,44 +139,43 @@ impl Shield {
         .map_err(|e| crate::error::AgError::Other(format!("axum::serve failed: {e}")))
     }
 
-    /// Construye un Shield sin verificar la configuracion.
+    /// Builds a Shield without verifying the configuration.
     ///
-    /// # Panicos
+    /// # Panics
     ///
-    /// Entra en panic si la configuracion es invalida. Use `try_new`
-    /// si necesita manejar el error de forma estructurada.
+    /// Panics if the configuration is invalid. Use `try_new` if you need
+    /// to handle the error in a structured way.
     #[must_use]
     pub fn new(config: ShieldConfig) -> Self {
         Self::try_new(config).expect("invalid shield configuration")
     }
 
-    /// Construye un Shield con la configuracion por defecto.
+    /// Builds a Shield with the default configuration.
     #[must_use]
     pub fn with_defaults() -> Self {
         Self::new(ShieldConfig::default())
     }
 
-    /// Devuelve la configuracion en uso.
+    /// Returns the configuration in use.
     #[must_use]
     pub fn config(&self) -> &ShieldConfig {
         &self.config
     }
 
-    /// Aplica todas las capas configuradas al router.
+    /// Applies all configured layers to the router.
     ///
-    /// El orden de aplicacion es relevante: la primera capa en
-    /// agregarse es la mas interna; la ultima es la mas externa, es
-    /// decir la primera en ver el request entrante. La capa de
-    /// logging es la mas externa para que todo request quede
-    /// trazado, incluso si es rechazado por otra capa.
+    /// The application order matters: the first layer added is the
+    /// innermost; the last is the outermost, that is, the first to see
+    /// the incoming request. The logging layer is the outermost so that
+    /// every request is traced, even if it is rejected by another layer.
     pub fn apply(&self, router: Router) -> Router {
         let mut router = router;
 
-        // Orden de adicion (de mas interno a mas externo): la primera
-        // capa anadida envuelve al handler; la ultima ve el request
-        // primero. Por seguridad, rate-limit y auth vienen antes que
-        // las capas de proteccion semantica (CORS, CSRF), y logging
-        // queda al borde para trazar absolutamente todo.
+        // Addition order (from innermost to outermost): the first layer
+        // added wraps the handler; the last one sees the request first.
+        // For security, rate-limit and auth come before the semantic
+        // protection layers (CORS, CSRF), and logging sits at the edge
+        // to trace absolutely everything.
 
         #[cfg(feature = "csrf")]
         if self.config.csrf.enabled {
@@ -238,10 +237,10 @@ async fn serve_tls(
                     return;
                 }
             };
-            // Inyecta ConnectInfo en cada request para que rate-limit
-            // y cualquier otra capa que requiera la IP del cliente
-            // funcione tambien sobre TLS. peer_addr viene del
-            // TcpStream original aceptado antes del handshake.
+            // Inject ConnectInfo into every request so that rate-limit
+            // and any other layer that needs the client IP also works
+            // over TLS. peer_addr comes from the original TcpStream
+            // accepted before the handshake.
             let hyper_service = hyper::service::service_fn(
                 move |mut req: hyper::Request<hyper::body::Incoming>| {
                     req.extensions_mut().insert(ConnectInfo(peer_addr));

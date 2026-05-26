@@ -1,26 +1,26 @@
-//! Bus de eventos interno basado en `tokio::sync::broadcast`.
+//! Internal event bus based on `tokio::sync::broadcast`.
 //!
-//! En modo InProcess no requiere servidor NATS externo.
-//! El bus NATS externo se integra en la segunda iteracion via `async-nats`.
+//! In InProcess mode it does not require an external NATS server.
+//! The external NATS bus is integrated in the second iteration via `async-nats`.
 
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
-/// Evento publicado en el bus.
+/// Event published on the bus.
 #[derive(Debug, Clone)]
 pub struct Event {
-    /// Nombre del canal o subject del evento.
+    /// Channel name or subject of the event.
     pub subject: String,
-    /// Payload serializado como bytes.
+    /// Payload serialized as bytes.
     pub payload: Vec<u8>,
 }
 
-/// Error del bus de eventos.
+/// Event bus error.
 #[derive(Debug)]
 pub enum BusError {
-    /// El receiver se quedo atras y perdio eventos (lagged).
+    /// The receiver fell behind and lost events (lagged).
     Lagged(u64),
-    /// El bus fue cerrado.
+    /// The bus was closed.
     Closed,
 }
 
@@ -35,17 +35,17 @@ impl std::fmt::Display for BusError {
 
 impl std::error::Error for BusError {}
 
-/// Bus de eventos in-process basado en `tokio::sync::broadcast`.
+/// In-process event bus based on `tokio::sync::broadcast`.
 ///
-/// Permite publicar eventos tipados con un subject y payload binario,
-/// y suscribirse para recibirlos de forma asincrona.
+/// Lets you publish typed events with a subject and binary payload,
+/// and subscribe to receive them asynchronously.
 #[derive(Clone)]
 pub struct EventBus {
     sender: Arc<broadcast::Sender<Event>>,
 }
 
 impl EventBus {
-    /// Crea un nuevo bus con la capacidad de buffer indicada.
+    /// Creates a new bus with the given buffer capacity.
     pub fn new(capacity: usize) -> Self {
         let (sender, _) = broadcast::channel(capacity);
         Self {
@@ -53,9 +53,9 @@ impl EventBus {
         }
     }
 
-    /// Publica un evento en el bus. Los suscriptores activos lo reciben.
+    /// Publishes an event on the bus. Active subscribers receive it.
     ///
-    /// Retorna error si el bus esta cerrado (sin senders activos).
+    /// Returns an error if the bus is closed (no active senders).
     pub fn publish(&self, subject: impl Into<String>, payload: Vec<u8>) -> Result<(), BusError> {
         let event = Event {
             subject: subject.into(),
@@ -67,9 +67,9 @@ impl EventBus {
             .map_err(|_| BusError::Closed)
     }
 
-    /// Publica un evento serializado como JSON.
+    /// Publishes an event serialized as JSON.
     ///
-    /// Retorna error si la serializacion falla o el bus esta cerrado.
+    /// Returns an error if serialization fails or the bus is closed.
     pub fn publish_json<T: serde::Serialize>(
         &self,
         subject: impl Into<String>,
@@ -79,9 +79,9 @@ impl EventBus {
         self.publish(subject, payload)
     }
 
-    /// Crea un nuevo receptor para escuchar eventos del bus.
+    /// Creates a new receiver to listen for events from the bus.
     ///
-    /// Los eventos publicados antes de crear el receptor no son visibles.
+    /// Events published before the receiver is created are not visible.
     pub fn subscribe(&self) -> broadcast::Receiver<Event> {
         self.sender.subscribe()
     }
@@ -129,9 +129,9 @@ mod tests {
     #[tokio::test]
     async fn publish_to_closed_bus_returns_error() {
         let bus = EventBus::new(1);
-        // Sin suscriptores activos, send puede retornar Err.
-        // Con broadcast, si no hay receivers, el envio falla con SendError.
-        // Verificamos que no haya panic y que el resultado sea tratable.
+        // With no active subscribers, send may return Err.
+        // With broadcast, if there are no receivers, the send fails with SendError.
+        // We verify that there is no panic and that the result is handleable.
         let result = bus.publish("x", b"y".to_vec());
         let _ = result;
     }

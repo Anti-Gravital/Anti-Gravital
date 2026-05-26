@@ -1,9 +1,9 @@
-//! Trait `DnsProvider` y tests de contrato compartidos por todos los adapters.
+//! `DnsProvider` trait and contract tests shared by all adapters.
 //!
-//! El trait es intencionalmente pequeño: solo las operaciones CRUD
-//! fundamentales. Los adapters no deben exponer primitivas especificas del
-//! proveedor a traves de este trait — eso violaria el principio de
-//! inversion de dependencias del Clean Architecture.
+//! The trait is intentionally small: only the fundamental CRUD
+//! operations. Adapters must not expose provider-specific primitives
+//! through this trait — that would violate the dependency
+//! inversion principle of Clean Architecture.
 
 use async_trait::async_trait;
 
@@ -15,34 +15,34 @@ use crate::{
 #[cfg(feature = "cloudflare")]
 pub mod cloudflare;
 
-/// Abstraccion sobre cualquier proveedor DNS.
+/// Abstraction over any DNS provider.
 ///
-/// Los adapters implementan este trait. El ecosistema lo consume via
-/// generics (`impl DnsProvider`) o trait objects (`Box<dyn DnsProvider>`)
-/// segun el contexto.
+/// Adapters implement this trait. The ecosystem consumes it via
+/// generics (`impl DnsProvider`) or trait objects (`Box<dyn DnsProvider>`)
+/// depending on the context.
 #[async_trait]
 pub trait DnsProvider: Send + Sync {
-    /// Nombre del proveedor para logs y mensajes de error.
+    /// Provider name for logs and error messages.
     fn name(&self) -> &'static str;
 
-    /// Resuelve el identificador interno de zona para el dominio dado.
+    /// Resolves the internal zone identifier for the given domain.
     ///
-    /// La zona es la unidad de administracion DNS del proveedor. En
-    /// Cloudflare corresponde al Zone ID; en otros proveedores puede
-    /// llamarse diferente pero el concepto es el mismo.
+    /// The zone is the provider's DNS administration unit. On
+    /// Cloudflare it corresponds to the Zone ID; on other providers it may
+    /// be named differently but the concept is the same.
     async fn zone_id(&self, domain: &str) -> Result<String, AgDomainsError>;
 
-    /// Lista todos los registros DNS de una zona.
+    /// Lists all DNS records of a zone.
     async fn list_records(&self, zone_id: &str) -> Result<Vec<DnsRecord>, AgDomainsError>;
 
-    /// Crea un nuevo registro DNS y devuelve el registro con su identidad.
+    /// Creates a new DNS record and returns the record with its identity.
     async fn create_record(
         &self,
         zone_id: &str,
         spec: &DnsRecordSpec,
     ) -> Result<DnsRecord, AgDomainsError>;
 
-    /// Reemplaza un registro DNS existente y devuelve el estado actualizado.
+    /// Replaces an existing DNS record and returns the updated state.
     async fn update_record(
         &self,
         zone_id: &str,
@@ -50,21 +50,21 @@ pub trait DnsProvider: Send + Sync {
         spec: &DnsRecordSpec,
     ) -> Result<DnsRecord, AgDomainsError>;
 
-    /// Elimina un registro DNS de la zona.
+    /// Deletes a DNS record from the zone.
     async fn delete_record(&self, zone_id: &str, record_id: &str) -> Result<(), AgDomainsError>;
 }
 
-/// Suite de tests de contrato que todo adapter debe pasar.
+/// Contract test suite that every adapter must pass.
 ///
-/// Se invoca desde los tests de cada adapter, pasando un provider
-/// configurado contra un servidor de prueba (wiremock, fake, etc.).
-/// Garantiza que ningun adapter derive silenciosamente del contrato.
+/// Invoked from each adapter's tests, passing a provider
+/// configured against a test server (wiremock, fake, etc.).
+/// Guarantees that no adapter silently drifts from the contract.
 #[cfg(test)]
 pub mod contract {
     use super::*;
     use crate::record::RecordType;
 
-    /// Verifica que create_record + list_records + delete_record funcionen.
+    /// Verifies that create_record + list_records + delete_record work.
     pub async fn test_create_list_delete<P: DnsProvider>(provider: &P, zone_id: &str) {
         let spec = DnsRecordSpec {
             name: "_ag-contract-test.ejemplo.com".to_owned(),
@@ -111,7 +111,7 @@ pub mod contract {
             .expect("delete_record debe tener exito");
     }
 
-    /// Verifica que update_record produzca el nuevo contenido.
+    /// Verifies that update_record produces the new content.
     pub async fn test_update<P: DnsProvider>(provider: &P, zone_id: &str) {
         let spec = DnsRecordSpec {
             name: "_ag-contract-update.ejemplo.com".to_owned(),

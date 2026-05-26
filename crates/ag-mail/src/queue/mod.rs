@@ -1,12 +1,12 @@
-//! Cola asincrona de correo con reintentos y backoff exponencial.
+//! Asynchronous mail queue with retries and exponential backoff.
 //!
-//! `MailQueue` es el trait que toda implementacion de cola debe satisfacer.
-//! `InMemoryQueue` es el backend por defecto: un canal Tokio con un worker
-//! que procesa los mensajes aplicando backoff exponencial en caso de fallo.
+//! `MailQueue` is the trait that every queue implementation must satisfy.
+//! `InMemoryQueue` is the default backend: a Tokio channel with a worker
+//! that processes messages applying exponential backoff on failure.
 //!
-//! La cola no garantiza durabilidad entre reinicios del proceso. Para
-//! durabilidad, usar `queue-persistent` (feature opcional, Etapa futura)
-//! que persiste los jobs en `ag-data`.
+//! The queue does not guarantee durability across process restarts. For
+//! durability, use `queue-persistent` (optional feature, future Stage)
+//! that persists the jobs in `ag-data`.
 
 #[cfg(feature = "queue-persistent")]
 pub mod store;
@@ -20,14 +20,14 @@ use tracing::{error, info, warn};
 
 use crate::{error::AgMailError, message::Email, metrics, sender::MailSender};
 
-/// Configuracion del comportamiento de reintentos.
+/// Configuration of the retry behavior.
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {
-    /// Numero maximo de reintentos (sin contar el intento inicial).
+    /// Maximum number of retries (not counting the initial attempt).
     pub max_retries: u32,
-    /// Delay base para backoff exponencial.
+    /// Base delay for exponential backoff.
     pub base_delay: Duration,
-    /// Multiplicador de backoff (se eleva al numero de reintento).
+    /// Backoff multiplier (raised to the power of the retry number).
     pub backoff_factor: u32,
 }
 
@@ -42,43 +42,43 @@ impl Default for RetryPolicy {
 }
 
 impl RetryPolicy {
-    /// Calcula el delay para el reintento `n` (0-based).
+    /// Computes the delay for retry `n` (0-based).
     pub fn delay_for(&self, attempt: u32) -> Duration {
         let multiplier = self.backoff_factor.saturating_pow(attempt) as u64;
         self.base_delay.saturating_mul(multiplier as u32)
     }
 }
 
-/// Abstraccion sobre una cola de correo.
+/// Abstraction over a mail queue.
 #[async_trait]
 pub trait MailQueue: Send + Sync {
-    /// Encola un correo para envio asincrono.
+    /// Enqueues an email for asynchronous sending.
     ///
-    /// Retorna `Ok(())` cuando el correo ha sido aceptado en la cola.
-    /// El envio real ocurre en background.
+    /// Returns `Ok(())` when the email has been accepted into the queue.
+    /// The actual send happens in the background.
     async fn enqueue(&self, email: Email) -> Result<(), AgMailError>;
 }
 
-// Mensaje interno del canal.
+// Internal channel message.
 struct QueueItem {
     email: Email,
     attempt: u32,
 }
 
-/// Cola en memoria respaldada por un canal Tokio y un worker asincrono.
+/// In-memory queue backed by a Tokio channel and an asynchronous worker.
 ///
-/// El worker se lanza como una tarea de Tokio al construir la cola y
-/// termina cuando todos los senders del canal se desconectan (i.e., cuando
-/// la cola se descarta).
+/// The worker is spawned as a Tokio task when the queue is built and
+/// finishes when all the channel senders disconnect (i.e., when the queue
+/// is dropped).
 pub struct InMemoryQueue {
     tx: mpsc::Sender<QueueItem>,
 }
 
 impl InMemoryQueue {
-    /// Crea la cola con un sender y politica de reintentos dada.
+    /// Creates the queue with a sender and the given retry policy.
     ///
-    /// `capacity` es el numero maximo de mensajes pendientes en el canal
-    /// antes de que `enqueue` bloquee al caller (backpressure).
+    /// `capacity` is the maximum number of pending messages in the channel
+    /// before `enqueue` blocks the caller (backpressure).
     pub fn new(sender: Arc<dyn MailSender>, policy: RetryPolicy, capacity: usize) -> Self {
         let (tx, rx) = mpsc::channel(capacity);
         tokio::spawn(worker(rx, sender, policy));
@@ -96,18 +96,18 @@ impl MailQueue for InMemoryQueue {
     }
 }
 
-// Worker que consume el canal y reencola con backoff en caso de fallo.
+// Worker that consumes the channel and re-enqueues with backoff on failure.
 async fn worker(
     mut rx: mpsc::Receiver<QueueItem>,
     sender: Arc<dyn MailSender>,
     policy: RetryPolicy,
 ) {
-    // Necesitamos reencolar sin el rx consumido, usamos un canal secundario
-    // para reintentos.
+    // We need to re-enqueue without the consumed rx, so we use a secondary
+    // channel for retries.
     let (retry_tx, mut retry_rx) = mpsc::channel::<QueueItem>(64);
 
     loop {
-        // Selecciona el proximo item, priorizando los reintentos sobre los nuevos.
+        // Selects the next item, prioritizing retries over new ones.
         let item = tokio::select! {
             biased;
             Some(item) = retry_rx.recv() => item,
@@ -196,7 +196,7 @@ mod tests {
         let sender = Arc::new(NullSender::new());
         let queue = InMemoryQueue::new(sender.clone(), RetryPolicy::default(), 16);
         queue.enqueue(test_email()).await.unwrap();
-        // Pequena espera para que el worker procese.
+        // Small wait so the worker processes it.
         tokio::time::sleep(Duration::from_millis(50)).await;
         assert_eq!(sender.emails_sent(), 1);
     }

@@ -1,9 +1,9 @@
-//! Capa de logging estructurado para la pipeline Shield.
+//! Structured logging layer for the Shield pipeline.
 //!
-//! Emite un evento `tracing` por cada request entrante con metodo,
-//! path y latencia total. Esta es la primera capa de la pipeline en
-//! orden de adicion porque otras capas se beneficiarian del
-//! contexto de tracing aunque fallen.
+//! Emits a `tracing` event for each incoming request with method, path
+//! and total latency. This is the first layer of the pipeline in
+//! addition order because other layers would benefit from the tracing
+//! context even when they fail.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -15,7 +15,7 @@ use axum::response::Response;
 use pin_project_lite::pin_project;
 use tower::{Layer, Service};
 
-/// Layer Tower que envuelve un servicio con logging estructurado.
+/// Tower layer that wraps a service with structured logging.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LoggingLayer;
 
@@ -27,7 +27,7 @@ impl<S> Layer<S> for LoggingLayer {
     }
 }
 
-/// Servicio que registra cada request con `tracing`.
+/// Service that logs each request with `tracing`.
 #[derive(Debug, Clone)]
 pub struct LoggingService<S> {
     inner: S,
@@ -60,7 +60,7 @@ where
 }
 
 pin_project! {
-    /// Future del servicio de logging.
+    /// Future of the logging service.
     #[derive(Debug)]
     pub struct LoggingFuture<F> {
         #[pin]

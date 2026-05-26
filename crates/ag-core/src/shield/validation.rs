@@ -1,13 +1,13 @@
-//! Capa de validacion de payload.
+//! Payload validation layer.
 //!
-//! Provee un trait `Validate` que cualquier tipo puede implementar y un
-//! extractor `ValidatedJson<T>` que deserializa desde JSON y aplica
-//! la validacion automaticamente. Las violaciones se reportan como
-//! `AgError::Validation` con detalle estructurado por campo.
+//! Provides a `Validate` trait that any type can implement and a
+//! `ValidatedJson<T>` extractor that deserializes from JSON and applies
+//! validation automatically. Violations are reported as
+//! `AgError::Validation` with structured per-field detail.
 //!
-//! En Fase 1 la validacion es manual: el desarrollador implementa
-//! `Validate` para sus tipos. A partir de Fase 3 el DSL genera tipos
-//! que ya implementan `Validate` segun las anotaciones de `.ag`.
+//! In Phase 1 validation is manual: the developer implements `Validate`
+//! for their types. Starting in Phase 3 the DSL generates types that
+//! already implement `Validate` from the `.ag` annotations.
 
 use axum::async_trait;
 use axum::extract::rejection::JsonRejection;
@@ -18,30 +18,30 @@ use serde::Serialize;
 
 use crate::error::AgError;
 
-/// Un campo concreto que fallo la validacion.
+/// A specific field that failed validation.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct FieldError {
-    /// Nombre del campo afectado en notacion `dot.path`.
+    /// Name of the affected field in `dot.path` notation.
     pub field: String,
-    /// Mensaje legible para el usuario.
+    /// User-readable message.
     pub message: String,
 }
 
-/// Agregado de errores de validacion para un payload completo.
+/// Aggregate of validation errors for a complete payload.
 #[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct ValidationErrors {
-    /// Lista de errores por campo. Vacia significa payload valido.
+    /// List of per-field errors. Empty means a valid payload.
     pub errors: Vec<FieldError>,
 }
 
 impl ValidationErrors {
-    /// Crea un agregado vacio.
+    /// Creates an empty aggregate.
     #[must_use]
     pub fn new() -> Self {
         Self { errors: Vec::new() }
     }
 
-    /// Anade un error por campo.
+    /// Adds a per-field error.
     pub fn add(&mut self, field: impl Into<String>, message: impl Into<String>) {
         self.errors.push(FieldError {
             field: field.into(),
@@ -49,17 +49,17 @@ impl ValidationErrors {
         });
     }
 
-    /// Verifica si hay errores.
+    /// Checks whether there are any errors.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.errors.is_empty()
     }
 
-    /// Convierte en `Result` listo para `?`.
+    /// Converts into a `Result` ready for `?`.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Validation` si hay al menos un error.
+    /// Returns `AgError::Validation` if there is at least one error.
     pub fn into_result(self) -> Result<(), AgError> {
         if self.is_empty() {
             Ok(())
@@ -71,22 +71,22 @@ impl ValidationErrors {
     }
 }
 
-/// Trait que los tipos validables implementan.
+/// Trait that validatable types implement.
 ///
-/// En Fase 1 los desarrolladores escriben `impl Validate for MiTipo`. En
-/// Fase 3 el codegen del DSL genera estas implementaciones desde las
-/// anotaciones de `schema.ag`.
+/// In Phase 1 developers write `impl Validate for MiTipo`. In Phase 3
+/// the DSL codegen generates these implementations from the
+/// `schema.ag` annotations.
 pub trait Validate {
-    /// Valida el valor y acumula errores en el agregado.
+    /// Validates the value and accumulates errors in the aggregate.
     fn validate(&self, errors: &mut ValidationErrors);
 }
 
-/// Extractor JSON con validacion automatica integrada.
+/// JSON extractor with built-in automatic validation.
 ///
-/// Deserializa el body como JSON al tipo `T` y, si la deserializacion
-/// tiene exito, ejecuta `T::validate`. Devuelve `AgError::Validation`
-/// con el detalle estructurado si la validacion falla, o el error
-/// nativo de Axum si la deserializacion misma falla.
+/// Deserializes the body as JSON into the type `T` and, if
+/// deserialization succeeds, runs `T::validate`. Returns
+/// `AgError::Validation` with the structured detail if validation fails,
+/// or the native Axum error if deserialization itself fails.
 #[derive(Debug, Clone)]
 pub struct ValidatedJson<T>(pub T);
 

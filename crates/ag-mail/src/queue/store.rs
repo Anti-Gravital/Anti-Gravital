@@ -1,4 +1,4 @@
-//! Backend persistente de cola via `ag-data`.
+//! Persistent queue backend via `ag-data`.
 //!
-//! Skeleton de la Fase 4.5. Implementacion en la Etapa 2-6 bajo feature
-//! `queue-persistent`.
+//! Phase 4.5 skeleton. Implementation in Stage 2-6 under the
+//! `queue-persistent` feature.

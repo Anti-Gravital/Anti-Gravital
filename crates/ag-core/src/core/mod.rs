@@ -1,30 +1,30 @@
-//! Capa Core: router Axum, extractores tipados y estado compartido.
+//! Core layer: Axum router, typed extractors and shared state.
 //!
-//! Esta capa recibe los requests que ya pasaron la pipeline Shield y los
-//! despacha a los handlers de logica de negocio. Reexporta los extractores
-//! de Axum y de la Shield para que los handlers no necesiten importar
-//! directamente desde esos modulos.
+//! This layer receives requests that already passed the Shield pipeline and
+//! dispatches them to business-logic handlers. It re-exports the Axum and
+//! Shield extractors so handlers do not need to import directly from those
+//! modules.
 //!
-//! # Extractores disponibles
+//! # Available extractors
 //!
-//! | Extractor | Origen | Que extrae |
+//! | Extractor | Source | What it extracts |
 //! | --- | --- | --- |
-//! | [`State<T>`] | axum | Estado compartido del router |
-//! | [`Path<T>`] | axum | Segmentos de ruta tipados |
-//! | [`Query<T>`] | axum | Parametros de query string |
-//! | [`ValidatedBody<T>`] | shield | Body JSON deserializado y validado |
-//! | [`Claims<T>`] | shield | Claims JWT verificados |
+//! | [`State<T>`] | axum | Shared router state |
+//! | [`Path<T>`] | axum | Typed route segments |
+//! | [`Query<T>`] | axum | Query-string parameters |
+//! | [`ValidatedBody<T>`] | shield | Deserialized and validated JSON body |
+//! | [`Claims<T>`] | shield | Verified JWT claims |
 //!
-//! # Sistema de respuestas
+//! # Response system
 //!
-//! El modulo [`response`] reexporta los tipos de respuesta de Axum y
-//! agrega [`response::PlainText`] para respuestas de texto plano.
+//! The [`response`] module re-exports the Axum response types and adds
+//! [`response::PlainText`] for plain-text responses.
 //!
-//! # Estado de la aplicacion
+//! # Application state
 //!
-//! [`AppState`] es el tipo base de estado compartido. En proyectos reales
-//! el desarrollador define su propio tipo de estado con los clientes de
-//! base de datos, cache y servicios externos:
+//! [`AppState`] is the base shared-state type. In real projects the
+//! developer defines their own state type with the database, cache and
+//! external-service clients:
 //!
 //! ```rust
 //! use ag_core::core::AppState;
@@ -35,31 +35,31 @@
 //! }
 //! ```
 //!
-//! Ese tipo se pasa a [`axum::Router::with_state`] y se extrae con [`State<T>`].
+//! That type is passed to [`axum::Router::with_state`] and extracted with
+//! [`State<T>`].
 
-// Re-exports de extractores de Axum para los handlers del Core.
+// Re-exports of Axum extractors for the Core handlers.
 pub use axum::extract::{Path, Query, State};
 
-// Re-exports del extractor de body con validacion desde Shield.
+// Re-exports of the validating body extractor from Shield.
 #[cfg(feature = "validation")]
 pub use crate::shield::validation::ValidatedJson as ValidatedBody;
 
-// Re-export del extractor de claims JWT desde Shield.
+// Re-export of the JWT claims extractor from Shield.
 #[cfg(feature = "auth-jwt")]
 pub use crate::shield::Claims;
 
-/// Sistema de respuestas del Core.
+/// Core response system.
 ///
-/// Reexporta los tipos de respuesta de Axum y agrega variantes
-/// convenientes para texto plano. Los handlers que devuelven JSON
-/// usan [`response::Json`] directamente; los que devuelven texto plano
-/// usan [`response::PlainText`].
+/// Re-exports the Axum response types and adds convenient variants for
+/// plain text. Handlers that return JSON use [`response::Json`] directly;
+/// those that return plain text use [`response::PlainText`].
 pub mod response {
     pub use axum::http::StatusCode;
     pub use axum::response::{IntoResponse, Response};
     pub use axum::Json;
 
-    /// Respuesta de texto plano con `Content-Type: text/plain; charset=utf-8`.
+    /// Plain-text response with `Content-Type: text/plain; charset=utf-8`.
     ///
     /// ```rust
     /// use ag_core::core::response::{IntoResponse, PlainText};
@@ -81,19 +81,19 @@ pub mod response {
         }
     }
 
-    /// Stream de bytes abierto.
+    /// Open byte stream.
     ///
-    /// Util para respuestas chunked o para SSE basico. Para SSE completo
-    /// con reconexion y event IDs usar `ag-realtime` (Fase 4).
+    /// Useful for chunked responses or basic SSE. For full SSE with
+    /// reconnection and event IDs use `ag-realtime` (Phase 4).
     pub use axum::body::Body as BodyStream;
 }
 
-/// Estado compartido por defecto.
+/// Default shared state.
 ///
-/// Tipo placeholder para proyectos que no necesitan estado global.
-/// Los proyectos reales definen su propio estado con los clientes
-/// de base de datos, cache y servicios externos, luego lo registran
-/// con [`axum::Router::with_state`].
+/// Placeholder type for projects that do not need global state. Real
+/// projects define their own state with the database, cache and
+/// external-service clients, then register it with
+/// [`axum::Router::with_state`].
 #[derive(Debug, Default, Clone)]
 pub struct AppState;
 
@@ -108,8 +108,8 @@ mod tests {
 
     #[test]
     fn path_query_state_re_exported() {
-        // Verifica que los tipos esten disponibles en el modulo.
-        // La compilacion ya valida la re-exportacion correcta.
+        // Verify that the types are available in the module.
+        // Compilation already validates the correct re-export.
         type _P = Path<String>;
         type _Q = Query<std::collections::HashMap<String, String>>;
         type _S = State<()>;

@@ -1,20 +1,20 @@
-//! Benchmark Hello World del Shield.
+//! Shield Hello World benchmark.
 //!
-//! Mide la latencia por request a nivel Tower (sin pasar por la pila
-//! de red TCP). Compara tres configuraciones:
+//! Measures per-request latency at the Tower level (without going
+//! through the TCP network stack). Compares three configurations:
 //!
-//! 1. `bare_axum`: router Axum minimo, sin Shield.
-//! 2. `shield_default`: Shield con configuracion por defecto (solo
-//!    capa de logging estructurado).
-//! 3. `shield_full_default`: Shield con CORS, CSRF y rate-limit
-//!    activas (TLS y auth requieren material criptografico y se
-//!    cubren en tests E2E).
+//! 1. `bare_axum`: minimal Axum router, without Shield.
+//! 2. `shield_default`: Shield with the default configuration (only the
+//!    structured logging layer).
+//! 3. `shield_full_default`: Shield with CORS, CSRF and rate-limit
+//!    active (TLS and auth require cryptographic material and are
+//!    covered in E2E tests).
 //!
-//! Methodologia documentada en `crates/ag-core/benches/README.md`.
+//! Methodology documented in `crates/ag-core/benches/README.md`.
 
-// El macro `criterion_group!` genera codigo que no documenta sus
-// items. Suprimimos `missing_docs` solo en este archivo para no
-// debilitar la regla global del workspace.
+// The `criterion_group!` macro generates code that does not document
+// its items. We suppress `missing_docs` only in this file so as not to
+// weaken the global workspace rule.
 #![allow(missing_docs)]
 
 use ag_core::config::{CorsConfig, CsrfConfig, RateLimitConfig};

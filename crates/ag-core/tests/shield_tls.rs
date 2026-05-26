@@ -1,4 +1,4 @@
-//! Tests E2E de la capa TLS 1.3.
+//! E2E tests for the TLS 1.3 layer.
 
 #![cfg(feature = "tls")]
 

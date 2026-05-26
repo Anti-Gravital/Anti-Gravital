@@ -1,29 +1,29 @@
-//! Tipos de mensaje de correo electronico.
+//! Email message types.
 //!
-//! `Email` es el tipo central que todos los adapters consumen. Se construye
-//! con `EmailBuilder` siguiendo el patron builder con validacion diferida
-//! (la validacion ocurre en `build()`, no en cada setter).
+//! `Email` is the central type that all adapters consume. It is built
+//! with `EmailBuilder` following the builder pattern with deferred
+//! validation (validation occurs in `build()`, not in each setter).
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::AgMailError;
 
-/// Direccion de correo con nombre de visualizacion opcional.
+/// Email address with an optional display name.
 ///
-/// # Formato aceptado
+/// # Accepted format
 ///
-/// - Solo email: `"usuario@ejemplo.com"`
-/// - Con nombre: `"Nombre Apellido <usuario@ejemplo.com>"`
+/// - Email only: `"usuario@ejemplo.com"`
+/// - With name: `"Nombre Apellido <usuario@ejemplo.com>"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Address {
-    /// Nombre de visualizacion (opcional).
+    /// Display name (optional).
     pub name: Option<String>,
-    /// Direccion de correo electronico.
+    /// Email address.
     pub email: String,
 }
 
 impl Address {
-    /// Crea una direccion sin nombre de visualizacion.
+    /// Creates an address without a display name.
     pub fn new(email: impl Into<String>) -> Self {
         Self {
             name: None,
@@ -31,7 +31,7 @@ impl Address {
         }
     }
 
-    /// Crea una direccion con nombre de visualizacion.
+    /// Creates an address with a display name.
     pub fn with_name(name: impl Into<String>, email: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -39,7 +39,7 @@ impl Address {
         }
     }
 
-    /// Valida que la direccion tenga un formato basico correcto.
+    /// Validates that the address has a basic correct format.
     pub fn validate(&self) -> Result<(), AgMailError> {
         let email = self.email.trim();
         if email.is_empty()
@@ -52,7 +52,7 @@ impl Address {
         Ok(())
     }
 
-    /// Retorna la representacion en formato `"Nombre <email>"` o solo `"email"`.
+    /// Returns the representation in the format `"Name <email>"` or just `"email"`.
     pub fn display(&self) -> String {
         match &self.name {
             Some(name) => format!("{name} <{}>", self.email),
@@ -67,46 +67,45 @@ impl std::fmt::Display for Address {
     }
 }
 
-/// Adjunto de correo.
+/// Email attachment.
 #[derive(Debug, Clone)]
 pub struct Attachment {
-    /// Nombre del archivo (e.g., `"factura.pdf"`).
+    /// File name (e.g., `"factura.pdf"`).
     pub filename: String,
-    /// Content-Type MIME (e.g., `"application/pdf"`, `"image/png"`).
+    /// MIME Content-Type (e.g., `"application/pdf"`, `"image/png"`).
     pub content_type: String,
-    /// Contenido binario del adjunto.
+    /// Binary content of the attachment.
     pub data: Vec<u8>,
 }
 
-/// Mensaje de correo listo para enviar.
+/// Email message ready to send.
 ///
-/// Construido con `EmailBuilder`. Todos los campos publicos son inmutables
-/// una vez construido.
+/// Built with `EmailBuilder`. All public fields are immutable once built.
 #[derive(Debug, Clone)]
 pub struct Email {
-    /// Remitente.
+    /// Sender.
     pub from: Address,
-    /// Destinatarios principales.
+    /// Primary recipients.
     pub to: Vec<Address>,
-    /// Copia de carbon (visible).
+    /// Carbon copy (visible).
     pub cc: Vec<Address>,
-    /// Copia de carbon oculta.
+    /// Blind carbon copy.
     pub bcc: Vec<Address>,
-    /// Direccion de respuesta (por defecto igual que `from`).
+    /// Reply address (defaults to the same as `from`).
     pub reply_to: Option<Address>,
-    /// Asunto del correo.
+    /// Email subject.
     pub subject: String,
-    /// Cuerpo HTML (opcional si hay `text_body`).
+    /// HTML body (optional if `text_body` is present).
     pub html_body: Option<String>,
-    /// Cuerpo en texto plano (opcional si hay `html_body`).
+    /// Plain text body (optional if `html_body` is present).
     pub text_body: Option<String>,
-    /// Adjuntos.
+    /// Attachments.
     pub attachments: Vec<Attachment>,
-    /// Cabeceras adicionales (e.g., `X-Custom-Header`).
+    /// Additional headers (e.g., `X-Custom-Header`).
     pub headers: Vec<(String, String)>,
 }
 
-/// Constructor de `Email` con validacion en `build()`.
+/// `Email` constructor with validation in `build()`.
 #[derive(Default)]
 pub struct EmailBuilder {
     from: Option<Address>,
@@ -122,78 +121,78 @@ pub struct EmailBuilder {
 }
 
 impl EmailBuilder {
-    /// Crea un builder vacio.
+    /// Creates an empty builder.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Establece el remitente.
+    /// Sets the sender.
     pub fn from(mut self, addr: Address) -> Self {
         self.from = Some(addr);
         self
     }
 
-    /// Agrega un destinatario principal.
+    /// Adds a primary recipient.
     pub fn to(mut self, addr: Address) -> Self {
         self.to.push(addr);
         self
     }
 
-    /// Agrega multiples destinatarios principales.
+    /// Adds multiple primary recipients.
     pub fn to_many(mut self, addrs: impl IntoIterator<Item = Address>) -> Self {
         self.to.extend(addrs);
         self
     }
 
-    /// Agrega un destinatario en CC.
+    /// Adds a CC recipient.
     pub fn cc(mut self, addr: Address) -> Self {
         self.cc.push(addr);
         self
     }
 
-    /// Agrega un destinatario en BCC.
+    /// Adds a BCC recipient.
     pub fn bcc(mut self, addr: Address) -> Self {
         self.bcc.push(addr);
         self
     }
 
-    /// Establece el `Reply-To`.
+    /// Sets the `Reply-To`.
     pub fn reply_to(mut self, addr: Address) -> Self {
         self.reply_to = Some(addr);
         self
     }
 
-    /// Establece el asunto.
+    /// Sets the subject.
     pub fn subject(mut self, subject: impl Into<String>) -> Self {
         self.subject = Some(subject.into());
         self
     }
 
-    /// Establece el cuerpo HTML.
+    /// Sets the HTML body.
     pub fn html_body(mut self, html: impl Into<String>) -> Self {
         self.html_body = Some(html.into());
         self
     }
 
-    /// Establece el cuerpo en texto plano.
+    /// Sets the plain text body.
     pub fn text_body(mut self, text: impl Into<String>) -> Self {
         self.text_body = Some(text.into());
         self
     }
 
-    /// Agrega un adjunto.
+    /// Adds an attachment.
     pub fn attachment(mut self, att: Attachment) -> Self {
         self.attachments.push(att);
         self
     }
 
-    /// Agrega una cabecera personalizada.
+    /// Adds a custom header.
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.push((name.into(), value.into()));
         self
     }
 
-    /// Construye el `Email` validando los campos obligatorios.
+    /// Builds the `Email`, validating the required fields.
     pub fn build(self) -> Result<Email, AgMailError> {
         let from = self
             .from

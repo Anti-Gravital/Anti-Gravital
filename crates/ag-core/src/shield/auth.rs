@@ -1,14 +1,13 @@
-//! Capa de autenticacion JWT Ed25519.
+//! Ed25519 JWT authentication layer.
 //!
-//! Verifica el header `Authorization: Bearer <token>` con una clave
-//! publica Ed25519 cargada al arranque. Valida la firma, la expiracion
-//! y opcionalmente el issuer y la audience declarados en
-//! `AuthConfig`. Cuando la verificacion tiene exito, los claims se
-//! adjuntan a las extensiones del request y los handlers pueden
-//! consumirlos via el extractor `Claims<T>` declarado al final del
-//! modulo.
+//! Verifies the `Authorization: Bearer <token>` header with an Ed25519
+//! public key loaded at startup. It validates the signature, the
+//! expiration and optionally the issuer and audience declared in
+//! `AuthConfig`. When verification succeeds, the claims are attached to
+//! the request extensions and handlers can consume them through the
+//! `Claims<T>` extractor declared at the end of the module.
 //!
-//! Fallos producen `AgError::Auth` con status 401.
+//! Failures produce `AgError::Auth` with status 401.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -29,10 +28,10 @@ use tower::{Layer, Service};
 use crate::config::AuthConfig;
 use crate::error::AgError;
 
-/// Contexto de autenticacion adjunto a las extensiones del request.
+/// Authentication context attached to the request extensions.
 #[derive(Debug, Clone)]
 pub struct AuthContext {
-    /// Claims decodificados como JSON generico.
+    /// Claims decoded as generic JSON.
     pub claims: Value,
 }
 
@@ -49,7 +48,7 @@ impl std::fmt::Debug for AuthInner {
     }
 }
 
-/// Tower layer de autenticacion JWT.
+/// JWT authentication Tower layer.
 #[derive(Clone)]
 pub struct AuthLayer {
     inner: Arc<AuthInner>,
@@ -83,10 +82,10 @@ fn load_public_key(config: &AuthConfig) -> Result<DecodingKey, AgError> {
 
 fn build_validation(config: &AuthConfig) -> Validation {
     let mut validation = Validation::new(Algorithm::EdDSA);
-    // jsonwebtoken acepta 60 segundos de margen para `exp` y `nbf` por
-    // defecto. Lo dejamos en 0 por seguridad estricta: si una
-    // implementacion requiere tolerar deriva de reloj, hace falta
-    // anadirlo via configuracion explicita.
+    // jsonwebtoken accepts 60 seconds of leeway for `exp` and `nbf` by
+    // default. We set it to 0 for strict security: if an implementation
+    // needs to tolerate clock drift, it must be added via explicit
+    // configuration.
     validation.leeway = 0;
     if let Some(issuer) = &config.expected_issuer {
         validation.set_issuer(std::slice::from_ref(issuer));
@@ -94,20 +93,20 @@ fn build_validation(config: &AuthConfig) -> Validation {
     if let Some(audience) = &config.expected_audience {
         validation.set_audience(std::slice::from_ref(audience));
     } else {
-        // Por defecto jsonwebtoken exige aud cuando esta declarado; lo
-        // dejamos opcional cuando el operador no la configura.
+        // By default jsonwebtoken requires aud when declared; we leave
+        // it optional when the operator does not configure it.
         validation.validate_aud = false;
     }
     validation
 }
 
 impl AuthLayer {
-    /// Construye la capa cargando y validando la clave publica.
+    /// Builds the layer by loading and validating the public key.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `AgError::Config` si la clave no esta declarada, no
-    /// existe el archivo, o el contenido no es un PEM Ed25519 valido.
+    /// Returns `AgError::Config` if the key is not declared, the file
+    /// does not exist, or the contents are not a valid Ed25519 PEM.
     pub fn new(config: &AuthConfig) -> Result<Self, AgError> {
         let decoding_key = load_public_key(config)?;
         let validation = build_validation(config);
@@ -131,7 +130,7 @@ impl<S> Layer<S> for AuthLayer {
     }
 }
 
-/// Servicio Tower que valida el JWT antes de delegar al inner.
+/// Tower service that validates the JWT before delegating to the inner.
 #[derive(Clone)]
 pub struct AuthService<S> {
     inner: S,
@@ -200,7 +199,7 @@ where
 }
 
 pin_project! {
-    /// Future del servicio de autenticacion.
+    /// Future of the authentication service.
     #[derive(Debug)]
     pub struct AuthFuture<F> {
         #[pin]
@@ -235,12 +234,12 @@ where
     }
 }
 
-/// Extractor tipado de claims del JWT.
+/// Typed extractor for JWT claims.
 ///
-/// Lee el `AuthContext` inyectado por `AuthService` desde las
-/// extensiones del request y deserializa los claims al tipo `T`.
-/// Devuelve `AgError::Auth` si la capa Auth no esta activa para esta
-/// ruta o si la deserializacion falla.
+/// Reads the `AuthContext` injected by `AuthService` from the request
+/// extensions and deserializes the claims into the type `T`. Returns
+/// `AgError::Auth` if the Auth layer is not active for this route or if
+/// deserialization fails.
 #[derive(Debug, Clone)]
 pub struct Claims<T>(pub T);
 

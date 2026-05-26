@@ -1,24 +1,24 @@
-//! Gestion declarativa de dominios y TLS para el ecosistema Anti-Gravital.
+//! Declarative domain and TLS management for the Anti-Gravital ecosystem.
 //!
-//! `ag-domains` orquesta:
-//! - DNS via trait `DnsProvider` con adapter Cloudflare inicial.
-//! - TLS via cliente ACME contra Let's Encrypt.
-//! - Cooperacion con `ag-mail` para SPF/DKIM/DMARC.
-//! - Verificacion de propagacion contra multiples resolvers publicos.
+//! `ag-domains` orchestrates:
+//! - DNS via the `DnsProvider` trait with an initial Cloudflare adapter.
+//! - TLS via an ACME client against Let's Encrypt.
+//! - Cooperation with `ag-mail` for SPF/DKIM/DMARC.
+//! - Propagation verification against multiple public resolvers.
 //!
-//! # Estado
+//! # Status
 //!
-//! Skeleton de la Fase 4.5 (Etapa 2-1). El trait y los tipos se completan
-//! en la Etapa 2-2. El adapter Cloudflare en la 2-3. ACME y propagacion
-//! en la 2-4. La decision gobernante es `ADR-0007` y el plan tecnico
-//! vive en `RFC-0007`.
+//! Phase 4.5 skeleton (Stage 2-1). The trait and types are completed
+//! in Stage 2-2. The Cloudflare adapter in 2-3. ACME and propagation
+//! in 2-4. The governing decision is `ADR-0007` and the technical plan
+//! lives in `RFC-0007`.
 //!
-//! # Alcance
+//! # Scope
 //!
-//! No es un registrador de dominios. No reemplaza Terraform/Pulumi. Solo
-//! orquesta dominios declarados en `schema.ag`. Vease
-//! `docs/architecture/08-modulos-batteries-included.md` seccion 8.9 y la
-//! seccion 10.6 (integracion con `ag-cloud`).
+//! It is not a domain registrar. It does not replace Terraform/Pulumi. It only
+//! orchestrates domains declared in `schema.ag`. See
+//! `docs/architecture/08-modulos-batteries-included.md` section 8.9 and
+//! section 10.6 (integration with `ag-cloud`).
 
 #![forbid(unsafe_code)]
 

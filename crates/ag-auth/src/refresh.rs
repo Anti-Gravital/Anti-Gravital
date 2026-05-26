@@ -1,16 +1,16 @@
-//! Blacklist de refresh tokens mediante JTI (JWT ID).
+//! Refresh token blacklist via JTI (JWT ID).
 //!
-//! Implementacion estateful en memoria. Los JTIs revocados se retienen
-//! hasta que se llama a `clear` para liberar memoria.
-//! No persistente entre reinicios — compatible con arquitecturas stateless
-//! donde el mismo pod maneja las sesiones activas.
+//! Stateful in-memory implementation. Revoked JTIs are retained
+//! until `clear` is called to free memory.
+//! Not persistent across restarts — compatible with stateless architectures
+//! where the same pod handles active sessions.
 
 use std::collections::HashSet;
 use std::sync::RwLock;
 
-/// Blacklist en memoria para JTIs revocados.
+/// In-memory blacklist for revoked JTIs.
 ///
-/// Thread-safe via `RwLock`. Operar con `Arc<RefreshBlacklist>` en aplicaciones multi-thread.
+/// Thread-safe via `RwLock`. Operate with `Arc<RefreshBlacklist>` in multi-thread applications.
 pub struct RefreshBlacklist {
     revoked: RwLock<HashSet<String>>,
 }
@@ -22,50 +22,50 @@ impl Default for RefreshBlacklist {
 }
 
 impl RefreshBlacklist {
-    /// Crea una blacklist vacia.
+    /// Creates an empty blacklist.
     pub fn new() -> Self {
         Self {
             revoked: RwLock::new(HashSet::new()),
         }
     }
 
-    /// Revoca un JTI. Los tokens con este JTI seran rechazados.
+    /// Revokes a JTI. Tokens with this JTI will be rejected.
     pub fn revoke(&self, jti: &str) {
         self.revoked
             .write()
-            .expect("RefreshBlacklist envenenado")
+            .expect("RefreshBlacklist poisoned")
             .insert(jti.to_string());
     }
 
-    /// Retorna `true` si el JTI fue revocado.
+    /// Returns `true` if the JTI has been revoked.
     pub fn is_revoked(&self, jti: &str) -> bool {
         self.revoked
             .read()
-            .expect("RefreshBlacklist envenenado")
+            .expect("RefreshBlacklist poisoned")
             .contains(jti)
     }
 
-    /// Elimina todos los JTIs de la blacklist.
+    /// Removes all JTIs from the blacklist.
     ///
-    /// Llamar periodicamente en produccion para liberar memoria.
-    /// En produccion, mantener una estructura con timestamp de expiracion
-    /// para borrar solo los JTIs cuyo token haya expirado.
+    /// Call periodically in production to free memory.
+    /// In production, maintain a structure with an expiration timestamp
+    /// to remove only the JTIs whose token has expired.
     pub fn clear(&self) {
         self.revoked
             .write()
-            .expect("RefreshBlacklist envenenado")
+            .expect("RefreshBlacklist poisoned")
             .clear();
     }
 
-    /// Retorna el numero de JTIs revocados en la blacklist.
+    /// Returns the number of revoked JTIs in the blacklist.
     pub fn len(&self) -> usize {
         self.revoked
             .read()
-            .expect("RefreshBlacklist envenenado")
+            .expect("RefreshBlacklist poisoned")
             .len()
     }
 
-    /// Retorna `true` si la blacklist esta vacia.
+    /// Returns `true` if the blacklist is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -87,7 +87,7 @@ mod tests {
     fn unknown_jti_not_revoked() {
         let bl = RefreshBlacklist::new();
         bl.revoke("jti-1");
-        assert!(!bl.is_revoked("jti-2"), "jti-2 no debe estar revocado");
+        assert!(!bl.is_revoked("jti-2"), "jti-2 should not be revoked");
     }
 
     #[test]
@@ -109,7 +109,7 @@ mod tests {
         assert_eq!(
             bl.len(),
             1,
-            "revocar dos veces el mismo JTI no duplica la entrada"
+            "revoking the same JTI twice does not duplicate the entry"
         );
     }
 

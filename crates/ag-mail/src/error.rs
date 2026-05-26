@@ -1,43 +1,42 @@
-//! Tipo de error del crate `ag-mail`.
+//! Error type for the `ag-mail` crate.
 //!
-//! Conversiones desde errores de proveedores (SMTP, HTTP de adapters) se
-//! añaden cuando se implementan los modulos correspondientes. Por ahora
-//! el enum cubre las variantes mas comunes para que el resto del skeleton
-//! pueda referenciarlas.
+//! Conversions from provider errors (SMTP, adapter HTTP) are added when
+//! the corresponding modules are implemented. For now the enum covers the
+//! most common variants so the rest of the skeleton can reference them.
 
 use thiserror::Error;
 
-/// Errores producidos por las operaciones de `ag-mail`.
+/// Errors produced by `ag-mail` operations.
 #[derive(Debug, Error)]
 pub enum AgMailError {
-    /// El correo no se pudo enviar despues de agotar los reintentos.
+    /// The email could not be sent after exhausting the retries.
     #[error("envio de correo agotado tras reintentos: {0}")]
     SendExhausted(String),
 
-    /// La direccion de origen o destino no es valida.
+    /// The source or destination address is not valid.
     #[error("direccion de correo invalida: {0}")]
     InvalidAddress(String),
 
-    /// El template no existe o no se pudo renderizar.
+    /// The template does not exist or could not be rendered.
     #[error("error de template: {0}")]
     Template(String),
 
-    /// Las variables declaradas en el bloque `mail` del DSL no coinciden con
-    /// las del template HTML.
+    /// The variables declared in the DSL `mail` block do not match the ones
+    /// in the template HTML.
     #[error("incoherencia entre variables declaradas y template: {0}")]
     VarMismatch(String),
 
-    /// Error generico de configuracion (falta variable de entorno, credencial
-    /// invalida, etc).
+    /// Generic configuration error (missing environment variable, invalid
+    /// credential, etc).
     #[error("configuracion invalida: {0}")]
     Config(String),
 
-    /// Error generico de proveedor (SMTP nativo o adapter).
+    /// Generic provider error (native SMTP or adapter).
     #[error("error del proveedor de correo ({provider}): {message}")]
     Provider {
-        /// Nombre del proveedor reportando el fallo.
+        /// Name of the provider reporting the failure.
         provider: &'static str,
-        /// Mensaje propagado por el proveedor.
+        /// Message propagated by the provider.
         message: String,
     },
 }

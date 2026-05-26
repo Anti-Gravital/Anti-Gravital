@@ -1,4 +1,4 @@
-//! Backend del store Anti-Gravital: filesystem nativo y S3/MinIO opcional.
+//! Anti-Gravital store backend: native filesystem and optional S3/MinIO.
 
 #[cfg(feature = "s3")]
 pub mod s3;
@@ -13,27 +13,27 @@ use bytes::Bytes;
 use std::path::{Component, Path, PathBuf};
 
 // ---------------------------------------------------------------------------
-// NativeStore: implementacion sobre filesystem local
+// NativeStore: implementation over local filesystem
 // ---------------------------------------------------------------------------
 
-/// Store nativo Anti-Gravital.
+/// Native Anti-Gravital store.
 ///
-/// Almacena objetos como archivos bajo `root`. La clave es la ruta relativa.
-/// Toda operacion pasa por [`validate_key`] y [`resolve_path`] antes de I/O.
+/// Stores objects as files under `root`. The key is the relative path.
+/// Every operation passes through [`validate_key`] and [`resolve_path`] before I/O.
 pub struct NativeStore {
     pub(crate) root: PathBuf,
     max_object_size: usize,
 }
 
 impl NativeStore {
-    /// Directorio raiz del store (canonicalizado).
+    /// Root directory of the store (canonicalized).
     pub fn root(&self) -> &Path {
         &self.root
     }
 
-    /// Almacena `data` bajo la clave `key`.
+    /// Stores `data` under key `key`.
     ///
-    /// Usa write-then-atomic-rename para evitar lecturas de archivos parciales.
+    /// Uses write-then-atomic-rename to avoid reads of partial files.
     pub async fn put(&self, key: &str, data: Bytes) -> Result<(), StorageError> {
         if data.len() > self.max_object_size {
             return Err(StorageError::TooLarge {
@@ -45,7 +45,7 @@ impl NativeStore {
         if let Some(parent) = dest.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
-        // write-then-rename atomico: evita lecturas de archivos parcialmente escritos
+        // atomic write-then-rename: avoids reads of partially written files
         let mut nonce = [0u8; 8];
         getrandom::getrandom(&mut nonce).unwrap_or_default();
         let tmp = dest.with_file_name(format!(".tmp.{:016x}", u64::from_le_bytes(nonce)));
@@ -54,7 +54,7 @@ impl NativeStore {
         Ok(())
     }
 
-    /// Recupera el contenido del objeto con clave `key`.
+    /// Retrieves the content of the object with key `key`.
     pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
         let path = resolve_path(&self.root, key)?;
         match tokio::fs::read(&path).await {
@@ -66,7 +66,7 @@ impl NativeStore {
         }
     }
 
-    /// Borra el objeto con clave `key`.
+    /// Deletes the object with key `key`.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
         let path = resolve_path(&self.root, key)?;
         match tokio::fs::remove_file(&path).await {
@@ -78,13 +78,13 @@ impl NativeStore {
         }
     }
 
-    /// Retorna `true` si existe un objeto con clave `key`.
+    /// Returns `true` if an object with key `key` exists.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
         let path = resolve_path(&self.root, key)?;
         Ok(tokio::fs::try_exists(&path).await.unwrap_or(false))
     }
 
-    /// Lista las claves de objetos bajo `prefix`.
+    /// Lists object keys under `prefix`.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
         let root = self.root.clone();
         let prefix_str = prefix.map(|p| p.trim_end_matches('/').to_owned());
@@ -102,7 +102,7 @@ impl NativeStore {
         })
     }
 
-    /// Copia el objeto `from` a la clave `to`.
+    /// Copies object `from` to key `to`.
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
         let data = self.get(from).await?;
         self.put(to, data).await
@@ -110,20 +110,20 @@ impl NativeStore {
 }
 
 // ---------------------------------------------------------------------------
-// AgStore: enum que unifica NativeStore y S3Store
+// AgStore: enum that unifies NativeStore and S3Store
 // ---------------------------------------------------------------------------
 
-/// Backend de almacenamiento — filesystem nativo o S3/MinIO.
+/// Storage backend — native filesystem or S3/MinIO.
 pub enum AgStore {
-    /// Backend sobre filesystem local.
+    /// Local filesystem backend.
     Native(NativeStore),
     #[cfg(feature = "s3")]
-    /// Backend S3/MinIO via object_store.
+    /// S3/MinIO backend via object_store.
     S3(S3Store),
 }
 
 impl AgStore {
-    /// Construye el store segun `config.backend`.
+    /// Builds the store according to `config.backend`.
     pub fn new(config: &StorageConfig) -> Result<Self, StorageError> {
         match &config.backend {
             StorageBackend::Native => {
@@ -139,7 +139,7 @@ impl AgStore {
         }
     }
 
-    /// Almacena `data` bajo la clave `key`.
+    /// Stores `data` under key `key`.
     pub async fn put(&self, key: &str, data: Bytes) -> Result<(), StorageError> {
         match self {
             AgStore::Native(s) => s.put(key, data).await,
@@ -148,7 +148,7 @@ impl AgStore {
         }
     }
 
-    /// Recupera el contenido del objeto con clave `key`.
+    /// Retrieves the content of the object with key `key`.
     pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
         match self {
             AgStore::Native(s) => s.get(key).await,
@@ -157,7 +157,7 @@ impl AgStore {
         }
     }
 
-    /// Borra el objeto con clave `key`.
+    /// Deletes the object with key `key`.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
         match self {
             AgStore::Native(s) => s.delete(key).await,
@@ -166,7 +166,7 @@ impl AgStore {
         }
     }
 
-    /// Retorna `true` si existe un objeto con clave `key`.
+    /// Returns `true` if an object with key `key` exists.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
         match self {
             AgStore::Native(s) => s.exists(key).await,
@@ -175,7 +175,7 @@ impl AgStore {
         }
     }
 
-    /// Lista las claves de objetos bajo `prefix`.
+    /// Lists object keys under `prefix`.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
         match self {
             AgStore::Native(s) => s.list(prefix).await,
@@ -184,7 +184,7 @@ impl AgStore {
         }
     }
 
-    /// Copia el objeto `from` a la clave `to`.
+    /// Copies object `from` to key `to`.
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
         match self {
             AgStore::Native(s) => s.copy(from, to).await,
@@ -193,7 +193,7 @@ impl AgStore {
         }
     }
 
-    /// Retorna la ruta raiz si el backend es nativo.
+    /// Returns the root path if the backend is native.
     pub fn root(&self) -> Option<&std::path::Path> {
         match self {
             AgStore::Native(s) => Some(&s.root),
@@ -204,55 +204,53 @@ impl AgStore {
 }
 
 // ---------------------------------------------------------------------------
-// Seguridad: validacion de clave y confinamiento de path
+// Security: key validation and path confinement
 // ---------------------------------------------------------------------------
 
-/// Valida que `key` sea una clave de objeto segura.
+/// Validates that `key` is a safe object key.
 ///
-/// Rechaza con [`StorageError::InvalidKey`] si la clave:
-/// - Esta vacia o supera 1024 bytes.
-/// - Contiene bytes nulos o caracteres de control (< 0x20, excepto `/`).
-/// - Contiene segmentos `.` o `..`.
-/// - Empieza o termina con `/`.
-/// - Contiene secuencias `//`.
+/// Rejects with [`StorageError::InvalidKey`] if the key:
+/// - Is empty or exceeds 1024 bytes.
+/// - Contains null bytes or control characters (< 0x20, except `/`).
+/// - Contains `.` or `..` segments.
+/// - Starts or ends with `/`.
+/// - Contains `//` sequences.
 pub fn validate_key(key: &str) -> Result<(), StorageError> {
     if key.is_empty() {
-        return Err(StorageError::InvalidKey("clave vacia".into()));
+        return Err(StorageError::InvalidKey("empty key".into()));
     }
     if key.len() > 1024 {
-        return Err(StorageError::InvalidKey("clave supera 1024 bytes".into()));
+        return Err(StorageError::InvalidKey("key exceeds 1024 bytes".into()));
     }
     if key.starts_with('/') || key.ends_with('/') {
         return Err(StorageError::InvalidKey(
-            "clave no puede empezar ni terminar con '/'".into(),
+            "key cannot start or end with '/'".into(),
         ));
     }
     if key.contains("//") {
-        return Err(StorageError::InvalidKey(
-            "clave no puede contener '//'".into(),
-        ));
+        return Err(StorageError::InvalidKey("key cannot contain '//'".into()));
     }
     for byte in key.bytes() {
         if byte == 0 {
-            return Err(StorageError::InvalidKey("clave contiene byte nulo".into()));
+            return Err(StorageError::InvalidKey("key contains null byte".into()));
         }
         if byte < 0x20 && byte != b'/' {
             return Err(StorageError::InvalidKey(
-                "clave contiene caracter de control".into(),
+                "key contains control character".into(),
             ));
         }
     }
     for segment in key.split('/') {
         if segment == "." || segment == ".." {
             return Err(StorageError::InvalidKey(format!(
-                "segmento de path prohibido: '{segment}'"
+                "forbidden path segment: '{segment}'"
             )));
         }
     }
     Ok(())
 }
 
-/// Normaliza un path sin tocar disco (resuelve `.` y `..` lexicamente).
+/// Normalizes a path without touching disk (resolves `.` and `..` lexically).
 fn normalize_path(path: &Path) -> PathBuf {
     let mut out = PathBuf::new();
     for component in path.components() {
@@ -267,8 +265,8 @@ fn normalize_path(path: &Path) -> PathBuf {
     out
 }
 
-/// Recorre `dir` recursivamente y retorna rutas relativas a `root`.
-/// Ignora archivos temporales con prefijo `.tmp.`.
+/// Recursively walks `dir` and returns paths relative to `root`.
+/// Ignores temporary files with the `.tmp.` prefix.
 fn collect_keys(
     dir: &std::path::Path,
     root: &std::path::Path,
@@ -296,10 +294,10 @@ fn collect_keys(
     Ok(keys)
 }
 
-/// Resuelve `key` a un path absoluto dentro de `root`.
+/// Resolves `key` to an absolute path inside `root`.
 ///
-/// Garantiza que el path resultante este dentro de `root`.
-/// Retorna [`StorageError::PathEscape`] si el path resuelto escapa del root.
+/// Guarantees that the resulting path stays within `root`.
+/// Returns [`StorageError::PathEscape`] if the resolved path escapes the root.
 pub fn resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError> {
     validate_key(key)?;
     let canonical_root = root.canonicalize().map_err(StorageError::Io)?;
@@ -307,8 +305,8 @@ pub fn resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError> {
     let resolved = if candidate.exists() {
         candidate.canonicalize().map_err(StorageError::Io)?
     } else {
-        // Seguro porque validate_key (llamada arriba) ya rechazo todos los
-        // segmentos '.' y '..'. normalize_path es solo defensa adicional.
+        // Safe because validate_key (called above) already rejected all
+        // '.' and '..' segments. normalize_path is just additional defense.
         normalize_path(&candidate)
     };
     if !resolved.starts_with(&canonical_root) {
@@ -329,7 +327,7 @@ mod tests {
         tempfile::tempdir().expect("tempdir")
     }
 
-    // --- Tests de seguridad ---
+    // --- Security tests ---
 
     #[test]
     fn key_with_dotdot_is_rejected() {
@@ -376,21 +374,21 @@ mod tests {
     fn symlink_escape_is_blocked() {
         let dir = tempdir();
         let root = dir.path();
-        // Crear un symlink que apunta fuera del root
+        // Create a symlink pointing outside the root
         let link = root.join("escape");
         std::os::unix::fs::symlink("/etc", &link).unwrap();
-        // Intentar acceder via la clave — canonicalize deberia detectar el escape
+        // Attempt access via the key — canonicalize should detect the escape
         let result = resolve_path(root, "escape");
-        // Si el symlink apunta a /etc, el path canonicalizado sera /etc,
-        // que no empieza con root -> PathEscape
-        // (si /etc no existe en el sandbox, el error es Io, tambien correcto)
+        // If the symlink points to /etc, the canonicalized path will be /etc,
+        // which does not start with root -> PathEscape
+        // (if /etc does not exist in the sandbox, the error is Io, also correct)
         assert!(matches!(
             result,
             Err(StorageError::PathEscape(_)) | Err(StorageError::Io(_))
         ));
     }
 
-    // --- Tests funcionales ---
+    // --- Functional tests ---
 
     fn test_config(root: &std::path::Path) -> crate::StorageConfig {
         crate::StorageConfig {

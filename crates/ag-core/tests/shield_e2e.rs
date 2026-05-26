@@ -1,8 +1,8 @@
-//! Tests end-to-end del bootstrap del Shield.
+//! End-to-end tests for the Shield bootstrap.
 //!
-//! Arrancan un servidor real sobre `127.0.0.1:0` (puerto efimero) y
-//! validan que la pipeline acepta peticiones HTTP/1.1 y produce
-//! respuestas esperadas.
+//! They start a real server on `127.0.0.1:0` (ephemeral port) and verify
+//! that the pipeline accepts HTTP/1.1 requests and produces the expected
+//! responses.
 
 use ag_core::{Shield, ShieldConfig};
 use axum::routing::get;

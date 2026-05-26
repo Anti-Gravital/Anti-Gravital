@@ -1,13 +1,13 @@
-//! Capa TLS 1.3 con rustls.
+//! TLS 1.3 layer with rustls.
 //!
-//! TLS opera a nivel de conexion, no de request, por lo que esta capa
-//! no se integra como Tower middleware. Se materializa como un
-//! `TlsAcceptor` que envuelve cada `TcpStream` aceptado antes de
-//! delegar al router HTTP.
+//! TLS operates at the connection level, not the request level, so this
+//! layer is not integrated as Tower middleware. It is materialized as a
+//! `TlsAcceptor` that wraps each accepted `TcpStream` before delegating
+//! to the HTTP router.
 //!
-//! El helper publico de uso comun es `Shield::serve(listener, router)`
-//! en el modulo padre, que detecta si la capa TLS esta activa y
-//! despacha al transporte correcto.
+//! The commonly used public helper is `Shield::serve(listener, router)`
+//! in the parent module, which detects whether the TLS layer is active
+//! and dispatches to the correct transport.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -20,18 +20,18 @@ use tokio_rustls::TlsAcceptor;
 use crate::config::TlsConfig;
 use crate::error::AgError;
 
-/// Construye un `TlsAcceptor` desde la configuracion declarativa.
+/// Builds a `TlsAcceptor` from the declarative configuration.
 ///
-/// El provider criptografico (`ring`) se inyecta explicitamente en el
-/// `ServerConfig`. No se depende del `CryptoProvider` global de
-/// rustls, que estaria sujeto a una race entre instalacion y lectura
-/// cuando varios componentes del proceso tocan TLS en paralelo.
+/// The cryptographic provider (`ring`) is injected explicitly into the
+/// `ServerConfig`. It does not rely on rustls's global `CryptoProvider`,
+/// which would be subject to a race between installation and read when
+/// several process components touch TLS in parallel.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve `AgError::Tls` si los archivos no existen, no se pueden
-/// parsear como PEM o no contienen al menos un certificado y una
-/// clave privada compatibles.
+/// Returns `AgError::Tls` if the files do not exist, cannot be parsed as
+/// PEM, or do not contain at least one compatible certificate and
+/// private key.
 pub fn build_acceptor(config: &TlsConfig) -> Result<TlsAcceptor, AgError> {
     let cert_path = config
         .cert_path

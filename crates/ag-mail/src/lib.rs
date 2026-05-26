@@ -6,9 +6,9 @@
 //!
 //! # Status
 //!
-//! Phase 4.5 — implemented. Public API: [`MailSender`] trait with `SmtpSender`
+//! Phase 4.5 — implemented. Public API: [`sender::MailSender`] trait with `SmtpSender`
 //! (default) and `ResendSender`/`SesSender`/`PostmarkSender` adapters, the
-//! [`Email`]/`EmailBuilder` model, an in-memory retry queue and `ag-observe`
+//! [`message::Email`]/`EmailBuilder` model, an in-memory retry queue and `ag-observe`
 //! metrics. Outstanding tech debt (persistent queue, custom SMTP headers,
 //! external template engines) is tracked in `docs/DEBT.md`. Governing decision:
 //! `ADR-0007`; technical plan: `RFC-0006`.

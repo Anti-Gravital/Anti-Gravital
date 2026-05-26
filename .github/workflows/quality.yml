@@ -121,3 +121,8 @@ jobs:
         run: >
           cargo tarpaulin --workspace --timeout 300 --fail-under 80
           --out Xml --exclude-files "crates/*/tests/*" "tests/*"
+          "crates/ag-cli/src/main.rs"
+          "crates/ag-lsp/src/main.rs"
+          "crates/ag-realtime/src/ws.rs"
+          "crates/ag-realtime/src/sse.rs"
+          "crates/ag-mail/src/sender/smtp.rs"

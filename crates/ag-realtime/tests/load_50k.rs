@@ -23,12 +23,9 @@ async fn fifty_thousand_subscribers_receive_event() {
 
     let mut received = 0usize;
     for rx in receivers.iter_mut() {
-        match rx.try_recv() {
-            Ok(ev) => {
-                assert_eq!(ev.subject, "load.test");
-                received += 1;
-            }
-            Err(_) => {}
+        if let Ok(ev) = rx.try_recv() {
+            assert_eq!(ev.subject, "load.test");
+            received += 1;
         }
     }
 

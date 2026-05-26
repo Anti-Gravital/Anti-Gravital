@@ -13,6 +13,7 @@
 
 use std::time::Duration;
 
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use instant_acme::{
     Account, AccountCredentials, AuthorizationStatus, ChallengeType, Identifier, LetsEncrypt,
     NewAccount, NewOrder, OrderStatus,
@@ -24,6 +25,7 @@ use tracing::{error, info, warn};
 use crate::{
     acme::challenge::{remove_dns01_challenge, set_dns01_challenge},
     error::AgDomainsError,
+    metrics::set_cert_days_until_expiry,
     provider::DnsProvider,
 };
 
@@ -90,14 +92,14 @@ pub async fn issue_with_credentials<P: DnsProvider>(
     issue_order(&account, config, provider).await
 }
 
-/// Spawns a Tokio task that renews the certificate periodically.
+/// Spawns a Tokio task that renews the certificate before it expires.
 ///
-/// Checks each day whether fewer than `renew_before_days` days remain until
-/// expiration. While `notAfter` parsing is not yet implemented, it renews
-/// on every cycle and uses `renew_before_days` as the sleep period (conservative bound).
+/// After each successful issuance the task parses `notAfter` from the PEM
+/// chain, computes how long to sleep with [`seconds_until_renewal`], and
+/// wakes up exactly when the threshold is crossed. On error it retries
+/// after `check_interval_secs` (24 h by default).
 ///
-/// The task lives until the `JoinHandle` is aborted. On a renewal
-/// error, it logs the error and retries on the next cycle.
+/// The task lives until the `JoinHandle` is aborted.
 pub fn spawn_renewal_task<P>(
     config: CertConfig,
     credentials: AccountCredentials,
@@ -108,42 +110,97 @@ pub fn spawn_renewal_task<P>(
 where
     P: DnsProvider + 'static,
 {
-    // AccountCredentials does not implement Clone; we serialize to JSON once and
-    // deserialize on each loop iteration to obtain a fresh copy.
-    let credentials_json = serde_json::to_vec(&credentials)
-        .expect("AccountCredentials siempre es serializable a JSON");
+    // AccountCredentials does not implement Clone; serialize once and
+    // deserialize on each iteration for a fresh copy.
+    let credentials_json =
+        serde_json::to_vec(&credentials).expect("AccountCredentials is always JSON-serializable");
 
-    // How many seconds to sleep between renewal cycles.
-    // TECH-DEBT: when `notAfter` parsing is implemented, use `check_interval`
-    // (24 h) and compare the expiration date with `renew_before_days`.
-    // reason: simplification of the first iteration
-    // impact: renews every `renew_before_days` days instead of exactly at the threshold
-    // expected removal: Stage 3 of ag-domains
-    let sleep_secs = renew_before_days.max(1) * 86_400;
+    const CHECK_INTERVAL_SECS: u64 = 86_400; // 24 h fallback on error
 
     tokio::spawn(async move {
+        let mut not_after: Option<DateTime<Utc>> = None;
+
         loop {
-            info!(domain = config.domain, "renovando certificado TLS via ACME");
+            // Sleep until the renewal window, or immediately on the first run.
+            let sleep_secs = match not_after {
+                Some(exp) => seconds_until_renewal(exp, renew_before_days, Utc::now()),
+                None => 0,
+            };
+
+            if sleep_secs > 0 {
+                info!(
+                    domain = config.domain,
+                    sleep_secs, "TLS certificate valid; sleeping until renewal window"
+                );
+                tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
+            }
+
+            info!(domain = config.domain, "renewing TLS certificate via ACME");
 
             let creds: AccountCredentials = serde_json::from_slice(&credentials_json)
-                .expect("AccountCredentials previamente serializado es siempre deserializable");
+                .expect("previously serialized AccountCredentials is always deserializable");
 
             match issue_with_credentials(&config, creds, &provider).await {
                 Ok(cert) => {
-                    info!(domain = config.domain, "certificado renovado correctamente");
+                    not_after = parse_not_after(&cert.cert_chain_pem).ok();
+                    if let Some(exp) = not_after {
+                        let days = (exp - Utc::now()).num_days().max(0);
+                        set_cert_days_until_expiry(&config.domain, days);
+                        info!(
+                            domain = config.domain,
+                            days_until_expiry = days,
+                            "TLS certificate renewed"
+                        );
+                    } else {
+                        warn!(
+                            domain = config.domain,
+                            "renewed but could not parse notAfter; will retry after check interval"
+                        );
+                        not_after = None;
+                    }
                     on_renewed(cert);
                 }
                 Err(e) => {
-                    error!(domain = config.domain, error = %e, "fallo al renovar certificado");
+                    error!(domain = config.domain, error = %e, "TLS certificate renewal failed; retrying after check interval");
+                    tokio::time::sleep(Duration::from_secs(CHECK_INTERVAL_SECS)).await;
                 }
             }
-
-            tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
         }
     })
 }
 
 // ---- internal helpers -------------------------------------------------------
+
+/// Parses the `notAfter` field from the first PEM certificate in `cert_chain_pem`.
+pub fn parse_not_after(cert_chain_pem: &str) -> Result<DateTime<Utc>, AgDomainsError> {
+    let (_, pem) = x509_parser::pem::parse_x509_pem(cert_chain_pem.as_bytes())
+        .map_err(|e| AgDomainsError::Acme(format!("PEM parse error: {e}")))?;
+    let cert = pem
+        .parse_x509()
+        .map_err(|e| AgDomainsError::Acme(format!("X509 parse error: {e}")))?;
+    let ts = cert.validity().not_after.timestamp();
+    DateTime::from_timestamp(ts, 0)
+        .ok_or_else(|| AgDomainsError::Acme("notAfter timestamp out of range".to_owned()))
+}
+
+/// Returns how many seconds to sleep before the next renewal attempt.
+///
+/// If the time remaining before `not_after` exceeds `renew_before_days`,
+/// returns the gap minus the threshold. Returns 0 when already inside the
+/// renewal window or when the certificate is expired.
+pub fn seconds_until_renewal(
+    not_after: DateTime<Utc>,
+    renew_before_days: u64,
+    now: DateTime<Utc>,
+) -> u64 {
+    let threshold = ChronoDuration::days(renew_before_days as i64);
+    let remaining = not_after.signed_duration_since(now);
+    if remaining <= threshold {
+        return 0;
+    }
+    let sleep = remaining - threshold;
+    sleep.num_seconds().max(0) as u64
+}
 
 async fn issue_order<P: DnsProvider>(
     account: &Account,
@@ -327,6 +384,48 @@ mod tests {
         let json = r#"{"domain":"a.com","zone_id":"z","contact_email":"e@e.com"}"#;
         let cfg: CertConfig = serde_json::from_str(json).unwrap();
         assert!(!cfg.staging, "staging debe ser false por defecto");
+    }
+
+    #[test]
+    fn parse_not_after_reads_certificate_validity() {
+        use chrono::Datelike;
+        use rcgen::{CertificateParams, KeyPair};
+
+        let mut params = CertificateParams::new(vec!["example.com".to_string()]).unwrap();
+        let target_year = Utc::now().year() + 1;
+        params.not_after = rcgen::date_time_ymd(target_year, 1, 1);
+        let key = KeyPair::generate().unwrap();
+        let cert = params.self_signed(&key).unwrap();
+        let pem = cert.pem();
+
+        let not_after = parse_not_after(&pem).expect("must parse notAfter");
+        assert_eq!(not_after.year(), target_year, "parsed year must match cert");
+    }
+
+    #[test]
+    fn parse_not_after_rejects_garbage() {
+        assert!(parse_not_after("not a pem").is_err());
+    }
+
+    #[test]
+    fn seconds_until_renewal_respects_threshold() {
+        let now = Utc::now();
+        let not_after = now + ChronoDuration::days(30);
+        let renew_before_days = 10u64;
+
+        // 30 days left, threshold is 10 days → should sleep 20 days
+        let secs = seconds_until_renewal(not_after, renew_before_days, now);
+        let expected = 20u64 * 86_400;
+        assert_eq!(secs, expected);
+    }
+
+    #[test]
+    fn seconds_until_renewal_past_threshold_returns_zero() {
+        let now = Utc::now();
+        // cert expires in 5 days, threshold is 10 → already past threshold
+        let not_after = now + ChronoDuration::days(5);
+        let secs = seconds_until_renewal(not_after, 10, now);
+        assert_eq!(secs, 0);
     }
 
     #[test]

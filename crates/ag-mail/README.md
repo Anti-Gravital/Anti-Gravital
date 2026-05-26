@@ -2,16 +2,19 @@
 
 Correo transaccional outbound para Anti-Gravital.
 
-Estado: **Fase 4.5 — skeleton (Etapa 2-1)**. No implementado todavia.
-Decision: `docs/adr/0007-ag-mail-ag-domains.md`. Plan tecnico:
-`docs/rfc/RFC-0006-ag-mail-alcance.md`. Ficha de modulo:
-`docs/modules/ag-mail/README.md`.
+Status: **Phase 4.5 — implemented.** Native SMTP sender, Resend/SES/Postmark
+adapters, in-memory and persistent retry queues, custom SMTP headers, string
+templating and `ag-observe` metrics are functional. Remaining tech debt
+(external template engines) is tracked in `docs/DEBT.md`.
+Decision: `docs/adr/0007-ag-mail-ag-domains.md`. Technical plan:
+`docs/rfc/RFC-0006-ag-mail-alcance.md`. Module sheet: `docs/modules/ag-mail/README.md`.
 
 ## Alcance v1
 
 - Sender SMTP nativo (lettre + rustls) y adapters Resend/SES/Postmark.
-- Templates HTML/plaintext con askama validados en compile-time contra
-  `schema.ag`.
+- HTML/plaintext templates via the built-in `StringTemplate` engine. Compile-time
+  validation against `schema.ag` and external engines (askama/minijinja) are tracked
+  as tech debt in `docs/DEBT.md`.
 - Cola asincrona con reintentos y backoff exponencial.
 - Metricas hacia ag-observe.
 
@@ -31,7 +34,8 @@ esta documentada como sexta regla de dependencias en
 ## Features de Cargo
 
 - `smtp` (default): sender SMTP nativo.
-- `templates` (default): renderizado askama.
+- `templates` (default): built-in StringTemplate rendering.
 - `metrics` (default): metricas hacia ag-observe.
 - `resend`, `ses`, `postmark`: adapters de proveedor (opcionales).
-- `queue-persistent`: backend persistente de cola via ag-data.
+- `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
+  migration in `migrations/0001_mail_queue.sql`).

@@ -4,6 +4,14 @@
 **/*.rs.bk
 *.pdb
 Cargo.lock.tmp
+Cargo.toml.tmp.*
+
+# Fuzzing generated artifacts and corpus
+fuzz/artifacts/
+fuzz/corpus/
+
+# Anti-Gravital CLI generated project directory
+.antigravitycli/
 
 # IDE
 .idea/

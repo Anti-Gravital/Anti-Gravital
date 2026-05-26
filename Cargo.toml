@@ -56,7 +56,7 @@ rmp-serde  = "1"
 futures-util = "0.3"
 bytes = "1"
 clap = { version = "4", features = ["derive", "env"] }
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros", "uuid", "json", "chrono"] }
 chumsky = "0.9"
 logos = "0.14"
 governor = "0.7"
@@ -99,6 +99,9 @@ p256                     = { version = "0.13", default-features = false, feature
 hmac                     = "0.12"
 url                      = "2"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+x509-parser = { version = "0.16", default-features = false }
 
 # Dev-dependencies compartidas.
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }

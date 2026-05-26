@@ -23,6 +23,9 @@ pub mod ws;
 #[cfg(feature = "nats-external")]
 pub mod external;
 
+#[cfg(feature = "event-persistence")]
+pub mod persistence;
+
 pub use bus::{BusError, Event, EventBus};
 pub use config::{NatsMode, RealtimeConfig};
 

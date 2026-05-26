@@ -23,8 +23,10 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
 use hickory_resolver::{
-    config::{NameServerConfig, NameServerConfigGroup, Protocol, ResolverConfig, ResolverOpts},
-    TokioAsyncResolver,
+    config::{NameServerConfig, ResolverConfig, ResolverOpts},
+    net::runtime::TokioRuntimeProvider,
+    proto::rr::RData,
+    TokioResolver,
 };
 use tracing::{debug, info};
 
@@ -64,7 +66,7 @@ impl PropagationResult {
 
 /// Verifies DNS propagation against a set of configured resolvers.
 pub struct PropagationChecker {
-    resolvers: Vec<TokioAsyncResolver>,
+    resolvers: Vec<TokioResolver>,
     min_confirmed: usize,
 }
 
@@ -95,12 +97,16 @@ impl PropagationChecker {
                 .txt_lookup(fqdn.as_str())
                 .await
                 .map(|lookup| {
-                    lookup.iter().any(|txt| {
-                        txt.iter().any(|bytes| {
-                            std::str::from_utf8(bytes)
-                                .map(|s| s == expected_value)
-                                .unwrap_or(false)
-                        })
+                    lookup.answers().iter().any(|record| {
+                        if let RData::TXT(txt) = &record.data {
+                            txt.txt_data.iter().any(|bytes| {
+                                std::str::from_utf8(bytes)
+                                    .map(|s| s == expected_value)
+                                    .unwrap_or(false)
+                            })
+                        } else {
+                            false
+                        }
                     })
                 })
                 .unwrap_or(false);
@@ -191,21 +197,18 @@ impl PropagationChecker {
 
 // ---- internal helpers -------------------------------------------------------
 
-fn build_resolver(addr: SocketAddr) -> TokioAsyncResolver {
-    let ns = NameServerConfig::new(addr, Protocol::Udp);
-    let mut group = NameServerConfigGroup::new();
-    group.push(ns);
-
-    let mut config = ResolverConfig::new();
-    for server in group.iter() {
-        config.add_name_server(server.clone());
-    }
+fn build_resolver(addr: SocketAddr) -> TokioResolver {
+    let ns = NameServerConfig::udp(addr.ip());
+    let config = ResolverConfig::from_parts(None, vec![], vec![ns]);
 
     let mut opts = ResolverOpts::default();
     // Do not use a cache so we measure real propagation.
     opts.cache_size = 0;
 
-    TokioAsyncResolver::tokio(config, opts)
+    TokioResolver::builder_with_config(config, TokioRuntimeProvider::default())
+        .with_options(opts)
+        .build()
+        .expect("resolver configuration is always valid")
 }
 
 fn ensure_fqdn(name: &str) -> String {

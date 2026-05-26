@@ -6,10 +6,12 @@
 //!
 //! # Status
 //!
-//! Phase 4.5 skeleton (Stage 2-1). The public APIs are declared as empty
-//! modules; the implementation starts in Stages 2-5 and later. The
-//! governing decision is `ADR-0007` and the technical plan lives in
-//! `RFC-0006`.
+//! Phase 4.5 — implemented. Public API: [`sender::MailSender`] trait with `SmtpSender`
+//! (default) and `ResendSender`/`SesSender`/`PostmarkSender` adapters, the
+//! [`message::Email`]/`EmailBuilder` model, an in-memory retry queue and `ag-observe`
+//! metrics. Outstanding tech debt (persistent queue, custom SMTP headers,
+//! external template engines) is tracked in `docs/DEBT.md`. Governing decision:
+//! `ADR-0007`; technical plan: `RFC-0006`.
 //!
 //! # Scope
 //!

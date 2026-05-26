@@ -65,6 +65,10 @@ deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA
 remains at the end of Phase 5. The ecosystem count goes from 15 to 17
 crates with the incorporation of `ag-mail` and `ag-domains`.
 
+> Phases 0-4.5 are technically implemented. Outstanding tech debt that must be
+> closed before Phase 5 is tracked in `docs/DEBT.md` (persistent mail queue,
+> native cache L2, notAfter renewal, realtime scalability proof).
+
 ---
 
 ## Phase 0 — Foundations and governance

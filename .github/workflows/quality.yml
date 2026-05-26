@@ -99,3 +99,30 @@ jobs:
         with:
           name: fuzz-crashes
           path: fuzz/artifacts/
+
+  coverage:
+    name: cargo tarpaulin (>=80%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.95.0"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-tarpaulin-${{ hashFiles('**/Cargo.toml') }}
+      - name: install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --locked
+      - name: run coverage with 80% gate
+        run: >
+          cargo tarpaulin --workspace --timeout 300 --fail-under 80
+          --out Xml --exclude-files "crates/*/tests/*" "tests/*"
+          "crates/ag-cli/src/main.rs"
+          "crates/ag-lsp/src/main.rs"
+          "crates/ag-realtime/src/ws.rs"
+          "crates/ag-realtime/src/sse.rs"
+          "crates/ag-mail/src/sender/smtp.rs"

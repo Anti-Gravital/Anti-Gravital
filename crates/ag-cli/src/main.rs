@@ -17,6 +17,7 @@
 
 use clap::{Parser, Subcommand};
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process;
 
@@ -61,10 +62,10 @@ enum Commands {
         /// Name of the new project (also used as the directory name).
         name: String,
 
-        /// Starting template.
-        #[arg(long, short = 't', default_value = "rest",
-              value_parser = ["rest", "realtime", "fullstack"])]
-        template: String,
+        /// Starting template. When omitted in an interactive terminal, you
+        /// will be prompted. In non-interactive sessions, defaults to "rest".
+        #[arg(long, short = 't', value_parser = ["rest", "realtime", "fullstack"])]
+        template: Option<String>,
     },
 
     /// Starts the server in development mode with hot reload.
@@ -209,7 +210,7 @@ enum MailCommands {
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Commands::New { name, template } => cmd_new(&name, &template),
+        Commands::New { name, template } => cmd_new(&name, template.as_deref()),
         Commands::Dev { bind } => cmd_dev(&bind),
         Commands::Build { target } => cmd_build(target.as_deref()),
         Commands::Generate { schema, output } => cmd_generate(&schema, &output),
@@ -265,31 +266,53 @@ fn main() {
     }
 }
 
-fn cmd_new(name: &str, template: &str) -> Result<(), String> {
+fn cmd_new(name: &str, template: Option<&str>) -> Result<(), String> {
     validate_project_name(name)?;
 
     let project_dir = Path::new(name);
     if project_dir.exists() {
-        return Err(format!("el directorio '{name}' ya existe"));
+        return Err(format!("directory '{name}' already exists"));
     }
 
-    println!("Creando proyecto '{name}' con template '{template}'...");
+    let template = match template {
+        Some(t) => t.to_owned(),
+        None => resolve_template_interactive(),
+    };
 
-    match template {
+    println!("Creating project '{name}' with template '{template}'...");
+
+    match template.as_str() {
         "rest" => scaffold_rest(name, project_dir),
         "realtime" => scaffold_realtime(name, project_dir),
         "fullstack" => scaffold_fullstack(name, project_dir),
-        _ => Err(format!("template desconocido: {template}")),
+        _ => Err(format!("unknown template: {template}")),
     }?;
 
     println!();
-    println!("Proyecto '{name}' creado.");
+    println!("Project '{name}' created.");
     println!();
-    println!("Proximos pasos:");
+    println!("Next steps:");
     println!("  cd {name}");
     println!("  ag dev");
 
     Ok(())
+}
+
+/// Returns the template name. Prompts interactively when running in a terminal;
+/// returns "rest" silently when stdin is not a terminal (CI / scripts).
+fn resolve_template_interactive() -> String {
+    if !std::io::stdin().is_terminal() {
+        return "rest".to_owned();
+    }
+    const TEMPLATES: &[&str] = &["rest", "realtime", "fullstack"];
+    let selection = dialoguer::Select::new()
+        .with_prompt("Choose a template")
+        .items(TEMPLATES)
+        .default(0)
+        .interact_opt()
+        .unwrap_or(None)
+        .unwrap_or(0);
+    TEMPLATES[selection].to_owned()
 }
 
 fn cmd_dev(bind: &str) -> Result<(), String> {

@@ -1,6 +1,8 @@
 # ag-cli
 
-> Estado: Fase 0 - Vacio. La implementacion comienza en Fase 2 (new/dev/build), Fase 3 (generate), Fase 5 (deploy), Fase 6 (ai), Fase 7 (migrate), Fase 9 (plugin).
+> Status: Phases 2-4.5 — implemented. The `ag` binary exposes `new`, `dev`, `build`,
+> `generate`, `schema lint`, `schema diff`, `domains check/sync` and `mail test`.
+> `deploy`/`ai`/`migrate`/`plugin` subcommands arrive in later phases. See `docs/DEBT.md`.
 > Criticidad: Nucleo.
 > Capitulo de arquitectura: docs/architecture/05-ecosistema-modulos.md
 

@@ -1,6 +1,8 @@
 # ag-dsl
 
-> Estado: Fase 0 - Vacio. La implementacion comienza en Fase 3 (alpha v0.1..v0.4) a Fase 10 (v1.0).
+> Status: Phase 3 — implemented (alpha v0.1..v0.7). Functional compiler: logos lexer,
+> chumsky parser, type/semantic checks, readable diagnostics, and codegen to Rust,
+> SQL, OpenAPI and TypeScript. Syntax may change between v0.x releases. See `docs/DEBT.md`.
 > Criticidad: Nucleo.
 > Capitulo de arquitectura: docs/architecture/07-anti-dsl.md
 

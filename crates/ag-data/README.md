@@ -1,6 +1,9 @@
 # ag-data
 
-> Estado: Fase 0 - Vacio. La implementacion comienza en Fase 2 (CRUD basico) a Fase 4 (avanzado).
+> Status: Phase 2 — implemented (base layer). PostgreSQL connection pool via sqlx
+> (`DataConfig`, pool, URL sanitization) and embedded migrations (`sqlx::migrate!`).
+> Pending: DSL-generated typed ORM (Phase 3), row-level security and multi-tenancy
+> (later phases). See `docs/DEBT.md`.
 > Criticidad: Estandar.
 > Capitulo de arquitectura: docs/architecture/08-modulos-batteries-included.md
 

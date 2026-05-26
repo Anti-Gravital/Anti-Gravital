@@ -199,9 +199,7 @@ fn generate_create_interface(model: &ModelDef) -> String {
         .collect();
 
     if create_fields.is_empty() {
-        return format!(
-            "// All fields of '{name}' are auto-generated; no Create interface.\n\n"
-        );
+        return format!("// All fields of '{name}' are auto-generated; no Create interface.\n\n");
     }
 
     let mut out = String::new();

@@ -228,9 +228,7 @@ pub fn validate_key(key: &str) -> Result<(), StorageError> {
         ));
     }
     if key.contains("//") {
-        return Err(StorageError::InvalidKey(
-            "key cannot contain '//'".into(),
-        ));
+        return Err(StorageError::InvalidKey("key cannot contain '//'".into()));
     }
     for byte in key.bytes() {
         if byte == 0 {

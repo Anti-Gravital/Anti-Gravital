@@ -395,7 +395,9 @@ fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError
     let (cred_id, cose_public_key) = if at && auth_data.len() > 37 {
         let rest = &auth_data[37..];
         if rest.len() < 18 {
-            return Err(WebAuthnError::Format("attestedCredentialData too short".into()));
+            return Err(WebAuthnError::Format(
+                "attestedCredentialData too short".into(),
+            ));
         }
         let cred_id_len = u16::from_be_bytes([rest[16], rest[17]]) as usize;
         let start = 18 + cred_id_len;

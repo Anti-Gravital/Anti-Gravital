@@ -39,7 +39,7 @@ tracing = { workspace = true }
 reqwest = { workspace = true, optional = true }
 
 # Propagacion DNS (hickory-resolver)
-hickory-resolver = { version = "0.24", default-features = false, features = ["tokio-runtime"], optional = true }
+hickory-resolver = { version = "0.26.1", default-features = false, features = ["tokio"], optional = true }
 
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }

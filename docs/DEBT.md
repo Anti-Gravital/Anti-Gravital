@@ -84,9 +84,12 @@ CLAUDE.md section 29.
 ### DEBT-010 — Coverage gate in CI
 - Reason: no cargo-tarpaulin gate; roadmap requires >=80% per crate.
 - Expected removal: plan P6.
-- Status: open. Target: before Phase 5.
+- Status: closed (P6, 2026-05-26). `coverage` job added to `.github/workflows/quality.yml`
+  using cargo-tarpaulin with `--fail-under 80`. Runs on every push/PR to main.
 
 ### DEBT-011 — Unified installer
 - Reason: no install.sh / install.ps1.
 - Expected removal: plan P6.
-- Status: open. Target: before Phase 5.
+- Status: closed (P6, 2026-05-26). `install.sh` (Linux/macOS) and `install.ps1` (Windows)
+  added to repo root. Both verify the Rust toolchain, build the workspace in release mode,
+  and install `ag` via `cargo install --locked`. Auditable per ADR-0009 rule 4.

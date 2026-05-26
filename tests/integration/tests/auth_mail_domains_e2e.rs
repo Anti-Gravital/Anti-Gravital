@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use ag_domains::mail_records::{
-    DkimSelector, DmarcPolicy, MailDnsRequirements, generate_mail_records,
+    generate_mail_records, DkimSelector, DmarcPolicy, MailDnsRequirements,
 };
 use ag_mail::message::{Address, EmailBuilder};
 use ag_mail::queue::{InMemoryQueue, MailQueue, RetryPolicy};
@@ -53,5 +53,9 @@ async fn auth_sends_verification_via_mail_with_domain_records() {
 
     // 3. Allow the worker to flush, then assert the email was captured.
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    assert_eq!(sender.emails_sent(), 1, "verification email must be sent once");
+    assert_eq!(
+        sender.emails_sent(),
+        1,
+        "verification email must be sent once"
+    );
 }

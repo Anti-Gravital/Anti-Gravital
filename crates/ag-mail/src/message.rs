@@ -68,7 +68,7 @@ impl std::fmt::Display for Address {
 }
 
 /// Email attachment.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attachment {
     /// File name (e.g., `"factura.pdf"`).
     pub filename: String,
@@ -81,7 +81,7 @@ pub struct Attachment {
 /// Email message ready to send.
 ///
 /// Built with `EmailBuilder`. All public fields are immutable once built.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Email {
     /// Sender.
     pub from: Address,

@@ -39,4 +39,8 @@ pub enum AgMailError {
         /// Message propagated by the provider.
         message: String,
     },
+
+    /// Queue storage error (persistent backend).
+    #[error("queue error: {0}")]
+    Queue(String),
 }

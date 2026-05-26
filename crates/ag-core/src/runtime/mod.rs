@@ -1,18 +1,18 @@
-//! Construccion del runtime Tokio para Anti-Gravital.
+//! Tokio runtime construction for Anti-Gravital.
 //!
-//! Lee la configuracion declarativa de `crate::config::RuntimeConfig`
-//! y construye un `tokio::runtime::Runtime` multi-thread con los
-//! parametros indicados. Los valores por defecto vienen del maestro
-//! de arquitectura seccion 6.5.
+//! Reads the declarative configuration from `crate::config::RuntimeConfig`
+//! and builds a multi-thread `tokio::runtime::Runtime` with the given
+//! parameters. The default values come from the architecture master
+//! document, section 6.5.
 
 use crate::config::RuntimeConfig;
 use crate::error::{AgError, AgResult};
 
-/// Construye un runtime Tokio multi-thread segun la configuracion.
+/// Builds a multi-thread Tokio runtime according to the configuration.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve `AgError::Other` si la construccion del runtime falla.
+/// Returns `AgError::Other` if building the runtime fails.
 pub fn build(config: &RuntimeConfig) -> AgResult<tokio::runtime::Runtime> {
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     builder.enable_all();

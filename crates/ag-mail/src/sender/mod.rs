@@ -1,8 +1,8 @@
-//! Trait `MailSender` y adapters de proveedor.
+//! `MailSender` trait and provider adapters.
 //!
-//! `MailSender` es el puerto (interfaz) de salida de `ag-mail`. Los adapters
-//! (`SmtpSender`, `ResendSender`, etc.) son los implementations concretas
-//! detrás de features de Cargo.
+//! `MailSender` is the outbound port (interface) of `ag-mail`. The adapters
+//! (`SmtpSender`, `ResendSender`, etc.) are the concrete implementations
+//! behind Cargo features.
 
 use async_trait::async_trait;
 
@@ -20,33 +20,33 @@ pub mod ses;
 #[cfg(feature = "postmark")]
 pub mod postmark;
 
-/// Resultado de un envio exitoso.
+/// Result of a successful send.
 #[derive(Debug, Clone)]
 pub struct SendResult {
-    /// Identificador del mensaje asignado por el proveedor (si lo devuelve).
+    /// Message identifier assigned by the provider (if it returns one).
     pub message_id: Option<String>,
-    /// Nombre del proveedor que realizo el envio.
+    /// Name of the provider that performed the send.
     pub provider: &'static str,
 }
 
-/// Abstraccion de envio de correo.
+/// Email sending abstraction.
 ///
-/// Implementado por `SmtpSender` (default) y los adapters de proveedor.
+/// Implemented by `SmtpSender` (default) and the provider adapters.
 #[async_trait]
 pub trait MailSender: Send + Sync {
-    /// Nombre del proveedor para logs y trazas.
+    /// Provider name for logs and traces.
     fn name(&self) -> &'static str;
 
-    /// Envia un correo electronico.
+    /// Sends an email.
     ///
-    /// Retorna `SendResult` con el id del mensaje si el proveedor lo expone,
-    /// o `AgMailError` si el envio fallo.
+    /// Returns `SendResult` with the message id if the provider exposes it,
+    /// or `AgMailError` if the send failed.
     async fn send(&self, email: &Email) -> Result<SendResult, AgMailError>;
 }
 
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
-    //! Helpers para tests: `NullSender` que captura los correos enviados.
+    //! Test helpers: `NullSender` that captures the sent emails.
 
     use std::sync::{Arc, Mutex};
 
@@ -54,10 +54,10 @@ pub mod test_utils {
 
     use super::*;
 
-    /// Sender falso que almacena los correos en memoria para verificar en tests.
+    /// Fake sender that stores emails in memory to verify in tests.
     #[derive(Clone, Default)]
     pub struct NullSender {
-        /// Correos capturados por el sender.
+        /// Emails captured by the sender.
         pub sent: Arc<Mutex<Vec<Email>>>,
     }
 
@@ -77,17 +77,17 @@ pub mod test_utils {
     }
 
     impl NullSender {
-        /// Crea un sender vacio.
+        /// Creates an empty sender.
         pub fn new() -> Self {
             Self::default()
         }
 
-        /// Numero de correos capturados hasta ahora.
+        /// Number of emails captured so far.
         pub fn emails_sent(&self) -> usize {
             self.sent.lock().unwrap().len()
         }
 
-        /// Ultimo correo capturado, si existe.
+        /// Last captured email, if any.
         pub fn last_email(&self) -> Option<Email> {
             self.sent.lock().unwrap().last().cloned()
         }

@@ -1,4 +1,4 @@
-//! Handlers HTTP del example ai-backend.
+//! HTTP handlers for the ai-backend example.
 
 use axum::{
     extract::State,
@@ -15,38 +15,38 @@ use std::convert::Infallible;
 
 use crate::{provider::AiError, AppState};
 
-/// Request body para POST /chat.
+/// Request body for POST /chat.
 #[derive(Debug, Deserialize)]
 pub struct ChatRequest {
-    /// Texto del prompt.
+    /// Prompt text.
     pub prompt: String,
-    /// Proveedor a usar: "claude", "gemini", "openai".
-    /// Si se omite, usa el proveedor por defecto del registry.
+    /// Provider to use: "claude", "gemini", "openai".
+    /// If omitted, uses the registry default provider.
     pub provider: Option<String>,
-    /// Modelo especifico. Si se omite, usa el modelo por defecto del proveedor.
+    /// Specific model. If omitted, uses the provider default model.
     pub model: Option<String>,
 }
 
-/// Cada evento SSE enviado al cliente.
+/// Each SSE event sent to the client.
 #[derive(Serialize)]
 struct TokenEvent {
     token: String,
     done: bool,
 }
 
-/// Evento de error enviado como ultimo evento SSE del stream.
+/// Error event sent as the last SSE event of the stream.
 #[derive(Serialize)]
 struct ErrorEvent {
     error: String,
     done: bool,
 }
 
-/// POST /chat — inicia un stream SSE de tokens de IA.
+/// POST /chat — starts an SSE stream of AI tokens.
 ///
-/// Respuestas:
-/// - `200` + SSE stream si hay proveedor disponible
-/// - `422` si el prompt esta vacio
-/// - `503` si el proveedor pedido no esta configurado
+/// Responses:
+/// - `200` + SSE stream if a provider is available
+/// - `422` if the prompt is empty
+/// - `503` if the requested provider is not configured
 pub async fn chat_stream(
     State(state): State<AppState>,
     Json(req): Json<ChatRequest>,
@@ -56,7 +56,7 @@ pub async fn chat_stream(
         return StatusCode::UNPROCESSABLE_ENTITY.into_response();
     }
 
-    // Seleccionar proveedor
+    // Select provider
     let provider = match req.provider.as_deref() {
         Some(name) => state.registry.get(name),
         None => state.registry.default_provider(),
@@ -80,7 +80,7 @@ pub async fn chat_stream(
         .as_deref()
         .unwrap_or_else(|| provider.default_model());
 
-    // Iniciar stream del proveedor
+    // Start the provider stream
     let token_stream: BoxStream<'static, Result<String, AiError>> =
         match provider.stream_completion(prompt, model).await {
             Ok(s) => s,
@@ -90,7 +90,7 @@ pub async fn chat_stream(
             }
         };
 
-    // Evento final "done: true"
+    // Final "done: true" event
     let done_event = futures_util::stream::once(async {
         let data = serde_json::to_string(&TokenEvent {
             token: String::new(),
@@ -100,7 +100,7 @@ pub async fn chat_stream(
         Ok::<SseEvent, Infallible>(SseEvent::default().data(data))
     });
 
-    // Convertir stream de tokens a stream SSE
+    // Convert the token stream into an SSE stream
     let sse_stream = token_stream
         .map(|result| {
             let data = match result {
@@ -122,7 +122,7 @@ pub async fn chat_stream(
         .into_response()
 }
 
-/// Response body para GET /providers.
+/// Response body for GET /providers.
 #[derive(Serialize)]
 struct ProvidersResponse {
     providers: Vec<crate::provider::ProviderInfo>,
@@ -131,7 +131,7 @@ struct ProvidersResponse {
     hint: Option<&'static str>,
 }
 
-/// GET /providers — lista los proveedores disponibles segun las keys configuradas.
+/// GET /providers — lists the available providers based on the configured keys.
 pub async fn list_providers(State(state): State<AppState>) -> impl IntoResponse {
     let providers = state.registry.available();
     let default = state.registry.default_name().map(String::from);
@@ -147,7 +147,7 @@ pub async fn list_providers(State(state): State<AppState>) -> impl IntoResponse 
     })
 }
 
-/// GET /health — siempre 200.
+/// GET /health — always 200.
 pub async fn health(State(state): State<AppState>) -> impl IntoResponse {
     let count = state.registry.available().len();
     Json(serde_json::json!({

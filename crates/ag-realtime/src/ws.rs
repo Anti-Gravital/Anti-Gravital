@@ -1,4 +1,4 @@
-//! Helper WebSocket para Axum que conecta al bus de eventos.
+//! WebSocket helper for Axum that connects to the event bus.
 
 use crate::bus::EventBus;
 use axum::{
@@ -11,10 +11,10 @@ use axum::{
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 
-/// Handler Axum para upgrade WebSocket conectado al bus de eventos.
+/// Axum handler for WebSocket upgrade connected to the event bus.
 ///
-/// El estado Axum debe ser `Arc<EventBus>`. Cada cliente WS recibe todos
-/// los eventos publicados en el bus mientras la conexion esta abierta.
+/// The Axum state must be `Arc<EventBus>`. Each WS client receives all
+/// events published on the bus while the connection is open.
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(bus): State<Arc<EventBus>>,

@@ -1,4 +1,4 @@
-//! Proveedor OpenAI-compatible (OpenAI, Ollama, LM Studio, etc.) para ai-backend.
+//! OpenAI-compatible provider (OpenAI, Ollama, LM Studio, etc.) for ai-backend.
 
 use super::{AiError, AiProvider};
 use async_trait::async_trait;
@@ -93,10 +93,10 @@ impl AiProvider for OpenAiProvider {
     }
 }
 
-/// Extrae contenido de una linea SSE OpenAI-compatible.
+/// Extracts content from an OpenAI-compatible SSE line.
 ///
-/// Formato: `data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}`
-/// Fin:     `data: [DONE]`
+/// Format: `data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}`
+/// End:    `data: [DONE]`
 fn parse_openai_line(line: &str) -> Option<String> {
     let data = line.strip_prefix("data: ")?;
     if data.trim() == "[DONE]" {

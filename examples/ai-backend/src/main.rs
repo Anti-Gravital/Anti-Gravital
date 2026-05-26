@@ -1,6 +1,6 @@
-//! ai-backend: streaming SSE multi-proveedor (Claude, Gemini, OpenAI-compatible).
+//! ai-backend: multi-provider SSE streaming (Claude, Gemini, OpenAI-compatible).
 //!
-//! Ejecutar con al menos una API key:
+//! Run with at least one API key:
 //! ```sh
 //! ANTHROPIC_API_KEY=sk-ant-... cargo run -p ai-backend
 //! GEMINI_API_KEY=AIza...       cargo run -p ai-backend
@@ -22,10 +22,10 @@ use axum::{
 use provider::ProviderRegistry;
 use std::sync::Arc;
 
-/// Estado compartido entre handlers.
+/// Shared state across handlers.
 #[derive(Clone)]
 pub struct AppState {
-    /// Registro dinamico de proveedores de IA disponibles.
+    /// Dynamic registry of available AI providers.
     pub registry: Arc<ProviderRegistry>,
 }
 

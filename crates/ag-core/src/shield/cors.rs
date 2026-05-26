@@ -1,10 +1,10 @@
-//! Capa CORS de Anti-Gravital.
+//! Anti-Gravital CORS layer.
 //!
-//! Envuelve `tower_http::cors::CorsLayer` con defaults seguros y una
-//! configuracion declarativa desde `ShieldConfig`. Por defecto la capa
-//! se construye en modo restrictivo: sin origenes permitidos. Para
-//! habilitar CORS hay que declarar `[shield.cors]` con `enabled = true`
-//! y al menos un origen.
+//! Wraps `tower_http::cors::CorsLayer` with secure defaults and a
+//! declarative configuration from `ShieldConfig`. By default the layer
+//! is built in restrictive mode: with no allowed origins. To enable CORS
+//! you must declare `[shield.cors]` with `enabled = true` and at least
+//! one origin.
 
 use axum::http::header::{HeaderName, HeaderValue};
 use axum::http::Method;
@@ -13,12 +13,12 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 use crate::config::CorsConfig;
 use crate::error::AgError;
 
-/// Construye una `CorsLayer` desde la configuracion.
+/// Builds a `CorsLayer` from the configuration.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve `AgError::Cors` si la configuracion contiene origenes,
-/// metodos o headers invalidos.
+/// Returns `AgError::Cors` if the configuration contains invalid
+/// origins, methods or headers.
 pub fn build_layer(config: &CorsConfig) -> Result<CorsLayer, AgError> {
     let mut layer = CorsLayer::new();
 

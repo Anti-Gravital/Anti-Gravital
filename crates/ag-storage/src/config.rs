@@ -1,48 +1,48 @@
-//! Configuracion del store de almacenamiento.
+//! Storage store configuration.
 
 use std::path::PathBuf;
 
-/// Backend de almacenamiento activo.
+/// Active storage backend.
 #[derive(Debug, Clone, PartialEq)]
 pub enum StorageBackend {
-    /// Filesystem local (default). Sin dependencias externas.
+    /// Local filesystem (default). No external dependencies.
     Native,
     #[cfg(feature = "s3")]
-    /// AWS S3 o compatible.
+    /// AWS S3 or compatible.
     S3,
     #[cfg(feature = "s3")]
-    /// MinIO self-hosted (S3-compatible).
+    /// Self-hosted MinIO (S3-compatible).
     MinIO,
 }
 
-/// Configuracion del subsistema de almacenamiento.
+/// Storage subsystem configuration.
 #[derive(Debug, Clone)]
 pub struct StorageConfig {
-    /// Backend activo.
+    /// Active backend.
     pub backend: StorageBackend,
-    /// Directorio raiz del store nativo.
+    /// Root directory of the native store.
     pub root_path: PathBuf,
-    /// Si `true`, levanta un servidor HTTP Axum en background.
+    /// If `true`, starts an Axum HTTP server in the background.
     pub server_mode: bool,
-    /// Puerto del servidor HTTP. Default: 4280.
+    /// HTTP server port. Default: 4280.
     pub server_port: u16,
-    /// Token Bearer estatico. Vacio = sin autenticacion (modo dev).
+    /// Static Bearer token. Empty = no authentication (dev mode).
     pub store_token: String,
-    /// Tamano maximo de objeto en MB. Default: 100.
+    /// Maximum object size in MB. Default: 100.
     pub max_object_size_mb: u64,
-    /// Limite de requests por segundo del servidor HTTP. Default: 100.
+    /// HTTP server request rate limit per second. Default: 100.
     pub rate_limit_rps: u32,
-    /// Region AWS. Default: "us-east-1".
+    /// AWS region. Default: "us-east-1".
     pub region: String,
-    /// Endpoint personalizado (para MinIO). None = AWS.
+    /// Custom endpoint (for MinIO). None = AWS.
     pub endpoint: Option<String>,
-    /// Access key AWS.
+    /// AWS access key.
     pub access_key: Option<String>,
-    /// Secret key AWS.
+    /// AWS secret key.
     pub secret_key: Option<String>,
-    /// Nombre del bucket S3/MinIO. Default: "ag-storage".
+    /// S3/MinIO bucket name. Default: "ag-storage".
     pub bucket: String,
-    /// Clave secreta HMAC para firmar URLs. Vacia = URLs firmadas deshabilitadas.
+    /// HMAC secret key for signing URLs. Empty = signed URLs disabled.
     /// Variable: `STORAGE_SIGN_SECRET`.
     pub sign_secret: String,
 }
@@ -68,8 +68,8 @@ impl Default for StorageConfig {
 }
 
 impl StorageConfig {
-    /// Lee la configuracion desde variables de entorno.
-    /// Valores no definidos usan los defaults de [`StorageConfig::default`].
+    /// Reads the configuration from environment variables.
+    /// Undefined values use the defaults from [`StorageConfig::default`].
     pub fn from_env() -> Self {
         let backend = match std::env::var("STORAGE_BACKEND")
             .unwrap_or_default()

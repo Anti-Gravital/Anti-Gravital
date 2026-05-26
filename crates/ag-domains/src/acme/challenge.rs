@@ -1,8 +1,8 @@
-//! Tipos y helpers para challenges ACME.
+//! Types and helpers for ACME challenges.
 //!
-//! Encapsula la logica de preparacion de un challenge DNS-01:
-//! construir el nombre del registro TXT (`_acme-challenge.{domain}`) y
-//! delegar la creacion a un `DnsProvider`.
+//! Encapsulates the logic of preparing a DNS-01 challenge:
+//! building the TXT record name (`_acme-challenge.{domain}`) and
+//! delegating creation to a `DnsProvider`.
 
 use crate::{
     error::AgDomainsError,
@@ -10,19 +10,19 @@ use crate::{
     record::{DnsRecordSpec, RecordType},
 };
 
-/// Nombre DNS del registro TXT para el challenge DNS-01.
+/// DNS name of the TXT record for the DNS-01 challenge.
 ///
-/// RFC 8555 secion 8.4: el nombre es `_acme-challenge.{domain}`.
+/// RFC 8555 section 8.4: the name is `_acme-challenge.{domain}`.
 pub fn dns01_record_name(domain: &str) -> String {
     // Strip trailing dot if present for consistency.
     let domain = domain.trim_end_matches('.');
     format!("_acme-challenge.{domain}")
 }
 
-/// Crea el registro TXT de challenge DNS-01 en el proveedor.
+/// Creates the DNS-01 challenge TXT record in the provider.
 ///
-/// Retorna el `id` del registro creado — necesario para eliminarlo una vez
-/// que Let's Encrypt valida el challenge.
+/// Returns the `id` of the created record — needed to remove it once
+/// Let's Encrypt validates the challenge.
 pub async fn set_dns01_challenge<P: DnsProvider>(
     provider: &P,
     zone_id: &str,
@@ -34,7 +34,7 @@ pub async fn set_dns01_challenge<P: DnsProvider>(
         name,
         record_type: RecordType::Txt,
         content: dns_value.to_owned(),
-        // TTL corto: el record se elimina tras la validacion.
+        // Short TTL: the record is removed after validation.
         ttl: 60,
         proxied: false,
     };
@@ -49,9 +49,9 @@ pub async fn set_dns01_challenge<P: DnsProvider>(
     Ok(record.id)
 }
 
-/// Elimina el registro TXT de challenge DNS-01 del proveedor.
+/// Removes the DNS-01 challenge TXT record from the provider.
 ///
-/// Se llama siempre tras la validacion, tanto si fue exitosa como si fallo.
+/// Always called after validation, whether it succeeded or failed.
 pub async fn remove_dns01_challenge<P: DnsProvider>(
     provider: &P,
     zone_id: &str,

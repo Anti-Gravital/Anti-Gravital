@@ -1,4 +1,4 @@
-//! Tests E2E de la capa de autenticacion JWT Ed25519.
+//! E2E tests for the Ed25519 JWT authentication layer.
 
 #![cfg(feature = "auth-jwt")]
 
@@ -225,7 +225,7 @@ async fn auth_disabled_lets_request_through_but_extractor_fails() {
     let cfg = AuthConfig::default();
     let (addr, handle) = start_server(cfg).await;
     let client = reqwest::Client::new();
-    // El handler usa Claims<T> que falla porque no hay AuthContext.
+    // The handler uses Claims<T>, which fails because there is no AuthContext.
     let resp = client
         .get(format!("http://{addr}/me"))
         .send()

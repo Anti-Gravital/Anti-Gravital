@@ -1,9 +1,9 @@
-//! Sender SMTP nativo basado en `lettre` con TLS via rustls.
+//! Native SMTP sender based on `lettre` with TLS via rustls.
 //!
-//! Soporta SMTP autenticado (LOGIN/PLAIN) y STARTTLS. Para servidores
-//! sin autenticacion (dev/test) usa `SmtpConfig::new_unauthenticated`.
+//! Supports authenticated SMTP (LOGIN/PLAIN) and STARTTLS. For servers
+//! without authentication (dev/test) use `SmtpConfig::new_unauthenticated`.
 //!
-//! # Ejemplo
+//! # Example
 //!
 //! ```rust,no_run
 //! use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
@@ -33,11 +33,11 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-// TECH-DEBT: headers personalizadas (Email::headers) no se propagan al mensaje
-// lettre porque la API de lettre 0.11 requiere tipos Header estaticos, no strings.
-// motivo: complejidad del API de lettre para headers arbitrarias
-// impacto: los campos X-Custom del Email se ignoran en el transporte SMTP
-// eliminacion esperada: cuando se actualice a lettre 0.12+
+// TECH-DEBT: custom headers (Email::headers) are not propagated to the
+// lettre message because the lettre 0.11 API requires static Header types, not strings.
+// reason: complexity of the lettre API for arbitrary headers
+// impact: the X-Custom fields of the Email are ignored in the SMTP transport
+// expected removal: when upgrading to lettre 0.12+
 
 use crate::{
     error::AgMailError,
@@ -45,21 +45,21 @@ use crate::{
     sender::{MailSender, SendResult},
 };
 
-/// Configuracion del sender SMTP.
+/// SMTP sender configuration.
 #[derive(Debug, Clone)]
 pub struct SmtpConfig {
-    /// Hostname del servidor SMTP.
+    /// SMTP server hostname.
     pub host: String,
-    /// Puerto (habitualmente 587 para STARTTLS, 465 para SSL).
+    /// Port (usually 587 for STARTTLS, 465 for SSL).
     pub port: u16,
-    /// Usuario de autenticacion.
+    /// Authentication username.
     pub username: Option<String>,
-    /// Contrasena de autenticacion.
+    /// Authentication password.
     pub password: Option<String>,
 }
 
 impl SmtpConfig {
-    /// Configuracion con autenticacion.
+    /// Configuration with authentication.
     pub fn new(
         host: impl Into<String>,
         port: u16,
@@ -74,7 +74,7 @@ impl SmtpConfig {
         }
     }
 
-    /// Configuracion sin autenticacion (util en entornos de desarrollo).
+    /// Configuration without authentication (useful in development environments).
     pub fn new_unauthenticated(host: impl Into<String>, port: u16) -> Self {
         Self {
             host: host.into(),
@@ -85,13 +85,13 @@ impl SmtpConfig {
     }
 }
 
-/// Sender SMTP asincrono.
+/// Asynchronous SMTP sender.
 pub struct SmtpSender {
     transport: AsyncSmtpTransport<Tokio1Executor>,
 }
 
 impl SmtpSender {
-    /// Construye el sender a partir de la configuracion.
+    /// Builds the sender from the configuration.
     pub fn new(config: SmtpConfig) -> Result<Self, AgMailError> {
         let builder = AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&config.host)
             .map_err(|e| AgMailError::Config(e.to_string()))?
@@ -149,7 +149,7 @@ fn build_lettre_message(email: &Email) -> Result<lettre::Message, AgMailError> {
     if let Some(reply_to) = &email.reply_to {
         builder = builder.reply_to(to_mailbox(reply_to)?);
     }
-    // headers personalizadas: ver TECH-DEBT arriba
+    // custom headers: see TECH-DEBT above
 
     let msg = match (&email.html_body, &email.text_body) {
         (Some(html), Some(text)) => builder

@@ -1,36 +1,36 @@
-//! Tipos de diagnostico del compilador Anti-DSL.
+//! Anti-DSL compiler diagnostic types.
 //!
-//! Todos los errores y warnings del pipeline (lex, parse, semantic) se
-//! unifican en `Diagnostic`. Los consumidores (ag-cli) pueden filtrar por
-//! severidad y formatear los mensajes para el usuario.
+//! All pipeline errors and warnings (lex, parse, semantic) are
+//! unified into `Diagnostic`. Consumers (ag-cli) can filter by
+//! severity and format the messages for the user.
 
 use crate::lexer::Span;
 use thiserror::Error;
 
-/// Severidad del diagnostico.
+/// Diagnostic severity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Severity {
-    /// Error que impide la generacion de codigo.
+    /// Error that prevents code generation.
     Error,
-    /// Advertencia informativa; la generacion puede continuar.
+    /// Informational warning; generation can continue.
     Warning,
 }
 
-/// Diagnostico del compilador con posicion, severidad y mensaje.
+/// Compiler diagnostic with position, severity and message.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    /// Posicion en el texto fuente.
+    /// Position in the source text.
     pub span: Span,
-    /// Severidad del diagnostico.
+    /// Diagnostic severity.
     pub severity: Severity,
-    /// Mensaje legible para el usuario.
+    /// User-readable message.
     pub message: String,
-    /// Sugerencia opcional de como corregirlo.
+    /// Optional hint on how to fix it.
     pub hint: Option<String>,
 }
 
 impl Diagnostic {
-    /// Error de lex: caracter no reconocido.
+    /// Lex error: unrecognized character.
     pub fn lex_error(span: Span) -> Self {
         Self {
             span,
@@ -40,7 +40,7 @@ impl Diagnostic {
         }
     }
 
-    /// Error de parse: token inesperado.
+    /// Parse error: unexpected token.
     pub fn parse_error(span: Span, message: impl Into<String>) -> Self {
         Self {
             span,
@@ -50,7 +50,7 @@ impl Diagnostic {
         }
     }
 
-    /// Error semantico generico.
+    /// Generic semantic error.
     pub fn semantic_error(span: Span, message: impl Into<String>) -> Self {
         Self {
             span,
@@ -60,7 +60,7 @@ impl Diagnostic {
         }
     }
 
-    /// Error semantico con sugerencia.
+    /// Semantic error with a hint.
     pub fn semantic_error_with_hint(
         span: Span,
         message: impl Into<String>,
@@ -74,7 +74,7 @@ impl Diagnostic {
         }
     }
 
-    /// Warning semantico.
+    /// Semantic warning.
     pub fn warning(span: Span, message: impl Into<String>) -> Self {
         Self {
             span,
@@ -84,21 +84,21 @@ impl Diagnostic {
         }
     }
 
-    /// Retorna true si este diagnostico es un error (bloquea generacion).
+    /// Returns true if this diagnostic is an error (blocks generation).
     pub fn is_error(&self) -> bool {
         self.severity == Severity::Error
     }
 
-    /// Formatea el diagnostico como string legible para el usuario.
+    /// Formats the diagnostic as a user-readable string.
     ///
-    /// Formato: `[error|warning] byte N-M: mensaje (sugerencia si aplica)`
+    /// Format: `[error|warning] byte N-M: message (hint if applicable)`
     pub fn display(&self, source: &str) -> String {
         let severity = match self.severity {
             Severity::Error => "error",
             Severity::Warning => "warning",
         };
 
-        // Calcula linea y columna desde el byte offset.
+        // Compute line and column from the byte offset.
         let (line, col) = byte_offset_to_line_col(source, self.span.start);
         let location = format!("{}:{}", line, col);
 
@@ -110,15 +110,15 @@ impl Diagnostic {
     }
 }
 
-/// Error fatal del compilador (no un diagnostico por posicion).
+/// Fatal compiler error (not a per-position diagnostic).
 #[derive(Debug, Error)]
 pub enum CompilerError {
-    /// El texto fuente contiene errores que impiden compilar.
+    /// The source text contains errors that prevent compilation.
     #[error("el schema contiene {0} error(es)")]
     SchemaErrors(usize),
 }
 
-// Convierte byte offset a (linea, columna) 1-indexado.
+// Converts a byte offset to a 1-indexed (line, column).
 fn byte_offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
     let before = &source[..offset.min(source.len())];
     let line = before.bytes().filter(|&b| b == b'\n').count() + 1;

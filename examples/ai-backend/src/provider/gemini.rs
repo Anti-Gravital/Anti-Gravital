@@ -1,4 +1,4 @@
-//! Proveedor Gemini (Google AI) para ai-backend.
+//! Gemini (Google AI) provider for ai-backend.
 
 use super::{AiError, AiProvider};
 use async_trait::async_trait;
@@ -85,9 +85,9 @@ impl AiProvider for GeminiProvider {
     }
 }
 
-/// Extrae texto de una linea SSE de Gemini.
+/// Extracts text from a Gemini SSE line.
 ///
-/// Formato: `data: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]}`
+/// Format: `data: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]}`
 fn parse_gemini_line(line: &str) -> Option<String> {
     let data = line.strip_prefix("data: ")?;
     let val: serde_json::Value = serde_json::from_str(data).ok()?;

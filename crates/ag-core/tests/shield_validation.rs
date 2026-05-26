@@ -1,4 +1,4 @@
-//! Tests E2E de la capa de validacion de payload.
+//! E2E tests for the payload validation layer.
 
 #![cfg(feature = "validation")]
 

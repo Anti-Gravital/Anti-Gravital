@@ -1,21 +1,21 @@
-//! Validacion de variables declaradas vs variables usadas en el template.
+//! Validation of declared variables vs variables used in the template.
 //!
-//! El compilador `ag-dsl` (Etapa 2-8) invocara `check` en build-time para
-//! garantizar que las `vars` del bloque `mail` en `schema.ag` coinciden con
-//! los placeholders `{{var}}` del HTML del template. Si difieren, el build
-//! del proyecto usuario falla con un mensaje claro.
+//! The `ag-dsl` compiler (Stage 2-8) will invoke `check` at build-time to
+//! ensure that the `vars` of the `mail` block in `schema.ag` match the
+//! `{{var}}` placeholders in the template HTML. If they differ, the user
+//! project build fails with a clear message.
 //!
-//! Ademas se puede invocar en runtime para validar templates cargados
-//! dinamicamente.
+//! It can also be invoked at runtime to validate dynamically loaded
+//! templates.
 
 use std::collections::HashSet;
 
 use crate::error::AgMailError;
 
-/// Extrae los nombres de variables de un template en formato `{{nombre}}`.
+/// Extracts the variable names from a template in `{{nombre}}` format.
 ///
-/// Soporta espacios alrededor del nombre: `{{ nombre }}` tambien se reconoce.
-/// Solo se extrae el nombre — no se valida su tipo.
+/// Supports spaces around the name: `{{ nombre }}` is also recognized.
+/// Only the name is extracted — its type is not validated.
 pub fn extract_vars(template: &str) -> HashSet<String> {
     let mut vars = HashSet::new();
     let mut rest = template;
@@ -35,14 +35,14 @@ pub fn extract_vars(template: &str) -> HashSet<String> {
     vars
 }
 
-/// Verifica que el template no usa variables fuera del conjunto declarado,
-/// y que las variables declaradas aparecen todas en el template.
+/// Verifies that the template does not use variables outside the declared set,
+/// and that all declared variables appear in the template.
 ///
-/// - `declared`: variables que el DSL o el caller ha declarado (fuente de verdad).
-/// - `template`: string HTML o plaintext del template.
+/// - `declared`: variables that the DSL or the caller has declared (source of truth).
+/// - `template`: HTML or plaintext string of the template.
 ///
-/// Retorna `Ok(())` si la interseccion bidireccional es perfecta.
-/// Retorna `Err(AgMailError::VarMismatch)` con un mensaje explicativo si no.
+/// Returns `Ok(())` if the bidirectional intersection is perfect.
+/// Returns `Err(AgMailError::VarMismatch)` with an explanatory message otherwise.
 pub fn check(declared: &HashSet<String>, template: &str) -> Result<(), AgMailError> {
     let used = extract_vars(template);
 

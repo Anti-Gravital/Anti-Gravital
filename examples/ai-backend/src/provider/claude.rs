@@ -1,4 +1,4 @@
-//! Proveedor Claude (Anthropic) para ai-backend.
+//! Claude (Anthropic) provider for ai-backend.
 
 use super::{AiError, AiProvider};
 use async_trait::async_trait;
@@ -86,9 +86,9 @@ impl AiProvider for ClaudeProvider {
     }
 }
 
-/// Extrae el token de texto de una linea SSE de Anthropic.
+/// Extracts the text token from an Anthropic SSE line.
 ///
-/// Formato: `data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}`
+/// Format: `data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}`
 fn parse_claude_line(line: &str) -> Option<String> {
     let data = line.strip_prefix("data: ")?;
     let val: serde_json::Value = serde_json::from_str(data).ok()?;

@@ -1,13 +1,13 @@
-//! Envio de correos de autenticacion: verificacion, recuperacion y magic link.
+//! Sending authentication emails: verification, recovery and magic link.
 //!
-//! `AuthMailer` envuelve cualquier `ag_mail::sender::MailSender` y expone
-//! tres operaciones de alto nivel. El llamador inyecta el sender concreto
-//! (SMTP, Resend, NullSender en tests) al construir `AgAuth`.
+//! `AuthMailer` wraps any `ag_mail::sender::MailSender` and exposes
+//! three high-level operations. The caller injects the concrete sender
+//! (SMTP, Resend, NullSender in tests) when constructing `AgAuth`.
 //!
-//! # Regla de dependencias
+//! # Dependency rule
 //!
-//! `ag-auth` depende de `ag-mail` (feature `mail`). La direccion inversa
-//! esta prohibida por ADR-0007 y la sexta regla de dependencias de CLAUDE.md.
+//! `ag-auth` depends on `ag-mail` (feature `mail`). The reverse direction
+//! is forbidden by ADR-0007 and the sixth dependency rule of CLAUDE.md.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,17 +20,17 @@ use ag_mail::{
     AgMailError,
 };
 
-/// Error que puede producir una operacion de correo de autenticacion.
+/// Error that an authentication email operation can produce.
 #[derive(Debug, Error)]
 pub enum AuthMailerError {
-    /// El sender subyacente rechazo o fallo al enviar.
+    /// The underlying sender rejected or failed to send.
     #[error("fallo de envio: {0}")]
     Send(#[from] AgMailError),
 }
 
-/// Envia correos de autenticacion usando un `MailSender` inyectado.
+/// Sends authentication emails using an injected `MailSender`.
 ///
-/// # Ejemplo
+/// # Example
 ///
 /// ```no_run
 /// use std::sync::Arc;
@@ -53,11 +53,11 @@ pub struct AuthMailer {
 }
 
 impl AuthMailer {
-    /// Crea un nuevo `AuthMailer`.
+    /// Creates a new `AuthMailer`.
     ///
-    /// - `sender`: implementacion concreta del trait `MailSender`.
-    /// - `from`: direccion remitente que aparecera en todos los correos.
-    /// - `project_name`: nombre del proyecto usado en los asuntos.
+    /// - `sender`: concrete implementation of the `MailSender` trait.
+    /// - `from`: sender address that will appear in all emails.
+    /// - `project_name`: project name used in the subjects.
     pub fn new(
         sender: Arc<dyn MailSender>,
         from: impl Into<String>,
@@ -70,9 +70,9 @@ impl AuthMailer {
         }
     }
 
-    /// Envia un correo de verificacion de email.
+    /// Sends an email verification message.
     ///
-    /// El enlace generado es `{base_url}/verify?token={token}`.
+    /// The generated link is `{base_url}/verify?token={token}`.
     pub async fn send_verification(
         &self,
         to: &str,
@@ -92,9 +92,9 @@ impl AuthMailer {
         self.send_email(to, &subject, &html, &text).await
     }
 
-    /// Envia un correo de restablecimiento de contrasena.
+    /// Sends a password reset email.
     ///
-    /// El enlace generado es `{base_url}/reset?token={token}`.
+    /// The generated link is `{base_url}/reset?token={token}`.
     pub async fn send_password_reset(
         &self,
         to: &str,
@@ -114,9 +114,9 @@ impl AuthMailer {
         self.send_email(to, &subject, &html, &text).await
     }
 
-    /// Envia un correo con magic link para autenticacion sin contrasena.
+    /// Sends an email with a magic link for passwordless authentication.
     ///
-    /// El enlace generado es `{base_url}/magic?token={token}`.
+    /// The generated link is `{base_url}/magic?token={token}`.
     pub async fn send_magic_link(
         &self,
         to: &str,
@@ -160,7 +160,7 @@ impl AuthMailer {
     }
 }
 
-// ---- Templates inline -------------------------------------------------------
+// ---- Inline templates -------------------------------------------------------
 
 const AUTH_VERIFICATION_HTML: &str = "\
 <p>Haz clic en el siguiente enlace para verificar tu email:</p>\
@@ -200,7 +200,7 @@ Accede sin contrasena abriendo este enlace:\n\
 El enlace expira en 15 minutos y solo puede usarse una vez.\n\
 — {{project}}";
 
-// ---- Renderizado simple {{var}} --------------------------------------------
+// ---- Simple {{var}} rendering -----------------------------------------------
 
 fn render_html(template: &str, vars: &[(&str, &str)]) -> String {
     let map: HashMap<&str, &str> = vars.iter().copied().collect();

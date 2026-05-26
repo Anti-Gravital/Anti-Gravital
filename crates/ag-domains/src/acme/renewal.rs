@@ -1,15 +1,15 @@
-//! Emision y renovacion automatica de certificados TLS via ACME.
+//! Automatic TLS certificate issuance and renewal via ACME.
 //!
-//! El flujo completo es:
-//! 1. Crear o restaurar cuenta ACME en Let's Encrypt.
-//! 2. Crear orden para el dominio.
-//! 3. Resolver challenge DNS-01 via `DnsProvider`.
-//! 4. Esperar validacion con backoff exponencial.
-//! 5. Generar CSR con `rcgen` y finalizar la orden.
-//! 6. Descargar el chain PEM + clave privada.
+//! The complete flow is:
+//! 1. Create or restore an ACME account on Let's Encrypt.
+//! 2. Create an order for the domain.
+//! 3. Resolve the DNS-01 challenge via `DnsProvider`.
+//! 4. Wait for validation with exponential backoff.
+//! 5. Generate a CSR with `rcgen` and finalize the order.
+//! 6. Download the PEM chain + private key.
 //!
-//! La tarea de renovacion (`spawn_renewal_task`) relanza el proceso
-//! automaticamente cuando el certificado esta a N dias de vencer.
+//! The renewal task (`spawn_renewal_task`) restarts the process
+//! automatically when the certificate is N days from expiring.
 
 use std::time::Duration;
 
@@ -27,33 +27,33 @@ use crate::{
     provider::DnsProvider,
 };
 
-/// Certificado emitido: chain PEM + clave privada PEM.
+/// Issued certificate: PEM chain + PEM private key.
 #[derive(Debug, Clone)]
 pub struct IssuedCert {
-    /// Cadena de certificados en formato PEM (leaf + intermedios).
+    /// Certificate chain in PEM format (leaf + intermediates).
     pub cert_chain_pem: String,
-    /// Clave privada ECDSA P-256 en formato PEM.
+    /// ECDSA P-256 private key in PEM format.
     pub private_key_pem: String,
 }
 
-/// Configuracion para la emision/renovacion de un certificado.
+/// Configuration for issuing/renewing a certificate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertConfig {
-    /// Dominio para el que se emite el certificado.
+    /// Domain for which the certificate is issued.
     pub domain: String,
-    /// Zone ID en el proveedor DNS (se puede obtener con `DnsProvider::zone_id`).
+    /// Zone ID in the DNS provider (can be obtained with `DnsProvider::zone_id`).
     pub zone_id: String,
-    /// Email de contacto para la cuenta ACME.
+    /// Contact email for the ACME account.
     pub contact_email: String,
-    /// Usar staging de Let's Encrypt (para pruebas).
+    /// Use Let's Encrypt staging (for testing).
     #[serde(default)]
     pub staging: bool,
 }
 
-/// Emite un certificado usando ACME DNS-01 con el `DnsProvider` dado.
+/// Issues a certificate using ACME DNS-01 with the given `DnsProvider`.
 ///
-/// Crea una cuenta ACME nueva en cada llamada. Para reutilizar cuentas,
-/// usa `issue_with_credentials`.
+/// Creates a new ACME account on each call. To reuse accounts,
+/// use `issue_with_credentials`.
 pub async fn issue<P: DnsProvider>(
     config: &CertConfig,
     provider: &P,
@@ -77,7 +77,7 @@ pub async fn issue<P: DnsProvider>(
     Ok((cert, credentials))
 }
 
-/// Emite un certificado reutilizando credenciales ACME previas.
+/// Issues a certificate reusing previous ACME credentials.
 pub async fn issue_with_credentials<P: DnsProvider>(
     config: &CertConfig,
     credentials: AccountCredentials,
@@ -90,14 +90,14 @@ pub async fn issue_with_credentials<P: DnsProvider>(
     issue_order(&account, config, provider).await
 }
 
-/// Lanza una tarea Tokio que renueva el certificado periodicamente.
+/// Spawns a Tokio task that renews the certificate periodically.
 ///
-/// Comprueba cada dia si faltan menos de `renew_before_days` dias para el
-/// vencimiento. Mientras el parseo del `notAfter` no este implementado, renueva
-/// en cada ciclo y usa `renew_before_days` como periodo de sleep (cota conservadora).
+/// Checks each day whether fewer than `renew_before_days` days remain until
+/// expiration. While `notAfter` parsing is not yet implemented, it renews
+/// on every cycle and uses `renew_before_days` as the sleep period (conservative bound).
 ///
-/// La tarea vive mientras el `JoinHandle` no sea abortado. En caso de
-/// error de renovacion, lo registra y reintenta al ciclo siguiente.
+/// The task lives until the `JoinHandle` is aborted. On a renewal
+/// error, it logs the error and retries on the next cycle.
 pub fn spawn_renewal_task<P>(
     config: CertConfig,
     credentials: AccountCredentials,
@@ -108,17 +108,17 @@ pub fn spawn_renewal_task<P>(
 where
     P: DnsProvider + 'static,
 {
-    // AccountCredentials no implementa Clone; serializamos a JSON una vez y
-    // deserializamos en cada iteracion del loop para obtener una copia fresca.
+    // AccountCredentials does not implement Clone; we serialize to JSON once and
+    // deserialize on each loop iteration to obtain a fresh copy.
     let credentials_json = serde_json::to_vec(&credentials)
         .expect("AccountCredentials siempre es serializable a JSON");
 
-    // Cuantos segundos dormir entre ciclos de renovacion.
-    // TECH-DEBT: cuando se implemente el parseo de `notAfter`, usar `check_interval`
-    // (24 h) y comparar la fecha de expiracion con `renew_before_days`.
-    // motivo: simplificacion de la primera iteracion
-    // impacto: renueva cada `renew_before_days` dias en lugar de exactamente al umbral
-    // eliminacion esperada: Etapa 3 de ag-domains
+    // How many seconds to sleep between renewal cycles.
+    // TECH-DEBT: when `notAfter` parsing is implemented, use `check_interval`
+    // (24 h) and compare the expiration date with `renew_before_days`.
+    // reason: simplification of the first iteration
+    // impact: renews every `renew_before_days` days instead of exactly at the threshold
+    // expected removal: Stage 3 of ag-domains
     let sleep_secs = renew_before_days.max(1) * 86_400;
 
     tokio::spawn(async move {
@@ -143,7 +143,7 @@ where
     })
 }
 
-// ---- helpers internos -------------------------------------------------------
+// ---- internal helpers -------------------------------------------------------
 
 async fn issue_order<P: DnsProvider>(
     account: &Account,
@@ -158,7 +158,7 @@ async fn issue_order<P: DnsProvider>(
         .await
         .map_err(|e| AgDomainsError::Acme(e.to_string()))?;
 
-    // Recopilar los challenges DNS-01 pendientes.
+    // Collect the pending DNS-01 challenges.
     let authorizations = order
         .authorizations()
         .await
@@ -189,7 +189,7 @@ async fn issue_order<P: DnsProvider>(
         challenge_records.push((domain.clone(), challenge.url.clone(), record_id));
     }
 
-    // Notificar al servidor que los challenges estan listos.
+    // Notify the server that the challenges are ready.
     for (_, challenge_url, _) in &challenge_records {
         order
             .set_challenge_ready(challenge_url)
@@ -197,19 +197,19 @@ async fn issue_order<P: DnsProvider>(
             .map_err(|e| AgDomainsError::Acme(e.to_string()))?;
     }
 
-    // Esperar con backoff exponencial hasta que la orden este lista.
+    // Wait with exponential backoff until the order is ready.
     let result = wait_for_order_ready(&mut order).await;
 
-    // Limpiar registros TXT independientemente del resultado.
+    // Clean up TXT records regardless of the result.
     for (_, _, record_id) in &challenge_records {
         if let Err(e) = remove_dns01_challenge(provider, &config.zone_id, record_id).await {
             warn!(record_id, error = %e, "no se pudo eliminar el registro challenge DNS-01");
         }
     }
 
-    result?; // propagar error si la orden fallo
+    result?; // propagate error if the order failed
 
-    // Generar CSR y finalizar.
+    // Generate CSR and finalize.
     let names = challenge_records
         .iter()
         .map(|(d, _, _)| d.clone())
@@ -228,7 +228,7 @@ async fn issue_order<P: DnsProvider>(
         .await
         .map_err(|e| AgDomainsError::Acme(e.to_string()))?;
 
-    // Descargar el certificado con polling simple.
+    // Download the certificate with simple polling.
     let cert_chain_pem = loop {
         match order
             .certificate()

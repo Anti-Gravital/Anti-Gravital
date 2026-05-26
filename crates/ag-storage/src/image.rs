@@ -1,8 +1,8 @@
-//! Procesamiento de imagenes para el ecosistema Anti-Gravital.
+//! Image processing for the Anti-Gravital ecosystem.
 //!
-//! Soporta JPEG, PNG y WebP. AVIF pendiente como TECH-DEBT.
+//! Supports JPEG, PNG and WebP. AVIF pending as TECH-DEBT.
 //!
-//! # Uso
+//! # Usage
 //!
 //! ```no_run
 //! use ag_storage::AgStorage;
@@ -10,7 +10,7 @@
 //! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! # let storage = AgStorage::new(ag_storage::StorageConfig::default()).await?;
 //! let processor = storage.processor();
-//! // redimensionar a maximo 800x600 preservando aspect ratio
+//! // resize to a maximum of 800x600 preserving aspect ratio
 //! // let resized = processor.resize(&bytes, 800, 600)?;
 //! # Ok(())
 //! # }
@@ -21,9 +21,9 @@ use bytes::Bytes;
 use image::{imageops::FilterType, DynamicImage, ImageFormat};
 use std::io::Cursor;
 
-/// Procesador de imagenes Anti-Gravital.
+/// Anti-Gravital image processor.
 ///
-/// Obtener via [`crate::AgStorage::processor`].
+/// Obtain it via [`crate::AgStorage::processor`].
 pub struct ImageProcessor;
 
 impl ImageProcessor {
@@ -31,8 +31,8 @@ impl ImageProcessor {
         Self
     }
 
-    /// Redimensiona la imagen para que quepa dentro de `max_w x max_h`
-    /// preservando el aspect ratio. Usa filtro Lanczos3 (alta calidad).
+    /// Resizes the image to fit within `max_w x max_h` preserving the
+    /// aspect ratio. Uses the Lanczos3 filter (high quality).
     pub fn resize(
         &self,
         data: impl AsRef<[u8]>,
@@ -45,9 +45,9 @@ impl ImageProcessor {
         encode(resized, fmt)
     }
 
-    /// Genera un thumbnail de la imagen con dimensiones maximas `max_w x max_h`.
+    /// Generates a thumbnail of the image with maximum dimensions `max_w x max_h`.
     ///
-    /// Preserva el aspect ratio. Usa filtro Nearest (rapido, menor calidad que resize).
+    /// Preserves the aspect ratio. Uses the Nearest filter (fast, lower quality than resize).
     pub fn thumbnail(
         &self,
         data: impl AsRef<[u8]>,
@@ -60,16 +60,16 @@ impl ImageProcessor {
         encode(thumb, fmt)
     }
 
-    /// Convierte la imagen a WebP lossless.
+    /// Converts the image to lossless WebP.
     ///
     /// # TECH-DEBT
     ///
-    /// `_quality` esta ignorado — `image` 0.25 solo expone WebP lossless.
-    /// Para lossy con control de calidad usar el crate `webp` en la segunda
-    /// iteracion de ag-storage.
-    /// - motivo: lossy WebP con calidad configurable requiere crate `webp` separado.
-    /// - impacto: archivos WebP son lossless (pueden ser mas grandes que JPEG equivalente).
-    /// - eliminacion esperada: segunda iteracion ag-storage en Fase 4.
+    /// `_quality` is ignored — `image` 0.25 only exposes lossless WebP.
+    /// For lossy with quality control use the `webp` crate in the second
+    /// iteration of ag-storage.
+    /// - reason: lossy WebP with configurable quality requires a separate `webp` crate.
+    /// - impact: WebP files are lossless (may be larger than equivalent JPEG).
+    /// - expected removal: second ag-storage iteration in Phase 4.
     pub fn to_webp(&self, data: impl AsRef<[u8]>, _quality: u8) -> Result<Bytes, StorageError> {
         let img = load(data.as_ref())?;
         encode(img, ImageFormat::WebP)
@@ -95,7 +95,7 @@ fn encode(img: DynamicImage, fmt: ImageFormat) -> Result<Bytes, StorageError> {
 mod tests {
     use super::*;
 
-    /// Genera una imagen JPEG 100x100 en memoria para tests.
+    /// Generates a 100x100 JPEG image in memory for tests.
     fn test_jpeg_100x100() -> Vec<u8> {
         let img = DynamicImage::new_rgb8(100, 100);
         let mut buf = Cursor::new(Vec::new());
@@ -145,7 +145,7 @@ mod tests {
         let src = test_jpeg_100x100();
         let result = processor.to_webp(&src, 85).unwrap();
         assert!(!result.is_empty());
-        // verificar que el resultado decodifica como imagen valida
+        // verify that the result decodes as a valid image
         assert!(
             image::load_from_memory(&result).is_ok(),
             "WebP output no decodifica como imagen valida"

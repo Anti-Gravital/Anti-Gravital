@@ -1,23 +1,23 @@
-//! Analisis semantico del AST del Anti-DSL.
+//! Semantic analysis of the Anti-DSL AST.
 //!
-//! Valida invariantes que el parser no puede verificar por ser
-//! context-free: nombres duplicados, modelos sin campos, multiples
-//! @primary, referencias a tipos inexistentes en endpoints, etc.
-//! Produce diagnosticos de error y warning sin modificar el AST.
+//! Validates invariants the parser cannot check because it is
+//! context-free: duplicate names, models without fields, multiple
+//! @primary, references to nonexistent types in endpoints, etc.
+//! Produces error and warning diagnostics without modifying the AST.
 
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{Annotation, FieldType, Schema};
 use crate::diagnostics::Diagnostic;
 
-/// Analiza el schema y retorna la lista de diagnosticos.
+/// Analyzes the schema and returns the list of diagnostics.
 ///
-/// No modifica el AST. Los errores de severidad `Error` deben bloquear
-/// la generacion de codigo en la capa superior.
+/// Does not modify the AST. Errors with `Error` severity must block
+/// code generation in the upper layer.
 pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
 
-    // v0.1 validaciones
+    // v0.1 validations
     check_duplicate_model_names(schema, &mut diags);
     for model in &schema.models {
         check_model_has_fields(model, &mut diags);
@@ -27,7 +27,7 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         check_auto_update_type_compatibility(model, &mut diags);
     }
 
-    // v0.2 validaciones
+    // v0.2 validations
     check_duplicate_request_names(schema, &mut diags);
     check_duplicate_response_names(schema, &mut diags);
     check_duplicate_error_names(schema, &mut diags);
@@ -35,7 +35,7 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
     check_error_status_codes(schema, &mut diags);
     check_endpoint_references(schema, &mut diags);
 
-    // v0.3 validaciones de anotaciones
+    // v0.3 annotation validations
     for model in &schema.models {
         for field in &model.fields {
             check_validation_annotations(
@@ -70,14 +70,14 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
-    // v0.4 validaciones de relaciones
+    // v0.4 relation validations
     check_references_model_exists(schema, &mut diags);
     check_references_to_primary(schema, &mut diags);
     check_model_ref_has_relation(schema, &mut diags);
     check_relation_fk_field_exists(schema, &mut diags);
     check_circular_fk(schema, &mut diags);
 
-    // v0.5 validaciones — policy requiere auth != None
+    // v0.5 validations — policy requires auth != None
     for ep in &schema.endpoints {
         if let Some(ref policy_spanned) = ep.policy {
             if ep.auth == crate::ast::AuthMode::None {
@@ -93,7 +93,7 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
-    // v0.6 validaciones — eventos referenciados deben estar declarados
+    // v0.6 validations — referenced events must be declared
     let declared_event_names: HashSet<&str> = schema
         .events
         .iter()
@@ -115,7 +115,7 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
-    // v0.6 validaciones — nombre de evento debe contener punto (entidad.accion)
+    // v0.6 validations — event name must contain a dot (entity.action)
     for ev in &schema.events {
         if !ev.name.value.contains('.') {
             diags.push(Diagnostic::warning(
@@ -128,14 +128,14 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
         }
     }
 
-    // v0.7 validaciones — bloques mail y domain
+    // v0.7 validations — mail and domain blocks
     check_mail_blocks(schema, &mut diags);
     check_domain_blocks(schema, &mut diags);
 
     diags
 }
 
-/// Valida los bloques `mail`: proveedor reconocido, `from` con arroba, templates con vars.
+/// Validates `mail` blocks: recognized provider, `from` with an at sign, templates with vars.
 fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     const VALID_PROVIDERS: &[&str] = &["smtp", "resend", "ses", "postmark"];
 
@@ -182,7 +182,7 @@ fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
                     "usa un email valido, e.g. \"noreply@tu-dominio.com\"",
                 ));
             } else if !schema.domains.is_empty() {
-                // Validar que el hostname del from coincide con algun domain declarado.
+                // Validate that the hostname of from matches some declared domain.
                 let hostname = from.split('@').nth(1).unwrap_or("");
                 let known: Vec<&str> = schema
                     .domains
@@ -215,7 +215,7 @@ fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     }
 }
 
-/// Valida los bloques `domain`: proveedor reconocido, FQDN con punto, politica DMARC valida.
+/// Validates `domain` blocks: recognized provider, FQDN with a dot, valid DMARC policy.
 fn check_domain_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     const VALID_DNS_PROVIDERS: &[&str] = &["cloudflare"];
     const VALID_DMARC: &[&str] = &["none", "quarantine", "reject"];
@@ -378,7 +378,7 @@ fn check_auto_update_type_compatibility(model: &crate::ast::ModelDef, diags: &mu
     }
 }
 
-// ---- Validaciones DSL v0.2 -------------------------------------------
+// ---- DSL v0.2 validations --------------------------------------------
 
 fn check_duplicate_request_names(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     let mut seen: HashMap<&str, usize> = HashMap::new();
@@ -528,9 +528,9 @@ fn check_endpoint_references(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     }
 }
 
-// ---- Validaciones DSL v0.3 -------------------------------------------
+// ---- DSL v0.3 validations --------------------------------------------
 
-/// Verifica compatibilidad de las anotaciones de validacion con el tipo del campo.
+/// Checks compatibility of validation annotations with the field type.
 fn check_validation_annotations(
     field_name: &str,
     parent_name: &str,
@@ -604,7 +604,7 @@ fn check_validation_annotations(
         }
     }
 
-    // @min debe ser <= @max cuando ambos estan presentes
+    // @min must be <= @max when both are present
     if let (Some((min_n, _)), Some((max_n, max_span))) = (min_val, max_val) {
         if min_n > max_n {
             diags.push(Diagnostic::semantic_error_with_hint(
@@ -618,11 +618,11 @@ fn check_validation_annotations(
         }
     }
 
-    // Suprimir advertencias de unused variables
+    // Suppress unused-variable warnings
     let _ = (string_only, Bool, Timestamp, Uuid);
 }
 
-// ---- Validaciones DSL v0.4 — relaciones ---------------------------------
+// ---- DSL v0.4 validations — relations -----------------------------------
 
 fn check_references_model_exists(schema: &Schema, diags: &mut Vec<Diagnostic>) {
     let model_names: HashSet<&str> = schema
@@ -1299,7 +1299,7 @@ request CreateUser {
         );
     }
 
-    // ---- Tests semanticos DSL v0.7 ----
+    // ---- Semantic tests DSL v0.7 ----
 
     #[test]
     fn v07_valid_mail_block_no_errors() {

@@ -1,4 +1,4 @@
-//! Tests E2E de la capa CSRF (double-submit cookie).
+//! E2E tests for the CSRF layer (double-submit cookie).
 
 #![cfg(feature = "csrf")]
 

@@ -1,9 +1,9 @@
-//! Adapter Resend (<https://resend.com>).
+//! Resend adapter (<https://resend.com>).
 //!
-//! Implementa `MailSender` via la API REST de Resend. Solo requiere
-//! un token de API; no tiene dependencias nativas de correo.
+//! Implements `MailSender` via the Resend REST API. It only requires
+//! an API token; it has no native mail dependencies.
 //!
-//! # Ejemplo
+//! # Example
 //!
 //! ```rust,no_run
 //! use ag_mail::sender::resend::{ResendConfig, ResendSender};
@@ -38,17 +38,17 @@ use crate::{
 
 const RESEND_BASE: &str = "https://api.resend.com";
 
-/// Configuracion del adapter Resend.
+/// Resend adapter configuration.
 #[derive(Debug, Clone)]
 pub struct ResendConfig {
-    /// Token de API de Resend (`re_...`).
+    /// Resend API token (`re_...`).
     pub api_key: String,
-    /// URL base de la API (sobreescribible en tests).
+    /// API base URL (overridable in tests).
     pub base_url: String,
 }
 
 impl ResendConfig {
-    /// Configuracion con la URL de produccion de Resend.
+    /// Configuration with the Resend production URL.
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
@@ -56,7 +56,7 @@ impl ResendConfig {
         }
     }
 
-    /// Configuracion con URL base personalizada (util para tests con wiremock).
+    /// Configuration with a custom base URL (useful for tests with wiremock).
     pub fn with_base_url(api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
@@ -65,14 +65,14 @@ impl ResendConfig {
     }
 }
 
-/// Adapter Resend asincrono.
+/// Asynchronous Resend adapter.
 pub struct ResendSender {
     client: reqwest::Client,
     config: ResendConfig,
 }
 
 impl ResendSender {
-    /// Construye el sender a partir de la configuracion.
+    /// Builds the sender from the configuration.
     pub fn new(config: ResendConfig) -> Self {
         Self {
             client: reqwest::Client::new(),
@@ -124,7 +124,7 @@ impl MailSender for ResendSender {
     }
 }
 
-// ---- Tipos internos --------------------------------------------------------
+// ---- Internal types --------------------------------------------------------
 
 #[derive(Debug, Serialize)]
 struct ResendBody<'a> {

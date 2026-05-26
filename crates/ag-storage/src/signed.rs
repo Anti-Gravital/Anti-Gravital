@@ -1,11 +1,11 @@
-//! URLs firmadas con HMAC-SHA256 para ag-storage.
+//! HMAC-SHA256 signed URLs for ag-storage.
 //!
-//! Una URL firmada es valida solo si:
-//! 1. La firma HMAC coincide (integridad + autenticidad).
-//! 2. El timestamp `expires_at` no ha pasado.
+//! A signed URL is valid only if:
+//! 1. The HMAC signature matches (integrity + authenticity).
+//! 2. The `expires_at` timestamp has not passed.
 //!
-//! Formato del token: `{base64url(hmac)}_{expires_at_secs}`
-//! La firma cubre: `key_bytes || expires_at_be_bytes`.
+//! Token format: `{base64url(hmac)}_{expires_at_secs}`
+//! The signature covers: `key_bytes || expires_at_be_bytes`.
 
 use base64ct::{Base64Url, Encoding};
 use hmac::{Hmac, Mac};

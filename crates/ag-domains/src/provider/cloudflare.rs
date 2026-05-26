@@ -1,9 +1,9 @@
-//! Adapter Cloudflare para `DnsProvider`.
+//! Cloudflare adapter for `DnsProvider`.
 //!
-//! Requiere un API token con permisos `Zone:Read` y `DNS:Edit`
-//! sobre las zonas que se vayan a gestionar.
+//! Requires an API token with `Zone:Read` and `DNS:Edit` permissions
+//! over the zones to be managed.
 //!
-//! # Configuracion
+//! # Configuration
 //!
 //! ```rust,ignore
 //! use ag_domains::provider::cloudflare::CloudflareProvider;
@@ -23,23 +23,23 @@ use crate::{
 
 const CF_BASE: &str = "https://api.cloudflare.com/client/v4";
 
-/// Adapter para la API REST de Cloudflare.
+/// Adapter for the Cloudflare REST API.
 pub struct CloudflareProvider {
     client: reqwest::Client,
     token: String,
-    /// URL base configurable para facilitar tests con wiremock.
+    /// Configurable base URL to facilitate tests with wiremock.
     base_url: String,
 }
 
 impl CloudflareProvider {
-    /// Crea un adapter apuntando a la API de produccion de Cloudflare.
+    /// Creates an adapter pointing at the Cloudflare production API.
     pub fn new(token: impl Into<String>) -> Self {
         Self::with_base_url(token, CF_BASE)
     }
 
-    /// Crea un adapter apuntando a una URL base personalizada.
+    /// Creates an adapter pointing at a custom base URL.
     ///
-    /// Util en tests con wiremock: `CloudflareProvider::with_base_url(token, mock.uri())`.
+    /// Useful in tests with wiremock: `CloudflareProvider::with_base_url(token, mock.uri())`.
     pub fn with_base_url(token: impl Into<String>, base_url: impl Into<String>) -> Self {
         let client = reqwest::Client::builder()
             .user_agent(concat!("ag-domains/", env!("CARGO_PKG_VERSION")))
@@ -61,7 +61,7 @@ impl CloudflareProvider {
     }
 }
 
-// ---- Tipos de la API de Cloudflare ----------------------------------------
+// ---- Cloudflare API types --------------------------------------------------
 
 #[derive(Deserialize)]
 struct CfResponse<T> {
@@ -267,7 +267,7 @@ impl DnsProvider for CloudflareProvider {
 
     async fn delete_record(&self, zone_id: &str, record_id: &str) -> Result<(), AgDomainsError> {
         let url = self.url(&format!("/zones/{zone_id}/dns_records/{record_id}"));
-        // La API devuelve {"id":"..."} — no necesitamos el campo, solo el exito.
+        // The API returns {"id":"..."} — we do not need the field, only success.
         let resp: CfResponse<serde_json::Value> = self
             .client
             .delete(&url)
@@ -289,7 +289,7 @@ impl DnsProvider for CloudflareProvider {
     }
 }
 
-// ---- Tests con wiremock -----------------------------------------------------
+// ---- Tests with wiremock ----------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -477,7 +477,7 @@ mod tests {
         provider.delete_record("zone1", "rec1").await.unwrap();
     }
 
-    // ---- contract tests con mocks completos --------------------------------
+    // ---- contract tests with full mocks ------------------------------------
 
     async fn full_mock_server() -> (MockServer, CloudflareProvider) {
         let mock = MockServer::start().await;

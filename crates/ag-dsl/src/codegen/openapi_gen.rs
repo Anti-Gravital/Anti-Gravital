@@ -238,7 +238,7 @@ fn field_list_schema(fields: &[FieldDef]) -> Value {
         if let Some(fmt) = format {
             prop.insert("format".to_owned(), json!(fmt));
         }
-        // v0.3 — añade constraints de validacion
+        // v0.3 — adds validation constraints
         apply_validation_constraints(&mut prop, field);
         properties.insert(fname.clone(), Value::Object(prop));
         if !field.optional {
@@ -255,7 +255,7 @@ fn field_list_schema(fields: &[FieldDef]) -> Value {
     Value::Object(schema)
 }
 
-/// Añade campos de validacion OpenAPI 3.1 derivados de las anotaciones v0.3.
+/// Adds OpenAPI 3.1 validation fields derived from v0.3 annotations.
 fn apply_validation_constraints(prop: &mut serde_json::Map<String, Value>, field: &FieldDef) {
     use crate::ast::{Annotation, FieldType};
 

@@ -1,3 +1,3 @@
-//! Adapter Postmark.
+//! Postmark adapter.
 //!
-//! Skeleton de la Fase 4.5. Implementacion diferida tras Etapa 2-6.
+//! Phase 4.5 skeleton. Implementation deferred until after Stage 2-6.

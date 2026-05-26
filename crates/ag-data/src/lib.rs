@@ -44,20 +44,20 @@ use std::time::Duration;
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
 
-/// Pool de conexiones PostgreSQL compartido entre handlers.
+/// PostgreSQL connection pool shared across handlers.
 ///
-/// Es un alias de [`sqlx::PgPool`], que ya implementa [`Clone`] con
-/// costo O(1) (comparte el pool interno por `Arc`).
+/// It is an alias of [`sqlx::PgPool`], which already implements [`Clone`]
+/// at O(1) cost (it shares the internal pool through `Arc`).
 pub type DbPool = sqlx::PgPool;
 
-/// Error de la capa de datos.
+/// Data layer error.
 #[derive(Debug, Error)]
 pub enum DataError {
-    /// Error originado en sqlx (conexion, query, protocolo).
+    /// Error originating in sqlx (connection, query, protocol).
     #[error("sqlx error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
-    /// Error durante la ejecucion de migraciones.
+    /// Error during migration execution.
     #[error("migration error: {0}")]
     Migration(#[from] sqlx::migrate::MigrateError),
 }
@@ -68,19 +68,19 @@ impl From<DataError> for ag_core::AgError {
     }
 }
 
-/// Configuracion del pool de conexiones.
+/// Connection pool configuration.
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct DataConfig {
-    /// URL de conexion PostgreSQL.
+    /// PostgreSQL connection URL.
     ///
-    /// Formato: `postgresql://usuario:contrasena@host:puerto/basedatos`
+    /// Format: `postgresql://usuario:contrasena@host:puerto/basedatos`
     pub url: String,
 
-    /// Maximo de conexiones simultaneas en el pool.
+    /// Maximum number of simultaneous connections in the pool.
     #[serde(default = "DataConfig::default_max_connections")]
     pub max_connections: u32,
 
-    /// Segundos maximos para adquirir una conexion del pool.
+    /// Maximum seconds to acquire a connection from the pool.
     #[serde(default = "DataConfig::default_acquire_timeout_secs")]
     pub acquire_timeout_secs: u64,
 }
@@ -104,16 +104,16 @@ impl Default for DataConfig {
     }
 }
 
-/// Conecta a PostgreSQL y devuelve un pool listo para usar.
+/// Connects to PostgreSQL and returns a pool ready to use.
 ///
-/// Aplica la configuracion del pool declarada en [`DataConfig`].
-/// El pool se inicializa de forma lazy: las conexiones reales se
-/// abren cuando se necesitan, hasta el maximo declarado.
+/// Applies the pool configuration declared in [`DataConfig`].
+/// The pool is initialized lazily: real connections are opened
+/// when needed, up to the declared maximum.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve [`DataError::Sqlx`] si la URL es invalida o si no se
-/// puede establecer la conexion inicial de prueba.
+/// Returns [`DataError::Sqlx`] if the URL is invalid or if the
+/// initial test connection cannot be established.
 pub async fn connect(config: &DataConfig) -> Result<DbPool, DataError> {
     tracing::debug!(url = %sanitize_url(&config.url), "conectando al pool PostgreSQL");
 
@@ -130,15 +130,15 @@ pub async fn connect(config: &DataConfig) -> Result<DbPool, DataError> {
     Ok(pool)
 }
 
-/// Ejecuta las migraciones embebidas contra el pool.
+/// Runs the embedded migrations against the pool.
 ///
-/// El `migrator` se construye con el macro `sqlx::migrate!("./migrations")`
-/// en el crate que contiene los archivos SQL. Este helper aplica todas
-/// las migraciones pendientes en orden y es idempotente.
+/// The `migrator` is built with the `sqlx::migrate!("./migrations")` macro
+/// in the crate that contains the SQL files. This helper applies all
+/// pending migrations in order and is idempotent.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve [`DataError::Migration`] si una migracion falla.
+/// Returns [`DataError::Migration`] if a migration fails.
 pub async fn run_migrations(
     pool: &DbPool,
     migrator: &sqlx::migrate::Migrator,
@@ -149,9 +149,9 @@ pub async fn run_migrations(
     Ok(())
 }
 
-/// Elimina credenciales de la URL para logging seguro.
+/// Strips credentials from the URL for safe logging.
 fn sanitize_url(url: &str) -> String {
-    // Oculta usuario:contrasena@ para no filtrar credenciales en logs.
+    // Hides usuario:contrasena@ to avoid leaking credentials in logs.
     if let Some(at) = url.find('@') {
         if let Some(proto) = url.find("://") {
             return format!("{}://<redacted>@{}", &url[..proto], &url[at + 1..]);

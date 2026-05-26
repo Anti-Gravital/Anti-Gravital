@@ -1,4 +1,4 @@
-//! Helper SSE (Server-Sent Events) para Axum que convierte el bus en stream compatible con EventSource.
+//! SSE (Server-Sent Events) helper for Axum that turns the bus into an EventSource-compatible stream.
 
 use crate::bus::EventBus;
 use axum::{
@@ -12,9 +12,9 @@ use futures_util::stream::Stream;
 use std::{convert::Infallible, sync::Arc, time::Duration};
 use tokio_stream::StreamExt as _;
 
-/// Handler Axum SSE conectado al bus de eventos.
+/// Axum SSE handler connected to the event bus.
 ///
-/// El estado Axum debe ser `Arc<EventBus>`. Compatible con EventSource del navegador.
+/// The Axum state must be `Arc<EventBus>`. Compatible with the browser EventSource.
 pub async fn sse_handler(State(bus): State<Arc<EventBus>>) -> impl IntoResponse {
     let stream = bus_to_sse_stream(bus);
     Sse::new(stream).keep_alive(
@@ -24,7 +24,7 @@ pub async fn sse_handler(State(bus): State<Arc<EventBus>>) -> impl IntoResponse 
     )
 }
 
-/// Convierte un `EventBus` en un `Stream<Item = Result<SseEvent, Infallible>>`.
+/// Converts an `EventBus` into a `Stream<Item = Result<SseEvent, Infallible>>`.
 pub fn bus_to_sse_stream(
     bus: Arc<EventBus>,
 ) -> impl Stream<Item = Result<SseEvent, Infallible>> + Send + 'static {

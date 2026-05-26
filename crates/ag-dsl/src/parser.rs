@@ -1,13 +1,13 @@
-//! Parser del Anti-DSL usando chumsky 0.9.
+//! Anti-DSL parser using chumsky 0.9.
 //!
-//! Convierte un stream de tokens (producido por el lexer) en un AST.
-//! Usa `parse_recovery` para reportar multiples errores en una sola
-//! pasada en lugar de detenerse en el primero.
+//! Converts a token stream (produced by the lexer) into an AST.
+//! Uses `parse_recovery` to report multiple errors in a single
+//! pass instead of stopping at the first one.
 //!
-//! `Simple<Token>` de chumsky contiene un HashSet con los tokens esperados.
-//! Con Token que tiene variantes String, el tamano del Err supera 128 bytes.
-//! Este es el comportamiento esperado de chumsky 0.9 y no puede reducirse
-//! sin cambiar el tipo de error del crate.
+//! chumsky's `Simple<Token>` contains a HashSet with the expected tokens.
+//! With a Token that has String variants, the size of the Err exceeds 128 bytes.
+//! This is the expected behavior of chumsky 0.9 and cannot be reduced
+//! without changing the crate's error type.
 #![allow(clippy::result_large_err)]
 
 use chumsky::prelude::*;
@@ -20,13 +20,13 @@ use crate::ast::{
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
 
-// Alias de tipo interno.
+// Internal type alias.
 type ParseErr = Simple<Token>;
 
-/// Parsea un stream de tokens en un `Schema`.
+/// Parses a token stream into a `Schema`.
 ///
-/// Retorna el AST (posiblemente parcial en presencia de errores) y la
-/// lista de diagnosticos de parse acumulados.
+/// Returns the AST (possibly partial in the presence of errors) and the
+/// list of accumulated parse diagnostics.
 pub fn parse_tokens(
     tokens: Vec<(Token, Span)>,
     source_len: usize,
@@ -42,9 +42,9 @@ pub fn parse_tokens(
     (ast, diagnostics)
 }
 
-// ---- Construccion del parser ----------------------------------------
+// ---- Parser construction --------------------------------------------
 
-/// Parser principal: lee cero o mas items hasta EOF.
+/// Main parser: reads zero or more items until EOF.
 fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
     let item = choice((
         config_parser().map(SchemaItem::Config),
@@ -88,7 +88,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
     })
 }
 
-/// Items posibles en el schema (union interna del parser).
+/// Possible items in the schema (internal parser union).
 enum SchemaItem {
     Config(Config),
     Model(ModelDef),
@@ -101,7 +101,7 @@ enum SchemaItem {
     Domain(DomainBlock),
 }
 
-/// Parser de bloque `config { ... }`.
+/// Parser for the `config { ... }` block.
 fn config_parser() -> impl Parser<Token, Config, Error = ParseErr> {
     just(Token::Config)
         .ignore_then(
@@ -116,7 +116,7 @@ fn config_parser() -> impl Parser<Token, Config, Error = ParseErr> {
                 match key.as_str() {
                     "project_name" => config.project_name = Some(value),
                     "database" => config.database = Some(value),
-                    _ => {} // campos desconocidos ignorados en parse; reportados en semantic
+                    _ => {} // unknown fields ignored in parse; reported in semantic
                 }
             }
             config
@@ -124,7 +124,7 @@ fn config_parser() -> impl Parser<Token, Config, Error = ParseErr> {
         .labelled("bloque config")
 }
 
-/// Par clave-valor en el bloque config.
+/// Key-value pair in the config block.
 fn config_field_parser() -> impl Parser<Token, (String, String), Error = ParseErr> {
     let key = select! { Token::Ident(s) => s }.labelled("clave de config");
 
@@ -138,7 +138,7 @@ fn config_field_parser() -> impl Parser<Token, (String, String), Error = ParseEr
     key.then(value)
 }
 
-/// Parser de definicion de modelo: `model Nombre { campos... }`.
+/// Parser for a model definition: `model Name { fields... }`.
 fn model_parser() -> impl Parser<Token, ModelDef, Error = ParseErr> {
     let model_name = just(Token::Model)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del modelo"));
@@ -153,7 +153,7 @@ fn model_parser() -> impl Parser<Token, ModelDef, Error = ParseErr> {
         .labelled("definicion de modelo")
 }
 
-/// Parser de campo: `nombre Tipo @anotacion1 @anotacion2(arg) ...`
+/// Parser for a field: `name Type @annotation1 @annotation2(arg) ...`
 fn field_parser() -> impl Parser<Token, FieldDef, Error = ParseErr> {
     let field_name = select! { Token::Ident(s) => s }
         .map_with_span(|s, span: Span| Spanned::new(s, span))
@@ -167,7 +167,7 @@ fn field_parser() -> impl Parser<Token, FieldDef, Error = ParseErr> {
         just(Token::TyBool).to(FieldType::Bool),
         just(Token::TyTimestamp).to(FieldType::Timestamp),
         just(Token::TyDecimal).to(FieldType::Decimal),
-        // v0.4: ModelRefList antes de ModelRef (patron mas especifico primero)
+        // v0.4: ModelRefList before ModelRef (more specific pattern first)
         select! { Token::Ident(s) => s }
             .then_ignore(just(Token::LBracket))
             .then_ignore(just(Token::RBracket))
@@ -200,7 +200,7 @@ fn field_parser() -> impl Parser<Token, FieldDef, Error = ParseErr> {
         })
 }
 
-/// Parser de anotaciones individuales.
+/// Parser for individual annotations.
 fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseErr> {
     let default_value = choice((
         select! { Token::IntLit(n) => DefaultValue::Int(n) },
@@ -215,7 +215,7 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         .ignore_then(default_value.delimited_by(just(Token::LParen), just(Token::RParen)))
         .map(Annotation::Default);
 
-    // v0.3 — anotaciones con argumento entero: @min(N), @max(N), @length(N)
+    // v0.3 — annotations with an integer argument: @min(N), @max(N), @length(N)
     let int_arg =
         || select! { Token::IntLit(n) => n }.delimited_by(just(Token::LParen), just(Token::RParen));
 
@@ -229,7 +229,7 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         .ignore_then(int_arg())
         .map(Annotation::Length);
 
-    // v0.3 — @regex("patron")
+    // v0.3 — @regex("pattern")
     let at_regex = just(Token::AtRegex)
         .ignore_then(
             select! { Token::StringLit(s) => s }
@@ -238,7 +238,7 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         )
         .map(Annotation::Regex);
 
-    // v0.4 — @references(Modelo.campo)
+    // v0.4 — @references(Model.field)
     let at_references = just(Token::AtReferences)
         .ignore_then(
             select! { Token::Ident(s) => s }
@@ -249,7 +249,7 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
         )
         .map(|(model, field)| Annotation::References { model, field });
 
-    // v0.4 — @relation(campo) o @relation(modelo.campo)
+    // v0.4 — @relation(field) or @relation(model.field)
     let relation_path = select! { Token::Ident(s) => s }
         .then(
             just(Token::Dot)
@@ -272,7 +272,7 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
     choice((
         just(Token::AtPrimary).to(Annotation::Primary),
         just(Token::AtUnique).to(Annotation::Unique),
-        just(Token::AtAutoUpdate).to(Annotation::AutoUpdate), // primero: mas especifico
+        just(Token::AtAutoUpdate).to(Annotation::AutoUpdate), // first: more specific
         just(Token::AtAuto).to(Annotation::Auto),
         just(Token::AtEmail).to(Annotation::Email),
         at_default,
@@ -287,9 +287,9 @@ fn annotation_parser() -> impl Parser<Token, Spanned<Annotation>, Error = ParseE
     .labelled("anotacion")
 }
 
-// ---- Parsers DSL v0.2 -----------------------------------------------
+// ---- DSL v0.2 parsers -----------------------------------------------
 
-/// Parser de `request Nombre { campos... }`.
+/// Parser for `request Name { fields... }`.
 fn request_parser() -> impl Parser<Token, RequestDef, Error = ParseErr> {
     just(Token::Request)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del request"))
@@ -302,7 +302,7 @@ fn request_parser() -> impl Parser<Token, RequestDef, Error = ParseErr> {
         .labelled("definicion de request")
 }
 
-/// Parser de `response Nombre { campos... }`.
+/// Parser for `response Name { fields... }`.
 fn response_parser() -> impl Parser<Token, ResponseDef, Error = ParseErr> {
     just(Token::Response)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del response"))
@@ -315,7 +315,7 @@ fn response_parser() -> impl Parser<Token, ResponseDef, Error = ParseErr> {
         .labelled("definicion de response")
 }
 
-/// Parser de `error Nombre { status N message "texto" }`.
+/// Parser for `error Name { status N message "text" }`.
 fn error_def_parser() -> impl Parser<Token, ErrorDef, Error = ParseErr> {
     let error_name = just(Token::ErrorKw)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del error"))
@@ -348,10 +348,10 @@ fn error_def_parser() -> impl Parser<Token, ErrorDef, Error = ParseErr> {
         .labelled("definicion de error")
 }
 
-/// Parser de nombre compuesto con punto: `user.created` o `UserResponse`.
+/// Parser for a dotted compound name: `user.created` or `UserResponse`.
 ///
-/// Tokeniza como `Ident("user") Dot Ident("created")` o solo `Ident("UserResponse")`.
-/// Retorna el nombre completo como `Spanned<String>`.
+/// Tokenizes as `Ident("user") Dot Ident("created")` or just `Ident("UserResponse")`.
+/// Returns the full name as `Spanned<String>`.
 fn dotted_ident_parser() -> impl Parser<Token, Spanned<String>, Error = ParseErr> {
     select! { Token::Ident(s) => s }
         .map_with_span(|s, span: Span| (s, span))
@@ -365,8 +365,8 @@ fn dotted_ident_parser() -> impl Parser<Token, Spanned<String>, Error = ParseErr
                 Some(part) => format!("{first}.{part}"),
                 None => first,
             };
-            // Usa el span del primer segmento para nombres simples,
-            // el span completo para nombres con punto.
+            // Use the span of the first segment for simple names,
+            // the full span for dotted names.
             Spanned::new(
                 name,
                 if full_span.start < full_span.end {
@@ -378,7 +378,7 @@ fn dotted_ident_parser() -> impl Parser<Token, Spanned<String>, Error = ParseErr
         })
 }
 
-/// Parser de `endpoint Nombre { method path [body] [response] [errors] [auth] [policy] [events] }`.
+/// Parser for `endpoint Name { method path [body] [response] [errors] [auth] [policy] [events] }`.
 fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
     let endpoint_name = just(Token::Endpoint)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del endpoint"))
@@ -404,8 +404,8 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         .delimited_by(just(Token::LBracket), just(Token::RBracket))
         .labelled("lista de errores");
 
-    // Lista de nombres de eventos: `[user.created, order.placed]`
-    // Cada elemento puede ser un nombre con punto (user.created).
+    // List of event names: `[user.created, order.placed]`
+    // Each element may be a dotted name (user.created).
     let emits_list = dotted_ident_parser()
         .separated_by(just(Token::Comma))
         .allow_trailing()
@@ -421,7 +421,7 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         )))
         .map(EndpointField::Auth);
 
-    // policy "expresion"
+    // policy "expression"
     let policy_field = just(Token::Policy)
         .ignore_then(
             select! { Token::StringLit(s) => s }
@@ -430,12 +430,12 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         )
         .map(EndpointField::Policy);
 
-    // events [nombre.evento, ...]
+    // events [name.event, ...]
     let events_field = just(Token::Ident("events".to_owned()))
         .ignore_then(emits_list)
         .map(EndpointField::EmitsList);
 
-    // Cada campo del bloque endpoint es un par clave-valor
+    // Each field of the endpoint block is a key-value pair
     #[allow(clippy::type_complexity)]
     let endpoint_field = choice((
         just(Token::Ident("method".to_owned()))
@@ -451,7 +451,7 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         just(Token::Ident("body".to_owned()))
             .ignore_then(ident_ref)
             .map(EndpointField::Body),
-        just(Token::Response) // 'response' es keyword
+        just(Token::Response) // 'response' is a keyword
             .ignore_then(ident_ref)
             .map(EndpointField::Response),
         just(Token::Ident("errors".to_owned()))
@@ -506,7 +506,7 @@ fn endpoint_parser() -> impl Parser<Token, EndpointDef, Error = ParseErr> {
         .labelled("definicion de endpoint")
 }
 
-/// Campos posibles dentro de un bloque endpoint.
+/// Possible fields inside an endpoint block.
 enum EndpointField {
     Method(Spanned<HttpMethod>),
     Path(Spanned<String>),
@@ -518,25 +518,25 @@ enum EndpointField {
     EmitsList(Vec<Spanned<String>>),
 }
 
-// ---- Parser DSL v0.6 — eventos ----------------------------------------
+// ---- DSL v0.6 parser — events -----------------------------------------
 
-/// Parser de bloque `event nombre { payload T [retain N] }`.
+/// Parser for the `event name { payload T [retain N] }` block.
 ///
-/// El nombre puede ser compuesto: `user.created` → `Ident("user") Dot Ident("created")`.
+/// The name may be compound: `user.created` → `Ident("user") Dot Ident("created")`.
 fn event_parser() -> impl Parser<Token, crate::ast::EventDef, Error = ParseErr> {
     use crate::ast::EventDef;
 
     let event_name =
         just(Token::Event).ignore_then(dotted_ident_parser().labelled("nombre del evento"));
 
-    // payload NombreTipo
+    // payload TypeName
     let payload_field = just(Token::Ident("payload".to_owned())).ignore_then(
         select! { Token::Ident(s) => s }
             .map_with_span(|s, span: Span| Spanned::new(s, span))
             .labelled("tipo de payload"),
     );
 
-    // retain N (dias)
+    // retain N (days)
     let retain_field = just(Token::Retain).ignore_then(
         select! { Token::IntLit(n) => n }
             .map_with_span(|n, span: Span| Spanned::new(n, span))
@@ -576,23 +576,23 @@ fn event_parser() -> impl Parser<Token, crate::ast::EventDef, Error = ParseErr> 
         .labelled("declaracion de evento")
 }
 
-/// Campos posibles dentro de un bloque event.
+/// Possible fields inside an event block.
 enum EventField {
     Payload(Spanned<String>),
     Retain(Spanned<i64>),
 }
 
 // ============================================================
-// DSL v0.7 — parsers mail y domain
+// DSL v0.7 — mail and domain parsers
 // ============================================================
 
-/// Parser del bloque `template nombre { ... }` dentro de un bloque `mail`.
+/// Parser for the `template name { ... }` block inside a `mail` block.
 fn template_parser() -> impl Parser<Token, MailTemplateDef, Error = ParseErr> {
     let tpl_name = just(Token::Template)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del template"))
         .map_with_span(|s, span: Span| Spanned::new(s, span));
 
-    // Par clave-valor del cuerpo del template.
+    // Key-value pair of the template body.
     let tpl_field = select! { Token::Ident(k) => k }
         .then(choice((
             select! { Token::StringLit(v) => v },
@@ -600,7 +600,7 @@ fn template_parser() -> impl Parser<Token, MailTemplateDef, Error = ParseErr> {
         )))
         .map(|(k, v)| (k, v));
 
-    // `vars [nombre, token, ...]`
+    // `vars [name, token, ...]`
     let vars_field = select! { Token::Ident(k) if k == "vars" => () }.ignore_then(
         select! { Token::Ident(s) => s }
             .separated_by(just(Token::Comma))
@@ -646,7 +646,7 @@ fn template_parser() -> impl Parser<Token, MailTemplateDef, Error = ParseErr> {
         .labelled("bloque template")
 }
 
-/// Parser del bloque `mail nombre { ... }`.
+/// Parser for the `mail name { ... }` block.
 fn mail_parser() -> impl Parser<Token, MailBlock, Error = ParseErr> {
     let mail_name = just(Token::Mail)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del bloque mail"))
@@ -697,7 +697,7 @@ fn mail_parser() -> impl Parser<Token, MailBlock, Error = ParseErr> {
         .labelled("bloque mail")
 }
 
-/// Parser del bloque `domain nombre { ... }`.
+/// Parser for the `domain name { ... }` block.
 fn domain_parser() -> impl Parser<Token, DomainBlock, Error = ParseErr> {
     let domain_name = just(Token::Domain)
         .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del bloque domain"))
@@ -744,7 +744,7 @@ fn domain_parser() -> impl Parser<Token, DomainBlock, Error = ParseErr> {
         .labelled("bloque domain")
 }
 
-// ---- Conversion de errores de chumsky a Diagnostic ------------------
+// ---- Conversion of chumsky errors to Diagnostic ---------------------
 
 fn parse_error_to_diagnostic(err: ParseErr) -> Diagnostic {
     let span = err.span();

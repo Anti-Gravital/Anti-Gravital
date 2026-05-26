@@ -1,19 +1,19 @@
-//! Servidor HTTP Axum embebido del store Anti-Gravital.
+//! Embedded Axum HTTP server for the Anti-Gravital store.
 //!
-//! Se levanta en background cuando `StorageConfig::server_mode` es `true`.
-//! Expone la API REST v1 con autenticacion Bearer token y rate limiting global.
+//! Started in the background when `StorageConfig::server_mode` is `true`.
+//! Exposes the REST v1 API with Bearer token authentication and global rate limiting.
 //!
 //! # API
 //!
-//! | Metodo | Ruta | Descripcion |
+//! | Method | Route | Description |
 //! |---|---|---|
-//! | `PUT` | `/v1/objects/*key` | Subir o reemplazar un objeto |
-//! | `GET` | `/v1/objects/*key` | Descargar un objeto |
-//! | `DELETE` | `/v1/objects/*key` | Borrar un objeto |
-//! | `HEAD` | `/v1/objects/*key` | Verificar existencia |
-//! | `GET` | `/v1/objects/` | Listar objetos (`?prefix=`) |
-//! | `POST` | `/v1/copy` | Copiar (`?from=&to=`) |
-//! | `GET` | `/v1/health` | Health check (sin auth) |
+//! | `PUT` | `/v1/objects/*key` | Upload or replace an object |
+//! | `GET` | `/v1/objects/*key` | Download an object |
+//! | `DELETE` | `/v1/objects/*key` | Delete an object |
+//! | `HEAD` | `/v1/objects/*key` | Check existence |
+//! | `GET` | `/v1/objects/` | List objects (`?prefix=`) |
+//! | `POST` | `/v1/copy` | Copy (`?from=&to=`) |
+//! | `GET` | `/v1/health` | Health check (no auth) |
 
 use super::{auth::bearer_auth_middleware, AgStore};
 use crate::{StorageConfig, StorageError};
@@ -36,7 +36,7 @@ use tower::ServiceBuilder;
 // Entry point
 // ---------------------------------------------------------------------------
 
-/// Arranca el servidor HTTP y bloquea hasta que el proceso termina.
+/// Starts the HTTP server and blocks until the process ends.
 pub async fn run_server(store: Arc<AgStore>, config: &StorageConfig) -> Result<(), StorageError> {
     let addr = format!("0.0.0.0:{}", config.server_port);
     let listener = tokio::net::TcpListener::bind(&addr)
@@ -50,12 +50,12 @@ pub async fn run_server(store: Arc<AgStore>, config: &StorageConfig) -> Result<(
 }
 
 // ---------------------------------------------------------------------------
-// Router (pub para tests)
+// Router (pub for tests)
 // ---------------------------------------------------------------------------
 
-/// Construye el router Axum con todas las rutas y middlewares.
+/// Builds the Axum router with all routes and middlewares.
 ///
-/// Separado de `run_server` para tests sin bind de puerto real.
+/// Separated from `run_server` for tests without binding a real port.
 pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
     let rps = NonZeroU32::new(config.rate_limit_rps).unwrap_or(NonZeroU32::MIN);
     let limiter: Arc<DefaultDirectRateLimiter> =
@@ -107,13 +107,13 @@ async fn rate_limit_middleware(
 }
 
 // ---------------------------------------------------------------------------
-// Content-Type seguro (lista positiva)
+// Safe Content-Type (allowlist)
 // ---------------------------------------------------------------------------
 
-/// Retorna `(content_type, needs_attachment)` para una clave de objeto.
+/// Returns `(content_type, needs_attachment)` for an object key.
 ///
-/// Cualquier extension no reconocida recibe `application/octet-stream`
-/// con `Content-Disposition: attachment` para evitar ejecucion en navegador.
+/// Any unrecognized extension gets `application/octet-stream` with
+/// `Content-Disposition: attachment` to avoid execution in the browser.
 fn content_type_for(key: &str) -> (&'static str, bool) {
     let ext = std::path::Path::new(key)
         .extension()
@@ -125,10 +125,10 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
         "gif" => ("image/gif", false),
         "webp" => ("image/webp", false),
         // TECH-DEBT:
-        // motivo: SVG puede contener JavaScript y disparar XSS en navegadores.
-        // impacto: objetos SVG se sirven inline; usar un sanitizador o forzar
-        //          attachment para mitigar XSS en clientes browser.
-        // eliminacion esperada: segunda iteracion ag-storage con politica de CSP.
+        // reason: SVG can contain JavaScript and trigger XSS in browsers.
+        // impact: SVG objects are served inline; use a sanitizer or force
+        //          attachment to mitigate XSS in browser clients.
+        // expected removal: second ag-storage iteration with a CSP policy.
         "svg" => ("image/svg+xml", false),
         "ico" => ("image/x-icon", false),
         "txt" => ("text/plain; charset=utf-8", false),
@@ -143,17 +143,17 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 
 fn etag_for(data: &Bytes) -> String {
     // TECH-DEBT:
-    // motivo: ETag truncado a 16 hex chars (64 bits de blake3). RFC 7232
-    //         recomienda hash completo para ETags fuertes; 64 bits pueden
-    //         colisionar a escala alta.
-    // impacto: posibles falsos cache-hits con objetos distintos.
-    // eliminacion esperada: segunda iteracion ag-storage con ETag completo.
+    // reason: ETag truncated to 16 hex chars (64 bits of blake3). RFC 7232
+    //         recommends a full hash for strong ETags; 64 bits can collide
+    //         at high scale.
+    // impact: possible false cache-hits with different objects.
+    // expected removal: second ag-storage iteration with a full ETag.
     let hash = blake3::hash(data);
     format!("\"{}\"", &hash.to_hex()[..16])
 }
 
 // ---------------------------------------------------------------------------
-// Error de aplicacion
+// Application error
 // ---------------------------------------------------------------------------
 
 enum AppError {

@@ -1,10 +1,10 @@
-//! Cliente ACME para emision y renovacion de certificados TLS.
+//! ACME client for TLS certificate issuance and renewal.
 //!
-//! Basado en `instant-acme` contra Let's Encrypt. Soporta challenge
-//! DNS-01 (preferido, usa el `DnsProvider` para crear el TXT).
+//! Based on `instant-acme` against Let's Encrypt. Supports the DNS-01
+//! challenge (preferred, uses the `DnsProvider` to create the TXT record).
 //!
-//! Flujo: crear cuenta -> crear orden -> resolver DNS-01 -> esperar
-//! validacion -> generar CSR con rcgen -> finalizar -> descargar PEM.
+//! Flow: create account -> create order -> resolve DNS-01 -> wait for
+//! validation -> generate CSR with rcgen -> finalize -> download PEM.
 
 pub mod challenge;
 pub mod renewal;

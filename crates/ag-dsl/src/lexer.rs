@@ -1,197 +1,197 @@
-//! Tokenizador del Anti-DSL generado con logos.
+//! Anti-DSL tokenizer generated with logos.
 //!
-//! Convierte texto fuente `.ag` en tokens posicionales. Los comentarios
-//! (`#` hasta fin de linea) y el whitespace se omiten automaticamente.
-//! Los tokens invalidos se acumulan como errores de lex sin detener el
-//! proceso; el parser recibe solo los tokens validos.
+//! Converts `.ag` source text into positional tokens. Comments
+//! (`#` until end of line) and whitespace are skipped automatically.
+//! Invalid tokens are accumulated as lex errors without stopping the
+//! process; the parser receives only the valid tokens.
 
 use logos::Logos;
 use std::ops::Range;
 
-/// Rango de bytes en el texto fuente (byte offset, no char offset).
+/// Byte range in the source text (byte offset, not char offset).
 pub type Span = Range<usize>;
 
-/// Tokens del Anti-DSL v0.1–v0.2.
+/// Anti-DSL v0.1–v0.2 tokens.
 ///
-/// Los `#[token(...)]` tienen prioridad sobre los `#[regex(...)]`, por lo que
-/// las palabras clave siempre se reconocen antes que el identificador generico.
+/// The `#[token(...)]` rules take precedence over `#[regex(...)]`, so that
+/// keywords are always recognized before the generic identifier.
 #[derive(Logos, Debug, Clone, PartialEq, Eq, Hash)]
 #[logos(skip r"[ \t\r\n\f]+")] // whitespace
-#[logos(skip r"#[^\r\n]*")] // comentarios de linea
+#[logos(skip r"#[^\r\n]*")] // line comments
 pub enum Token {
-    // ---- Palabras clave de estructura ----
-    /// Definicion de modelo: `model Nombre { ... }`
+    // ---- Structure keywords ----
+    /// Model definition: `model Name { ... }`
     #[token("model")]
     Model,
-    /// Bloque de configuracion: `config { ... }`
+    /// Configuration block: `config { ... }`
     #[token("config")]
     Config,
-    /// Definicion de enum (reservado para DSL v0.2+).
+    /// Enum definition (reserved for DSL v0.2+).
     #[token("enum")]
     Enum,
 
-    // ---- Tipos primitivos de campo ----
-    /// `UUID` — uuid::Uuid en Rust, string (uuid) en TypeScript.
+    // ---- Primitive field types ----
+    /// `UUID` — uuid::Uuid in Rust, string (uuid) in TypeScript.
     #[token("UUID")]
     TyUuid,
-    /// `String` — String en Rust, string en TypeScript.
+    /// `String` — String in Rust, string in TypeScript.
     #[token("String")]
     TyString,
-    /// `Int` — i64 en Rust, number en TypeScript.
+    /// `Int` — i64 in Rust, number in TypeScript.
     #[token("Int")]
     TyInt,
-    /// `Float` — f64 en Rust, number en TypeScript.
+    /// `Float` — f64 in Rust, number in TypeScript.
     #[token("Float")]
     TyFloat,
-    /// `Bool` — bool en Rust, boolean en TypeScript.
+    /// `Bool` — bool in Rust, boolean in TypeScript.
     #[token("Bool")]
     TyBool,
-    /// `Timestamp` — chrono::DateTime<Utc> en Rust, string (date-time) en TypeScript.
+    /// `Timestamp` — chrono::DateTime<Utc> in Rust, string (date-time) in TypeScript.
     #[token("Timestamp")]
     TyTimestamp,
-    /// `Decimal` — rust_decimal::Decimal en Rust, string (decimal) en TypeScript.
+    /// `Decimal` — rust_decimal::Decimal in Rust, string (decimal) in TypeScript.
     #[token("Decimal")]
     TyDecimal,
 
-    // ---- Palabras clave DSL v0.2 ----
-    /// `endpoint` — define un endpoint HTTP: metodo, path, body, response, errores.
+    // ---- DSL v0.2 keywords ----
+    /// `endpoint` — defines an HTTP endpoint: method, path, body, response, errors.
     #[token("endpoint")]
     Endpoint,
-    /// `request` — define el cuerpo de una peticion HTTP.
+    /// `request` — defines the body of an HTTP request.
     #[token("request")]
     Request,
-    /// `response` — define el cuerpo de una respuesta HTTP.
+    /// `response` — defines the body of an HTTP response.
     #[token("response")]
     Response,
-    /// `error` — define un tipo de error con codigo HTTP y mensaje.
+    /// `error` — defines an error type with HTTP code and message.
     #[token("error")]
     ErrorKw,
 
-    // ---- Metodos HTTP (DSL v0.2) ----
-    /// Metodo HTTP GET.
+    // ---- HTTP methods (DSL v0.2) ----
+    /// HTTP GET method.
     #[token("GET")]
     HttpGet,
-    /// Metodo HTTP POST.
+    /// HTTP POST method.
     #[token("POST")]
     HttpPost,
-    /// Metodo HTTP PUT.
+    /// HTTP PUT method.
     #[token("PUT")]
     HttpPut,
-    /// Metodo HTTP PATCH.
+    /// HTTP PATCH method.
     #[token("PATCH")]
     HttpPatch,
-    /// Metodo HTTP DELETE.
+    /// HTTP DELETE method.
     #[token("DELETE")]
     HttpDelete,
 
-    // ---- Anotaciones DSL v0.1 ----
-    /// `@primary` — clave primaria de la tabla.
+    // ---- DSL v0.1 annotations ----
+    /// `@primary` — primary key of the table.
     #[token("@primary")]
     AtPrimary,
-    /// `@unique` — restriccion UNIQUE en la base de datos.
+    /// `@unique` — UNIQUE constraint in the database.
     #[token("@unique")]
     AtUnique,
-    /// `@auto` — valor generado automaticamente (uuid, serial, NOW()).
+    /// `@auto` — automatically generated value (uuid, serial, NOW()).
     #[token("@auto")]
     AtAuto,
-    /// `@auto_update` — actualizado automaticamente en cada UPDATE.
+    /// `@auto_update` — automatically updated on every UPDATE.
     #[token("@auto_update")]
     AtAutoUpdate,
-    /// `@default(valor)` — valor por defecto.
+    /// `@default(value)` — default value.
     #[token("@default")]
     AtDefault,
 
-    // ---- Anotaciones DSL v0.3 — validacion ----
-    /// `@min(N)` — longitud minima (String) o valor minimo (numeros).
+    // ---- DSL v0.3 annotations — validation ----
+    /// `@min(N)` — minimum length (String) or minimum value (numbers).
     #[token("@min")]
     AtMin,
 
-    /// `@max(N)` — longitud maxima (String) o valor maximo (numeros).
+    /// `@max(N)` — maximum length (String) or maximum value (numbers).
     #[token("@max")]
     AtMax,
-    /// `@email` — valida que el valor sea un email valido.
+    /// `@email` — validates that the value is a valid email.
     #[token("@email")]
     AtEmail,
-    /// `@regex("patron")` — valida contra una expresion regular.
+    /// `@regex("pattern")` — validates against a regular expression.
     #[token("@regex")]
     AtRegex,
-    /// `@length(N)` — longitud exacta de caracteres (solo String).
+    /// `@length(N)` — exact character length (String only).
     #[token("@length")]
     AtLength,
 
-    // ---- Anotaciones DSL v0.4 — relaciones ----
-    /// `@references` — clave foranea hacia otro modelo.
+    // ---- DSL v0.4 annotations — relations ----
+    /// `@references` — foreign key to another model.
     #[token("@references")]
     AtReferences,
-    /// `@relation` — campo virtual de relacion.
+    /// `@relation` — virtual relation field.
     #[token("@relation")]
     AtRelation,
 
-    // ---- Palabras clave DSL v0.7 — correo y dominios ----
-    /// `mail` — bloque de configuracion de correo transaccional.
+    // ---- DSL v0.7 keywords — mail and domains ----
+    /// `mail` — transactional mail configuration block.
     #[token("mail")]
     Mail,
-    /// `domain` — bloque de configuracion DNS de un dominio.
+    /// `domain` — DNS configuration block for a domain.
     #[token("domain")]
     Domain,
-    /// `template` — sub-bloque de template de correo dentro de un bloque `mail`.
+    /// `template` — mail template sub-block inside a `mail` block.
     #[token("template")]
     Template,
 
-    // ---- Palabras clave DSL v0.5+v0.6 — autenticacion y eventos ----
-    /// `auth` — bloque de autenticacion/autorizacion sobre un endpoint o modelo.
+    // ---- DSL v0.5+v0.6 keywords — authentication and events ----
+    /// `auth` — authentication/authorization block on an endpoint or model.
     #[token("auth")]
     Auth,
-    /// `required` — el campo o bloque es obligatorio.
+    /// `required` — the field or block is mandatory.
     #[token("required")]
     Required,
-    /// `optional` — el campo o bloque es opcional.
+    /// `optional` — the field or block is optional.
     #[token("optional")]
     Optional,
-    /// `policy` — define una politica de control de acceso.
+    /// `policy` — defines an access control policy.
     #[token("policy")]
     Policy,
-    /// `event` — define un evento del dominio emitido por el sistema.
+    /// `event` — defines a domain event emitted by the system.
     #[token("event")]
     Event,
-    /// `retain` — indica la politica de retencion de datos de un evento.
+    /// `retain` — indicates the data retention policy of an event.
     #[token("retain")]
     Retain,
 
-    // ---- Literales ----
-    /// Literal entero: `42`, `255`, `0`.
-    /// Si el valor supera i64::MAX, logos descarta el token y genera un error lexico.
+    // ---- Literals ----
+    /// Integer literal: `42`, `255`, `0`.
+    /// If the value exceeds i64::MAX, logos discards the token and emits a lex error.
     #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().ok())]
     IntLit(i64),
 
-    /// Literal de path HTTP: `/users`, `/users/{id}`, `/a/b/{c}`.
-    /// Empieza siempre con `/`; captura letras, digitos, `_`, `-`, `{`, `}`, `.`.
+    /// HTTP path literal: `/users`, `/users/{id}`, `/a/b/{c}`.
+    /// Always starts with `/`; captures letters, digits, `_`, `-`, `{`, `}`, `.`.
     #[regex(r"/[a-zA-Z0-9_\-{}/\.]*", |lex| lex.slice().to_owned())]
     PathLit(String),
 
-    /// Literal string entre comillas dobles: `"hola"`.
-    /// Los escapes basicos (`\"`, `\\`) estan soportados en el regex;
-    /// la validacion de escapes complejos pertenece al semantic pass.
+    /// String literal between double quotes: `"hola"`.
+    /// Basic escapes (`\"`, `\\`) are supported in the regex;
+    /// validation of complex escapes belongs to the semantic pass.
     #[regex(r#""([^"\\]|\\.)*""#, |lex| {
         let s = lex.slice();
         s[1..s.len() - 1].to_owned()
     })]
     StringLit(String),
 
-    /// Literal booleano `true`.
+    /// Boolean literal `true`.
     #[token("true")]
     True,
-    /// Literal booleano `false`.
+    /// Boolean literal `false`.
     #[token("false")]
     False,
 
-    // ---- Identificador generico ----
-    /// Nombre de modelo, campo, variante de enum, etc.
-    /// Debe ir despues de todos los `#[token]` para no capturar keywords.
+    // ---- Generic identifier ----
+    /// Name of a model, field, enum variant, etc.
+    /// Must come after all `#[token]` rules so it does not capture keywords.
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_owned())]
     Ident(String),
 
-    // ---- Puntuacion ----
+    // ---- Punctuation ----
     #[token("{")]
     LBrace,
     #[token("}")]
@@ -206,19 +206,19 @@ pub enum Token {
     LBracket,
     #[token("]")]
     RBracket,
-    /// Campo opcional: `Nombre String?`
+    /// Optional field: `Name String?`
     #[token("?")]
     Question,
-    /// Punto: separador en `@references(Modelo.campo)` y `@relation(modelo.campo)`.
+    /// Dot: separator in `@references(Model.field)` and `@relation(model.field)`.
     #[token(".")]
     Dot,
 }
 
-/// Resultado de tokenizar el texto fuente.
+/// Result of tokenizing the source text.
 ///
-/// Retorna dos vectores:
-/// - `tokens`: tokens validos con su span de bytes.
-/// - `errors`: spans de caracteres no reconocidos.
+/// Returns two vectors:
+/// - `tokens`: valid tokens with their byte span.
+/// - `errors`: spans of unrecognized characters.
 pub fn tokenize(source: &str) -> (Vec<(Token, Span)>, Vec<Span>) {
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
@@ -353,9 +353,9 @@ mod tests {
     #[test]
     fn invalid_char_produces_error() {
         let (toks, errs) = tokenize("model @ User");
-        // '@' solo no es un token valido; '@primary' etc si.
+        // '@' alone is not a valid token; '@primary' etc. are.
         assert!(!errs.is_empty());
-        // Los tokens validos si se extraen
+        // The valid tokens are still extracted
         assert!(toks.iter().any(|(t, _)| *t == Token::Model));
     }
 

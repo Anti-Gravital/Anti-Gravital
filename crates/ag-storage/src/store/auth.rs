@@ -1,10 +1,10 @@
-//! Middleware de autenticacion Bearer token para el servidor HTTP.
+//! Bearer token authentication middleware for the HTTP server.
 //!
-//! Sin feature `auth`: compara el token contra `STORE_TOKEN` (string estatico).
-//! Con feature `auth`: valida el Bearer como JWT Ed25519 via `ag-auth` (TECH-DEBT).
+//! Without feature `auth`: compares the token against `STORE_TOKEN` (static string).
+//! With feature `auth`: validates the Bearer as JWT Ed25519 via `ag-auth` (TECH-DEBT).
 //!
-//! Si el token configurado esta vacio, el servidor acepta todas las peticiones
-//! sin autenticacion (modo desarrollo).
+//! If the configured token is empty, the server accepts all requests
+//! without authentication (development mode).
 
 use axum::{
     body::Body,
@@ -15,22 +15,22 @@ use axum::{
 };
 use std::sync::Arc;
 
-/// Estado del middleware: el token Bearer estatico configurado.
+/// Middleware state: the configured static Bearer token.
 ///
-/// Si el string es vacio, el servidor funciona sin autenticacion (modo dev).
+/// If the string is empty, the server operates without authentication (dev mode).
 pub type AuthToken = Arc<String>;
 
-/// Middleware Axum que exige `Authorization: Bearer <token>`.
+/// Axum middleware that requires `Authorization: Bearer <token>`.
 ///
-/// Se aplica a nivel de `Router`, no por ruta individual, para que cualquier
-/// ruta nueva herede la proteccion automaticamente.
+/// Applied at `Router` level, not per individual route, so that any
+/// new route inherits the protection automatically.
 pub async fn bearer_auth_middleware(
     State(token): State<AuthToken>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
     if token.is_empty() {
-        // Modo desarrollo: token vacio = sin autenticacion requerida.
+        // Dev mode: empty token = no authentication required.
         return next.run(request).await;
     }
 

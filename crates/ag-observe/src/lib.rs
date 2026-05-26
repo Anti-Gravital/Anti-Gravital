@@ -1,29 +1,29 @@
-//! Observabilidad nativa para el ecosistema Anti-Gravital.
+//! Native observability for the Anti-Gravital ecosystem.
 //!
-//! Configura el subscriber global de `tracing` con logging estructurado,
-//! exportacion OpenTelemetry (OTLP) y metricas Prometheus. Incluye dashboards
-//! Grafana pre-configurados en `dashboards/`.
+//! Configures the global `tracing` subscriber with structured logging,
+//! OpenTelemetry (OTLP) export and Prometheus metrics. Includes
+//! pre-configured Grafana dashboards in `dashboards/`.
 //!
-//! # Uso minimo
+//! # Minimal usage
 //!
 //! ```no_run
 //! use ag_observe::{ObserveConfig, init};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! init(&ObserveConfig::from_env())?;
-//! tracing::info!("servicio iniciado");
+//! tracing::info!("service started");
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! # Variables de entorno
+//! # Environment variables
 //!
-//! | Variable | Default | Descripcion |
+//! | Variable | Default | Description |
 //! |---|---|---|
-//! | `LOG_FORMAT` | `pretty` | Formato de logs: `pretty` o `json` |
-//! | `PROMETHEUS_PORT` | `9090` | Puerto donde se expone `/metrics` |
-//! | `OTEL_EXPORTER_OTLP_ENDPOINT` | ninguno | Endpoint OTLP para trazas |
-//! | `AG_DEV_CONSOLE` | `false` | Habilita tokio-console (feature `dev-console`) |
+//! | `LOG_FORMAT` | `pretty` | Log format: `pretty` or `json` |
+//! | `PROMETHEUS_PORT` | `9090` | Port where `/metrics` is exposed |
+//! | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | OTLP endpoint for traces |
+//! | `AG_DEV_CONSOLE` | `false` | Enables tokio-console (feature `dev-console`) |
 
 pub mod config;
 pub mod layer;

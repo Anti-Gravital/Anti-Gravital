@@ -1,8 +1,8 @@
-//! Modelos de datos de la todo-api.
+//! Data models for the todo-api.
 
 use serde::{Deserialize, Serialize};
 
-/// Tarea almacenada en la base de datos.
+/// Task stored in the database.
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct Todo {
     pub id: i64,
@@ -10,13 +10,13 @@ pub struct Todo {
     pub done: bool,
 }
 
-/// Payload para crear una tarea nueva.
+/// Payload to create a new task.
 #[derive(Debug, Deserialize)]
 pub struct CreateTodo {
     pub title: String,
 }
 
-/// Payload para actualizar una tarea existente.
+/// Payload to update an existing task.
 #[derive(Debug, Deserialize)]
 pub struct UpdateTodo {
     pub title: Option<String>,

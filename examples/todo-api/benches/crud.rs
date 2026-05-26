@@ -1,29 +1,29 @@
-//! Benchmark CRUD + PostgreSQL del todo-api.
+//! CRUD + PostgreSQL benchmark for todo-api.
 //!
-//! Mide la latencia y el throughput de las cinco operaciones elementales
-//! (INSERT, SELECT list, SELECT one, UPDATE, DELETE) directamente contra
-//! el pool de sqlx, sin capa HTTP. Esto da el limite inferior de latencia
-//! antes de que el overhead de red y Axum entren en juego.
+//! Measures the latency and throughput of the five elementary operations
+//! (INSERT, SELECT list, SELECT one, UPDATE, DELETE) directly against
+//! the sqlx pool, without the HTTP layer. This gives the lower latency bound
+//! before network and Axum overhead come into play.
 //!
-//! El benchmark HTTP de carga (objetivo >= 40 K req/s con oha/wrk contra
-//! el servidor en ejecucion) se documenta por separado en:
+//! The HTTP load benchmark (target >= 40 K req/s with oha/wrk against
+//! the running server) is documented separately in:
 //!   docs/benchmarks/measurement-fase-2-crud.md
 //!
-//! # Requisitos
+//! # Requirements
 //!
-//! - PostgreSQL accesible.
-//! - Variable de entorno DATABASE_URL apuntando a una base de datos de bench.
-//!   Se recomienda una base dedicada para no interferir con datos de desarrollo.
+//! - PostgreSQL accessible.
+//! - DATABASE_URL environment variable pointing to a bench database.
+//!   A dedicated database is recommended to avoid interfering with development data.
 //!
-//! # Ejecucion
+//! # Running
 //!
 //! ```sh
 //! export DATABASE_URL="postgresql://postgres:postgres@localhost/todos_bench"
 //! cargo bench -p todo-api --bench crud 2>&1 | tee /tmp/bench-crud.txt
 //! ```
 //!
-//! Si DATABASE_URL no esta definida, todos los benchmarks se saltan con un
-//! aviso y el proceso termina con exito (compatible con CI sin base de datos).
+//! If DATABASE_URL is not defined, all benchmarks are skipped with a
+//! warning and the process exits successfully (compatible with CI without a database).
 
 #![allow(missing_docs)]
 
@@ -32,14 +32,14 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use tokio::runtime::Runtime;
 
-// --- Infraestructura --------------------------------------------------------
+// --- Infrastructure ---------------------------------------------------------
 
 fn build_runtime() -> Runtime {
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()
         .build()
-        .expect("no se pudo construir el runtime Tokio")
+        .expect("failed to build the Tokio runtime")
 }
 
 fn connect_and_prepare(rt: &Runtime) -> Option<PgPool> {
@@ -47,9 +47,9 @@ fn connect_and_prepare(rt: &Runtime) -> Option<PgPool> {
         Ok(u) => u,
         Err(_) => {
             eprintln!(
-                "\n[crud bench] DATABASE_URL no definida; todos los benchmarks se omiten.\n\
-                 Define DATABASE_URL para ejecutar contra PostgreSQL real.\n\
-                 Ejemplo:\n\
+                "\n[crud bench] DATABASE_URL not defined; all benchmarks are skipped.\n\
+                 Set DATABASE_URL to run against a real PostgreSQL instance.\n\
+                 Example:\n\
                    export DATABASE_URL=\"postgresql://postgres:postgres@localhost/todos_bench\"\n\
                    cargo bench -p todo-api --bench crud\n"
             );
@@ -63,9 +63,9 @@ fn connect_and_prepare(rt: &Runtime) -> Option<PgPool> {
             .min_connections(4)
             .connect(&url)
             .await
-            .expect("fallo la conexion a PostgreSQL — verifica DATABASE_URL");
+            .expect("failed to connect to PostgreSQL — check DATABASE_URL");
 
-        // Tabla de bench aislada de la tabla de produccion.
+        // Bench table isolated from the production table.
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS bench_todos (
                 id    BIGSERIAL PRIMARY KEY,
@@ -75,19 +75,19 @@ fn connect_and_prepare(rt: &Runtime) -> Option<PgPool> {
         )
         .execute(&pool)
         .await
-        .expect("fallo la creacion de bench_todos");
+        .expect("failed to create bench_todos");
 
-        // Estado limpio antes del benchmark.
+        // Clean state before the benchmark.
         sqlx::query("TRUNCATE bench_todos RESTART IDENTITY")
             .execute(&pool)
             .await
-            .expect("fallo el truncate de bench_todos");
+            .expect("failed to truncate bench_todos");
 
         pool
     }))
 }
 
-// --- Benchmarks individuales ------------------------------------------------
+// --- Individual benchmarks --------------------------------------------------
 
 fn bench_insert(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
     let mut group = c.benchmark_group("crud/insert");
@@ -99,10 +99,10 @@ fn bench_insert(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                 sqlx::query_scalar::<_, i64>(
                     "INSERT INTO bench_todos (title) VALUES ($1) RETURNING id",
                 )
-                .bind("tarea de benchmark")
+                .bind("benchmark task")
                 .fetch_one(pool)
                 .await
-                .expect("fallo insert")
+                .expect("insert failed")
             })
         });
     });
@@ -111,14 +111,14 @@ fn bench_insert(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
 }
 
 fn bench_select_list(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
-    // Pre-carga filas para que la tabla no este vacia durante SELECT.
+    // Pre-load rows so the table is not empty during SELECT.
     rt.block_on(async {
         for i in 0..100i32 {
             sqlx::query("INSERT INTO bench_todos (title) VALUES ($1)")
-                .bind(format!("precarga {i}"))
+                .bind(format!("preload {i}"))
                 .execute(pool)
                 .await
-                .expect("fallo precarga");
+                .expect("preload failed");
         }
     });
 
@@ -133,7 +133,7 @@ fn bench_select_list(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                 )
                 .fetch_all(pool)
                 .await
-                .expect("fallo select list")
+                .expect("select list failed")
             })
         });
     });
@@ -147,7 +147,7 @@ fn bench_select_list(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                 .bind(1i64)
                 .fetch_optional(pool)
                 .await
-                .expect("fallo select one")
+                .expect("select one failed")
             })
         });
     });
@@ -166,7 +166,7 @@ fn bench_update(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                     .bind(1i64)
                     .execute(pool)
                     .await
-                    .expect("fallo update")
+                    .expect("update failed")
             })
         });
     });
@@ -178,23 +178,23 @@ fn bench_delete(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
     let mut group = c.benchmark_group("crud/delete");
     group.throughput(Throughput::Elements(1));
 
-    // El delete borra una fila real; re-inserta antes de cada iteracion.
+    // Delete removes a real row; re-inserts before each iteration.
     group.bench_function("delete_one", |b| {
         b.iter(|| {
             rt.block_on(async {
                 let id = sqlx::query_scalar::<_, i64>(
                     "INSERT INTO bench_todos (title) VALUES ($1) RETURNING id",
                 )
-                .bind("fila efimera")
+                .bind("ephemeral row")
                 .fetch_one(pool)
                 .await
-                .expect("fallo insert antes de delete");
+                .expect("insert before delete failed");
 
                 sqlx::query("DELETE FROM bench_todos WHERE id = $1")
                     .bind(id)
                     .execute(pool)
                     .await
-                    .expect("fallo delete")
+                    .expect("delete failed")
             })
         });
     });
@@ -203,9 +203,9 @@ fn bench_delete(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
 }
 
 fn bench_full_cycle(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
-    // Ciclo completo: INSERT -> SELECT -> UPDATE -> DELETE.
-    // Este es el benchmark canonico para el criterio >= 40 K req/s de Fase 2.
-    // 1 iteracion = 4 operaciones DB (throughput = 4x elementos).
+    // Full cycle: INSERT -> SELECT -> UPDATE -> DELETE.
+    // This is the canonical benchmark for the Fase 2 >= 40 K req/s criterion.
+    // 1 iteration = 4 DB operations (throughput = 4x elements).
 
     let mut group = c.benchmark_group("crud/full_cycle");
     group.throughput(Throughput::Elements(4));
@@ -217,10 +217,10 @@ fn bench_full_cycle(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                 let id = sqlx::query_scalar::<_, i64>(
                     "INSERT INTO bench_todos (title) VALUES ($1) RETURNING id",
                 )
-                .bind("ciclo completo")
+                .bind("full cycle")
                 .fetch_one(pool)
                 .await
-                .expect("fallo insert del ciclo");
+                .expect("cycle insert failed");
 
                 // SELECT one
                 sqlx::query_as::<_, (i64, String, bool)>(
@@ -229,21 +229,21 @@ fn bench_full_cycle(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                 .bind(id)
                 .fetch_one(pool)
                 .await
-                .expect("fallo select del ciclo");
+                .expect("cycle select failed");
 
                 // UPDATE
                 sqlx::query("UPDATE bench_todos SET done = TRUE WHERE id = $1")
                     .bind(id)
                     .execute(pool)
                     .await
-                    .expect("fallo update del ciclo");
+                    .expect("cycle update failed");
 
                 // DELETE
                 sqlx::query("DELETE FROM bench_todos WHERE id = $1")
                     .bind(id)
                     .execute(pool)
                     .await
-                    .expect("fallo delete del ciclo")
+                    .expect("cycle delete failed")
             })
         });
     });
@@ -251,8 +251,8 @@ fn bench_full_cycle(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
     group.finish();
 }
 
-// Benchmark de concurrencia: N tareas async en paralelo midiendo throughput
-// agregado. Simula carga sostenida real con conexiones concurrentes.
+// Concurrency benchmark: N concurrent async tasks measuring aggregate throughput.
+// Simulates real sustained load with concurrent connections.
 fn bench_concurrent(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
     let mut group = c.benchmark_group("crud/concurrent");
 
@@ -274,19 +274,19 @@ fn bench_concurrent(c: &mut Criterion, rt: &Runtime, pool: &PgPool) {
                                     .bind("concurrent task")
                                     .fetch_one(&pool)
                                     .await
-                                    .expect("fallo insert concurrente");
+                                    .expect("concurrent insert failed");
 
                                     sqlx::query("DELETE FROM bench_todos WHERE id = $1")
                                         .bind(id)
                                         .execute(&pool)
                                         .await
-                                        .expect("fallo delete concurrente");
+                                        .expect("concurrent delete failed");
                                 })
                             })
                             .collect();
 
                         for h in handles {
-                            h.await.expect("tarea concurrente fallo con panic");
+                            h.await.expect("concurrent task panicked");
                         }
                     })
                 });
@@ -313,7 +313,7 @@ fn run_all(c: &mut Criterion) {
     bench_full_cycle(c, &rt, &pool);
     bench_concurrent(c, &rt, &pool);
 
-    // Limpieza final.
+    // Final cleanup.
     rt.block_on(async {
         let _ = sqlx::query("DROP TABLE IF EXISTS bench_todos")
             .execute(&pool)

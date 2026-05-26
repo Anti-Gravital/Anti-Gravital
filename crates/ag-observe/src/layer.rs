@@ -1,14 +1,14 @@
-//! Construccion del subscriber compuesto de tracing.
+//! Construction of the composed tracing subscriber.
 
 use crate::config::{LogFormat, ObserveConfig};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-/// Error de inicializacion del subsistema de observabilidad.
+/// Initialization error for the observability subsystem.
 #[derive(Debug)]
 pub enum ObserveError {
-    /// El subscriber global ya fue inicializado.
+    /// The global subscriber was already initialized.
     AlreadyInitialized,
-    /// Error configurando el exporter OTLP.
+    /// Error configuring the OTLP exporter.
     OtlpSetup(String),
 }
 
@@ -16,27 +16,27 @@ impl std::fmt::Display for ObserveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ObserveError::AlreadyInitialized => {
-                write!(f, "el subscriber de tracing ya fue inicializado")
+                write!(f, "the tracing subscriber was already initialized")
             }
-            ObserveError::OtlpSetup(msg) => write!(f, "error configurando OTLP: {msg}"),
+            ObserveError::OtlpSetup(msg) => write!(f, "error configuring OTLP: {msg}"),
         }
     }
 }
 
 impl std::error::Error for ObserveError {}
 
-/// Inicializa el subsistema de observabilidad.
+/// Initializes the observability subsystem.
 ///
-/// Configura el subscriber global de `tracing` con layers para logging
-/// estructurado, exportacion OTLP (si esta configurada) y metricas Prometheus.
+/// Configures the global `tracing` subscriber with layers for structured
+/// logging, OTLP export (if configured) and Prometheus metrics.
 ///
-/// Debe llamarse una sola vez al inicio del proceso, antes de cualquier
-/// invocacion a macros de tracing.
+/// Must be called only once at process startup, before any
+/// invocation of tracing macros.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Retorna [`ObserveError::AlreadyInitialized`] si el subscriber global
-/// ya fue configurado por una llamada anterior.
+/// Returns [`ObserveError::AlreadyInitialized`] if the global subscriber
+/// was already configured by a previous call.
 pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -58,30 +58,30 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
     }
 
     // TECH-DEBT:
-    // motivo: La integracion completa de opentelemetry-otlp requiere un
-    //         runtime tokio activo en el momento de llamar a init(). El
-    //         exporter OTLP real se omite aqui para no forzar una
-    //         dependencia de runtime en el punto de inicializacion.
-    // impacto: El campo otlp_endpoint se lee y se loguea pero no se
-    //          conecta ningun exporter. Las trazas no se exportan via OTLP.
-    // eliminacion esperada: Fase 4, iteracion ag-observe v0.2, cuando se
-    //          establezca el patron de inicializacion asincrona del proceso.
+    // motivo: Full opentelemetry-otlp integration requires an active tokio
+    //         runtime at the time init() is called. The real OTLP exporter
+    //         is omitted here to avoid forcing a runtime dependency at the
+    //         initialization point.
+    // impacto: The otlp_endpoint field is read and logged but no exporter
+    //          is connected. Traces are not exported via OTLP.
+    // eliminacion esperada: Phase 4, iteration ag-observe v0.2, when the
+    //          async process initialization pattern is established.
     if config.otlp_endpoint.is_some() {
         tracing::warn!(
             otlp_endpoint = config.otlp_endpoint.as_deref(),
-            "otlp_endpoint configurado pero el exporter OTLP no esta activo en esta version"
+            "otlp_endpoint configured but the OTLP exporter is not active in this version"
         );
     }
 
-    // Inicializar el exporter Prometheus globalmente
+    // Install the Prometheus exporter globally
     metrics_exporter_prometheus::PrometheusBuilder::new()
         .install()
-        .ok(); // Si ya esta instalado, ignorar silenciosamente
+        .ok(); // If already installed, silently ignore
 
     tracing::info!(
         prometheus_port = config.prometheus_port,
         otlp = config.otlp_endpoint.is_some(),
-        "observabilidad inicializada"
+        "observability initialized"
     );
 
     Ok(())
@@ -94,8 +94,8 @@ mod tests {
 
     #[test]
     fn init_does_not_panic_with_default_config() {
-        // init() puede fallar con AlreadyInitialized si otro test lo llamo antes
-        // pero nunca debe panic
+        // init() may fail with AlreadyInitialized if another test called it first
+        // but should never panic
         let result = init(&ObserveConfig::default());
         assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
     }
@@ -125,12 +125,12 @@ mod tests {
     #[test]
     fn already_initialized_error_displays_correctly() {
         let e = ObserveError::AlreadyInitialized;
-        assert!(e.to_string().contains("inicializado"));
+        assert!(e.to_string().contains("initialized"));
     }
 
     #[test]
     fn otlp_setup_error_displays_correctly() {
-        let e = ObserveError::OtlpSetup("fallo".to_string());
-        assert!(e.to_string().contains("fallo"));
+        let e = ObserveError::OtlpSetup("failed".to_string());
+        assert!(e.to_string().contains("failed"));
     }
 }

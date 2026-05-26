@@ -1,7 +1,7 @@
-//! Relying Party FIDO2/WebAuthn para Anti-Gravital.
+//! FIDO2/WebAuthn Relying Party for Anti-Gravital.
 //!
-//! Soporta attestation "none" (la mas comun en web). Las attestations
-//! "packed", "tpm" y "android-key" quedan fuera de scope.
+//! Supports "none" attestation (the most common on the web). The
+//! "packed", "tpm", and "android-key" attestations are out of scope.
 
 use base64ct::{Base64Url, Encoding};
 use sha2::{Digest, Sha256};
@@ -12,93 +12,93 @@ use std::time::{Duration, Instant};
 // Tipos publicos
 // ---------------------------------------------------------------------------
 
-/// Credencial almacenada tras el registro exitoso de un passkey.
+/// Credential stored after successful passkey registration.
 #[derive(Debug, Clone)]
 pub struct StoredCredential {
-    /// ID de la credencial (bytes del autenticador).
+    /// Credential ID (bytes from the authenticator).
     pub credential_id: Vec<u8>,
-    /// Clave publica en formato COSE (CBOR).
+    /// Public key in COSE (CBOR) format.
     pub cose_public_key: Vec<u8>,
-    /// Contador de firmas para detectar clonacion.
+    /// Signature counter for clone detection.
     pub sign_count: u32,
-    /// Handle del usuario propietario de la credencial.
+    /// Handle of the user who owns the credential.
     pub user_handle: String,
 }
 
-/// Respuesta de la fase de registro enviada por el navegador.
+/// Registration phase response sent by the browser.
 pub struct RegistrationResponse {
-    /// ID de la credencial en Base64Url.
+    /// Credential ID in Base64Url.
     pub id: String,
-    /// clientDataJSON codificado como bytes crudos (no Base64).
+    /// clientDataJSON encoded as raw bytes (not Base64).
     pub client_data_json: Vec<u8>,
-    /// attestationObject codificado como bytes crudos (no Base64).
+    /// attestationObject encoded as raw bytes (not Base64).
     pub attestation_object: Vec<u8>,
 }
 
-/// Respuesta de la fase de autenticacion enviada por el navegador.
+/// Authentication phase response sent by the browser.
 pub struct AuthenticationResponse {
-    /// ID de la credencial que firmo el assertion.
+    /// Credential ID that signed the assertion.
     pub credential_id: Vec<u8>,
-    /// clientDataJSON como bytes crudos.
+    /// clientDataJSON as raw bytes.
     pub client_data_json: Vec<u8>,
-    /// authenticatorData como bytes crudos.
+    /// authenticatorData as raw bytes.
     pub authenticator_data: Vec<u8>,
-    /// Firma DER del assertion.
+    /// DER signature of the assertion.
     pub signature: Vec<u8>,
 }
 
-/// Challenge enviado al cliente para iniciar el registro.
+/// Challenge sent to the client to start registration.
 pub struct RegistrationChallenge {
-    /// Challenge en Base64Url (para incluir en la respuesta).
+    /// Challenge in Base64Url (to include in the response).
     pub challenge_b64: String,
-    /// PublicKeyCredentialCreationOptions serializado como JSON.
+    /// PublicKeyCredentialCreationOptions serialized as JSON.
     pub options_json: serde_json::Value,
 }
 
-/// Challenge enviado al cliente para iniciar la autenticacion.
+/// Challenge sent to the client to start authentication.
 pub struct AuthenticationChallenge {
-    /// Challenge en Base64Url.
+    /// Challenge in Base64Url.
     pub challenge_b64: String,
-    /// PublicKeyCredentialRequestOptions serializado como JSON.
+    /// PublicKeyCredentialRequestOptions serialized as JSON.
     pub options_json: serde_json::Value,
 }
 
-/// Error del subsistema WebAuthn.
+/// WebAuthn subsystem error.
 #[derive(Debug, thiserror::Error)]
 pub enum WebAuthnError {
-    /// Challenge no encontrado o expirado.
-    #[error("challenge no encontrado o expirado")]
+    /// Challenge not found or expired.
+    #[error("challenge not found or expired")]
     ChallengeNotFound,
-    /// Origen invalido.
-    #[error("origen invalido: esperado {expected}, recibido {received}")]
+    /// Invalid origin.
+    #[error("invalid origin: expected {expected}, received {received}")]
     InvalidOrigin {
-        /// Origen esperado por el RP.
+        /// Origin expected by the RP.
         expected: String,
-        /// Origen recibido del autenticador.
+        /// Origin received from the authenticator.
         received: String,
     },
-    /// rp_id hash no coincide.
-    #[error("rp_id hash no coincide")]
+    /// rp_id hash mismatch.
+    #[error("rp_id hash mismatch")]
     InvalidRpId,
-    /// Flag de usuario presente no activo.
-    #[error("flag de usuario presente no activo")]
+    /// User-present flag not set.
+    #[error("user-present flag not set")]
     UserNotPresent,
-    /// Firma invalida.
-    #[error("firma invalida")]
+    /// Invalid signature.
+    #[error("invalid signature")]
     InvalidSignature,
-    /// Tipo de operacion invalido.
-    #[error("tipo de operacion invalido: {0}")]
+    /// Invalid operation type.
+    #[error("invalid operation type: {0}")]
     InvalidType(String),
-    /// Formato invalido.
-    #[error("formato invalido: {0}")]
+    /// Invalid format.
+    #[error("invalid format: {0}")]
     Format(String),
-    /// Algoritmo COSE no soportado.
-    #[error("algoritmo COSE no soportado: {0}")]
+    /// Unsupported COSE algorithm.
+    #[error("unsupported COSE algorithm: {0}")]
     UnsupportedAlgorithm(i64),
 }
 
 // ---------------------------------------------------------------------------
-// Internos
+// Internals
 // ---------------------------------------------------------------------------
 
 struct PendingCeremony {
@@ -118,10 +118,10 @@ struct ParsedAuthData {
 // WebAuthnRp
 // ---------------------------------------------------------------------------
 
-/// Relying Party FIDO2/WebAuthn.
+/// FIDO2/WebAuthn Relying Party.
 ///
-/// Gestiona challenges pendientes y verifica las respuestas del autenticador.
-/// Estado en memoria — no persistente entre reinicios del proceso.
+/// Manages pending challenges and verifies authenticator responses.
+/// In-memory state — not persistent across process restarts.
 pub struct WebAuthnRp {
     rp_id: String,
     origin: String,
@@ -129,7 +129,7 @@ pub struct WebAuthnRp {
 }
 
 impl WebAuthnRp {
-    /// Crea un nuevo RP con el identificador y el origen dados.
+    /// Creates a new RP with the given identifier and origin.
     pub fn new(rp_id: String, origin: String) -> Self {
         Self {
             rp_id,
@@ -138,14 +138,14 @@ impl WebAuthnRp {
         }
     }
 
-    /// Genera un challenge de registro y lo devuelve junto con las opciones para el cliente.
+    /// Generates a registration challenge and returns it along with the options for the client.
     pub fn start_registration(
         &mut self,
         user_handle: &str,
         display_name: &str,
     ) -> RegistrationChallenge {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes).expect("entopia del sistema");
+        getrandom::getrandom(&mut challenge_bytes).expect("system entropy");
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -178,7 +178,7 @@ impl WebAuthnRp {
         }
     }
 
-    /// Finaliza el registro verificando la respuesta del autenticador.
+    /// Finalizes registration by verifying the authenticator response.
     pub fn finish_registration(
         &mut self,
         user_handle: &str,
@@ -196,10 +196,10 @@ impl WebAuthnRp {
         }
         let cred_id = auth_data
             .cred_id
-            .ok_or_else(|| WebAuthnError::Format("sin credentialId".into()))?;
+            .ok_or_else(|| WebAuthnError::Format("missing credentialId".into()))?;
         let cose_key = auth_data
             .cose_public_key
-            .ok_or_else(|| WebAuthnError::Format("sin clave COSE".into()))?;
+            .ok_or_else(|| WebAuthnError::Format("missing COSE key".into()))?;
 
         Ok(StoredCredential {
             credential_id: cred_id,
@@ -209,14 +209,14 @@ impl WebAuthnRp {
         })
     }
 
-    /// Genera un challenge de autenticacion.
+    /// Generates an authentication challenge.
     pub fn start_authentication(
         &mut self,
         user_handle: &str,
         creds: &[StoredCredential],
     ) -> AuthenticationChallenge {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes).expect("entopia del sistema");
+        getrandom::getrandom(&mut challenge_bytes).expect("system entropy");
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -250,7 +250,7 @@ impl WebAuthnRp {
         }
     }
 
-    /// Verifica la respuesta de autenticacion y retorna el user_handle si es valida.
+    /// Verifies the authentication response and returns the user_handle if valid.
     pub fn finish_authentication(
         &mut self,
         user_handle: &str,
@@ -263,7 +263,7 @@ impl WebAuthnRp {
         let cred = creds
             .iter_mut()
             .find(|c| c.credential_id == response.credential_id)
-            .ok_or_else(|| WebAuthnError::Format("credencial no encontrada".into()))?;
+            .ok_or_else(|| WebAuthnError::Format("credential not found".into()))?;
 
         let client_data = parse_client_data(&response.client_data_json)?;
         verify_type(&client_data, "webauthn.get")?;
@@ -293,7 +293,7 @@ impl WebAuthnRp {
         Ok(cred.user_handle.clone())
     }
 
-    /// Elimina challenges con mas de `max_age_secs` segundos.
+    /// Removes challenges older than `max_age_secs` seconds.
     pub fn purge_expired_challenges(&mut self, max_age_secs: u64) {
         let max_age = Duration::from_secs(max_age_secs);
         self.pending.retain(|_, v| v.created_at.elapsed() < max_age);
@@ -330,7 +330,7 @@ impl WebAuthnRp {
 }
 
 // ---------------------------------------------------------------------------
-// Funciones de parseo
+// Parsing functions
 // ---------------------------------------------------------------------------
 
 fn parse_client_data(bytes: &[u8]) -> Result<serde_json::Value, WebAuthnError> {
@@ -351,7 +351,7 @@ fn verify_challenge(
 ) -> Result<(), WebAuthnError> {
     let ch_b64 = client_data["challenge"].as_str().unwrap_or("");
     let got = Base64Url::decode_vec(ch_b64)
-        .map_err(|_| WebAuthnError::Format("challenge base64 invalido".into()))?;
+        .map_err(|_| WebAuthnError::Format("invalid base64 challenge".into()))?;
     if got != expected_bytes {
         return Err(WebAuthnError::ChallengeNotFound);
     }
@@ -367,7 +367,7 @@ fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnErro
         ciborium::value::Value::Map(m) => m,
         _ => {
             return Err(WebAuthnError::Format(
-                "attestationObject no es un mapa".into(),
+                "attestationObject is not a map".into(),
             ))
         }
     };
@@ -376,7 +376,7 @@ fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnErro
         .iter()
         .find(|(k, _)| k == &ciborium::value::Value::Text("authData".into()))
         .and_then(|(_, v)| v.as_bytes().map(|b| b.to_vec()))
-        .ok_or_else(|| WebAuthnError::Format("authData ausente".into()))?;
+        .ok_or_else(|| WebAuthnError::Format("authData absent".into()))?;
 
     parse_raw_auth_data(&auth_data_bytes)
 }
@@ -384,7 +384,7 @@ fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnErro
 /// Parsea authData binario (37+ bytes).
 fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError> {
     if auth_data.len() < 37 {
-        return Err(WebAuthnError::Format("authData demasiado corto".into()));
+        return Err(WebAuthnError::Format("authData too short".into()));
     }
     let rp_id_hash: [u8; 32] = auth_data[0..32].try_into().unwrap();
     let flags = auth_data[32];
@@ -395,12 +395,12 @@ fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError
     let (cred_id, cose_public_key) = if at && auth_data.len() > 37 {
         let rest = &auth_data[37..];
         if rest.len() < 18 {
-            return Err(WebAuthnError::Format("attestedCredentialData corto".into()));
+            return Err(WebAuthnError::Format("attestedCredentialData too short".into()));
         }
         let cred_id_len = u16::from_be_bytes([rest[16], rest[17]]) as usize;
         let start = 18 + cred_id_len;
         if rest.len() < start {
-            return Err(WebAuthnError::Format("credentialId corto".into()));
+            return Err(WebAuthnError::Format("credentialId too short".into()));
         }
         let cred_id = rest[18..start].to_vec();
         let cose_key = rest[start..].to_vec();
@@ -418,9 +418,9 @@ fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError
     })
 }
 
-/// Verifica una firma COSE contra los datos de verificacion.
+/// Verifies a COSE signature against the verification data.
 ///
-/// Soporta alg -7 (ES256/P-256) y alg -8 (EdDSA/Ed25519).
+/// Supports alg -7 (ES256/P-256) and alg -8 (EdDSA/Ed25519).
 fn verify_cose_signature(
     cose_key_bytes: &[u8],
     data: &[u8],
@@ -431,7 +431,7 @@ fn verify_cose_signature(
 
     let map = match &key_value {
         ciborium::value::Value::Map(m) => m,
-        _ => return Err(WebAuthnError::Format("COSE key no es mapa".into())),
+        _ => return Err(WebAuthnError::Format("COSE key is not a map".into())),
     };
 
     let get_int = |key: i64| -> Option<i64> {
@@ -445,16 +445,16 @@ fn verify_cose_signature(
             .and_then(|(_, v)| v.as_bytes().map(|b| b.to_vec()))
     };
 
-    let alg = get_int(3).ok_or_else(|| WebAuthnError::Format("alg ausente".into()))?;
+    let alg = get_int(3).ok_or_else(|| WebAuthnError::Format("alg absent".into()))?;
 
     match alg {
         -7 => {
-            // ES256 — P-256 ECDSA con SHA-256
+            // ES256 — P-256 ECDSA with SHA-256
             use p256::ecdsa::{signature::Verifier, DerSignature, VerifyingKey};
             use p256::EncodedPoint;
 
-            let x = get_bytes(-2).ok_or_else(|| WebAuthnError::Format("P-256 x ausente".into()))?;
-            let y = get_bytes(-3).ok_or_else(|| WebAuthnError::Format("P-256 y ausente".into()))?;
+            let x = get_bytes(-2).ok_or_else(|| WebAuthnError::Format("P-256 x absent".into()))?;
+            let y = get_bytes(-3).ok_or_else(|| WebAuthnError::Format("P-256 y absent".into()))?;
 
             let point = EncodedPoint::from_affine_coordinates(
                 x.as_slice().into(),
@@ -473,11 +473,11 @@ fn verify_cose_signature(
             use ed25519_dalek::{Signature, Verifier, VerifyingKey as Ed25519Vk};
 
             let x =
-                get_bytes(-2).ok_or_else(|| WebAuthnError::Format("Ed25519 x ausente".into()))?;
+                get_bytes(-2).ok_or_else(|| WebAuthnError::Format("Ed25519 x absent".into()))?;
             let key_bytes: [u8; 32] = x
                 .as_slice()
                 .try_into()
-                .map_err(|_| WebAuthnError::Format("Ed25519 key no es 32 bytes".into()))?;
+                .map_err(|_| WebAuthnError::Format("Ed25519 key is not 32 bytes".into()))?;
             let vk =
                 Ed25519Vk::from_bytes(&key_bytes).map_err(|_| WebAuthnError::InvalidSignature)?;
             let sig_bytes: [u8; 64] = sig
@@ -510,7 +510,7 @@ mod tests {
         let c2 = rp.start_registration("user2", "User Two");
         assert_ne!(
             c1.challenge_b64, c2.challenge_b64,
-            "challenges deben ser unicos"
+            "challenges must be unique"
         );
     }
 
@@ -528,7 +528,7 @@ mod tests {
         let mut rp = make_rp();
         rp.start_registration("bob", "Bob");
 
-        // challenge incorrecto en clientDataJSON
+        // wrong challenge in clientDataJSON
         let client_data = serde_json::json!({
             "type": "webauthn.create",
             "challenge": Base64Url::encode_string(b"wrong_challenge_32_bytes_padding!"),
@@ -542,7 +542,7 @@ mod tests {
             attestation_object: vec![],
         };
         let result = rp.finish_registration("bob", response);
-        // Debe fallar — con attestationObject vacio falla en parseo CBOR
+        // Should fail — empty attestationObject fails on CBOR parsing
         assert!(result.is_err());
     }
 
@@ -571,7 +571,7 @@ mod tests {
     fn expired_challenge_rejected() {
         let mut rp = WebAuthnRp::new("localhost".into(), "http://localhost".into());
         rp.start_registration("dave", "Dave");
-        // Purgar inmediatamente con TTL de 0 segundos
+        // Purge immediately with TTL of 0 seconds
         rp.purge_expired_challenges(0);
 
         let client_data = serde_json::json!({

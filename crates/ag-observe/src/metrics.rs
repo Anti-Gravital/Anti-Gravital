@@ -1,11 +1,11 @@
-//! Metricas estandar del framework y handler HTTP /metrics.
+//! Standard framework metrics and HTTP /metrics handler.
 
 use axum::response::IntoResponse;
 
-/// Registra un request HTTP completado en las metricas de Prometheus.
+/// Records a completed HTTP request in Prometheus metrics.
 ///
-/// Debe llamarse al final de cada handler, tipicamente desde un middleware
-/// de observabilidad en la Shield.
+/// Should be called at the end of each handler, typically from an
+/// observability middleware in the Shield.
 pub fn record_request(method: &str, endpoint: &str, status: u16, duration_secs: f64) {
     metrics::counter!(
         "ag_requests_total",
@@ -23,36 +23,36 @@ pub fn record_request(method: &str, endpoint: &str, status: u16, duration_secs: 
     .record(duration_secs);
 }
 
-/// Actualiza las metricas del pool de base de datos.
+/// Updates database pool metrics.
 ///
-/// Llamar periodicamente desde la logica de gestion del pool de ag-data.
+/// Call periodically from the pool management logic in ag-data.
 pub fn set_db_pool(size: u32, idle: u32) {
     metrics::gauge!("ag_db_pool_size").set(size as f64);
     metrics::gauge!("ag_db_pool_idle").set(idle as f64);
 }
 
-/// Incrementa el contador de conexiones activas (WebSocket, SSE, etc.).
+/// Increments the active connections counter (WebSocket, SSE, etc.).
 pub fn inc_active_connections() {
     metrics::gauge!("ag_active_connections").increment(1.0);
 }
 
-/// Decrementa el contador de conexiones activas.
+/// Decrements the active connections counter.
 pub fn dec_active_connections() {
     metrics::gauge!("ag_active_connections").decrement(1.0);
 }
 
 /// Handler Axum para `GET /metrics`.
 ///
-/// Retorna las metricas en formato texto Prometheus (text/plain; version=0.0.4).
-/// Montar en el router con:
+/// Returns metrics in Prometheus text format (text/plain; version=0.0.4).
+/// Mount on the router with:
 /// ```ignore
 /// let router = Router::new().route("/metrics", get(ag_observe::metrics_handler));
 /// ```
 pub async fn metrics_handler() -> impl IntoResponse {
-    // El exporter Prometheus instalado globalmente expone un handle para renderizar
-    // el snapshot actual. Como metrics-exporter-prometheus instala un handle global,
-    // lo obtenemos aqui.
-    // Si el exporter no esta instalado, retornar texto vacio con el content-type correcto.
+    // The globally installed Prometheus exporter exposes a handle for rendering
+    // the current snapshot. Since metrics-exporter-prometheus installs a global handle,
+    // we retrieve it here.
+    // If the exporter is not installed, return empty text with the correct content-type.
     (
         [(
             axum::http::header::CONTENT_TYPE,
@@ -64,16 +64,16 @@ pub async fn metrics_handler() -> impl IntoResponse {
 
 fn render_metrics() -> String {
     // TECH-DEBT:
-    // motivo: metrics-exporter-prometheus 0.16 retorna un PrometheusHandle desde
-    //         install() que es necesario para llamar a handle.render(). Como en
-    //         layer::init() usamos install() sin capturar el handle, no hay forma
-    //         de renderizar el snapshot real desde aqui.
-    // impacto: El endpoint /metrics devuelve siempre un body vacio. Las metricas
-    //          se acumulan internamente pero no son observables via HTTP hasta
-    //          resolver este TODO.
-    // eliminacion esperada: Fase 4, iteracion ag-observe v0.2. Guardar el
-    //          PrometheusHandle en un OnceLock<PrometheusHandle> en layer::init()
-    //          y usarlo aqui para render() el snapshot real.
+    // motivo: metrics-exporter-prometheus 0.16 returns a PrometheusHandle from
+    //         install() that is required to call handle.render(). Since in
+    //         layer::init() we call install() without capturing the handle, there
+    //         is no way to render the real snapshot from here.
+    // impacto: The /metrics endpoint always returns an empty body. Metrics
+    //          accumulate internally but are not observable via HTTP until
+    //          this TODO is resolved.
+    // eliminacion esperada: Phase 4, iteration ag-observe v0.2. Store the
+    //          PrometheusHandle in a OnceLock<PrometheusHandle> in layer::init()
+    //          and use it here to render() the real snapshot.
     String::new()
 }
 
@@ -83,8 +83,8 @@ mod tests {
 
     #[test]
     fn record_request_does_not_panic() {
-        // No podemos verificar el snapshot sin el handle, pero al menos
-        // verificamos que la funcion no entra en panic.
+        // We cannot verify the snapshot without the handle, but at least
+        // verify that the function does not panic.
         record_request("GET", "/health", 200, 0.001);
     }
 
@@ -110,7 +110,7 @@ mod tests {
             .unwrap_or("");
         assert!(
             ct.contains("text/plain"),
-            "content-type debe ser text/plain, fue: {ct}"
+            "content-type must be text/plain, got: {ct}"
         );
     }
 

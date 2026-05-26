@@ -1,7 +1,7 @@
-//! Backend S3/MinIO de ag-storage.
+//! S3/MinIO backend for ag-storage.
 //!
-//! Solo disponible con la feature `s3`. Usa el crate `object_store`
-//! (Apache-2.0) que soporta AWS S3 y cualquier backend S3-compatible (MinIO).
+//! Only available with the `s3` feature. Uses the `object_store` crate
+//! (Apache-2.0) which supports AWS S3 and any S3-compatible backend (MinIO).
 
 use crate::{StorageConfig, StorageError};
 use bytes::Bytes;
@@ -9,13 +9,13 @@ use futures_util::StreamExt;
 use object_store::{aws::AmazonS3Builder, path::Path, ObjectStore};
 use std::sync::Arc;
 
-/// Backend de almacenamiento S3/MinIO.
+/// S3/MinIO storage backend.
 pub struct S3Store {
     inner: Arc<dyn ObjectStore>,
 }
 
 impl S3Store {
-    /// Construye el store S3 o MinIO segun la configuracion.
+    /// Builds the S3 or MinIO store according to the configuration.
     pub fn new(config: &StorageConfig) -> Result<Self, StorageError> {
         let mut builder = AmazonS3Builder::new()
             .with_bucket_name(&config.bucket)
@@ -44,7 +44,7 @@ impl S3Store {
         Path::from(key)
     }
 
-    /// Almacena un objeto.
+    /// Stores an object.
     pub async fn put(&self, key: &str, data: Bytes) -> Result<(), StorageError> {
         self.inner
             .put(&Self::to_path(key), data.into())
@@ -53,7 +53,7 @@ impl S3Store {
             .map_err(StorageError::S3)
     }
 
-    /// Recupera un objeto.
+    /// Retrieves an object.
     pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
         match self.inner.get(&Self::to_path(key)).await {
             Ok(r) => r.bytes().await.map_err(StorageError::S3),
@@ -64,7 +64,7 @@ impl S3Store {
         }
     }
 
-    /// Borra un objeto.
+    /// Deletes an object.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
         match self.inner.delete(&Self::to_path(key)).await {
             Ok(()) => Ok(()),
@@ -75,7 +75,7 @@ impl S3Store {
         }
     }
 
-    /// Retorna true si existe el objeto.
+    /// Returns true if the object exists.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
         match self.inner.head(&Self::to_path(key)).await {
             Ok(_) => Ok(true),
@@ -84,7 +84,7 @@ impl S3Store {
         }
     }
 
-    /// Lista objetos con prefijo opcional.
+    /// Lists objects with an optional prefix.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
         let path_prefix = prefix.map(Path::from);
         let mut stream = self.inner.list(path_prefix.as_ref());
@@ -96,7 +96,7 @@ impl S3Store {
         Ok(keys)
     }
 
-    /// Copia un objeto.
+    /// Copies an object.
     pub async fn copy(&self, from: &str, to: &str) -> Result<(), StorageError> {
         self.inner
             .copy(&Self::to_path(from), &Self::to_path(to))
@@ -143,7 +143,7 @@ mod tests {
             endpoint: std::env::var("MINIO_URL").ok(),
             ..StorageConfig::default()
         };
-        let store = S3Store::new(&config).expect("debe construirse");
+        let store = S3Store::new(&config).expect("should build");
         let data = Bytes::from("contenido de prueba s3");
         store
             .put("test/ag-s3-test.txt", data.clone())

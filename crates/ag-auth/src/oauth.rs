@@ -1,7 +1,7 @@
-//! Cliente OAuth2 Authorization Code + PKCE para Google y GitHub.
+//! OAuth2 Authorization Code + PKCE client for Google and GitHub.
 //!
-//! No usa la feature reqwest de oauth2 para evitar conflicto de versiones.
-//! El intercambio de tokens se implementa directamente con reqwest 0.12.
+//! Does not use the reqwest feature of oauth2 to avoid version conflicts.
+//! Token exchange is implemented directly with reqwest 0.12.
 
 use crate::config::AuthConfig;
 use oauth2::{
@@ -10,11 +10,11 @@ use oauth2::{
 };
 use std::borrow::Cow;
 
-/// Cliente OAuth2 con auth URL y token URL configurados.
+/// OAuth2 client with auth URL and token URL configured.
 type ConfiguredClient =
     BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
 
-/// Proveedor OAuth2 soportado.
+/// Supported OAuth2 provider.
 #[derive(Debug, Clone, Copy)]
 pub enum OAuthProvider {
     /// Google Identity Platform.
@@ -32,46 +32,46 @@ impl std::fmt::Display for OAuthProvider {
     }
 }
 
-/// Informacion del usuario obtenida del proveedor tras la autenticacion.
+/// User information obtained from the provider after authentication.
 #[derive(Debug, Clone)]
 pub struct OAuthUser {
-    /// ID unico del usuario en el proveedor.
+    /// Unique user ID at the provider.
     pub id: String,
-    /// Email del usuario (puede ser None si el proveedor no lo devuelve).
+    /// User email (may be None if the provider does not return it).
     pub email: Option<String>,
-    /// Nombre del usuario.
+    /// User display name.
     pub name: Option<String>,
-    /// Proveedor de donde proviene el usuario.
+    /// Provider from which the user came.
     pub provider: OAuthProvider,
 }
 
-/// Error del cliente OAuth2.
+/// OAuth2 client error.
 #[derive(Debug, thiserror::Error)]
 pub enum OAuthError {
-    /// Proveedor no configurado.
-    #[error("proveedor {0} no configurado")]
+    /// Provider not configured.
+    #[error("provider {0} not configured")]
     ProviderNotConfigured(OAuthProvider),
-    /// Error de red.
-    #[error("error de red: {0}")]
+    /// Network error.
+    #[error("network error: {0}")]
     Http(String),
-    /// Respuesta invalida del proveedor.
-    #[error("respuesta invalida del proveedor: {0}")]
+    /// Invalid provider response.
+    #[error("invalid provider response: {0}")]
     InvalidResponse(String),
-    /// Error OAuth2.
-    #[error("error OAuth2: {0}")]
+    /// OAuth2 error.
+    #[error("OAuth2 error: {0}")]
     OAuth(String),
 }
 
-/// Credenciales de un proveedor OAuth2.
+/// Credentials for an OAuth2 provider.
 struct ProviderCredentials {
     client_id: String,
     client_secret: String,
 }
 
-/// Cliente OAuth2 para Google y GitHub.
+/// OAuth2 client for Google and GitHub.
 ///
-/// Construir con [`OAuthClient::from_config`]. Cada provider se habilita
-/// independientemente mediante las variables de entorno correspondientes.
+/// Build with [`OAuthClient::from_config`]. Each provider is enabled
+/// independently via the corresponding environment variables.
 pub struct OAuthClient {
     google: Option<ConfiguredClient>,
     google_creds: Option<ProviderCredentials>,
@@ -81,7 +81,7 @@ pub struct OAuthClient {
 }
 
 impl OAuthClient {
-    /// Construye el cliente a partir de la configuracion del modulo de auth.
+    /// Builds the client from the auth module configuration.
     pub fn from_config(config: &AuthConfig, http: reqwest::Client) -> Self {
         let (google, google_creds) = match (
             config.oauth_google_client_id.as_ref(),
@@ -92,11 +92,11 @@ impl OAuthClient {
                     .set_client_secret(ClientSecret::new(secret.clone()))
                     .set_auth_uri(
                         AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".into())
-                            .expect("Google auth URL invalida"),
+                            .expect("invalid Google auth URL"),
                     )
                     .set_token_uri(
                         TokenUrl::new("https://oauth2.googleapis.com/token".into())
-                            .expect("Google token URL invalida"),
+                            .expect("invalid Google token URL"),
                     );
                 let creds = ProviderCredentials {
                     client_id: id.clone(),
@@ -116,11 +116,11 @@ impl OAuthClient {
                     .set_client_secret(ClientSecret::new(secret.clone()))
                     .set_auth_uri(
                         AuthUrl::new("https://github.com/login/oauth/authorize".into())
-                            .expect("GitHub auth URL invalida"),
+                            .expect("invalid GitHub auth URL"),
                     )
                     .set_token_uri(
                         TokenUrl::new("https://github.com/login/oauth/access_token".into())
-                            .expect("GitHub token URL invalida"),
+                            .expect("invalid GitHub token URL"),
                     );
                 let creds = ProviderCredentials {
                     client_id: id.clone(),
@@ -140,11 +140,11 @@ impl OAuthClient {
         }
     }
 
-    /// Genera la URL de autorizacion con PKCE y state CSRF.
+    /// Generates the authorization URL with PKCE and CSRF state.
     ///
-    /// Retorna `(url, state, pkce_verifier)`. El llamador debe:
-    /// 1. Redirigir al usuario a `url`.
-    /// 2. Persistir `state` y `pkce_verifier` en sesion para el callback.
+    /// Returns `(url, state, pkce_verifier)`. The caller must:
+    /// 1. Redirect the user to `url`.
+    /// 2. Persist `state` and `pkce_verifier` in the session for the callback.
     pub fn authorization_url(
         &self,
         provider: OAuthProvider,
@@ -177,9 +177,9 @@ impl OAuthClient {
         Ok((url, state, pkce_verifier))
     }
 
-    /// Intercambia un codigo de autorizacion por la informacion del usuario.
+    /// Exchanges an authorization code for user information.
     ///
-    /// El llamador debe pasar el mismo `redirect_uri` y el `pkce_verifier` guardados en sesion.
+    /// The caller must pass the same `redirect_uri` and the `pkce_verifier` saved in the session.
     pub async fn exchange_code(
         &self,
         provider: OAuthProvider,
@@ -244,14 +244,14 @@ impl OAuthClient {
 
         let access_token = token_body["access_token"]
             .as_str()
-            .ok_or_else(|| OAuthError::InvalidResponse("access_token ausente".into()))?
+            .ok_or_else(|| OAuthError::InvalidResponse("access_token absent".into()))?
             .to_string();
 
         self.fetch_user_info(provider, &access_token).await
     }
 
     // ---------------------------------------------------------------------------
-    // Privados
+    // Private
     // ---------------------------------------------------------------------------
 
     fn client_for(&self, provider: OAuthProvider) -> Result<&ConfiguredClient, OAuthError> {
@@ -296,7 +296,7 @@ impl OAuthClient {
             .as_i64()
             .map(|n| n.to_string())
             .or_else(|| info["id"].as_str().map(|s| s.to_string()))
-            .ok_or_else(|| OAuthError::InvalidResponse("id ausente".into()))?;
+            .ok_or_else(|| OAuthError::InvalidResponse("id absent".into()))?;
 
         Ok(OAuthUser {
             id,
@@ -347,10 +347,10 @@ mod tests {
         let client = OAuthClient::from_config(&config_google(), http);
         let (url, _state, _verifier) = client
             .authorization_url(OAuthProvider::Google, "http://localhost/callback")
-            .expect("debe generar URL para Google");
+            .expect("should generate URL for Google");
         assert!(
             url.host_str().unwrap_or("").contains("google.com"),
-            "URL debe apuntar a google.com: {url}"
+            "URL should point to google.com: {url}"
         );
     }
 
@@ -371,10 +371,10 @@ mod tests {
         let client = OAuthClient::from_config(&cfg, http);
         let (url, _state, _verifier) = client
             .authorization_url(OAuthProvider::GitHub, "http://localhost/callback")
-            .expect("debe generar URL para GitHub");
+            .expect("should generate URL for GitHub");
         assert!(
             url.host_str().unwrap_or("").contains("github.com"),
-            "URL debe apuntar a github.com: {url}"
+            "URL should point to github.com: {url}"
         );
     }
 
@@ -388,6 +388,6 @@ mod tests {
         let (_, _, v2) = client
             .authorization_url(OAuthProvider::Google, "http://localhost/c")
             .unwrap();
-        assert_ne!(v1.secret(), v2.secret(), "verifiers deben ser unicos");
+        assert_ne!(v1.secret(), v2.secret(), "verifiers must be unique");
     }
 }

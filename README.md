@@ -124,19 +124,27 @@ Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
 ### Quick start
 
-Requires Rust 1.95+ and PostgreSQL.
+Requires Rust 1.79+ (1.95+ recommended for all features).
 
 ```sh
-# Install the CLI
-cargo install --path crates/ag-cli
+# Install from source (Linux / macOS)
+bash install.sh
 
-# Create a new project
+# Or on Windows PowerShell:
+# .\install.ps1
+
+# Or directly:
+# cargo install --path crates/ag-cli --locked
+
+# Create a new project (prompts for template in interactive sessions)
 ag new my-api
 
 # Start in development mode
 cd my-api
 ag dev
 ```
+
+Full installation guide and troubleshooting: `docs/manual/04-instalacion-y-onboarding.md`.
 
 The app responds at `http://localhost:8080`. The `rest` template
 generates a project with Shield, typed extractors, and a PostgreSQL
@@ -349,19 +357,27 @@ El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 
 ### Inicio rapido
 
-Requiere Rust 1.95+ y PostgreSQL.
+Requiere Rust 1.79+ (se recomienda 1.95+).
 
 ```sh
-# Instalar la CLI
-cargo install --path crates/ag-cli
+# Instalar desde fuente (Linux / macOS)
+bash install.sh
 
-# Crear un proyecto nuevo
+# En Windows PowerShell:
+# .\install.ps1
+
+# O directamente:
+# cargo install --path crates/ag-cli --locked
+
+# Crear un proyecto nuevo (pide la plantilla si el terminal es interactivo)
 ag new mi-api
 
 # Arrancar en modo desarrollo
 cd mi-api
 ag dev
 ```
+
+Guia de instalacion completa y troubleshooting: `docs/manual/04-instalacion-y-onboarding.md`.
 
 La app responde en `http://localhost:8080`. El template `rest` genera
 un proyecto con Shield, extractores tipados y conexion a PostgreSQL

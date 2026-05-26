@@ -1,4 +1,4 @@
-//! Cache L1: moka en memoria con soporte de tags e invalidacion por grupo.
+//! L1 cache: in-memory moka with tag support and group invalidation.
 
 use crate::tags::TagIndex;
 use moka::future::Cache;
@@ -6,14 +6,14 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-/// Cache L1 basado en moka con TinyLFU y soporte de tags.
+/// L1 cache based on moka with TinyLFU and tag support.
 pub struct L1Cache {
     inner: Cache<String, Vec<u8>>,
     tags: Arc<Mutex<TagIndex>>,
 }
 
 impl L1Cache {
-    /// Crea un nuevo [`L1Cache`] con la capacidad y TTL indicados.
+    /// Creates a new [`L1Cache`] with the given capacity and TTL.
     pub fn new(max_capacity: u64, default_ttl: Duration) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -25,29 +25,29 @@ impl L1Cache {
         }
     }
 
-    /// Obtiene los bytes crudos asociados a `key`.
+    /// Gets the raw bytes associated with `key`.
     pub async fn get_bytes(&self, key: &str) -> Option<Vec<u8>> {
         self.inner.get(key).await
     }
 
-    /// Almacena `value` bajo `key` con el TTL por defecto del cache.
+    /// Stores `value` under `key` with the cache's default TTL.
     pub async fn set_bytes(&self, key: &str, value: Vec<u8>) {
         self.inner.insert(key.to_string(), value).await;
     }
 
-    /// Almacena `value` bajo `key` y registra los `tags` para invalidacion.
+    /// Stores `value` under `key` and registers the `tags` for invalidation.
     pub async fn set_bytes_tagged(&self, key: &str, value: Vec<u8>, tags: &[&str]) {
         self.inner.insert(key.to_string(), value).await;
         self.tags.lock().await.insert(key, tags);
     }
 
-    /// Elimina la entrada con `key`.
+    /// Removes the entry with `key`.
     pub async fn delete(&self, key: &str) {
         self.inner.remove(key).await;
         self.tags.lock().await.remove(key);
     }
 
-    /// Invalida todas las entradas asociadas al `tag` dado.
+    /// Invalidates all entries associated with the given `tag`.
     pub async fn invalidate_tag(&self, tag: &str) {
         let keys = self.tags.lock().await.keys_for_tag(tag);
         for key in &keys {
@@ -118,9 +118,9 @@ mod tests {
         cache.invalidate_tag("nonexistent_tag").await;
     }
 
-    /// Throughput basico: 1_000_000 operaciones en menos de 1 segundo.
-    /// Marcado `#[ignore]` para no bloquear CI en hardware lento; ejecutar
-    /// manualmente con `cargo test -p ag-cache -- --ignored l1_ops_per_second`.
+    /// Basic throughput: 1_000_000 operations in under 1 second.
+    /// Marked `#[ignore]` to avoid blocking CI on slow hardware; run
+    /// manually with `cargo test -p ag-cache -- --ignored l1_ops_per_second`.
     #[tokio::test]
     #[ignore]
     async fn l1_ops_per_second_exceeds_1m() {

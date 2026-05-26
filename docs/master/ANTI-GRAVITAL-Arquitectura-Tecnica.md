@@ -1,3 +1,1248 @@
+# Anti-Gravital Framework — Technical Architecture and Implementation
+
+**[English](#english) | [Espanol](#espanol)**
+
+> This is a bilingual document. English is the canonical, normative version. The Spanish section that follows is a faithful counterpart. Per ADR-0008, when the two diverge, the English text governs.
+
+---
+
+## English
+
+# Anti-Gravital Framework — Technical Architecture and Implementation
+
+**Version:** 4.0 — May 2026
+**Organization:** Gravital Labs — Nereira Technology and Business Solutions
+**Origin:** Republic of Panama
+**License:** Apache 2.0
+**Status:** Pre-launch. Active roadmap.
+
+> Master technical document. It specifies the architecture, the components, the implementation contracts, the DSL type system, the plugin model, the security guarantees, and the performance objectives of the Anti-Gravital framework. This document supersedes Blueprint v3.0 and consolidates the architectural decisions derived from the critical external review analysis.
+
+---
+
+## Table of contents
+
+1. Executive summary
+2. Manifesto and positioning
+3. What Anti-Gravital is and is not (scope and limits)
+4. Analysis of the state of the art
+5. Ecosystem architecture: modules and responsibilities
+6. Core architecture (`ag-core`): Shield and Core
+7. The Anti-DSL language (`ag-dsl`): specification and incremental implementation
+8. Batteries-included modules
+9. WASI plugin system (`ag-wasm-host`)
+10. Deployment subsystem (`ag-cloud`)
+11. Artificial Intelligence integration (`ag-ai`) and the Knowledge Graph
+12. Migration framework (`ag-migrate`): importers
+13. Native application bridge (`ag-mobile`): Flutter and generated clients
+14. Observability (`ag-observe`)
+15. Security model
+16. Performance objectives and validation methodology
+17. Open Source governance model
+18. Risk analysis and mitigations
+19. Technical glossary
+20. Appendix: market comparison
+
+---
+
+## 1. Executive summary
+
+Anti-Gravital is a free software ecosystem for building high-performance backend applications, written in pure Rust, with three fundamental properties that distinguish it from the rest of the current web framework market.
+
+The first is the total absence of an external runtime: the result of an Anti-Gravital project is a self-contained static binary that runs on the operating system without an interpreter or virtual machine in between. This eliminates the JVM, CPython, Node.js, and the CLR from the execution path and, with them, the garbage collection pauses, the cold-start seconds, and the hundreds of megabytes of base memory that those runtimes consume before processing the first request.
+
+The second is the schema-first approach supported by a domain definition language called Anti-DSL, files with the `.ag` extension. A single file describes models, endpoints, policies, validations, errors, and relationships; the DSL compiler derives from there the Rust code, the typed clients for frontend and mobile applications, the OpenAPI documentation, and the database migrations. The contract is a single source of truth, and schema drift ceases to be a possible class of problem by construction.
+
+The third is a modular architecture conceived as an ecosystem, not as a monolithic framework. The core is deliberately small and is composed with independently published modules. Each module (`ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`) has its own domain, its own versioning, and can be used in isolation in any Rust project. This separation makes the ecosystem sustainable at community scale and eliminates the "framework that tries to solve everything" syndrome.
+
+The project is born in Panama, with bilingual Spanish/English documentation from day zero. The first adoption focus is Latin America; the horizon is global. The Apache 2.0 license guarantees that there will never be a closed Enterprise version or features reserved for paying customers: the entirety of the ecosystem is and will be open source.
+
+This document describes in detail each component, each architectural decision, and the technical commitments that underpin the project. The complementary document *Roadmap and Verification Gates* defines the temporal sequence of deliverables and the blocking criteria between phases.
+
+---
+
+## 2. Manifesto and positioning
+
+For the last twenty years, the software industry has accepted a trade-off that is no longer necessary: choosing between performance and productivity. The world's most widely adopted frameworks thrived by solving only one of the two extremes. Spring Boot and .NET imposed enterprise structure at the price of heavy virtual machines and multi-second startups. Django and FastAPI made it possible for small teams to build APIs in hours, at the price of the GIL and an interpreter that places an invisible ceiling on performance. Node.js brought isomorphic development at the price of a single-threaded event loop and an npm ecosystem chronically vulnerable to supply chain attacks.
+
+None of these frameworks is bad. They all solve real problems. But they were all designed in an era prior to three converging phenomena that change the calculation: the production maturity of the Rust ecosystem, the arrival of AI agents capable of writing quality code at superhuman speeds, and the industry's disenchantment with the operational complexity of multi-language stacks.
+
+Anti-Gravital is built on the premise that systems performance and developer productivity are not opposing forces, but design problems. A correctly designed framework can offer both simultaneously without hidden trade-offs.
+
+The name describes the thesis. Current frameworks have *gravity*: they tie you to interpreters, virtual machines, external runtimes, and abstraction layers that charge in latency, memory, and operational complexity. Anti-Gravital breaks with that gravity from the foundations: no JVM, no GC, no interpreter, no external runtime. Only native machine code, memory safety guaranteed at compile time, and massive concurrency without garbage collection cost.
+
+**Explicit positioning.** Anti-Gravital does not position itself against any language or any framework. It positions itself as the modern unified backend and runtime layer for applications that need three things simultaneously: systems performance, high-level framework productivity, and operational deployment simplicity. The target audience is not the team that already has a Spring stack running in production and has no pain — it is the team that is starting a new project, or that has reached the structural limits of Python/Node.js, or that needs to reduce the memory footprint of its service fleet.
+
+The adoption strategy is built on interoperability and gradual migration, not on the aggressive replacement of existing stacks. The official importers (OpenAPI, Prisma, Sequelize, Django ORM, FastAPI/Pydantic models) are first-class citizens, not an afterthought.
+
+---
+
+## 3. What Anti-Gravital is and is not (scope and limits)
+
+The clear definition of scope is probably the most important architectural decision of this project. A framework that tries to be everything ends up being nothing. This section establishes the explicit limits of the project.
+
+### 3.1 What Anti-Gravital is
+
+Anti-Gravital is:
+
+- A high-performance **Rust backend runtime** for HTTP, WebSocket, and SSE services.
+- A **domain definition language** (Anti-DSL, `.ag` files) and its compiler.
+- A **unified CLI** (`ag`) for creation, generation, development, build, deployment, and administration.
+- A **set of optional modules** published as independent Rust crates (auth, data, realtime, cache, storage, observe, mail —deferred standard—).
+- A **domain and TLS management layer** (`ag-domains`, optional infra) that integrates DNS via adapters, ACME for certificates, and SPF/DKIM/DMARC for transactional mail.
+- A **WASI plugin system** for isolated multi-language extensibility.
+- A **deployment orchestration layer** simplified in the Railway/Fly.io style for common cases (not a Kubernetes replacement).
+- A **typed SDK generator** for TypeScript, Dart, and other client languages.
+- A **set of migration importers** from legacy frameworks.
+- An auto-generated **knowledge graph** that keeps the architectural documentation synchronized with the code.
+
+### 3.2 What Anti-Gravital is NOT
+
+This list is equally important. Anti-Gravital does **not** intend and will not intend to:
+
+- **Replace Kubernetes.** For workloads that justify Kubernetes, Anti-Gravital deploys *on top of* Kubernetes like any other containerized binary. `ag-cloud` covers the range from Docker Compose up to Fly.io. When a team needs orchestration at the scale of hundreds of nodes, it uses Kubernetes and that is that.
+- **Replace Flutter or React Native.** Anti-Gravital is not a cross-platform UI framework. It is the ideal native backend *for* Flutter and React Native applications, with automatic generation of typed client SDKs, native authentication, realtime, offline sync, and streaming.
+- **Replace React, Vue, Svelte, or Next.js.** The `ag-ui` module offers SSR + HTMX for cases where a full JS stack is excessive, but it does not compete with established frontend frameworks. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend + Next.js (or equivalent) as frontend, communicating via the generated TypeScript client.
+- **Replace Docker.** It generates Dockerfiles. It runs in containers. It does not reinvent the OCI format.
+- **Replace PostgreSQL, Redis, MinIO, or NATS.** It integrates with them as standard external dependencies.
+- **Replace Terraform or Pulumi.** `ag-cloud` orchestrates simple deployments; for complex multi-cloud infrastructure with policies, declarative IaC, and shared modules, Terraform remains the correct tool. `ag-domains` (Phase 4.5) also does not replace Terraform: it orchestrates DNS and TLS for the domains declared in the project's `schema.ag`, it does not manage arbitrary DNS zones or shared infrastructure.
+- **Be a complete mail server.** `ag-mail` (Phase 4.5) sends outbound transactional mail (verification, recovery, magic links, alerts) via native SMTP or provider adapters (Resend, SES, Postmark). It is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer mailboxes, it does NOT implement antispam or IP reputation management. For inbound or a complete mail server, use Postfix, Stalwart, or another specialized project.
+- **Be a domain registrar.** `ag-domains` (Phase 4.5) consumes the domain that the operator already bought (Namecheap, Cloudflare Registrar, etc.) and configures it through an adapter (Cloudflare initially). It does NOT register domains, it does NOT act as a domain marketplace.
+- **Be a game engine, a scientific computing framework, or an alternative to Unreal Engine, Unity, NumPy, PyTorch, or TensorFlow.** These domains have specialized tools that Anti-Gravital does not intend to replicate.
+
+### 3.3 The interoperability rule
+
+When a dominant tool exists in an adjacent domain, the strategy is to integrate, not to replace. This rule prevents the project from growing in unmanageable directions and keeps the scope defensible.
+
+---
+
+## 4. Analysis of the state of the art
+
+This section documents the competitive context in technical terms, without adversarial rhetoric. Each framework analyzed solves a real set of problems; the analysis identifies the structural limitations that Anti-Gravital intends to address.
+
+### 4.1 Spring Boot and the JVM ecosystem
+
+Spring Boot dominates enterprise Java and Kotlin development with two decades of mature ecosystem. Its structural weaknesses derive from the JVM: a base memory consumption of 256-512 MB before serving the first request, startup times of 6-8 seconds incompatible with serverless computing, and configuration verbosity. GraalVM Native Image partially mitigates startup and memory, but introduces its own limitations (limited reflection, incomplete library compatibility, long compilation times). The fundamental trade-off — a managed runtime with GC — remains.
+
+### 4.2 ASP.NET Core and .NET
+
+Technically one of the fastest managed frameworks on the market, with modern and expressive C#. The CLR with GC keeps measurable pauses at p99 under sustained load. The technical direction of the ecosystem is unilaterally Microsoft's. Memory safety is not guaranteed by the compiler; race condition bugs and null reference exceptions are possible. Adoption outside the Microsoft ecosystem remains limited for cultural rather than technical reasons.
+
+### 4.3 Django and FastAPI
+
+Django maintains the best prototyping experience in the Python world, with a rich ecosystem for administration, authentication, and templates. FastAPI raised the DX standard for Python APIs with Pydantic types, automatic OpenAPI generation, and native async support. Both share the structural ceiling of CPython: the Global Interpreter Lock prevents real CPU-bound concurrency within a process, which forces scaling with multiple processes (Gunicorn, Uvicorn workers) multiplying memory consumption. Django's async support remains partial; many libraries in the ecosystem remain synchronous.
+
+### 4.4 Node.js, Express, and NestJS
+
+Node.js brought JavaScript to the server and the npm ecosystem is the broadest in the industry. V8's single-threaded event loop is optimal for concurrent I/O but degrades with any CPU-bound work. The npm supply chain is chronically vulnerable: the average transitive dependency of a modern Node.js project exceeds 200 libraries, and incidents of compromised packages are recurrent. TypeScript adds type safety in development, but at runtime it remains JavaScript.
+
+### 4.5 Next.js and the JS fullstack frameworks
+
+Next.js represents the frontend/backend convergence in JavaScript. Server Components and Server Actions reduce the boilerplate of internal APIs. The structural weaknesses are inherited from Node.js: serverless cold starts, de facto coupling with Vercel, inadequacy for persistent WebSockets, shared state, and long-running processing. Next.js is an excellent presentation layer; it is not a robust backend.
+
+### 4.6 Axum, Actix-Web, Rocket (Rust)
+
+The current Rust frameworks are technically excellent in performance (consistently in the TechEmpower top 10) but offer what the community calls a *low-level* experience: the developer builds authentication, the data layer, observability, client generation, and the migration system from scratch. Anti-Gravital is built on Axum, Tokio, and Tower as internal dependencies — it does not compete with them, but packages them into a complete framework experience with DSL, CLI, and opinionated modules.
+
+### 4.7 Conclusion of the analysis
+
+There is a real market space: a dominant enterprise-grade Rust framework does not yet exist. Spring Boot pays the historical cost of the JVM. Node.js has structural event loop limits. Python has concurrency problems. Go sacrifices the type system. Rust has runtime and performance, but lacks a complete framework experience. Anti-Gravital intends to fill that gap.
+
+---
+
+## 5. Ecosystem architecture: modules and responsibilities
+
+The most important architectural decision derived from the critical analysis of v3.0 was to separate the core from the ecosystems. The v3.0 tried to be simultaneously a backend framework, an SSR engine, a DevOps platform, an AI orchestrator, an observability layer, a mobile framework, and a plugin system. This is unmanageable. The v4.0 reorganizes the project as an ecosystem of independent Rust crates, each with its own domain, a responsible maintainer, independent semantic versioning, and a minimal API surface.
+
+### 5.1 Ecosystem map
+
+| Crate              | Domain                                                           | Criticality status |
+|--------------------|------------------------------------------------------------------|----------------------|
+| `ag-core`          | HTTP runtime, router, extractors, error types, Shield/Core       | Core                 |
+| `ag-dsl`           | Lexer, parser, AST, semantic analysis and codegen of the Anti-DSL | Core                |
+| `ag-cli`           | `ag` binary: new, generate, dev, build, deploy, migrate          | Core                 |
+| `ag-auth`          | WebAuthn, JWT Ed25519, OAuth2, RBAC, rate limiting               | Standard             |
+| `ag-data`          | sqlx with compile-time verification, migrations, typed ORM       | Standard             |
+| `ag-realtime`      | WebSocket, SSE, embedded NATS, pub/sub                           | Standard             |
+| `ag-cache`         | in-memory moka, Redis adapter, event-based invalidation          | Standard             |
+| `ag-storage`       | S3, MinIO, local filesystem, signed URLs, image processing       | Standard             |
+| `ag-observe`       | tracing, OpenTelemetry, Prometheus, Grafana dashboards           | Standard             |
+| `ag-mail`          | outbound SMTP, typed templates, send queues with retries, adapters (Resend/SES/Postmark), SPF/DKIM/DMARC helpers | Deferred standard |
+| `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
+| `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
+| `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
+| `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Optional             |
+| `ag-mobile`        | Dart SDK generation, native Flutter auth, offline sync           | Optional             |
+| `ag-migrate`       | OpenAPI, Prisma, Django, FastAPI, Sequelize importers            | Optional             |
+| `ag-wasm-host`     | WASI plugin runtime on wasmtime                                  | Core                 |
+
+The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reaches **17 crates** with the introduction of Phase 4.5.
+
+### 5.2 Ecosystem diagram
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                       Anti-Gravital Ecosystem                    │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   ┌───────────────────────┐    ┌───────────────────────┐         │
+│   │       ag-cli          │    │       ag-dsl          │         │
+│   │  new · generate · dev │◄──►│  lexer · parser · AST │         │
+│   │  build · deploy       │    │  semantic · codegen   │         │
+│   └───────────┬───────────┘    └───────────┬───────────┘         │
+│               │                            │                     │
+│               ▼                            ▼                     │
+│   ┌──────────────────────────────────────────────────┐           │
+│   │                    ag-core                       │           │
+│   │  Shield (Tower middleware) + Core (Axum router)  │           │
+│   │  Extractores · Error types · Runtime Tokio       │           │
+│   └────────┬───────────────────────┬─────────────────┘           │
+│            │                       │                             │
+│   ┌────────▼─────────┐    ┌────────▼─────────┐                   │
+│   │  Módulos estándar │    │ ag-wasm-host    │                   │
+│   │  ag-auth ────────►│    │ wasmtime + WASI │                   │
+│   │  ag-data         │    │ plugin lifecycle│                   │
+│   │  ag-realtime     │    └─────────────────┘                   │
+│   │  ag-cache        │                                          │
+│   │  ag-storage      │                                          │
+│   │  ag-observe      │                                          │
+│   └────────┬─────────┘                                          │
+│            │                                                    │
+│   ┌────────▼─────────────────┐                                  │
+│   │  Estándar diferido       │                                  │
+│   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
+│   │  outbound + adapters     │                                  │
+│   │  (Resend/SES/Postmark)   │                                  │
+│   └────────┬─────────────────┘                                  │
+│            │                                                    │
+│   ┌────────▼──────────────────────────────────────────┐         │
+│   │              Módulos opcionales                   │         │
+│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │  ag-mobile    ag-migrate                          │         │
+│   │                                                   │         │
+│   │  ag-domains: DnsProvider + ACME + adapters        │         │
+│   └───────────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Dependency rules between crates
+
+To keep the ecosystem healthy, strict dependency rules apply:
+
+First rule: `ag-core` does not depend on any other crate of the Anti-Gravital ecosystem. It is the base on which everything else is built. Any functionality considered sufficiently generic that needs another module must be extracted to `ag-core` or turned into a trait that the module implements.
+
+Second rule: the standard modules can depend on `ag-core` and on other standard modules as long as there are no cycles. For example, `ag-auth` can depend on `ag-data` for session persistence, but `ag-data` cannot depend on `ag-auth`.
+
+Third rule: the optional modules can depend on any core or standard crate. They cannot depend on each other except in explicitly justified cases (for example, `ag-mobile` can depend on `ag-ai` for assisted code generation).
+
+Fourth rule: `ag-cli` depends on all the other crates (it is the orchestrator), but only through Cargo features, so that the `ag` binary can be compiled with a reduced subset.
+
+Fifth rule: all crates publish independent semantic versions. A breaking change in `ag-cache` does not force `ag-core` to bump major. This is essential for the sustainability of an open source project.
+
+Sixth rule (introduced by `ADR-0007`, Phase 4.5): the direction of the `ag-auth <-> ag-mail` dependency is strictly unidirectional. `ag-auth` **consumes** `ag-mail` to send verification, password recovery, and magic link emails, defining a small trait that `ag-auth` invokes. `ag-mail` does **NOT** depend on `ag-auth`. This directionality preserves the second rule (no cycles) and keeps `ag-mail` reusable in isolation in any Rust project. The `ag-mail <-> ag-domains` cooperation (to materialize SPF/DKIM/DMARC) is optional, via a Cargo feature: if a project uses `ag-mail` with a managed adapter (Resend) and does not administer its own DNS, `ag-domains` is not necessary.
+
+Seventh rule (introduced by `ADR-0007`, Phase 4.5): the optional module `ag-cloud` **consumes** `ag-domains` during `ag deploy` to configure DNS and TLS, without the dependency being rigid in all targets. If the project does not declare domains in its `schema.ag`, the flow is omitted. `ag-domains` can be used independently from the CLI without `ag-cloud`.
+
+### 5.4 Monorepo structure
+
+```
+anti-gravital/
+├── Cargo.toml                  # Workspace root
+├── LICENSE                     # Apache 2.0
+├── README.md                   # Español + Inglés
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── SECURITY.md                 # Política de divulgación responsable
+├── crates/
+│   ├── ag-core/
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── shield/         # Middleware Tower
+│   │       │   ├── tls.rs
+│   │       │   ├── auth.rs
+│   │       │   ├── rate_limit.rs
+│   │       │   ├── validation.rs
+│   │       │   ├── rbac.rs
+│   │       │   └── cors.rs
+│   │       ├── core/           # Router y handlers
+│   │       │   ├── router.rs
+│   │       │   ├── extractors.rs
+│   │       │   ├── error.rs
+│   │       │   └── state.rs
+│   │       └── runtime/        # Configuración Tokio
+│   │           └── mod.rs
+│   ├── ag-dsl/
+│   │   └── src/
+│   │       ├── lexer.rs
+│   │       ├── parser.rs
+│   │       ├── ast.rs
+│   │       ├── semantic.rs
+│   │       ├── diagnostics.rs
+│   │       └── codegen/
+│   │           ├── rust_gen.rs
+│   │           ├── ts_gen.rs
+│   │           ├── dart_gen.rs
+│   │           ├── openapi_gen.rs
+│   │           └── sql_gen.rs
+│   ├── ag-cli/
+│   ├── ag-auth/
+│   ├── ag-data/
+│   ├── ag-realtime/
+│   ├── ag-cache/
+│   ├── ag-storage/
+│   ├── ag-observe/
+│   ├── ag-mail/                # Fase 4.5 — estándar diferido
+│   ├── ag-ui/
+│   ├── ag-cloud/
+│   ├── ag-domains/             # Fase 4.5 — opcional infra
+│   ├── ag-ai/
+│   ├── ag-mobile/
+│   ├── ag-migrate/
+│   └── ag-wasm-host/
+├── docs/                       # Documentación bilingüe
+│   ├── es/
+│   └── en/
+├── examples/
+│   ├── todo-api/
+│   ├── ecommerce-api/
+│   ├── realtime-chat/
+│   ├── ai-backend/
+│   └── flutter-fullstack/
+├── templates/                  # Templates de `ag new`
+│   ├── rest/
+│   ├── realtime/
+│   ├── fullstack/
+│   └── mobile-backend/
+├── plugins/                    # Plugins WASM oficiales
+│   ├── prometheus-exporter/
+│   ├── datadog-exporter/
+│   └── sentry/
+└── benchmarks/                 # Suite TechEmpower + comparaciones
+    ├── hello-world/
+    ├── json-crud/
+    └── plaintext/
+```
+
+---
+
+## 6. Core architecture (`ag-core`): Shield and Core
+
+The core of Anti-Gravital is organized into two conceptual layers within a single Rust process. The separation is not physical: there is no IPC, no FFI, no shared memory between runtimes. The two layers communicate through ordinary Rust function calls, with zero measurable overhead. The separation is logical and exists for two reasons: architectural clarity for the developer, and the future possibility of extracting the Shield as an independent gateway if a use case justifies it.
+
+### 6.1 Core diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  ag-core · Single Process                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌─────────────────────────────────────────────────┐       │
+│   │            CAPA A — The Shield                  │       │
+│   │  (Tower middleware composable pipeline)         │       │
+│   │                                                 │       │
+│   │   ┌─────────┐  ┌─────────┐  ┌─────────────┐     │       │
+│   │   │ TLS 1.3 │─►│   JWT   │─►│ Rate Limit  │     │       │
+│   │   │ rustls  │  │ Ed25519 │  │  governor   │     │       │
+│   │   └─────────┘  └─────────┘  └──────┬──────┘     │       │
+│   │                                    │            │       │
+│   │   ┌─────────┐  ┌─────────┐  ┌──────▼──────┐     │       │
+│   │   │  CORS   │◄─│  RBAC   │◄─│ Validación  │     │       │
+│   │   │  CSRF   │  │ Guards  │  │  Schema     │     │       │
+│   │   └─────────┘  └─────────┘  └─────────────┘     │       │
+│   └─────────────────────┬───────────────────────────┘       │
+│                         │                                   │
+│              Llamada de función Rust (0ns)                  │
+│                         ▼                                   │
+│   ┌─────────────────────────────────────────────────┐       │
+│   │            CAPA B — The Core                    │       │
+│   │  (Axum router · Handlers · Estado)              │       │
+│   │                                                 │       │
+│   │   ┌────────────┐   ┌─────────────────────┐      │       │
+│   │   │  Router    │   │  Business handlers  │      │       │
+│   │   │  Axum      │──►│  (generados por DSL)│      │       │
+│   │   └────────────┘   └──────────┬──────────┘      │       │
+│   │                               │                 │       │
+│   │   ┌────────────┐   ┌──────────▼──────────┐      │       │
+│   │   │ Extractores│   │  Estado compartido  │      │       │
+│   │   │  tipados   │   │  AppState           │      │       │
+│   │   └────────────┘   └─────────────────────┘      │       │
+│   └─────────────────────────────────────────────────┘       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                  cargo build --release
+                            ▼
+                ┌────────────────────────┐
+                │  Single Static Binary  │
+                │  FROM scratch Docker   │
+                └────────────────────────┘
+```
+
+### 6.2 The Shield: the trust layer
+
+The Shield is responsible for everything that happens before a request is considered trusted and delivered to the business code. It is implemented as a pipeline of Tower layers, the same composable model that Axum uses internally. Each layer is optional and is configured from the project's `schema.ag`.
+
+The technical stack of the Shield is: Tokio as the M:N async runtime (it multiplexes millions of tasks over a fixed thread pool of size equal to available CPUs), Tower as the composable middleware model, rustls for TLS 1.3 without an OpenSSL dependency, serde and serde_json for zero-copy serialization where possible, ring for low-level cryptographic primitives, governor for rate limiting with a lock-free token bucket algorithm.
+
+The standard layers of the Shield, in execution order over an incoming request:
+
+The first layer is TLS termination, managed by rustls. It supports TLS 1.3 with modern cipher suites, OCSP stapling, and ALPN for HTTP/1.1 vs HTTP/2 negotiation. For environments where TLS termination is performed by an external load balancer (Cloudflare, AWS ALB, Nginx), this layer is disabled with an option in the schema.
+
+The second layer is payload deserialization and validation. For requests with a body, the contract defined in the `.ag` is applied: types, length constraints, email format, regex, numeric ranges. A violation produces a 422 error with structured detail about which field failed and why.
+
+The third layer is authentication. It supports JWT signed with Ed25519 (Edwards25519 curve, faster and more secure than RS256), Passkeys/WebAuthn (FIDO2), API keys, and cookie-based sessions. Verification is eager for endpoints marked as `auth required`.
+
+The fourth layer is rate limiting. Implemented with governor over a token bucket algorithm, it supports limits per IP, per authenticated user, per endpoint, and per combinations. The limits are declared in the schema.
+
+The fifth layer is RBAC authorization. The policies are declared in the `.ag` as expressions that are evaluated against the JWT claims and the request parameters. For example: `policy "user.role == ADMIN || user.id == params.id"`.
+
+The sixth layer is CORS and CSRF. Configured by default with secure values (no wildcard); any deviation requires explicit declaration.
+
+### 6.3 The Core: the business logic layer
+
+The Core is where 80% of the application code that the developer writes lives. It is Axum with a thin layer of conventions on top.
+
+The handlers have a signature generated by the DSL compiler from the declared endpoint:
+
+```rust
+// Generado automáticamente por `ag generate` desde schema.ag
+// El desarrollador solo escribe el cuerpo del handler.
+pub async fn create_user(
+    State(state): State<AppState>,
+    ValidatedBody(req): ValidatedBody<CreateUserRequest>,
+    Claims(claims): Claims<AuthClaims>,
+) -> Result<Json<User>, AgError> {
+    // El desarrollador solo escribe esto:
+    let user = state.db.users()
+        .create(CreateUserParams {
+            email: req.email,
+            name: req.name,
+            created_by: claims.user_id,
+        })
+        .await?;
+
+    state.events.emit("user.created", &user).await?;
+    Ok(Json(user))
+}
+```
+
+The type `ValidatedBody<T>` guarantees that the body already passed the Shield's validation. The type `Claims<T>` guarantees that the JWT was already verified. The type `AgError` is an enum that covers all the errors declared in the endpoint, and the conversion to an HTTP response is automatic via `IntoResponse`.
+
+The application state (`AppState`) is a generated struct that contains clients to the project's resources: the database pool, the NATS client, the Redis client, the S3 client. It is built at binary startup and shared by reference (cheap `Arc` clones) among all handlers.
+
+### 6.4 Error handling
+
+The Anti-Gravital error system follows three principles. The first: each endpoint explicitly declares which errors it can produce in its `.ag` definition. This produces a typed `EndpointError` enum in which each variant is a specific error. The second: errors propagate with Rust's `?` operator, and the conversion to an HTTP response is automatic and consistent. The third: no error is silently discarded. Unexpected errors produce a structured 500 with a correlation ID that is linked to the stack trace in the tracing system.
+
+### 6.5 Runtime and Tokio configuration
+
+Anti-Gravital uses Tokio in multi-thread mode with default configuration: one worker per available CPU, a blocking pool of 512 threads. For standard IO-bound workloads this configuration is optimal. The schema allows adjustments:
+
+```yaml
+runtime:
+  workers: auto              # Por defecto = núm CPUs
+  blocking_threads: 512
+  thread_stack: 2MB
+  shutdown_timeout: 30s
+```
+
+---
+
+## 7. The Anti-DSL language (`ag-dsl`): specification and incremental implementation
+
+The DSL compiler is, together with the runtime, the technically most demanding component of the project. It is essentially a complete compiler: lexer, parser, semantic analysis, type system, code generation to multiple targets, formatter, linter, and LSP server. This section defines the language specification and the incremental implementation strategy.
+
+### 7.1 Language philosophy
+
+The Anti-DSL is declarative, not imperative. It describes contracts, not flows. The premise is that most of the value of a backend framework resides in the consistency of its external contract: which models exist, which endpoints expose them, which rules apply, which errors are returned. The internal logic stays in pure Rust.
+
+The language draws inspiration from Prisma for the model syntax, from GraphQL SDL for the clarity of definitions, from sqlc for the integration with SQL, and from protobuf for the multi-target codegen. It is not a Turing-complete language and does not intend to be.
+
+### 7.2 Incremental implementation by DSL versions
+
+Probably the most important decision for making the compiler viable is to admit that the complete language cannot be delivered in the first version. The specification is delivered in incremental phases, each with a stable grammar that does not break the previous one. The DSL versions are independent of the framework versions and follow their own semver.
+
+| DSL version | Grammatical capability                                                                                              | Milestone                  |
+|-------------|-------------------------------------------------------------------------------------------------------------------|----------------------------|
+| v0.1        | Basic models: fields, primitive types, annotations `@primary`, `@unique`, `@auto`                                  | End of Phase 3 (delivered) |
+| v0.2        | Endpoints: method, path, body, response, errors                                                                    | End of Phase 3 (delivered) |
+| v0.3        | Validations: `@min`, `@max`, `@email`, `@regex`, `@length`                                                         | End of Phase 3 (delivered) |
+| v0.4        | Relationships between models: `1:1`, `1:N`, `N:M`, cascades                                                        | End of Phase 3 (delivered) |
+| v0.5        | Authentication and authorization: `auth required`, `policy "..."`                                                  | End of Phase 4 (delivered) |
+| v0.6        | Events: declaration of events emitted per endpoint, subscribers                                                    | End of Phase 4 (delivered) |
+| v0.7        | Mail and declarative domains: `mail`, `domain`, `dns`, `tls`                                                       | End of Phase 4.5           |
+| v0.8        | Plugin hooks (lifecycle, decorators)                                                                               | End of Phase 9             |
+| v1.0        | Stable grammar, frozen under semver. Any subsequent extension will be additive.                                    | End of Phase 10            |
+
+This table is realigned by `ADR-0007` (Phase 4.5). The multi-tenancy and data migration capabilities planned for intermediate versions of the DSL in earlier revisions are deferred: they will be specified in their own RFCs when the scope justifies it, without occupying a fixed numbered slot until then. This avoids promising features that do not have verified traction.
+
+### 7.3 Complete schema example (v1.0 target)
+
+```ag
+# schema.ag — Ejemplo completo objetivo de la v1.0
+
+config {
+    project_name "fintech-api"
+    database "postgres"
+    runtime { workers auto, blocking_threads 512 }
+}
+
+enum UserRole {
+    ADMIN
+    USER
+    BANNED
+}
+
+model User {
+    id           UUID       @primary @auto
+    email        String     @unique @max(255) @email
+    password_hash String    @max(255)
+    name         String     @max(100) @min(2)
+    role         UserRole   @default(USER)
+    created      Timestamp  @auto
+    updated      Timestamp  @auto_update
+
+    accounts     Account[]  @relation(name: "owner")
+}
+
+model Account {
+    id        UUID      @primary @auto
+    owner_id  UUID      @references(User.id) @on_delete(cascade)
+    balance   Decimal   @precision(18,2) @default(0)
+    currency  String    @length(3)
+    created   Timestamp @auto
+}
+
+request CreateUserRequest {
+    email     String @email
+    password  String @min(12) @max(128)
+    name      String @min(2) @max(100)
+}
+
+response UserResponse {
+    id        UUID
+    email     String
+    name      String
+    role      UserRole
+    created   Timestamp
+}
+
+error EmailTaken      { status 409 message "Email already registered" }
+error WeakPassword    { status 422 message "Password does not meet policy" }
+error InsufficientFunds { status 402 message "Insufficient balance" }
+
+endpoint CreateUser {
+    method   POST
+    path     /users
+    auth     optional
+    body     CreateUserRequest
+    response UserResponse
+    errors   [EmailTaken, WeakPassword]
+    events   [user.created]
+    rate_limit "5/min per_ip"
+}
+
+endpoint TransferFunds {
+    method   POST
+    path     /accounts/{from}/transfer
+    auth     required
+    policy   "user.id == params.from.owner_id"
+    body     TransferRequest
+    response TransferReceipt
+    errors   [InsufficientFunds]
+    events   [account.debited, account.credited, transfer.completed]
+    rate_limit "10/min per_user"
+}
+
+event user.created {
+    payload UserResponse
+    retain  30d
+}
+
+event account.debited {
+    payload AccountDelta
+    retain  7y
+}
+```
+
+### 7.4 Artifacts generated from a single schema
+
+A single `schema.ag` produces, via `ag generate`:
+
+| Artifact                           | Path                                | Purpose                                      |
+|------------------------------------|-------------------------------------|----------------------------------------------|
+| Rust structs with serde and validators | `src/models.rs`                 | Domain types                                 |
+| Typed handler stubs                | `src/handlers/*.rs`                 | Ready signatures; the dev writes the body    |
+| Compile-time checked sqlx queries  | `src/db/queries.rs`                 | Type-safe database access                    |
+| Versioned SQL migrations           | `migrations/NNNN_*.sql`             | Database schema                              |
+| TypeScript types                   | `clients/typescript/types.ts`       | Types shared with the frontend               |
+| TypeScript HTTP client             | `clients/typescript/client.ts`      | Typed SDK for the frontend                   |
+| Dart types                         | `clients/dart/lib/types.dart`       | Types shared with Flutter applications       |
+| Dart client with Dio               | `clients/dart/lib/client.dart`      | Typed SDK for Flutter                        |
+| OpenAPI 3.1 documentation          | `openapi.yaml`                      | Interactive documentation (Swagger UI)       |
+| AsyncAPI specification             | `asyncapi.yaml`                     | Event documentation                          |
+| JSON knowledge graph               | `.ag/knowledge-graph.json`          | Input for `ag-ai` and dashboards             |
+
+### 7.5 Compiler architecture
+
+The DSL compiler is organized in a traditional pipeline with well-defined stages:
+
+The **lexer** phase tokenizes the `.ag` input. It is implemented with `logos` (a Rust crate that generates tokenizers from declarative definitions with derive macros). It produces a stream of positional tokens for error reporting with lines and columns.
+
+The **parser** phase consumes tokens and produces an AST. It is implemented with `chumsky` (a parser combinator library with error recovery support), chosen over `nom` for its better handling of error messages readable by the end user.
+
+The **semantic analysis** phase validates the AST: it checks that the references between models exist, that the types are consistent, that the RBAC policies refer to valid fields, that there are no cycles in the relationships, that the names do not collide with reserved words of Rust or SQL. It produces structured diagnostics with suggestions.
+
+The **codegen** phase takes the validated AST and emits code to multiple targets. Each target (Rust, TypeScript, Dart, OpenAPI, SQL) is an independent module. The emission is done with `askama` templates for the textual outputs and with `quote` for the Rust code (which benefits from having a native Rust AST for emission).
+
+### 7.6 Language server (LSP)
+
+From version 0.3 of the DSL, an LSP server is included that offers autocompletion, live diagnostics, go-to-definition, find-references, hover types, and rename. It is distributed as an `ag-lsp` binary and integrates with any editor compatible with the protocol (VS Code, Neovim, Helix, Zed, IntelliJ via plugin).
+
+The official plugin for VS Code is published in the marketplace under the name `Anti-Gravital`.
+
+### 7.7 DSL tooling
+
+The CLI offers three specific commands for the DSL:
+
+`ag schema lint` reviews the `.ag` file and reports warnings about bad practices (models without indexes on foreign key fields, endpoints without rate limit, tautological policies, unhandled errors).
+
+`ag schema diff <ref>` compares the current schema against a reference (git commit, tag, file) and reports breaking vs non-breaking changes. Essential for pull request reviews.
+
+`ag schema migrate` generates the SQL migration needed to bring the database from the current state to the schema state. It includes a safety analysis: it detects destructive operations (drop column, drop table) and demands explicit confirmation.
+
+---
+
+## 8. Batteries-included modules
+
+This section specifies each of the standard modules of the ecosystem. Each subsection documents the purpose, the technical stack, the design decisions, and the extension points.
+
+### 8.1 `ag-auth` — Authentication and authorization
+
+The authentication module implements the modern identity schemes. The central architectural decision is to support Passkeys/WebAuthn as first-class, not as an afterthought; passwords are a legacy mechanism that is supported but not recommended.
+
+The technical stack implemented is custom WebAuthn with `ciborium` (CBOR) and COSE verification (`p256` for ES256, `ed25519-dalek` for EdDSA) instead of `webauthn-rs`, for Apache-2.0 license compatibility (see `ADR-0006`); `jsonwebtoken` for JWT, `argon2` for password hashing (when used), and `oauth2` as the OAuth2 client (Google, GitHub) with the PKCE flow.
+
+The supported flows are: registration and authentication with passkey, authentication with email + password (legacy), OAuth2 with preconfigured providers (Google, GitHub, Microsoft, Gravital ID), API keys for server-to-server integrations, and refresh tokens with rotation.
+
+JWTs are signed with Ed25519 by default (Edwards25519 curve, faster than RSA and more secure than ECDSA-P256 against side-channel attacks). The private key lives in an external secret manager (HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager) or in environment variables with documented rotation.
+
+The RBAC is declared in the schema and compiled to evaluable expressions. The policy is evaluated once per request in the Shield, before reaching the handler. Policies can reference JWT claims, path parameters, and query the database if explicitly declared (with caching to avoid the N+1).
+
+### 8.2 `ag-data` — Data access and migrations
+
+The data module is built on sqlx, with compile-time verification of SQL queries. This means that when `cargo build` runs, sqlx connects to a development database (configurable by environment variable) and verifies that each query is syntactically valid and that the types of the returned columns match the Rust structs that receive them. A SQL error ceases to be a runtime error; it becomes a compile error.
+
+The supported backends are PostgreSQL (recommended for production), SQLite (for development, tests, and edge applications), and MySQL (for legacy environments).
+
+Migrations are embedded in the binary with `sqlx::migrate!`. This means that the binary itself contains the complete history of migrations, and at startup it can automatically apply the pending ones. For environments where this is not desirable (blue-green deployments with migration as a separate step), the `ag migrate apply` command runs the migrations without bringing up the server.
+
+For multi-tenant architectures, `ag-data` natively supports schema-per-tenant in PostgreSQL: each tenant has its own schema with the same tables, and the connection router selects the schema based on the JWT claim. It also supports Row-Level Security (RLS) for cases where schema isolation is excessive.
+
+Read replicas are configured declaratively; the module routes read-only queries to the nearest replica and write queries to the primary.
+
+### 8.3 `ag-realtime` — Events and real-time communication
+
+`ag-realtime` offers three modalities of bidirectional communication: binary WebSocket, Server-Sent Events for unidirectional streams, and a pub/sub event bus.
+
+The event bus uses NATS as the broker. For small cases, NATS runs embedded in the same Anti-Gravital binary (edge mode). For cases at scale, the binary connects to an external NATS cluster. This duality allows starting simple and scaling without rewriting.
+
+For WebSocket, the internal binary protocol (based on msgpack) reduces the overhead compared to JSON. The WebSocket handlers are declared in the schema and receive messages already deserialized to Rust structs.
+
+For SSE, it is used as an automatic fallback in browsers that do not support WebSocket or are behind proxies that block it. The negotiation is transparent.
+
+Event persistence uses JetStream (a component of NATS) when available, which allows event replay for new consumers and durability against broker crashes.
+
+### 8.4 `ag-cache` — Multi-level cache
+
+The cache module offers two levels. The L1 level, already implemented, is an in-memory cache with `moka`, a concurrent implementation without contended locks based on TinyLFU, with tag-based invalidation. The L2 level (distributed cache between instances) is not yet implemented: `RFC-0005` proposes a native L2 compatible with the RESP2 protocol, without a dependency on Redis as an external service, and remains pending approval and implementation.
+
+Invalidation is done by events. When an endpoint emits an event (`user.updated`), `ag-cache` automatically invalidates the related entries at both levels. The invalidation policy is declared in the schema.
+
+The SQL query cache is automatic: queries marked with `@cache(ttl: 5m)` in the schema are cached transparently, and invalidation is triggered when an event touches any of the involved tables.
+
+### 8.5 `ag-storage` — Object storage
+
+`ag-storage` offers an abstraction over three backends: S3 (AWS and compatibles), MinIO (self-hosted), and local filesystem (for development). The backend is selected by configuration; the application code does not notice.
+
+Signed URLs for download and direct upload are generated with a single call: `storage.signed_url(key, Duration::from_mins(15), Permission::Write)`.
+
+Image processing (resize, compress, format conversion) is done with the `image` crate, supporting JPEG, PNG, WebP, and AVIF. Thumbnails are generated automatically on upload if the policy is declared in the schema.
+
+### 8.6 `ag-observe` — Traceability, metrics, and logging
+
+Observability is a first-level concern and not an optional module for production. Its stack is `tracing` for structured spans, `opentelemetry-rust` for export to compatible backends (Jaeger, Tempo, Datadog, Honeycomb), `metrics` for metrics with a Prometheus backend, and pre-configured Grafana dashboards that are included as JSON in the repository.
+
+Each request traverses the whole system with a unique correlation ID that appears in all structured logs, all tracing spans, and all errors returned to the client. This solves the problem of debugging in production: given a support ticket with a correlation ID, the operator can reconstruct the complete path of the request.
+
+`tokio-console` is integrated in development mode for live inspection of the Tokio tasks.
+
+### 8.7 `ag-ui` — Optional Server-Side Rendering
+
+The SSR module exists for cases where a SPA frontend is excessive: internal dashboards, marketing pages, simple forms, and administrative interfaces. It is based on `askama` (build-time compiled templating, with verified types) and native integration with HTMX for interactivity without heavy JavaScript frameworks.
+
+This module is explicitly *not* a competitor of React, Vue, Svelte, or Next.js. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend with a Next.js (or other) frontend that consumes the generated TypeScript client.
+
+### 8.8 `ag-mail` — Transactional communication (deferred standard)
+
+Introduced by `ADR-0007` in Phase 4.5. `ag-mail` is a **deferred** standard module: it has the maturity and scope of a standard, but is NOT installed by default in the official templates. It is incorporated when the project requires outbound transactional mail (account verification, magic links, password recovery, alerts, notifications).
+
+The v1 scope is **exclusively outbound**. `ag-mail` is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer persistent mailboxes, it does NOT implement antispam, filtering, or IP reputation management. This restriction is deliberate and is fixed in the ADR: the inbound and complete mail server capabilities are the work of a different project, not of Anti-Gravital.
+
+The technical stack is `lettre` with async Tokio transport and `rustls` for the native SMTP sender (coherent with The Shield). The provider adapters are declared as Cargo features (`--features resend,ses,postmark`) and each one implements the same `MailSender` trait:
+
+```rust
+#[async_trait::async_trait]
+pub trait MailSender: Send + Sync {
+    async fn send(&self, msg: &Email) -> Result<MessageId, AgMailError>;
+    fn provider_name(&self) -> &'static str;
+    fn dns_requirements(&self, domain: &str) -> Vec<DnsRecordSpec>;
+}
+
+pub enum AgMail {
+    Native(SmtpSender),                // lettre + rustls
+    Adapter(Box<dyn MailSender>),      // Resend, SES, Postmark, ...
+}
+```
+
+The Native | Adapter pattern is identical to the one used by `ag-storage` (`Native | S3`) and to the one planned for the L2 of `ag-cache` (L1 `moka` native today; L2 RESP2 native proposed in `RFC-0005`), reinforcing the project's interoperability rule: integrate dominant providers, do not replace them.
+
+The **templates** are modeled with the `MailTemplate` trait and a `StringTemplate` implementation of `{{var}}` substitution; any external engine (askama, minijinja) can be plugged in by implementing the trait. Variable validation is done against the `schema.ag`: the DSL compiler emits a warning when the `from` of a `mail` block does not reference a declared `domain`, and verifies that the typed `vars` of the template match the markers used. A malformed email ceases to be a runtime bug and approaches a build-detectable error. This is the **real differentiator** versus Resend, not deliverability: deliverability is the provider's job; the correctness of the contract is the framework's job.
+
+The **async queue** accepts jobs with retries and exponential backoff. Default backend in memory (Tokio task + channel). Optional persistent backend via `ag-data` (jobs table) to survive restarts. Optional integration with `ag-realtime` for event fan-out. Each job emits metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`, `ag_mail_retry_total`, latency histogram.
+
+The **integration with `ag-auth`** is strictly unidirectional: `ag-auth` consumes `ag-mail` by invoking a small trait that `ag-auth` defines. `ag-mail` does NOT know about `ag-auth`. The sixth rule of section 5.3 documents this directionality.
+
+`mail` block of DSL v0.7 (example):
+
+```ag
+mail WelcomeEmail {
+    from "hello@plenty.market"      # debe referenciar un bloque domain
+    subject "Welcome to Plenty"
+    template "emails/welcome.html"  # debe existir
+    vars {
+        name String
+        activation_url String        # debe usarse en el HTML
+    }
+}
+```
+
+### 8.9 `ag-domains` — Domain and TLS management (optional infra)
+
+Introduced by `ADR-0007` in Phase 4.5. `ag-domains` is an **infrastructure optional** module: not every backend administers DNS (many deploy behind a proxy or PaaS that already resolves it), but when a project wants `ag deploy` to deliver a URL `https://miapi.example.com` with a valid certificate in a single command, `ag-domains` is the responsible module.
+
+The module is **NOT a domain registrar**: the domain is bought externally (Namecheap, Cloudflare Registrar, etc.) and delegated via nameservers to the configured provider. `ag-domains` also does not replace Terraform or Pulumi: for complex multi-cloud infrastructure or centralized management of arbitrary DNS zones, the project should use the dominant tools. The boundary is fixed in the ADR.
+
+The core of the module is the `DnsProvider` trait:
+
+```rust
+#[async_trait::async_trait]
+pub trait DnsProvider: Send + Sync {
+    async fn list_records(&self, zone: &str) -> Result<Vec<DnsRecord>, AgDomainsError>;
+    async fn upsert_record(&self, zone: &str, record: &DnsRecord) -> Result<(), AgDomainsError>;
+    async fn delete_record(&self, zone: &str, id: &str) -> Result<(), AgDomainsError>;
+    fn provider_name(&self) -> &'static str;
+}
+```
+
+Small, versioned, with **contract tests** that every adapter must pass. The initial adapter is Cloudflare (authentication by API token). The trait is designed to add Route53, Namecheap, DigitalOcean, etc. in later iterations without touching the public surface.
+
+The **ACME client** (`instant-acme`) issues and renews Let's Encrypt certificates. It supports the DNS-01 challenge (preferred, uses the `DnsProvider` itself to create the required TXT) and HTTP-01 (alternative). The renewal runs as a background Tokio task, watching expiration and renewing before the configured threshold. Certificate storage is filesystem by default, or optional `ag-storage`.
+
+The cooperation with `ag-mail` materializes in `generate_mail_records`: `ag-mail` declares its requirements via `MailSender::dns_requirements` and `ag-domains` materializes them as records (SPF, DKIM, DMARC). This is a **cooperation** relationship, not a control one: `ag-mail` does not depend on `ag-domains`; a project can use `ag-mail` with a managed adapter (Resend) without `ag-domains` participating.
+
+The **propagation verification** uses `hickory-resolver` to query multiple public resolvers and confirm that the records propagated before marking an operation as successful. This blocks `ag deploy` until the domain responds, avoiding delivering URLs that the operator promised but that do not resolve yet.
+
+`domain` block of DSL v0.7 (example):
+
+```ag
+domain plenty.market {
+    provider "cloudflare"
+    tls { mode auto  acme true }
+    dns {
+        CNAME "api"     -> "ag-cloud-target"
+        TXT   "_dmarc"  -> "v=DMARC1; p=quarantine"
+    }
+    mail { spf auto  dkim auto  dmarc quarantine }
+}
+```
+
+
+---
+
+## 9. WASI plugin system (`ag-wasm-host`)
+
+The extensibility of Anti-Gravital is built on the WebAssembly System Interface (WASI), not on the ecosystem of native Rust crates. This decision has three reasons that make it non-negotiable.
+
+The first reason is security. Plugins are third-party code that the server operator runs. If they were native code, a malicious or defective plugin could corrupt the process memory, escape to arbitrary syscalls, or leak secrets. WASI modules run in a sandbox with explicit permissions declared in the plugin manifest; the plugin cannot access the filesystem, the network, or syscalls that are not declared.
+
+The second reason is multi-language. A WASI plugin can be written in Rust, Go (TinyGo), C, C++, AssemblyScript, Zig, or any language that compiles to WebAssembly. This democratizes the ecosystem: a security expert who writes in Go can contribute an exporter for Datadog without having to learn Rust.
+
+The third reason is ABI stability. The interface between the host and the plugin is defined with `wit-bindgen` and the Component Model, which allows a plugin compiled for one version of Anti-Gravital to keep working with future versions without recompilation, as long as the ABI does not change.
+
+### 9.1 Plugin runtime
+
+The runtime is `wasmtime`, embedded as a Rust crate. Each plugin is loaded into an isolated store with memory limits (256 MB by default, configurable), fuel limits (instruction consumption), and execution timeout.
+
+### 9.2 Plugin lifecycle
+
+The lifecycle of a plugin has five states. The first is **discovered**: the `.wasm` file is in the project's plugins directory and appears in the manifest. The second is **validated**: the host inspects the binary, verifies that the component model is compatible, reads the manifest, and confirms that the requested permissions are authorized. The third is **loaded**: the module is compiled ahead-of-time with Cranelift and stored in memory. The fourth is **active**: the plugin receives events and responds to invocations. The fifth is **unloaded**: the plugin is released, whether by server shutdown or by dynamic reload.
+
+### 9.3 Plugin manifest
+
+Each plugin brings a `plugin.toml` file with its metadata and requested permissions:
+
+```toml
+[plugin]
+name = "datadog-exporter"
+version = "1.2.0"
+author = "Gravital Labs"
+license = "Apache-2.0"
+description = "Exports metrics and traces to Datadog"
+
+[abi]
+anti_gravital_version = ">= 1.0.0, < 2.0.0"
+component_model = "0.5"
+
+[permissions]
+network = ["api.datadoghq.com:443", "api.datadoghq.eu:443"]
+env = ["DD_API_KEY", "DD_SITE"]
+filesystem = []
+clock = "read"
+
+[capabilities]
+exports = ["metrics_exporter", "trace_exporter"]
+imports = ["host_logger", "host_clock"]
+
+[limits]
+max_memory = "64MB"
+max_execution_time = "5s"
+fuel = 100_000_000
+```
+
+### 9.4 Host API exposed to plugins
+
+The host exposes a reduced set of capabilities to plugins, defined in WIT (WebAssembly Interface Types) interfaces. The main ones are: logger (write messages to the host's tracing system), clock (get the current time and measure intervals), metrics (register additional metrics), KV (persistent key-value storage per plugin), HTTP client (with an allowlist of hosts from the manifest), and events (subscription to the internal bus).
+
+### 9.5 Framework extension points
+
+Plugins can extend Anti-Gravital at five points: additional middleware in the Shield (request hooks), custom handlers registered in the router, observability exporters (metrics, traces, logs), event processors (subscribers to the internal bus), and custom CLI commands (`ag <plugin-cmd>`).
+
+### 9.6 Official plugins
+
+The repository maintains a set of official plugins under `plugins/`, each with its own crate and release cycle: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`. The existence of official plugins serves as a technical reference and as an implementation example for third parties.
+
+### 9.7 Plugin registry
+
+Starting from version 1.0 of the framework, an official registry is published at `plugins.antigravital.dev`. The registry indexes plugins with verified metadata, basic security scanning, and community reviews. Installation is done with `ag plugin add <name>`. Plugins are downloaded, validated, and registered in the project manifest.
+
+---
+
+## 10. Deployment subsystem (`ag-cloud` + `ag-domains`)
+
+One of the most important structural corrections derived from the critical analysis is that `ag-cloud` is not a competitor of Terraform or of Kubernetes. Its target range is the same one covered by Railway, Fly.io, Render, and Coolify: simplify the deployment of backend applications to typical environments without forcing the team to operate complete infrastructure. Since Phase 4.5 (`ADR-0007`), `ag-cloud` cooperates with `ag-domains` to resolve domain, TLS, and mail records within the `ag deploy` flow itself, without replacing the dominant providers (Let's Encrypt, Cloudflare, Resend) and without becoming a hosting panel.
+
+### 10.1 Philosophy of `ag-cloud`
+
+The typical operator of an Anti-Gravital project, especially in its first years of life, does not need or want to operate a Kubernetes cluster. They need to bring up their API on a VPS, connect it to a database, put it behind TLS, and forget about it. `ag-cloud` solves this case.
+
+For more complex cases (multi-region deployments, high availability, centralized secret management, IAM policies, infrastructure shared between multiple applications), `ag-cloud` is not the correct tool and the project must declare it openly: use Terraform, Pulumi, or Helm.
+
+### 10.2 The `deploy.ag` file
+
+The deployment subsystem is controlled with a declarative `deploy.ag` file separate from the project schema:
+
+```yaml
+app:
+  name: payments-api
+  domain: api.example.com
+
+runtime:
+  replicas: 3
+  port: 8080
+  health_check: /health
+  resources:
+    cpu: 1
+    memory: 512MB
+
+database:
+  type: postgres
+  version: "16"
+  size: 20GB
+  backup_schedule: "daily"
+
+cache:
+  type: redis
+  version: "7"
+  size: 1GB
+
+storage:
+  type: s3
+  bucket: payments-api-uploads
+
+secrets:
+  source: vault
+  path: secret/payments-api
+
+observability:
+  metrics: prometheus
+  traces: tempo
+  logs: loki
+
+deployment:
+  target: docker-compose      # opciones: docker-compose, fly, railway, k8s
+  strategy: rolling
+  max_surge: 1
+  max_unavailable: 0
+```
+
+### 10.3 Supported deployment targets
+
+`ag-cloud` supports four deployment targets, each with a different level of abstraction.
+
+The **docker-compose** target generates a complete `docker-compose.yml` with services, networks, volumes, healthchecks, secrets loaded from `.env` files or from a secret manager, a reverse proxy (Caddy by default) with automatic TLS via Let's Encrypt, and backup scripts for the database. It is the recommended target for self-hosting on a single VPS.
+
+The **fly** target generates a `fly.toml` and runs the `flyctl` commands needed to deploy to Fly.io. It is the recommended target for global edge computing with low operational overhead.
+
+The **railway** target generates the configuration for Railway and triggers the deployment via its API. It is the recommended target for teams that prefer PaaS without operation.
+
+The **k8s** target generates standard Kubernetes manifests (Deployment, Service, Ingress, ConfigMap, Secret, HorizontalPodAutoscaler) with reasonable values. For advanced configurations, this target is a starting point that the team customizes, not a complete solution.
+
+### 10.4 Deployment pipeline
+
+The `ag deploy` command runs a standardized pipeline: schema validation, compilation with `cargo build --release --target <target>`, construction of the Docker image from a `scratch` or `distroless` base, execution of smoke tests, push of the image to a registry, application of database migrations in order, rolling deployment with healthchecks, and post-deployment verification.
+
+### 10.5 Reverse proxy and TLS
+
+For docker-compose deployments, `ag-cloud` configures Caddy as a reverse proxy with automatic TLS. Caddy obtains and renews Let's Encrypt certificates without explicit configuration. For environments where TLS is managed by an external load balancer (Cloudflare, AWS ALB), Caddy is disabled.
+
+### 10.6 Integration with `ag-domains`
+
+Introduced by `ADR-0007`. When a project declares domains in its `.ag` contract (`domain` block of DSL v0.7), `ag deploy` resolves a six-step flow coordinated with `ag-domains`:
+
+1. **Validate domain control.** Insertion of a verification TXT record via the configured `DnsProvider` and confirmation of its presence.
+2. **Configure application DNS.** `upsert_record` to point the domain to the deployment target (CNAME to the Fly/Railway host, or A/AAAA records in docker-compose).
+3. **Issue or renew TLS.** ACME client against Let's Encrypt (DNS-01 preferred). The certificate is stored in filesystem or `ag-storage`.
+4. **Associate the domain to the target.** Configure the reverse proxy (Caddy in docker-compose, fly cert in Fly, etc.) to serve the domain with the issued certificate.
+5. **Materialize SPF/DKIM/DMARC** that `ag-mail` has declared in its `MailSender::dns_requirements`.
+6. **Verify propagation** against multiple public resolvers before marking the deployment as successful.
+
+`ag-cloud` does **NOT depend rigidly** on `ag-domains` in all targets: if the project does not declare domains, the flow is omitted. If the target is one where TLS is managed by an external load balancer (Cloudflare in front, AWS ALB), `ag-cloud` can skip step 3 without affecting the rest of the pipeline. This flexibility is what keeps `ag-domains` as an optional module, not as a mandatory piece of the runtime.
+
+---
+
+## 11. Artificial Intelligence integration (`ag-ai`) and the Knowledge Graph
+
+The `ag-ai` module is probably the most significant differentiator of the project in the 2026 context, where AI agents are everyday collaborators in software development. The module has two complementary components.
+
+### 11.1 The Anti-DSL as a contract for agents
+
+The first component is not code: it is the architectural decision that the `schema.ag` serves as a perfect contract for AI agents. An agent that receives an endpoint declared in `.ag` has exactly what it needs to generate a correct handler: precise types, defined errors, access policies, validations, events to emit. And, a critical difference with any other framework, the Rust compiler then verifies that the code generated by the agent is type-safe before it reaches production.
+
+This turns the development flow into a structured collaboration. The engineer designs the schema. The agent implements the handlers. The compiler acts as an automatic second reviewer that rejects any desynchronization. The operator supervises and approves.
+
+### 11.2 The Knowledge Graph
+
+The second component is the project's knowledge graph. `ag-ai` maintains a directed graph that indexes all the project's entities and their relationships: models, endpoints, events, policies, dependencies between handlers, database calls, calls to external services, configurations, installed plugins.
+
+The graph is automatically rebuilt on each `ag generate` and serialized to `.ag/knowledge-graph.json`. From this input the following are automatically produced: architectural documentation in Markdown, C4 diagrams (Context, Container, Component) in Mermaid format, suggested architectural decision records (ADRs), critical dependency lists, impact maps for proposed changes, and an interactive dashboard in the dev server.
+
+### 11.3 Assisted AI capabilities
+
+The module exposes three additional capabilities accessible from the CLI:
+
+`ag ai suggest-schema` analyzes a domain described in natural language and proposes a first draft of `schema.ag`. The engineer refines from there.
+
+`ag ai review-migration` analyzes a proposed SQL migration and reports risks: locks, downtime, data loss, slow queries during the transition. It suggests alternatives with a two-step migration when necessary.
+
+`ag ai analyze-architecture` produces a report on the project's knowledge graph: identification of hotspots (models with too many dependencies), endpoints without tests, events emitted but without consumers, dead code, antipatterns.
+
+### 11.4 Connection with model providers
+
+The module does not embed any language model. It connects to external providers via API: Anthropic Claude, OpenAI, local models served by Ollama or vLLM. The connection is configurable and the operator can choose or self-host. For sensitive environments, an offline mode is supported where the AI functions are disabled but the rest of the framework works normally.
+
+---
+
+## 12. Migration framework (`ag-migrate`): importers
+
+The real adoption of any successful backend framework has always passed through the possibility of migrating from the incumbent. The industry hates rewrites. The `ag-migrate` module is not an afterthought; it is a first-class citizen of the project.
+
+### 12.1 Supported importers
+
+`ag-migrate` offers official importers for the most adopted frameworks on the market.
+
+The **OpenAPI** importer consumes any OpenAPI 3.0 or 3.1 spec and produces a `schema.ag` with models, endpoints, errors, and validations. It is the most generic importer and serves to migrate from any service that documents an OpenAPI, regardless of the language it is written in.
+
+The **Prisma** importer consumes a `schema.prisma` file and translates models, relationships, and migrations to Anti-Gravital. It covers migration from TypeScript applications that use Prisma as an ORM.
+
+The **Django** importer reads Django models (defined as Python classes) and produces the equivalent Anti-Gravital models. It includes translation of relationships, managers, signals, and migrations.
+
+The **FastAPI** importer consumes FastAPI applications by examining the routers and the Pydantic models. It produces Anti-Gravital endpoints and models. It is probably the most natural migration case due to the philosophical similarity between FastAPI and Anti-Gravital.
+
+The **Sequelize** importer reads models from Node.js applications that use the Sequelize ORM. It covers the Express + Sequelize case, very common in the market.
+
+The **GraphQL** importer consumes a GraphQL SDL schema and produces its equivalent in Anti-Gravital.
+
+### 12.2 Honest limitations
+
+The importers cover the translation of the contract (models, endpoints, validations), not the business logic. The logic of the handlers must be written manually or with the assistance of an AI agent. This is documented clearly to avoid erroneous expectations.
+
+### 12.3 Official migration guides
+
+For each supported framework, an official guide is published in the documentation: recommended strategy (big bang vs strangler fig), patterns for coexistence during the transition (reverse proxy that splits traffic between the legacy system and the new one), comparative testing, and real case studies when available.
+
+---
+
+## 13. Native application bridge (`ag-mobile`): Flutter and generated clients
+
+The most important repositioning derived from the critical analysis is that Anti-Gravital does not compete with Flutter. It positions itself as **the ideal native backend for Flutter applications**. This multiplies the strategic value of the project: instead of competing with a mature and very well designed cross-platform UI framework, Anti-Gravital becomes its natural companion.
+
+### 13.1 Dart SDK generation
+
+`ag-mobile` generates a complete Dart package from the `schema.ag`. The package includes types generated with freezed for immutability, an HTTP client based on dio with interceptors for authentication, a WebSocket client for realtime, Server-Sent Events support, and mocks for tests.
+
+### 13.2 Native Flutter authentication
+
+The module includes widgets and services ready for the authentication flows. The WebAuthn integration leverages the native platforms (Android Credential Manager API, iOS Passkeys via AuthenticationServices). The OAuth2 flow uses `flutter_appauth` with auto-generated configuration.
+
+### 13.3 Offline-first and synchronization
+
+`ag-mobile` offers an optional offline synchronization layer. Operations are queued locally in a SQLite database, replicated to the server when there is connectivity, and conflicts are resolved with declarative policies in the schema (last-write-wins, custom merge, server-wins). It is an ambitious functionality that is implemented in a late phase of the roadmap.
+
+### 13.4 Other generated clients
+
+Although Flutter is the priority target for mobile, the codegen system is extensible. Version 1.0 includes generators for Dart (Flutter), TypeScript (React, Vue, Svelte, Next.js), and Kotlin (native Android, optionally Kotlin Multiplatform). A later version may include Swift and Python.
+
+---
+
+## 14. Observability (`ag-observe`)
+
+Although already covered briefly as a standard module, observability deserves its own section because it is probably the most visible difference between a toy framework and a production framework.
+
+### 14.1 Three pillars
+
+`ag-observe` covers the three classic pillars: metrics, traces, and logs. The stack is OpenTelemetry as the abstraction layer, with configurable exporters.
+
+Metrics are exposed at `/metrics` in Prometheus format by default. They include latency per endpoint (p50, p95, p99, p999), throughput, error rate per HTTP code, database pool usage, Redis pool usage, active WebSocket connections, and custom metrics registered by the application.
+
+Traces are exported via OTLP to any compatible backend (Tempo, Jaeger, Datadog, Honeycomb, Lightstep). Each request generates a trace with spans for the Shield, the handlers, the SQL queries, the external calls, and the event emission.
+
+Logs are structured (JSON by default) and always include the correlation ID. They are exported to stdout (standard for cloud-native environments) and optionally to backends such as Loki or Datadog.
+
+### 14.2 Included Grafana dashboards
+
+The repository includes pre-configured Grafana dashboards in JSON that the operator imports directly. They cover: service overview, latency and throughput per endpoint, errors and exceptions, database health, cache health, and Rust runtime metrics (memory usage, number of Tokio tasks, GC pauses — which will always be zero, but the dashboard confirms it).
+
+### 14.3 Live inspection with tokio-console
+
+In development mode, `tokio-console` is enabled automatically. It allows the developer to connect to the process and see in real time which tasks are running, which are blocked, where resources are being consumed. It is a tremendously useful debugging tool that exists only in Rust with Tokio.
+
+---
+
+## 15. Security model
+
+Security is a cross-cutting concern, not a module. This section documents the project's guarantees and practices.
+
+### 15.1 Guarantees by construction
+
+Rust eliminates by construction four categories of bugs that historically represent more than 70% of the critical vulnerabilities in systems software: use-after-free, buffer overflows, data races, and null pointer dereferences. These guarantees are at the compiler level, not at runtime; they do not require GC or runtime checks.
+
+Anti-Gravital prohibits the use of `unsafe` in all the framework code except in blocks that are explicitly justified, documented, and reviewed by at least two maintainers. Each `unsafe` block comes accompanied by a comment that explains why it is necessary and which invariants it preserves.
+
+### 15.2 Cryptography practices
+
+The cryptographic primitives are imported from the `ring` crate, maintained by members of Google's BoringSSL team. No custom cryptography is rolled. The default algorithms are Ed25519 for signatures, ChaCha20-Poly1305 for AEAD, Argon2id for password hashing, and TLS 1.3 for transport. Legacy algorithms (RSA, AES-CBC, SHA-1) are available only for explicit interoperability.
+
+### 15.3 Responsible disclosure policy
+
+The repository maintains a `SECURITY.md` file with contact addresses (primary `anti@gravitalcloud.com`, backup `angelnereira@gravitalcloud.com`) and a clear policy: vulnerabilities are reported privately, the team confirms receipt within 48 hours, publishes a patch within 30 days for critical vulnerabilities, and a CVE with credit to the reporter.
+
+### 15.4 Audits
+
+Before the stable 1.0 version, the Shield component of the framework undergoes an external audit by a company specialized in Rust systems security (Trail of Bits, NCC Group, or equivalent). The audit report is published with the release.
+
+### 15.5 Continuous fuzzing
+
+The DSL parser and the HTTP parser undergo continuous fuzzing with `cargo-fuzz`. The CI runs fuzzing corpora on each PR; before 1.0, at least 72 hours of fuzzing without crashes are completed on each parser.
+
+---
+
+## 16. Performance objectives and validation methodology
+
+This section replaces the absolute benchmarks of v3.0. The previous figures were presented as facts when in reality they are extrapolations of individual components. This version rephrases them honestly as **design objectives**, against which the project will measure itself publicly.
+
+### 16.1 Design objectives
+
+| Metric                                                     | Objective                 | Extrapolation basis                          |
+|------------------------------------------------------------|---------------------------|----------------------------------------------|
+| Hello World throughput (plaintext)                         | >= 300 K req/s            | Axum + Tokio in TechEmpower                  |
+| Simple JSON throughput                                     | >= 150 K req/s            | Axum + serde_json in public benchmarks       |
+| CRUD throughput with PostgreSQL                            | >= 40 K req/s             | sqlx + connection pool                       |
+| p99 latency with DB query                                  | <= 5 ms                   | Measurements of Tokio services in production |
+| Base memory (idle process, no traffic)                     | <= 15 MB                  | Size of Rust + Tokio binaries                |
+| Cold start time                                            | <= 100 ms                 | Static Rust binaries on Linux                |
+| Release binary size with all standard modules              | <= 20 MB                  | Compilations of similar projects             |
+| Concurrent WebSocket connections on a 2 vCPU instance      | >= 50 000                 | Tokio stackless tasks                        |
+
+These figures are technical objectives. The project specification requires that they be measured with the `ag bench` suite in the repository, and that each release publish the reproducible results. If a metric is not reached, it is published as such and the deficit is documented. The technical credibility of the project depends on not exaggerating.
+
+### 16.2 Measurement methodology
+
+Any comparison with competing frameworks is done under the TechEmpower Framework Benchmarks, run by the team or by independent third parties. The comparisons published in the documentation include: the exact version of the compared framework, the configuration used, the benchmark hardware, the number of runs, and the standard deviation. Comparisons that do not comply with these rules are not published.
+
+### 16.3 Validation milestones for v1.0
+
+The stable 1.0 version is released only when the following milestones are met:
+
+- Top-10 position in a TechEmpower Round (Plaintext and JSON Serialization categories)
+- External security audit without unresolved critical findings
+- 72 hours of fuzzing of the DSL parser and the HTTP parser without crashes
+- Load test of 500 K req/s sustained for 30 minutes without degradation >5%
+- 24 hours of continuous load without detectable memory growth
+- Binaries verified on Linux x86-64, Linux ARM64, macOS ARM64, Windows x64
+- At least one service in production on Gravital Cloud for 30 days without incidents
+- At least three external projects using Anti-Gravital in production
+
+---
+
+## 17. Open Source governance model
+
+### 17.1 License and promise
+
+The license is Apache 2.0 for the entire ecosystem. There is not and will not be a closed Enterprise version with features reserved for paying customers. The commitment is explicit and is documented in the README. Any future license change would require the approval of the entire community of maintainers, and the ecosystem remains forkable.
+
+### 17.2 Maintenance model
+
+The project adopts an initial BDFL model with a transition plan to explicit meritocracy. In the initial phase (0.x versions), Angel Nereira is the principal maintainer. Starting from version 1.0, a technical committee of five people elected among the contributors with the greatest track record is established. The committee approves RFCs (Request For Comments) for major changes.
+
+### 17.3 RFCs
+
+Any change that affects the public API, the DSL, the plugin architecture, or the security model requires an RFC. The process is: the proposer opens an issue in `anti-gravital-rfcs/`, the community debates for at least two weeks, the technical committee votes. Once approved, the RFC is moved to the "Accepted" state and is implemented in a specific version.
+
+### 17.4 Compatibility
+
+After version 1.0, the project commits to strict semver in the public API. Breaking changes only in majors. The LTS versions are announced with a public calendar, with at least 18 months of security support.
+
+### 17.5 Economic sustainability
+
+The project is sustained on three legs. The first is Gravital Labs (Nereira Technology and Business Solutions), which finances the initial development as a strategic investment. The second is professional services: adoption consulting, training, and premium support for companies that want an SLA, without this closing product features. The third, in the future, are corporate sponsors (GitHub Sponsors, Open Collective) of companies that depend on the project.
+
+---
+
+## 18. Risk analysis and mitigations
+
+This section documents the real risks of the project and the planned mitigations. It is deliberately honest; a project that does not enumerate its risks does not deserve trust.
+
+### 18.1 Risk: DSL compiler complexity
+
+The DSL compiler is a several-year project on its own. The mitigation is the incremental implementation by DSL versions described in section 7. Version 0.1 covers only basic models and is deliverable in two months. Each version adds a well-defined subset. The stable 1.0 version of the DSL is the highest-risk milestone of the project and is planned for the end of the schedule.
+
+### 18.2 Risk: Rust learning curve
+
+Rust has a real learning curve. The mitigation is threefold. First, the DSL generates 80% of the scaffolding, so that the handlers the developer writes are simple Rust: a few `await`s, access to shared state, returning a `Result`. Second, the documentation includes a "Rust for Python/Node.js developers" guide with the minimum necessary concepts. Third, the integrated AI assistant can generate handlers that the developer supervises.
+
+### 18.3 Risk: competition with big players
+
+Spring, .NET, Express, and FastAPI have decades-old ecosystems. Anti-Gravital cannot compete frontally with them in breadth. The mitigation is to focus on niches where the incumbents have structural weaknesses: high-load applications, edge services, backends for Flutter, backends for AI applications with streaming.
+
+### 18.4 Risk: bus factor
+
+The initial project has a worryingly low bus factor (one maintainer). The mitigation is active: complete internal documentation from day one, incorporation of external contributors from phase 1, and transition to a technical committee before 1.0.
+
+### 18.5 Risk: changes in the Rust ecosystem
+
+The Rust ecosystem continues to evolve rapidly. Axum, Tokio, and sqlx may make breaking changes in future versions. The mitigation is conservative version pinning, exhaustive integration tests against each new version of the core dependencies, and active participation in their communities to anticipate changes.
+
+### 18.6 Risk: community fragmentation
+
+If the Anti-Gravital community fragments (for example, competing forks with divergent features emerge), the ecosystem weakens. The mitigation is an open RFC process that gives a real voice to the community, predictable releases, and a public roadmap.
+
+### 18.7 Risk: post-launch security vulnerabilities
+
+Although Rust eliminates many categories of vulnerabilities, it does not eliminate the logical ones (broken authorization, information leaks, application-level races). The mitigation is the external audit before 1.0, the responsible disclosure program, continuous fuzzing, and CI with static analysis (clippy, cargo-audit, cargo-deny).
+
+---
+
+## 19. Technical glossary
+
+| Term                          | Definition                                                                                                                |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| Anti-DSL (.ag)                | Domain definition language of the framework. Schema-first.                                                                |
+| Axum                          | Rust HTTP framework built on Tokio and Tower. Base of the Core.                                                           |
+| Backpressure                  | Mechanism by which the system rejects new work when it is saturated. Implemented natively in Tower.                       |
+| Cargo                         | Rust's build system and package manager.                                                                                  |
+| Cargo-fuzz                    | Fuzzing tool integrated with Cargo.                                                                                        |
+| Core (layer B)                | Business logic layer of the core. Axum router, handlers, shared state.                                                    |
+| Correlation ID                | Unique identifier per request that traverses all the logs, traces, and errors.                                            |
+| Ed25519                       | Digital signature algorithm based on the Edwards25519 curve. Default for JWT in Anti-Gravital.                            |
+| Flamegraph                    | CPU profiling visualization. With pure Rust it covers the whole application without gaps.                                 |
+| Fuel (wasmtime)               | Quota of instructions that a WASM plugin can execute before being interrupted.                                            |
+| GIL                           | Global Interpreter Lock. CPython mechanism that prevents real parallel execution.                                         |
+| Governor                      | Rust crate for rate limiting based on token bucket. Thread-safe without contended locks.                                  |
+| HTMX                          | Small JavaScript library that allows interactivity without SPA frameworks.                                                |
+| JetStream                     | NATS message persistence system. Allows replay and durability.                                                            |
+| Knowledge Graph               | Directed graph of the Anti-Gravital project. Indexes models, endpoints, events, dependencies.                             |
+| LSP                           | Language Server Protocol. The `.ag` DSL offers LSP for autocompletion in editors.                                         |
+| Moka                          | Concurrent Rust cache with TinyLFU. Thread-safe without contended locks.                                                  |
+| NATS                          | pub/sub messaging system used by `ag-realtime`.                                                                           |
+| OpenAPI                       | Standard specification to describe HTTP APIs. Anti-Gravital generates it automatically.                                   |
+| Passkeys                      | FIDO2/WebAuthn standard for passwordless authentication.                                                                  |
+| Ring                          | Low-level cryptography Rust crate. Maintained by members of the BoringSSL team.                                           |
+| Rustls                        | TLS 1.3 implementation in pure Rust, without OpenSSL.                                                                     |
+| Schema drift                  | Condition where the definition of a schema becomes desynchronized between layers. Anti-Gravital eliminates it by design.  |
+| Schema-per-tenant             | Multi-tenant architecture where each client has its own schema in PostgreSQL.                                             |
+| Shield (layer A)              | Trust layer of the core. Tower middleware pipeline: TLS, auth, validation, rate limit, RBAC, CORS.                        |
+| sqlx                          | Rust database access crate with compile-time query verification.                                                          |
+| TechEmpower                   | Industry-standard benchmark suite for comparing web frameworks.                                                           |
+| Tokio                         | Rust async runtime. Provides M:N concurrency through lightweight tasks without GC.                                        |
+| tokio-console                 | Live diagnostic tool for Tokio applications.                                                                              |
+| Tower                         | Rust crate for composable services and middleware. Architectural base of the Shield.                                     |
+| WASI                          | WebAssembly System Interface. Standard for WebAssembly modules with controlled access to the system.                     |
+| wasmtime                      | WebAssembly runtime embeddable in Rust. Host of the plugin system.                                                        |
+| WebAuthn                      | W3C standard for authentication with hardware factors (passkeys, security keys).                                          |
+| Zero-copy                     | Data transfer without copying it in memory. Reduces CPU overhead.                                                         |
+| Zero-overhead abstraction     | Rust principle: an abstraction must not cost performance versus the equivalent manual code.                               |
+| ACME                          | Automatic Certificate Management Environment. Protocol for automatic issuance and renewal of TLS certificates (Let's Encrypt). Used by `ag-domains` since Phase 4.5. |
+| DKIM                          | DomainKeys Identified Mail. Mail authentication mechanism by cryptographic signature of the sender domain. Generated by `ag-domains` for `ag-mail`. |
+| SPF                           | Sender Policy Framework. DNS record that enumerates the servers authorized to send mail on behalf of the domain. Generated by `ag-domains` for `ag-mail`. |
+| DMARC                         | Domain-based Message Authentication, Reporting and Conformance. Policy that indicates how to treat mail that fails SPF or DKIM. Generated by `ag-domains`. |
+| MTA                           | Mail Transfer Agent. Complete mail server (Postfix, Stalwart). `ag-mail` v1 is **NOT an MTA**: it only sends outbound, it does not receive inbound. |
+| DnsProvider                   | `ag-domains` trait that abstracts DNS providers through adapters. Initial adapter: Cloudflare. Designed to add Route53, Namecheap, etc. with contract tests. |
+| Deferred standard             | Crate classification introduced by `ADR-0007`. Crate with standard maturity that is NOT installed by default in official templates. `ag-mail` is the first case. |
+
+---
+
+## 20. Appendix: market comparison
+
+This comparison is offered as a technical reference. The figures for the competitors are based on verifiable public benchmarks (TechEmpower, GitHub issues, official documentation). Those of Anti-Gravital are design objectives, not measurements.
+
+| Criterion                      | Spring Boot   | .NET Core     | FastAPI      | NestJS       | Anti-Gravital (objective)   |
+|--------------------------------|---------------|---------------|--------------|--------------|-----------------------------|
+| Runtime                        | JVM           | CLR           | CPython      | Node.js V8   | None (native binary)        |
+| Base memory                    | ~350 MB       | ~120 MB       | ~60 MB       | ~80 MB       | <= 15 MB                    |
+| Startup time                   | ~6 s          | ~0.8 s        | ~0.8 s       | ~1.2 s       | <= 0.1 s                    |
+| Hello World throughput         | ~75 K req/s   | ~200 K req/s  | ~28 K req/s  | ~45 K req/s  | >= 300 K req/s              |
+| CRUD + DB throughput           | ~15 K req/s   | ~30 K req/s   | ~5 K req/s   | ~8 K req/s   | >= 40 K req/s               |
+| Memory safety                  | Partial       | Partial       | Yes          | No           | Total (Rust compiler)       |
+| GC pauses                      | Yes (JVM GC)  | Yes (CLR GC)  | Not applicable | Yes (V8 GC) | No (no GC)                  |
+| Deployment as single binary    | No            | Partial       | No           | No           | Yes                         |
+| Schema-first DX                | No            | No            | Partial      | No           | Yes (Anti-DSL)              |
+| Compile-time verified queries   | No           | No            | No           | No           | Yes (sqlx)                  |
+| Native DX for AI agents        | No            | No            | Partial      | No           | Yes                         |
+| Native cross-compilation       | No            | No            | No           | No           | Yes                         |
+| License                        | Apache 2.0    | MIT           | MIT          | MIT          | Apache 2.0                  |
+
+---
+
+**End of the Technical Architecture document.**
+Complementary document: *Roadmap and Verification Gates.*
+Unified PDF version: *Anti-Gravital Blueprint v4.0 — Master Document.*
+
+---
+
+## Espanol
+
 # Anti-Gravital Framework — Arquitectura Técnica e Implementación
 
 **Versión:** 4.0 — Mayo 2026
@@ -630,7 +1875,7 @@ Esta sección especifica cada uno de los módulos estándar del ecosistema. Cada
 
 El módulo de autenticación implementa los esquemas modernos de identidad. La decisión arquitectónica central es soportar Passkeys/WebAuthn como primera clase, no como afterthought; las passwords son un mecanismo legacy soportado pero no recomendado.
 
-El stack técnico es `webauthn-rs` para FIDO2, `jsonwebtoken` para JWT, `ring` para criptografía, `argon2` para hashing de passwords (cuando se usan), y `oauth2` como cliente OAuth2.
+El stack técnico implementado es WebAuthn propio con `ciborium` (CBOR) y verificación COSE (`p256` para ES256, `ed25519-dalek` para EdDSA) en lugar de `webauthn-rs`, por compatibilidad de licencia Apache-2.0 (vease `ADR-0006`); `jsonwebtoken` para JWT, `argon2` para hashing de passwords (cuando se usan), y `oauth2` como cliente OAuth2 (Google, GitHub) con flujo PKCE.
 
 Los flujos soportados son: registro y autenticación con passkey, autenticación con email + password (legacy), OAuth2 con providers preconfigurados (Google, GitHub, Microsoft, Gravital ID), API keys para integraciones servidor-servidor, y refresh tokens con rotación.
 
@@ -664,7 +1909,7 @@ La persistencia de eventos usa JetStream (componente de NATS) cuando está dispo
 
 ### 8.4 `ag-cache` — Caché multinivel
 
-El módulo de caché ofrece dos niveles. El nivel L1 es caché en memoria con `moka`, una implementación concurrente sin locks contenciosos basada en TinyLFU. El nivel L2 es Redis (con `fred` como cliente), opcional, para caché distribuida entre instancias.
+El módulo de caché ofrece dos niveles. El nivel L1, ya implementado, es caché en memoria con `moka`, una implementación concurrente sin locks contenciosos basada en TinyLFU, con invalidación por tags. El nivel L2 (caché distribuida entre instancias) aún no está implementado: `RFC-0005` propone un L2 nativo compatible con el protocolo RESP2, sin dependencia de Redis como servicio externo, y queda pendiente de aprobación e implementación.
 
 La invalidación se hace por eventos. Cuando un endpoint emite un evento (`user.updated`), `ag-cache` invalida automáticamente las entradas relacionadas en ambos niveles. La política de invalidación se declara en el schema.
 
@@ -726,16 +1971,19 @@ pub enum AgMail {
 ```
 
 El patrón Native | Adapter es idéntico al usado por `ag-storage`
-(`Native | S3`) y `ag-cache` (`moka | Redis`), reforzando la regla de
+(`Native | S3`) y al previsto para el L2 de `ag-cache` (L1 `moka` nativo
+hoy; L2 RESP2 nativo propuesto en `RFC-0005`), reforzando la regla de
 interoperabilidad del proyecto: integrar proveedores dominantes, no
 reemplazarlos.
 
-Los **templates** se construyen con `askama` (ya utilizado por `ag-ui`) y se
-validan en build-time contra el `schema.ag`: si el `from` declarado no
-referencia un `domain` válido, si el archivo del template no existe o si
-las variables del HTML no coinciden con las `vars` tipadas declaradas, el
-compilador del DSL rechaza el build. Un correo mal formado deja de ser un
-bug de runtime y se convierte en un error de compilación. Este es el
+Los **templates** se modelan con el trait `MailTemplate` y una
+implementación `StringTemplate` de sustitución `{{var}}`; cualquier motor
+externo (askama, minijinja) puede conectarse implementando el trait. La
+validación de variables se hace contra el `schema.ag`: el compilador del
+DSL emite un aviso cuando el `from` de un bloque `mail` no referencia un
+`domain` declarado, y verifica que las `vars` tipadas del template
+coincidan con los marcadores usados. Un correo mal formado deja de ser un
+bug de runtime y se acerca a un error detectable en build. Este es el
 **diferenciador real** frente a Resend, no la entregabilidad: la
 entregabilidad es trabajo del proveedor; la corrección del contrato es
 trabajo del framework.

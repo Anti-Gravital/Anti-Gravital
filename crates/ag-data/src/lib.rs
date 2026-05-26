@@ -1,10 +1,10 @@
-//! Capa de datos de Anti-Gravital.
+//! Anti-Gravital data layer.
 //!
-//! Provee el pool de conexiones PostgreSQL, la configuracion declarativa
-//! y el helper para ejecutar migraciones embebidas. En Fase 3+ el DSL
-//! genera query builders tipados que usan este pool como backend.
+//! Provides the PostgreSQL connection pool, declarative configuration
+//! and the helper to run embedded migrations. In Phase 3+ the DSL
+//! generates typed query builders that use this pool as backend.
 //!
-//! # Ejemplo minimo
+//! # Minimal example
 //!
 //! ```no_run
 //! use ag_data::{DataConfig, connect};
@@ -21,18 +21,18 @@
 //! # }
 //! ```
 //!
-//! # Migraciones
+//! # Migrations
 //!
-//! Las migraciones se embeben en el binario con el macro `sqlx::migrate!`
-//! y se aplican en el arranque con [`run_migrations`]:
+//! Migrations are embedded in the binary with the `sqlx::migrate!` macro
+//! and applied at startup with [`run_migrations`]:
 //!
 //! ```ignore
 //! use ag_data::{DataConfig, DbPool, connect, run_migrations};
 //!
 //! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! # let pool = connect(&DataConfig::default()).await?;
-//! // El macro lee los archivos SQL del crate consumidor, no de ag-data.
-//! // La ruta es relativa al Cargo.toml del proyecto que llama a migrate!.
+//! // The macro reads the SQL files from the consuming crate, not from ag-data.
+//! // The path is relative to the Cargo.toml of the project calling migrate!.
 //! static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 //! run_migrations(&pool, &MIGRATOR).await?;
 //! # Ok(())

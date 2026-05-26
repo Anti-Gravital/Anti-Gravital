@@ -1,12 +1,12 @@
-//! Configuracion publica del Shield.
+//! Public Shield configuration.
 //!
-//! La configuracion se deserializa desde un archivo TOML descrito en
-//! `docs/rfc/RFC-0002-diseno-shield-mvp.md` seccion 4.5. Todas las
-//! secciones aceptan defaults seguros: omitir una seccion en TOML es
-//! equivalente a usar `Default`. Las claves desconocidas se rechazan
-//! con `AgError::Config` para evitar typos silenciosos.
+//! The configuration is deserialized from a TOML file described in
+//! `docs/rfc/RFC-0002-diseno-shield-mvp.md` section 4.5. All sections
+//! accept secure defaults: omitting a section in TOML is equivalent to
+//! using `Default`. Unknown keys are rejected with `AgError::Config` to
+//! avoid silent typos.
 //!
-//! Un ejemplo documentado con todas las secciones esta en
+//! A documented example with all the sections is in
 //! `crates/ag-core/config.example.toml`.
 
 use std::net::SocketAddr;
@@ -16,35 +16,35 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AgError, AgResult};
 
-/// Configuracion completa del Shield.
+/// Complete Shield configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShieldConfig {
-    /// Direccion de escucha.
+    /// Listen address.
     #[serde(default = "default_bind_addr")]
     pub bind: SocketAddr,
 
-    /// Configuracion del runtime Tokio.
+    /// Tokio runtime configuration.
     #[serde(default)]
     pub runtime: RuntimeConfig,
 
-    /// Configuracion CORS.
+    /// CORS configuration.
     #[serde(default)]
     pub cors: CorsConfig,
 
-    /// Configuracion CSRF.
+    /// CSRF configuration.
     #[serde(default)]
     pub csrf: CsrfConfig,
 
-    /// Configuracion de rate limiting por IP.
+    /// Per-IP rate limiting configuration.
     #[serde(default)]
     pub rate_limit: RateLimitConfig,
 
-    /// Configuracion de autenticacion JWT Ed25519.
+    /// Ed25519 JWT authentication configuration.
     #[serde(default)]
     pub auth: AuthConfig,
 
-    /// Configuracion TLS 1.3.
+    /// TLS 1.3 configuration.
     #[serde(default)]
     pub tls: TlsConfig,
 }

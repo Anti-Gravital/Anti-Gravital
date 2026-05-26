@@ -1,17 +1,17 @@
-//! Binario unificado `ag` del ecosistema Anti-Gravital.
+//! Unified `ag` binary of the Anti-Gravital ecosystem.
 //!
-//! Comandos de Fase 2:
-//! - `ag new <nombre> [--template rest|realtime|fullstack]`
+//! Phase 2 commands:
+//! - `ag new <name> [--template rest|realtime|fullstack]`
 //! - `ag dev [--bind host:port]`
 //! - `ag build [--target triple]`
 //!
-//! Comandos de Fase 3 (DSL):
+//! Phase 3 commands (DSL):
 //! - `ag generate [--schema schema.ag] [--output ./generated]`
 //! - `ag schema lint [--schema schema.ag]`
 //! - `ag schema diff <ref> [--schema schema.ag]`
 //!
-//! Comandos de Fase 4.5 (correo y dominios):
-//! - `ag domains check --domain ejemplo.com [--expected valor] [--min-confirmed N]`
+//! Phase 4.5 commands (mail and domains):
+//! - `ag domains check --domain example.com [--expected value] [--min-confirmed N]`
 //! - `ag domains sync --schema schema.ag --zone-id ZONE --token TOKEN`
 //! - `ag mail test --to dest@email.com [--from from@email.com] [--smtp-host ...]`
 
@@ -22,8 +22,8 @@ use std::process;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-// Templates embebidos en el binario al compilar. Las rutas son relativas
-// al directorio raiz del workspace (crates/ag-cli/src/../../../templates/).
+// Templates embedded in the binary at compile time. The paths are relative
+// to the workspace root directory (crates/ag-cli/src/../../../templates/).
 
 const REST_CARGO_TOML: &str = include_str!("../../../templates/rest/Cargo.toml.tmpl");
 const REST_MAIN_RS: &str = include_str!("../../../templates/rest/src/main.rs.tmpl");
@@ -53,154 +53,154 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Crea un nuevo proyecto Anti-Gravital.
+    /// Creates a new Anti-Gravital project.
     ///
-    /// Genera la estructura de archivos a partir del template elegido
-    /// y sustituye el nombre del proyecto en todos los archivos.
+    /// Generates the file structure from the chosen template
+    /// and substitutes the project name across all files.
     New {
-        /// Nombre del nuevo proyecto (también se usa como nombre de directorio).
+        /// Name of the new project (also used as the directory name).
         name: String,
 
-        /// Template de partida.
+        /// Starting template.
         #[arg(long, short = 't', default_value = "rest",
               value_parser = ["rest", "realtime", "fullstack"])]
         template: String,
     },
 
-    /// Arranca el servidor en modo desarrollo con hot reload.
+    /// Starts the server in development mode with hot reload.
     ///
-    /// Requiere `cargo-watch` instalado (`cargo install cargo-watch`).
-    /// Si no esta disponible, ejecuta `cargo run` sin recarga automatica.
+    /// Requires `cargo-watch` to be installed (`cargo install cargo-watch`).
+    /// If it is not available, runs `cargo run` without automatic reloading.
     Dev {
-        /// Direccion de escucha del servidor.
+        /// Server listen address.
         #[arg(long, default_value = "0.0.0.0:8080")]
         bind: String,
     },
 
-    /// Compila el proyecto en modo release.
+    /// Compiles the project in release mode.
     Build {
-        /// Triple de compilacion cruzada (ej: `x86_64-unknown-linux-musl`).
+        /// Cross-compilation triple (e.g.: `x86_64-unknown-linux-musl`).
         #[arg(long)]
         target: Option<String>,
     },
 
-    /// Genera artefactos (Rust, SQL, TypeScript, OpenAPI) desde schema.ag.
+    /// Generates artifacts (Rust, SQL, TypeScript, OpenAPI) from schema.ag.
     ///
-    /// Lee el archivo DSL indicado (por defecto `schema.ag` en el directorio
-    /// actual), compila el schema y escribe los artefactos generados en el
-    /// directorio de salida.
+    /// Reads the given DSL file (by default `schema.ag` in the current
+    /// directory), compiles the schema and writes the generated artifacts to
+    /// the output directory.
     Generate {
-        /// Archivo schema DSL de entrada.
+        /// Input DSL schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
 
-        /// Directorio donde se escriben los artefactos generados.
+        /// Directory where the generated artifacts are written.
         #[arg(long, default_value = "generated")]
         output: PathBuf,
     },
 
-    /// Operaciones sobre el schema DSL.
+    /// Operations on the DSL schema.
     Schema {
         #[command(subcommand)]
         command: SchemaCommands,
     },
 
-    /// Operaciones sobre dominios DNS.
+    /// Operations on DNS domains.
     Domains {
         #[command(subcommand)]
         command: DomainsCommands,
     },
 
-    /// Operaciones sobre correo transaccional.
+    /// Operations on transactional mail.
     Mail {
         #[command(subcommand)]
         command: MailCommands,
     },
 }
 
-/// Sub-comandos de `ag schema`.
+/// Sub-commands of `ag schema`.
 #[derive(Subcommand)]
 enum SchemaCommands {
-    /// Verifica el schema y reporta warnings de mejores practicas.
+    /// Verifies the schema and reports best-practice warnings.
     Lint {
-        /// Archivo schema DSL.
+        /// DSL schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
-    /// Muestra cambios breaking vs no-breaking respecto a un archivo de referencia.
+    /// Shows breaking vs non-breaking changes against a reference file.
     Diff {
-        /// Archivo de referencia (otro schema.ag, snapshot, etc.).
+        /// Reference file (another schema.ag, snapshot, etc.).
         reference: PathBuf,
-        /// Archivo schema actual.
+        /// Current schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
 }
 
-/// Sub-comandos de `ag domains`.
+/// Sub-commands of `ag domains`.
 #[derive(Subcommand)]
 enum DomainsCommands {
-    /// Verifica la propagacion de un registro TXT en los resolvers publicos.
+    /// Verifies the propagation of a TXT record across public resolvers.
     ///
-    /// No requiere credenciales DNS. Util para verificar que los registros
-    /// SPF/DKIM/DMARC son visibles desde Internet antes de habilitar DMARC.
+    /// Does not require DNS credentials. Useful for verifying that the
+    /// SPF/DKIM/DMARC records are visible from the Internet before enabling DMARC.
     ///
-    /// Lee la variable de entorno AG_CLOUDFLARE_TOKEN si se usa --sync.
+    /// Reads the AG_CLOUDFLARE_TOKEN environment variable if --sync is used.
     Check {
-        /// Dominio a verificar (e.g., ejemplo.com).
+        /// Domain to verify (e.g., example.com).
         #[arg(long)]
         domain: String,
-        /// Valor TXT esperado (si se omite, solo muestra los registros actuales).
+        /// Expected TXT value (if omitted, only shows the current records).
         #[arg(long)]
         expected: Option<String>,
-        /// Numero minimo de resolvers que deben confirmar (por defecto 2).
+        /// Minimum number of resolvers that must confirm (default 2).
         #[arg(long, default_value = "2")]
         min_confirmed: usize,
     },
-    /// Aplica los registros SPF/DKIM/DMARC via el proveedor DNS.
+    /// Applies the SPF/DKIM/DMARC records via the DNS provider.
     ///
-    /// Lee la configuracion desde el schema.ag del proyecto y aplica los
-    /// registros con upsert idempotente. Requiere AG_CLOUDFLARE_TOKEN.
+    /// Reads the configuration from the project's schema.ag and applies the
+    /// records with an idempotent upsert. Requires AG_CLOUDFLARE_TOKEN.
     Sync {
-        /// Archivo schema DSL.
+        /// DSL schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
-        /// Zone ID del dominio en el proveedor DNS.
+        /// Zone ID of the domain in the DNS provider.
         #[arg(long, env = "AG_DNS_ZONE_ID")]
         zone_id: String,
-        /// Token del proveedor DNS (por defecto lee AG_CLOUDFLARE_TOKEN).
+        /// DNS provider token (defaults to reading AG_CLOUDFLARE_TOKEN).
         #[arg(long, env = "AG_CLOUDFLARE_TOKEN")]
         token: String,
     },
 }
 
-/// Sub-comandos de `ag mail`.
+/// Sub-commands of `ag mail`.
 #[derive(Subcommand)]
 enum MailCommands {
-    /// Envia un correo de prueba para verificar la configuracion SMTP.
+    /// Sends a test email to verify the SMTP configuration.
     ///
-    /// Lee la configuracion desde variables de entorno:
+    /// Reads the configuration from environment variables:
     /// AG_SMTP_HOST, AG_SMTP_PORT, AG_SMTP_USER, AG_SMTP_PASS.
     Test {
-        /// Destinatario del correo de prueba.
+        /// Recipient of the test email.
         #[arg(long)]
         to: String,
-        /// Remitente.
+        /// Sender.
         #[arg(long, env = "AG_MAIL_FROM", default_value = "test@localhost")]
         from: String,
-        /// Asunto del correo de prueba.
+        /// Subject of the test email.
         #[arg(long, default_value = "ag mail test — Anti-Gravital")]
         subject: String,
-        /// Host SMTP.
+        /// SMTP host.
         #[arg(long, env = "AG_SMTP_HOST", default_value = "localhost")]
         smtp_host: String,
-        /// Puerto SMTP.
+        /// SMTP port.
         #[arg(long, env = "AG_SMTP_PORT", default_value = "587")]
         smtp_port: u16,
-        /// Usuario SMTP (opcional).
+        /// SMTP user (optional).
         #[arg(long, env = "AG_SMTP_USER")]
         smtp_user: Option<String>,
-        /// Contrasena SMTP (opcional).
+        /// SMTP password (optional).
         #[arg(long, env = "AG_SMTP_PASS")]
         smtp_pass: Option<String>,
     },
@@ -425,7 +425,7 @@ fn scaffold_fullstack(name: &str, dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-// ---- Comandos DSL (Fase 3) ------------------------------------------
+// ---- DSL commands (Phase 3) -----------------------------------------
 
 fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
     let source = read_schema(schema_path)?;
@@ -539,11 +539,11 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
     Ok(())
 }
 
-/// Compara dos schemas y retorna una lista de cambios legibles.
+/// Compares two schemas and returns a list of readable changes.
 ///
-/// Detecta: modelos añadidos/eliminados, campos añadidos/eliminados/cambiados.
-/// Los cambios breaking (eliminar modelo, eliminar campo, cambiar tipo) se marcan
-/// con `[BREAKING]`. Los cambios no-breaking se marcan con `[additive]`.
+/// Detects: added/removed models, added/removed/changed fields.
+/// Breaking changes (removing a model, removing a field, changing a type) are
+/// marked with `[BREAKING]`. Non-breaking changes are marked with `[additive]`.
 fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<String> {
     use std::collections::HashMap;
 
@@ -560,21 +560,21 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
 
     let mut changes = Vec::new();
 
-    // Modelos eliminados (breaking)
+    // Removed models (breaking)
     for name in old_models.keys() {
         if !new_models.contains_key(name) {
             changes.push(format!("[BREAKING]  modelo '{name}' eliminado"));
         }
     }
 
-    // Modelos añadidos (no breaking)
+    // Added models (non-breaking)
     for name in new_models.keys() {
         if !old_models.contains_key(name) {
             changes.push(format!("[additive]  modelo '{name}' añadido"));
         }
     }
 
-    // Campos en modelos comunes
+    // Fields in common models
     for (name, old_model) in &old_models {
         if let Some(new_model) = new_models.get(name) {
             let old_fields: HashMap<&str, _> = old_model
@@ -635,7 +635,7 @@ fn read_schema(path: &Path) -> Result<String, String> {
 }
 
 // ============================================================
-// Comandos ag domains (Fase 4.5)
+// ag domains commands (Phase 4.5)
 // ============================================================
 
 async fn cmd_domains_check(
@@ -666,7 +666,7 @@ async fn cmd_domains_check(
             }
         }
         None => {
-            // Sin valor esperado: verifica que al menos un resolver responde.
+            // No expected value: verifies that at least one resolver responds.
             let result = checker.check_txt(domain, "").await;
             println!(
                 "Consulta completada — {}/{} resolvers respondieron",

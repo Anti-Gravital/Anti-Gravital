@@ -1,19 +1,19 @@
-//! Generacion y verificacion de API keys con hash BLAKE3.
+//! Generation and verification of API keys with BLAKE3 hashing.
 //!
-//! El flujo es:
-//! 1. [`generate`] crea 32 bytes aleatorios seguros, los codifica en Base64Url y los
-//!    prefija con `{prefix}_`. Retorna la clave en texto plano y su hash BLAKE3.
-//! 2. Solo el hash se almacena en la base de datos.
-//! 3. [`verify()`] computa el hash de la clave recibida y lo compara con el almacenado.
+//! The flow is:
+//! 1. [`generate`] creates 32 secure random bytes, encodes them in Base64Url and
+//!    prefixes them with `{prefix}_`. Returns the plaintext key and its BLAKE3 hash.
+//! 2. Only the hash is stored in the database.
+//! 3. [`verify()`] computes the hash of the received key and compares it with the stored one.
 
 use base64ct::{Base64Url, Encoding};
 
-/// Genera una nueva API key y su hash BLAKE3.
+/// Generates a new API key and its BLAKE3 hash.
 ///
-/// Retorna `(raw_key, key_hash)`. Solo `key_hash` debe almacenarse;
-/// `raw_key` se entrega al usuario una unica vez.
+/// Returns `(raw_key, key_hash)`. Only `key_hash` should be stored;
+/// `raw_key` is given to the user only once.
 ///
-/// # Ejemplo
+/// # Example
 ///
 /// ```
 /// let (raw, hash) = ag_auth::api_keys::generate("sk");
@@ -29,27 +29,27 @@ pub fn generate(prefix: &str) -> (String, String) {
     (raw_key, key_hash)
 }
 
-/// Verifica una API key contra su hash BLAKE3 almacenado.
+/// Verifies an API key against its stored BLAKE3 hash.
 ///
-/// Retorna `true` si la clave corresponde al hash; `false` en caso contrario.
+/// Returns `true` if the key matches the hash; `false` otherwise.
 ///
-/// La comparacion se realiza sobre el resultado del hash (cadena hexadecimal),
-/// por lo que no hay timing attack significativo contra la clave original.
+/// The comparison is performed over the hash result (hexadecimal string),
+/// so there is no significant timing attack against the original key.
 pub fn verify(raw_key: &str, stored_hash: &str) -> bool {
     let computed = hash_key(raw_key);
-    // Comparacion en tiempo constante para evitar timing attacks sobre el hash.
+    // Constant-time comparison to avoid timing attacks on the hash.
     constant_time_eq(&computed, stored_hash)
 }
 
-/// Computa el hash BLAKE3 de una clave y lo retorna como cadena hexadecimal.
+/// Computes the BLAKE3 hash of a key and returns it as a hexadecimal string.
 fn hash_key(key: &str) -> String {
     blake3::hash(key.as_bytes()).to_hex().to_string()
 }
 
-/// Comparacion de cadenas en tiempo constante.
+/// Constant-time string comparison.
 ///
-/// Compara byte a byte sin cortocircuito para evitar inferencia de longitud
-/// o contenido mediante medicion de tiempo de respuesta.
+/// Compares byte by byte without short-circuiting to avoid inferring length
+/// or content through response-time measurement.
 fn constant_time_eq(a: &str, b: &str) -> bool {
     if a.len() != b.len() {
         return false;

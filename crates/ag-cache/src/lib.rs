@@ -1,16 +1,16 @@
-//! Cache multinivel para el ecosistema Anti-Gravital.
+//! Multilevel cache for the Anti-Gravital ecosystem.
 //!
-//! Ofrece dos niveles transparentes:
-//! - **L1**: moka en memoria (TinyLFU, sin locks contenciosos, siempre disponible).
-//! - **L2**: Redis via fred (opcional, para cache distribuida entre instancias).
+//! Offers two transparent levels:
+//! - **L1**: moka in memory (TinyLFU, no contended locks, always available).
+//! - **L2**: Redis via fred (optional, for distributed cache across instances).
 //!
-//! # Estado
+//! # Status
 //!
-//! L1 completamente operativo. L2 (Redis/fred) queda pendiente como TECH-DEBT
-//! para la segunda iteracion de ag-cache en Fase 4 — la API de fred v10
-//! requiere ajuste de features y configuracion de conexion en CI.
+//! L1 fully operational. L2 (Redis/fred) remains pending as TECH-DEBT
+//! for the second iteration of ag-cache in Phase 4 — the fred v10 API
+//! requires feature adjustments and connection configuration in CI.
 //!
-//! # Uso minimo (solo L1)
+//! # Minimal usage (L1 only)
 //!
 //! ```no_run
 //! use ag_cache::{AgCache, CacheConfig};
@@ -32,10 +32,10 @@ pub use config::CacheConfig;
 use l1::L1Cache;
 use std::time::Duration;
 
-/// Error del subsistema de cache.
+/// Error from the cache subsystem.
 #[derive(Debug)]
 pub enum CacheError {
-    /// Error de conexion o comunicacion con Redis.
+    /// Connection or communication error with Redis.
     Redis(String),
 }
 
@@ -49,25 +49,25 @@ impl std::fmt::Display for CacheError {
 
 impl std::error::Error for CacheError {}
 
-/// Cache multinivel con L1 (moka) y L2 opcional (Redis).
+/// Multilevel cache with L1 (moka) and optional L2 (Redis).
 ///
-/// Construir con [`AgCache::new`] pasando una [`CacheConfig`]. Si
-/// `config.redis_url` es `None`, solo L1 esta activo.
+/// Build with [`AgCache::new`] passing a [`CacheConfig`]. If
+/// `config.redis_url` is `None`, only L1 is active.
 pub struct AgCache {
     l1: L1Cache,
     // TECH-DEBT:
-    // motivo: L2 Redis requiere fred con conexion real; la API de fred v10
-    //         no expone las features documentadas (tokio-runtime, codec).
-    //         Se integra en la segunda iteracion de ag-cache en Fase 4.
-    // impacto: sin L2, la invalidacion distribuida entre instancias no funciona.
-    // eliminacion esperada: segunda iteracion ag-cache, Fase 4.
+    // reason: L2 Redis requires fred with a real connection; the fred v10 API
+    //         does not expose the documented features (tokio-runtime, codec).
+    //         Integrated in the second iteration of ag-cache in Phase 4.
+    // impact: without L2, distributed invalidation across instances does not work.
+    // expected removal: second iteration of ag-cache, Phase 4.
 }
 
 impl AgCache {
-    /// Crea un nuevo [`AgCache`] con la configuracion dada.
+    /// Creates a new [`AgCache`] with the given configuration.
     ///
-    /// Si `config.redis_url` es `Some`, emite un aviso en tracing pero L2
-    /// no se activa hasta que este implementado (ver TECH-DEBT en el codigo).
+    /// If `config.redis_url` is `Some`, emits a warning via tracing but L2
+    /// is not activated until it is implemented (see TECH-DEBT in the code).
     pub async fn new(config: CacheConfig) -> Result<Self, CacheError> {
         let ttl = Duration::from_secs(config.l1_ttl_secs);
         let l1 = L1Cache::new(config.l1_max_capacity, ttl);
@@ -81,10 +81,10 @@ impl AgCache {
         Ok(Self { l1 })
     }
 
-    /// Obtiene bytes crudos desde el cache.
+    /// Gets raw bytes from the cache.
     ///
-    /// Busca primero en L1. Si hay un hit, registra `cache hit L1` en tracing.
-    /// Si no hay resultado, registra `cache miss`.
+    /// Looks up L1 first. On a hit, logs `cache hit L1` via tracing.
+    /// If there is no result, logs `cache miss`.
     pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
         let result = self.l1.get_bytes(key).await;
         if result.is_some() {
@@ -95,9 +95,9 @@ impl AgCache {
         result
     }
 
-    /// Almacena bytes en el cache con tags opcionales para invalidacion.
+    /// Stores bytes in the cache with optional tags for invalidation.
     ///
-    /// Escribe en L1. Si `tags` esta vacio, no registra tags.
+    /// Writes to L1. If `tags` is empty, no tags are registered.
     pub async fn set(&self, key: &str, value: Vec<u8>, tags: &[&str]) {
         if tags.is_empty() {
             self.l1.set_bytes(key, value).await;
@@ -106,12 +106,12 @@ impl AgCache {
         }
     }
 
-    /// Invalida todas las entradas asociadas al tag dado en L1.
+    /// Invalidates all entries associated with the given tag in L1.
     pub async fn invalidate_tag(&self, tag: &str) {
         self.l1.invalidate_tag(tag).await;
     }
 
-    /// Elimina la entrada con la clave dada.
+    /// Removes the entry with the given key.
     pub async fn delete(&self, key: &str) {
         self.l1.delete(key).await;
     }

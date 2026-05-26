@@ -1,6 +1,6 @@
-//! Compilador del Anti-DSL: lexer, parser, AST, analisis semantico y generadores de codigo.
+//! Anti-DSL compiler: lexer, parser, AST, semantic analysis and code generators.
 //!
-//! # Uso
+//! # Usage
 //!
 //! ```rust
 //! use ag_dsl::{compile, generate};
@@ -32,10 +32,10 @@
 //! # Pipeline
 //!
 //! ```text
-//! texto .ag
-//!   -> lexer (logos)      tokens + errores de lex
-//!   -> parser (chumsky)   AST parcial + errores de parse
-//!   -> semantic           errores/warnings semanticos
+//! .ag text
+//!   -> lexer (logos)      tokens + lex errors
+//!   -> parser (chumsky)   partial AST + parse errors
+//!   -> semantic           semantic errors/warnings
 //!   -> codegen            GeneratedFiles { rust, sql, typescript, openapi }
 //! ```
 
@@ -49,14 +49,14 @@ mod semantic;
 pub use codegen::{generate, GeneratedFiles};
 pub use diagnostics::Diagnostic;
 
-/// Compila texto fuente DSL y retorna el AST si no hay errores de lex, parse o semantica.
+/// Compiles DSL source text and returns the AST if there are no lex, parse or semantic errors.
 ///
-/// Los warnings (como un modelo sin @primary) no bloquean la compilacion.
-/// Solo los errores de severidad `Error` producen `Err`.
+/// Warnings (such as a model without @primary) do not block compilation.
+/// Only diagnostics with `Error` severity produce `Err`.
 ///
 /// # Errors
 ///
-/// Retorna `Err(Vec<Diagnostic>)` si hay errores de lex, parse o semanticos.
+/// Returns `Err(Vec<Diagnostic>)` if there are lex, parse or semantic errors.
 pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
     let (tokens, lex_spans) = lexer::tokenize(source);
 
@@ -88,10 +88,10 @@ pub fn compile(source: &str) -> Result<ast::Schema, Vec<Diagnostic>> {
     }
 }
 
-/// Analiza el fuente DSL y retorna todos los diagnosticos (errores y warnings).
+/// Analyzes the DSL source and returns all diagnostics (errors and warnings).
 ///
-/// A diferencia de `compile()`, siempre retorna la lista completa: no descarta
-/// warnings cuando no hay errores. Usar en el servidor LSP y en `ag schema lint`.
+/// Unlike `compile()`, it always returns the full list: it does not discard
+/// warnings when there are no errors. Used in the LSP server and in `ag schema lint`.
 pub fn lint(source: &str) -> Vec<Diagnostic> {
     let (tokens, lex_spans) = lexer::tokenize(source);
     let mut all_diags: Vec<Diagnostic> = lex_spans.into_iter().map(Diagnostic::lex_error).collect();
@@ -263,12 +263,12 @@ model User {
         assert!(errors.is_empty(), "schema limpio no debe tener errores");
     }
 
-    // ---- Tests DSL v0.5 + v0.6 ----
+    // ---- DSL v0.5 + v0.6 tests ----
 
     #[test]
     fn policy_without_auth_is_error() {
-        // auth se omite: el default es AuthMode::None.
-        // policy con auth None debe producir error semantico.
+        // auth is omitted: the default is AuthMode::None.
+        // a policy with auth None must produce a semantic error.
         let src = r#"
 endpoint GetProfile {
     method GET
@@ -326,11 +326,11 @@ response UserResponse { id UUID }
 
     #[test]
     fn fuzz_crash_repro_tab_comment_number() {
-        // Crash encontrado por cargo-fuzz: \t#\n11111111111111111111,\n#\n#
-        // El compilador no debe entrar en panico con ningun input UTF-8 valido.
+        // Crash found by cargo-fuzz: \t#\n11111111111111111111,\n#\n#
+        // The compiler must not panic on any valid UTF-8 input.
         let input = "\t#\n11111111111111111111,\n#\n#";
         let diags = lint(input);
-        // No importa el resultado, solo que no haya panic
+        // The result does not matter, only that there is no panic
         let _ = diags;
         if let Ok(schema) = compile(input) {
             let _ = generate(&schema);

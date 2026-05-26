@@ -1,10 +1,18 @@
 # ADR-0002 - Documentacion bilingue espanol e ingles
 
-- Estado: aceptado
+- Estado: superseded por ADR-0008 (2026-05-24)
 - Fecha: 2026-05-19
 - RFC origen: ninguna; decision fundacional alineada con la seccion 1
   del maestro de arquitectura ("documentacion bilingue desde el dia
   cero").
+
+> **Nota de supersesion (2026-05-24).** El aspecto de "espanol como
+> predeterminado" de esta ADR fue revisado al cierre de la Fase 4.5,
+> en el punto de revision que esta misma ADR dejo anticipado. `ADR-0008`
+> establece el ingles como idioma canonico del codigo y de la documentacion
+> tecnica profunda, manteniendo bilingue (EN+ES, mismo archivo) solo la
+> vitrina: README raiz, maestros y manual. La estructura de carpetas
+> `docs/es/` y `docs/en/` se conserva. Lo que sigue es el texto original.
 
 ## Contexto
 

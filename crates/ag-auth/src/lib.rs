@@ -1,9 +1,9 @@
-//! Autenticacion y autorizacion para el ecosistema Anti-Gravital.
+//! Authentication and authorization for the Anti-Gravital ecosystem.
 //!
-//! Soporta JWT Ed25519, Passkeys/WebAuthn, OAuth2 (Google, GitHub),
-//! API keys con hash BLAKE3 y refresh tokens con rotacion.
+//! Supports JWT Ed25519, Passkeys/WebAuthn, OAuth2 (Google, GitHub),
+//! API keys with BLAKE3 hashing and refresh tokens with rotation.
 //!
-//! # Uso minimo (JWT + API keys)
+//! # Minimal usage (JWT + API keys)
 //!
 //! ```no_run
 //! use ag_auth::{AgAuth, AuthConfig};
@@ -41,28 +41,28 @@ pub use webauthn::{
     StoredCredential, WebAuthnError, WebAuthnRp,
 };
 
-/// Fachada principal del modulo de autenticacion.
+/// Main facade of the authentication module.
 pub struct AgAuth {
-    /// Firmador/verificador de JWTs.
+    /// JWT signer/verifier.
     pub jwt: JwtSigner,
-    /// Relying Party WebAuthn. None si `webauthn_rp_id` esta vacio.
+    /// WebAuthn Relying Party. None if `webauthn_rp_id` is empty.
     pub webauthn: Option<webauthn::WebAuthnRp>,
-    /// Cliente OAuth2. None si ningun proveedor esta configurado.
+    /// OAuth2 client. None if no provider is configured.
     pub oauth: Option<oauth::OAuthClient>,
-    /// Blacklist de refresh tokens.
+    /// Refresh token blacklist.
     pub refresh_blacklist: std::sync::Arc<refresh::RefreshBlacklist>,
-    /// Mailer para verificacion, recuperacion y magic links. Requiere feature `mail`.
+    /// Mailer for verification, recovery and magic links. Requires feature `mail`.
     #[cfg(feature = "mail")]
     pub mailer: Option<std::sync::Arc<mailer::AuthMailer>>,
 }
 
 impl AgAuth {
-    /// Crea una nueva instancia de `AgAuth`.
+    /// Creates a new `AgAuth` instance.
     ///
-    /// - `webauthn` se inicializa si `config.webauthn_rp_id` no esta vacio.
-    /// - `oauth` se inicializa si al menos un proveedor tiene client_id configurado.
-    /// - `http_client` se usa internamente para OAuth2 — el llamador lo provee
-    ///   para permitir configuracion de timeouts, proxies y TLS personalizado.
+    /// - `webauthn` is initialized if `config.webauthn_rp_id` is not empty.
+    /// - `oauth` is initialized if at least one provider has a client_id configured.
+    /// - `http_client` is used internally for OAuth2 — the caller provides it
+    ///   to allow configuration of timeouts, proxies and custom TLS.
     pub fn new(config: AuthConfig, http_client: reqwest::Client) -> Result<Self, AuthConfigError> {
         let jwt = JwtSigner::new(
             config.jwt_private_key_pem.clone(),
@@ -96,24 +96,24 @@ impl AgAuth {
         })
     }
 
-    /// Inyecta un `AuthMailer` en la instancia.
+    /// Injects an `AuthMailer` into the instance.
     ///
-    /// Disponible solo con la feature `mail`. Devuelve `self` para
-    /// permitir encadenamiento: `AgAuth::new(...)?.with_mail(mailer)`.
+    /// Available only with the `mail` feature. Returns `self` to
+    /// allow chaining: `AgAuth::new(...)?.with_mail(mailer)`.
     #[cfg(feature = "mail")]
     pub fn with_mail(mut self, mailer: std::sync::Arc<mailer::AuthMailer>) -> Self {
         self.mailer = Some(mailer);
         self
     }
 
-    /// Genera una nueva API key y su hash BLAKE3.
+    /// Generates a new API key and its BLAKE3 hash.
     ///
-    /// Solo el hash debe almacenarse. La raw key se entrega al usuario una unica vez.
+    /// Only the hash should be stored. The raw key is given to the user only once.
     pub fn create_api_key(&self, prefix: &str) -> (String, String) {
         api_keys::generate(prefix)
     }
 
-    /// Verifica una API key contra su hash almacenado.
+    /// Verifies an API key against its stored hash.
     pub fn verify_api_key(&self, raw_key: &str, stored_hash: &str) -> bool {
         api_keys::verify(raw_key, stored_hash)
     }

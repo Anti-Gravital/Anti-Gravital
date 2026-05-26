@@ -1,16 +1,16 @@
-//! Configuracion del cache multinivel.
+//! Multilevel cache configuration.
 
-/// Configuracion del cache L1 (moka, en memoria) y L2 (Redis, opcional).
+/// Configuration for the L1 cache (moka, in memory) and L2 (Redis, optional).
 #[derive(Debug, Clone)]
 pub struct CacheConfig {
-    /// Numero maximo de entradas en L1. Default: 10_000.
+    /// Maximum number of entries in L1. Default: 10_000.
     pub l1_max_capacity: u64,
-    /// TTL por defecto para entradas L1 en segundos. Default: 300.
+    /// Default TTL for L1 entries in seconds. Default: 300.
     pub l1_ttl_secs: u64,
-    /// URL de conexion Redis para L2. None desactiva L2.
-    /// Variable de entorno: REDIS_URL
+    /// Redis connection URL for L2. None disables L2.
+    /// Environment variable: REDIS_URL
     pub redis_url: Option<String>,
-    /// Numero de conexiones en el pool Redis. Default: 10.
+    /// Number of connections in the Redis pool. Default: 10.
     pub redis_pool_size: u32,
 }
 
@@ -26,7 +26,7 @@ impl Default for CacheConfig {
 }
 
 impl CacheConfig {
-    /// Lee la configuracion desde variables de entorno.
+    /// Reads the configuration from environment variables.
     pub fn from_env() -> Self {
         Self {
             l1_max_capacity: std::env::var("CACHE_L1_MAX_CAPACITY")
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn cache_config_l2_disabled_when_no_redis_url() {
-        // sin REDIS_URL en el entorno, redis_url es None
+        // without REDIS_URL in the environment, redis_url is None
         std::env::remove_var("REDIS_URL");
         let cfg = CacheConfig::from_env();
         assert!(cfg.redis_url.is_none());

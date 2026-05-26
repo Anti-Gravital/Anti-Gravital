@@ -1,17 +1,225 @@
 # Anti-Gravital
 
-> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
+**[English](#in-english) | [Espanol](#en-espanol)**
+
 > Status: Phase 4.5 technical implementation complete — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 cross-module E2E tests.
+> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
+
+Anti-Gravital is an open source ecosystem for building high-performance
+backend applications in pure Rust, with three core properties: no
+external runtime, schema-first approach, and a modular architecture of
+independent crates.
 
 Anti-Gravital es un ecosistema de software libre para construir
 aplicaciones backend de alto rendimiento en Rust puro, con tres
 propiedades fundamentales: ausencia de runtime externo, enfoque
 schema-first y arquitectura modular de crates independientes.
 
-Anti-Gravital is an open source ecosystem for building high-performance
-backend applications in pure Rust, with three core properties: no
-external runtime, schema-first approach, and a modular architecture of
-independent crates.
+---
+
+## In English
+
+### What it is
+
+A high-performance Rust backend runtime, a domain definition language
+called Anti-DSL (`.ag` files), a unified CLI (`ag`), a set of batteries
+included modules published as independent crates, a WASI plugin
+system, a simplified deployment layer, native transactional email
+(`ag-mail`) and domain plus TLS management (`ag-domains`) introduced
+in Phase 4.5, typed SDK generators for TypeScript and Dart, and
+importers from legacy frameworks.
+
+### What it is not
+
+It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
+PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
+scientific computing framework. `ag-mail` is not a full mail server:
+it only sends outbound transactional email; it does not receive
+inbound mail, and does not implement IMAP/POP, antispam or IP
+reputation. `ag-domains` is not a domain registrar: domains are
+purchased externally. See the scope chapter at
+`docs/architecture/03-alcance-y-limites.md`.
+
+### Project status
+
+Phases 1, 2, 3 and 4 have been technically completed. There is functional,
+tested, and benchmarked code.
+
+**Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
+the operational `shield` module with HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
+JWT Ed25519 authentication, rate limiting, CORS, CSRF, payload
+validation, and structured logging. Pipeline verified with E2E tests
+and criterion benchmarks.
+
+**Phase 2 — The Core MVP:** complete (technical implementation).
+Axum router integrated with the Shield, typed extractors, `AgError`
+error system, PostgreSQL connection pool via sqlx, embedded migrations,
+and the `todo-api` example app with a full CRUD. The `ag` CLI provides
+`new`, `dev`, and `build` with three templates (`rest`, `realtime`,
+`fullstack`). The `todo-api` app deploys as a `FROM scratch` image of
+2.49 MB. Benchmarks measured on real hardware: HTTP stack 89K req/s,
+CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
+not the framework). Phase throughput and latency targets (40K req/s,
+p99 <= 5 ms) require hardware with more cores or pgbouncer.
+
+**Phase 3 — Anti-DSL alpha:** technical implementation complete (branch
+`fase-3`). The `ag-dsl` compiler is operational with DSL v0.1 to v0.4:
+models, endpoints, validations, and model relations (@references/@relation,
+FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI). The CLI exposes
+`ag generate`, `ag schema lint`, and `ag schema diff`. LSP server
+(`ag-lsp`) with real-time diagnostics, autocompletion, and hover. VS Code
+plugin with syntax highlighting and LSP integration (`.vsix` packaged).
+cargo-fuzz harness with 3 active targets in CI. 129 green tests (119
+ag-dsl + 10 ag-lsp), 95.26% coverage. Real 2-hour benchmark against Neon
+PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. External community
+criteria pending.
+
+**Phase 4 — Standard modules:** technical implementation complete (branch
+`fase-4`). Five batteries-included modules operational as independent crates:
+
+- `ag-auth`: WebAuthn/FIDO2 (registration+authentication, COSE ES256/EdDSA
+  verification), OAuth2 PKCE (Google, GitHub), JWT Ed25519, BLAKE3 API keys,
+  refresh tokens with in-memory blacklist. 32 tests.
+- `ag-cache`: L1 in-memory cache with moka, tag-based invalidation, configurable TTL.
+  >= 80% coverage. RFC-0005 (native RESP2 server) proposed, pending approval.
+- `ag-realtime`: InProcess pub/sub event bus, external NATS client with 3-level TLS
+  (system/custom CA/mTLS) and JetStream, Axum helpers for WebSocket and SSE
+  (EventSource-compatible). `AgRealtime::new` is async. `realtime-chat` and
+  `ai-backend` examples operational.
+- `ag-storage`: native filesystem store with embedded Axum HTTP server, path-safe
+  by construction, image processing (resize/thumbnail/webp), S3/MinIO backend via
+  `object_store`, HMAC-SHA256 signed URLs. `AgStore` is a `Native | S3` enum.
+- `ag-observe`: structured tracing, OTLP exporter, Prometheus metrics via
+  `axum::Router`, custom layer, LogFormat (JSON/Text). Idempotent init.
+
+DSL extended to v0.5 (auth/policies in endpoints) and v0.6 (declared events).
+Updated generators: rust_gen (Claims extractor), openapi_gen (securitySchemes),
+ts_gen (event payloads), new async_api_gen (AsyncAPI 2.6). 136 tests in ag-dsl,
+95.88% coverage. `tests/integration` crate with 7 cross-module E2E tests
+(auth+cache+realtime+storage+observe). >= 80% coverage in all modules. External
+criteria (community, crates.io publication) pending.
+
+Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
+
+### Quick start
+
+Requires Rust 1.95+ and PostgreSQL.
+
+```sh
+# Install the CLI
+cargo install --path crates/ag-cli
+
+# Create a new project
+ag new my-api
+
+# Start in development mode
+cd my-api
+ag dev
+```
+
+The app responds at `http://localhost:8080`. The `rest` template
+generates a project with Shield, typed extractors, and a PostgreSQL
+connection ready to configure via `DATABASE_URL`.
+
+For the full CRUD example with PostgreSQL:
+
+```sh
+export DATABASE_URL="postgresql://user:pass@localhost/my_db"
+cargo run -p todo-api
+```
+
+**DSL workflow (Phase 3, operational since v0.1+v0.2):**
+
+Define your API in a `schema.ag` file and generate all artifacts:
+
+```sh
+ag generate --schema schema.ag --output ./generated
+```
+
+Produces: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
+`src/router.rs`, `migrations/0001_initial.sql`,
+`clients/typescript/types.ts`, `clients/typescript/client.ts`,
+`openapi.json`.
+
+Validate and diff schemas:
+
+```sh
+ag schema lint --schema schema.ag
+ag schema diff old-schema.ag --schema schema.ag
+```
+
+### Measured performance
+
+**Phase 2 — Ryzen 5 2500U local (2026-05-21)**
+
+Measurements on AMD Ryzen 5 2500U (4C/8T), native PostgreSQL 18.4,
+`rustc 1.95.0`, release profile with fat LTO. Full methodology in
+`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+
+| Endpoint                     | req/s    | p99      | Notes                     |
+| ---------------------------- | -------- | -------- | ------------------------- |
+| GET /health (no DB)          | 88 930   | 3.2 ms   | Pure HTTP stack           |
+| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Bottleneck: PostgreSQL    |
+| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
+
+The 40K req/s target requires hardware with >= 8 physical cores or
+pgbouncer in transaction mode.
+
+**Phase 3 — Neon PostgreSQL serverless (2026-05-22)**
+
+2-hour benchmark against Neon PostgreSQL (us-east-1, pooler). Mixed
+operations: POST invoices with transactions, GET by id, GET filtered
+list, PATCH status. Connection pool of 20. Full methodology in
+`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
+
+| Metric                       | Value    | Notes                           |
+| ---------------------------- | -------- | ------------------------------- |
+| Total requests               | 255 805  | 120 min 11 s                    |
+| Errors                       | 0        | Error rate 0.00%                |
+| Average throughput           | 35.5 req/s | Includes cold-start           |
+| Peak throughput              | 43.0 req/s | Cooldown phase (25 workers)   |
+
+Saturation test: system stable up to 800 concurrent workers (0 errors).
+Saturation at 1600 workers due to connection pool exhaustion (Neon was
+at 10% CPU / 12% RAM throughout). See
+`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
+
+### Source of truth
+
+The three master documents live in `docs/master/` and govern every
+technical decision:
+
+- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, positioning, scope.
+- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — how the system is built.
+- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — what is built and when.
+
+These documents are decomposed into navigable files under
+`docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
+`docs/security/`, `docs/governance/` and `docs/benchmarks/`. If a
+derivative diverges from its master, the master wins.
+
+### How to contribute
+
+See `CONTRIBUTING.md` for the full guide. Quick summary:
+
+1. Read the masters in `docs/master/` and current phase status in
+   `docs/roadmap/STATUS.md`.
+2. For architectural changes, open an RFC in `docs/rfc/` before
+   touching code.
+3. Keep pull requests small: titles up to 256 characters and a single
+   logical unit of change.
+4. Run `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
+   `cargo audit` and `cargo deny check` before submitting.
+
+### License
+
+Apache 2.0. See `LICENSE`.
+
+### Origin
+
+Project started by Gravital Labs, the open source division of Nereira
+Technology and Business Solutions, Republic of Panama. Initial
+maintainer: Angel Nereira.
 
 ---
 
@@ -245,212 +453,6 @@ Apache 2.0. Vease `LICENSE`.
 Proyecto iniciado por Gravital Labs, division open source de Nereira
 Technology and Business Solutions, Republica de Panama. Mantenedor
 inicial: Angel Nereira.
-
----
-
-## In English
-
-### What it is
-
-A high-performance Rust backend runtime, a domain definition language
-called Anti-DSL (`.ag` files), a unified CLI (`ag`), a set of batteries
-included modules published as independent crates, a WASI plugin
-system, a simplified deployment layer, native transactional email
-(`ag-mail`) and domain plus TLS management (`ag-domains`) introduced
-in Phase 4.5, typed SDK generators for TypeScript and Dart, and
-importers from legacy frameworks.
-
-### What it is not
-
-It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
-PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
-scientific computing framework. `ag-mail` is not a full mail server:
-it only sends outbound transactional email; it does not receive
-inbound mail, and does not implement IMAP/POP, antispam or IP
-reputation. `ag-domains` is not a domain registrar: domains are
-purchased externally. See the scope chapter at
-`docs/architecture/03-alcance-y-limites.md`.
-
-### Project status
-
-Phases 1, 2, 3 and 4 have been technically completed. There is functional,
-tested, and benchmarked code.
-
-**Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
-the operational `shield` module with HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
-JWT Ed25519 authentication, rate limiting, CORS, CSRF, payload
-validation, and structured logging. Pipeline verified with E2E tests
-and criterion benchmarks.
-
-**Phase 2 — The Core MVP:** complete (technical implementation).
-Axum router integrated with the Shield, typed extractors, `AgError`
-error system, PostgreSQL connection pool via sqlx, embedded migrations,
-and the `todo-api` example app with a full CRUD. The `ag` CLI provides
-`new`, `dev`, and `build` with three templates (`rest`, `realtime`,
-`fullstack`). The `todo-api` app deploys as a `FROM scratch` image of
-2.49 MB. Benchmarks measured on real hardware: HTTP stack 89K req/s,
-CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
-not the framework). Phase throughput and latency targets (40K req/s,
-p99 <= 5 ms) require hardware with more cores or pgbouncer.
-
-**Phase 3 — Anti-DSL alpha:** technical implementation complete (branch
-`fase-3`). The `ag-dsl` compiler is operational with DSL v0.1 to v0.4:
-models, endpoints, validations, and model relations (@references/@relation,
-FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI). The CLI exposes
-`ag generate`, `ag schema lint`, and `ag schema diff`. LSP server
-(`ag-lsp`) with real-time diagnostics, autocompletion, and hover. VS Code
-plugin with syntax highlighting and LSP integration (`.vsix` packaged).
-cargo-fuzz harness with 3 active targets in CI. 129 green tests (119
-ag-dsl + 10 ag-lsp), 95.26% coverage. Real 2-hour benchmark against Neon
-PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. External community
-criteria pending.
-
-**Phase 4 — Standard modules:** technical implementation complete (branch
-`fase-4`). Five batteries-included modules operational as independent crates:
-
-- `ag-auth`: WebAuthn/FIDO2 (registration+authentication, COSE ES256/EdDSA
-  verification), OAuth2 PKCE (Google, GitHub), JWT Ed25519, BLAKE3 API keys,
-  refresh tokens with in-memory blacklist. 32 tests.
-- `ag-cache`: L1 in-memory cache with moka, tag-based invalidation, configurable TTL.
-  >= 80% coverage. RFC-0005 (native RESP2 server) proposed, pending approval.
-- `ag-realtime`: InProcess pub/sub event bus, external NATS client with 3-level TLS
-  (system/custom CA/mTLS) and JetStream, Axum helpers for WebSocket and SSE
-  (EventSource-compatible). `AgRealtime::new` is async. `realtime-chat` and
-  `ai-backend` examples operational.
-- `ag-storage`: native filesystem store with embedded Axum HTTP server, path-safe
-  by construction, image processing (resize/thumbnail/webp), S3/MinIO backend via
-  `object_store`, HMAC-SHA256 signed URLs. `AgStore` is a `Native | S3` enum.
-- `ag-observe`: structured tracing, OTLP exporter, Prometheus metrics via
-  `axum::Router`, custom layer, LogFormat (JSON/Text). Idempotent init.
-
-DSL extended to v0.5 (auth/policies in endpoints) and v0.6 (declared events).
-Updated generators: rust_gen (Claims extractor), openapi_gen (securitySchemes),
-ts_gen (event payloads), new async_api_gen (AsyncAPI 2.6). 136 tests in ag-dsl,
-95.88% coverage. `tests/integration` crate with 7 cross-module E2E tests
-(auth+cache+realtime+storage+observe). >= 80% coverage in all modules. External
-criteria (community, crates.io publication) pending.
-
-Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
-
-### Quick start
-
-Requires Rust 1.95+ and PostgreSQL.
-
-```sh
-# Install the CLI
-cargo install --path crates/ag-cli
-
-# Create a new project
-ag new my-api
-
-# Start in development mode
-cd my-api
-ag dev
-```
-
-The app responds at `http://localhost:8080`. The `rest` template
-generates a project with Shield, typed extractors, and a PostgreSQL
-connection ready to configure via `DATABASE_URL`.
-
-For the full CRUD example with PostgreSQL:
-
-```sh
-export DATABASE_URL="postgresql://user:pass@localhost/my_db"
-cargo run -p todo-api
-```
-
-**DSL workflow (Phase 3, operational since v0.1+v0.2):**
-
-Define your API in a `schema.ag` file and generate all artifacts:
-
-```sh
-ag generate --schema schema.ag --output ./generated
-```
-
-Produces: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
-`src/router.rs`, `migrations/0001_initial.sql`,
-`clients/typescript/types.ts`, `clients/typescript/client.ts`,
-`openapi.json`.
-
-Validate and diff schemas:
-
-```sh
-ag schema lint --schema schema.ag
-ag schema diff old-schema.ag --schema schema.ag
-```
-
-### Measured performance
-
-**Phase 2 — Ryzen 5 2500U local (2026-05-21)**
-
-Measurements on AMD Ryzen 5 2500U (4C/8T), native PostgreSQL 18.4,
-`rustc 1.95.0`, release profile with fat LTO. Full methodology in
-`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
-
-| Endpoint                     | req/s    | p99      | Notes                     |
-| ---------------------------- | -------- | -------- | ------------------------- |
-| GET /health (no DB)          | 88 930   | 3.2 ms   | Pure HTTP stack           |
-| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Bottleneck: PostgreSQL    |
-| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
-
-The 40K req/s target requires hardware with >= 8 physical cores or
-pgbouncer in transaction mode.
-
-**Phase 3 — Neon PostgreSQL serverless (2026-05-22)**
-
-2-hour benchmark against Neon PostgreSQL (us-east-1, pooler). Mixed
-operations: POST invoices with transactions, GET by id, GET filtered
-list, PATCH status. Connection pool of 20. Full methodology in
-`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
-
-| Metric                       | Value    | Notes                           |
-| ---------------------------- | -------- | ------------------------------- |
-| Total requests               | 255 805  | 120 min 11 s                    |
-| Errors                       | 0        | Error rate 0.00%                |
-| Average throughput           | 35.5 req/s | Includes cold-start           |
-| Peak throughput              | 43.0 req/s | Cooldown phase (25 workers)   |
-
-Saturation test: system stable up to 800 concurrent workers (0 errors).
-Saturation at 1600 workers due to connection pool exhaustion (Neon was
-at 10% CPU / 12% RAM throughout). See
-`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
-
-### Source of truth
-
-The three master documents live in `docs/master/` and govern every
-technical decision:
-
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, positioning, scope.
-- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — how the system is built.
-- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — what is built and when.
-
-These documents are decomposed into navigable files under
-`docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
-`docs/security/`, `docs/governance/` and `docs/benchmarks/`. If a
-derivative diverges from its master, the master wins.
-
-### How to contribute
-
-See `CONTRIBUTING.md` for the full guide. Quick summary:
-
-1. Read the masters in `docs/master/` and current phase status in
-   `docs/roadmap/STATUS.md`.
-2. For architectural changes, open an RFC in `docs/rfc/` before
-   touching code.
-3. Keep pull requests small: titles up to 256 characters and a single
-   logical unit of change.
-4. Run `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
-   `cargo audit` and `cargo deny check` before submitting.
-
-### License
-
-Apache 2.0. See `LICENSE`.
-
-### Origin
-
-Project started by Gravital Labs, the open source division of Nereira
-Technology and Business Solutions, Republic of Panama. Initial
-maintainer: Angel Nereira.
 
 ---
 

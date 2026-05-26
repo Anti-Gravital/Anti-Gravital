@@ -30,8 +30,10 @@ async-nats = { workspace = true, optional = true }
 
 [features]
 nats-external = ["dep:async-nats"]
+event-persistence = []
 
 [dev-dependencies]
 tokio-test = { workspace = true }
 tokio = { workspace = true, features = ["test-util", "fs"] }
 rcgen = { workspace = true }
+tempfile = { workspace = true }

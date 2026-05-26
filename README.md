@@ -42,7 +42,7 @@ purchased externally. See the scope chapter at
 
 ### Project status
 
-Phases 1, 2, 3 and 4 have been technically completed. There is functional,
+Phases 1 through 4.5 have been technically completed. There is functional,
 tested, and benchmarked code.
 
 **Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
@@ -98,6 +98,27 @@ ts_gen (event payloads), new async_api_gen (AsyncAPI 2.6). 136 tests in ag-dsl,
 95.88% coverage. `tests/integration` crate with 7 cross-module E2E tests
 (auth+cache+realtime+storage+observe). >= 80% coverage in all modules. External
 criteria (community, crates.io publication) pending.
+
+**Phase 4.5 — ag-mail + ag-domains:** technical implementation complete
+(2026-05-24). Two new crates introduced by ADR-0007:
+
+- `ag-mail` (deferred standard): `MailSender` trait + `SmtpSender` (lettre +
+  rustls) + adapters for Resend, SES and Postmark as Cargo features.
+  `StringTemplate` engine for HTML/plaintext with compile-time var validation.
+  Async queue with retries and exponential backoff (`InMemoryQueue`). Metrics
+  towards `ag-observe` (feature `"metrics"`). Integration with `ag-auth` via
+  `AuthMailer` for email verification, password recovery and magic links. 38
+  tests.
+- `ag-domains` (optional infra): `DnsProvider` trait + `CloudflareProvider`
+  for A/AAAA/CNAME/TXT/MX records. ACME/Let's Encrypt via `instant-acme`
+  (DNS-01 challenge, automatic renewal). SPF/DKIM/DMARC generation
+  (`apply_mail_records`, idempotent). Propagation verification with
+  `hickory-resolver`. 28 tests.
+
+DSL extended to v0.7 (`mail`, `domain`, `template` blocks). `ag-lsp` updated
+for the new blocks (hover, completions). CLI commands `ag domains check`,
+`ag domains sync` and `ag mail test` operational. `auth-mail-demo` example
+with three flows. 14 cross-module E2E tests total (7 Phase 4 + 7 Phase 4.5).
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -250,7 +271,7 @@ Vease el capitulo de alcance en
 
 ### Estado del proyecto
 
-El proyecto ha completado las fases 1, 2, 3 y 4 de implementacion tecnica.
+El proyecto ha completado las fases 1, 2, 3, 4 y 4.5 de implementacion tecnica.
 Existe codigo funcional, probado y benchmarkeado.
 
 **Fase 1 — The Shield MVP:** completada. El crate `ag-core` contiene
@@ -304,6 +325,25 @@ actualizados: rust_gen (Claims extractor), openapi_gen (securitySchemes), ts_gen
 (payload de eventos), nuevo async_api_gen (AsyncAPI 2.6). 136 tests en ag-dsl, cobertura
 95.88%. Crate `tests/integration` con 7 tests E2E cross-module (auth+cache+realtime+storage+observe).
 Cobertura >= 80% en todos los modulos. Criterios externos (comunidad, publicacion en crates.io) pendientes.
+
+**Fase 4.5 — ag-mail + ag-domains:** implementacion tecnica completa (2026-05-24).
+Dos crates nuevos introducidos por ADR-0007:
+
+- `ag-mail` (estandar diferido): trait `MailSender` + `SmtpSender` (lettre + rustls)
+  + adapters para Resend, SES y Postmark como Cargo features. Motor `StringTemplate`
+  para HTML/plaintext con validacion de vars en compile-time. Cola asincrona con
+  reintentos y backoff exponencial (`InMemoryQueue`). Metricas hacia `ag-observe`
+  (feature `"metrics"`). Integracion con `ag-auth` via `AuthMailer` para verificacion,
+  recuperacion y magic links. 38 tests.
+- `ag-domains` (opcional infra): trait `DnsProvider` + `CloudflareProvider` para
+  registros A/AAAA/CNAME/TXT/MX. ACME/Let's Encrypt via `instant-acme` (DNS-01,
+  renovacion automatica). Generacion SPF/DKIM/DMARC (`apply_mail_records`,
+  idempotente). Verificacion de propagacion con `hickory-resolver`. 28 tests.
+
+DSL ampliado a v0.7 (bloques `mail`, `domain`, `template`). `ag-lsp` actualizado para
+los bloques nuevos (hover, completions). Comandos CLI `ag domains check`,
+`ag domains sync` y `ag mail test` operativos. Example `auth-mail-demo` con tres
+flujos. 14 tests E2E cross-module en total (7 Fase 4 + 7 Fase 4.5).
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

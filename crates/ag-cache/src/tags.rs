@@ -33,6 +33,11 @@ impl TagIndex {
             .map(|s| s.iter().cloned().collect())
             .unwrap_or_default()
     }
+
+    /// Removes all tag to key mappings.
+    pub fn clear(&mut self) {
+        self.tag_to_keys.clear();
+    }
 }
 
 #[cfg(test)]
@@ -69,5 +74,15 @@ mod tests {
         idx.insert("user:1", &["users", "admin"]);
         assert!(idx.keys_for_tag("admin").contains(&"user:1".to_string()));
         assert!(idx.keys_for_tag("users").contains(&"user:1".to_string()));
+    }
+
+    #[test]
+    fn clear_removes_all_tags() {
+        let mut idx = TagIndex::default();
+        idx.insert("k1", &["t1"]);
+        idx.insert("k2", &["t1", "t2"]);
+        idx.clear();
+        assert!(idx.keys_for_tag("t1").is_empty());
+        assert!(idx.keys_for_tag("t2").is_empty());
     }
 }

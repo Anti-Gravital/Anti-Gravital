@@ -17,6 +17,9 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+native-server = ["dep:dashmap"]
+
 [dependencies]
 ag-core = { workspace = true }
 moka = { workspace = true }
@@ -24,6 +27,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+
+# Native RESP2 server: per-key expiry tracking and key registry
+dashmap = { version = "6", optional = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }

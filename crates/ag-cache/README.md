@@ -1,66 +1,90 @@
 # ag-cache
 
-Cache de dos niveles para Anti-Gravital: L1 en memoria del proceso con
-invalidacion por etiquetas (moka), L2 Redis opcional (fred).
+Two-level cache for Anti-Gravital: in-process L1 with tag-based invalidation (moka),
+and optional native L2 RESP2 server compatible with any Redis client.
 
 > Status: Phase 4 — L1 implemented (in-process, tag-based invalidation, moka).
-> L2 is NOT functional yet: when `redis_url` is set the cache only logs a tracing
-> warning (`src/lib.rs`). RFC-0005 proposes a native Anti-Gravital L2 over RESP2
-> (no Redis dependency); see `docs/DEBT.md` and `docs/rfc/RFC-0005-ag-cache-native-l2.md`.
+> Native RESP2 L2 server implemented under feature `native-server` (RFC-0005).
+> External Redis L2 remains deferred (TECH-DEBT).
 
-## Uso minimo (L1)
+## Minimal usage (L1 only)
 
 ```rust
-use ag_cache::l1::L1Cache;
-use bytes::Bytes;
-use std::time::Duration;
+use ag_cache::{AgCache, CacheConfig};
 
-fn main() {
-    // max_capacity: numero maximo de entradas, default_ttl: TTL por defecto
-    let cache = L1Cache::new(10_000, Duration::from_secs(300));
-
-    // Almacenar con etiquetas para invalidacion selectiva
-    cache.set_bytes_tagged("user:42:profile", Bytes::from("...json..."), &["user:42"]);
-
-    // Leer
-    if let Some(data) = cache.get_bytes("user:42:profile") {
-        println!("{}", String::from_utf8_lossy(&data));
-    }
-
-    // Invalidar todas las entradas con la etiqueta "user:42"
-    cache.invalidate_tag("user:42");
-}
+# async fn run() -> Result<(), Box<dyn std::error::Error>> {
+let cache = AgCache::new(CacheConfig::default()).await?;
+cache.set("user:123", b"data".to_vec(), &[]).await;
+let val: Option<Vec<u8>> = cache.get("user:123").await;
+# Ok(())
+# }
 ```
 
-## Capacidades
+## Native RESP2 server (L2)
+
+Enable the `native-server` Cargo feature to start an in-process TCP server
+that speaks the RESP2 protocol. Any standard Redis client connects to it
+without needing an actual Redis process.
+
+```toml
+[dependencies]
+ag-cache = { version = "0.0.0", features = ["native-server"] }
+```
+
+```rust
+use ag_cache::{AgCache, CacheConfig};
+
+# async fn run() -> Result<(), Box<dyn std::error::Error>> {
+let mut cfg = CacheConfig::default();
+cfg.native_server_enabled = true;
+cfg.native_server_port = 6379; // or any free port
+
+let cache = AgCache::new(cfg).await?;
+// redis-cli -p 6379 ping  =>  PONG
+# Ok(())
+# }
+```
+
+### Supported commands
+
+GET, SET (EX/PX/NX/XX), DEL, EXISTS, MGET, MSET, EXPIRE, TTL, KEYS (*),
+PING, FLUSHDB, DBSIZE, COMMAND.
+
+### Limitations
+
+- **Single-node only.** No replication or clustering. Use a real Redis for
+  multi-instance architectures where the cache must be shared.
+- **No persistence.** Data is lost on process restart. This is cache, not a database.
+- **No AUTH.** The server listens only on `127.0.0.1` (loopback) by default.
+- **No TLS.** Use a real Redis for encrypted connections.
+- **KEYS pattern** only supports `*` (all keys). Prefix patterns are not implemented.
+
+## Capabilities
 
 ### L1 (moka)
 
-- Cache en memoria de alta concurrencia con `moka`.
-- Invalidacion por etiquetas: `set_bytes_tagged(key, value, &["tag1", "tag2"])`.
-- TTL configurable por entrada o global via `default_ttl`.
-- Capacidad maxima con eviccion LRU automatica.
+- High-concurrency in-memory cache with moka (TinyLFU eviction).
+- Tag-based invalidation: `set_bytes_tagged(key, value, &["tag1", "tag2"])`.
+- Configurable per-entry TTL or global via `default_ttl`.
+- Automatic eviction when capacity is exceeded.
 
-### L2 Redis (feature `redis`)
+### L2 native (feature `native-server`)
 
-Activar con `features = ["redis"]` en `Cargo.toml` y definir `REDIS_URL`.
-Uso como cache secundario cuando L1 expira o se reinicia el proceso.
+- In-process RESP2 TCP server — no external Redis required.
+- Backed by the same L1 moka store (no data duplication).
+- Per-key TTL tracked via `DashMap<String, Option<Instant>>` alongside moka's TTL.
+- Compatible with redis-cli, redis-rs, ioredis, and any RESP2 client.
 
-## Variables de entorno (L2)
+## Environment variables
 
-| Variable | Default | Descripcion |
+| Variable | Default | Description |
 |---|---|---|
-| `REDIS_URL` | `redis://127.0.0.1:6379` | URL del servidor Redis (L2) |
+| `CACHE_NATIVE_SERVER` | `false` | Enable native RESP2 server (`1` or `true`) |
+| `CACHE_NATIVE_PORT` | `6379` | TCP port for the native RESP2 server |
+| `REDIS_URL` | — | External Redis URL (L2, deferred — logs a warning if set) |
 
-## RFC-0005
+## References
 
-El RFC-0005 (`docs/rfc/RFC-0005-ag-cache-native-l2.md`) propone un L2 nativo
-Anti-Gravital compatible con el protocolo RESP2, eliminando la dependencia de
-Redis como servicio externo. Estado: propuesto, pendiente de aprobacion.
-
-## Referencias
-
-- Spec de diseno: `docs/superpowers/specs/2026-05-23-fase4-completion-design.md`
-- Arquitectura: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` seccion 8.3.
-- RFC-0005: `docs/rfc/RFC-0005-ag-cache-native-l2.md`.
-- Constitucion tecnica: `CLAUDE.md`.
+- RFC-0005: `docs/rfc/RFC-0005-ag-cache-native-l2.md`
+- Architecture: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` section 8.3
+- Technical charter: `CLAUDE.md`

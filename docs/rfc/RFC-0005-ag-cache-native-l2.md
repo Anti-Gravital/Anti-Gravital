@@ -1,6 +1,6 @@
 # RFC-0005: ag-cache L2 Nativo con Protocolo RESP2
 
-**Estado:** Propuesto
+**Estado:** Implemented — branch `p5-native-cache-server`, merged into `main` alongside the corrective audit.
 **Fecha:** 2026-05-23
 **Autor:** Gravital Labs — Nereira Technology and Business Solutions
 **Crate afectado:** `ag-cache`
@@ -192,3 +192,13 @@ Este RFC esta en estado **Propuesto**. Requiere:
 6. Actualizacion de README y CHANGELOG.
 
 **Este RFC NO esta autorizado para implementacion hasta su aprobacion explícita.**
+
+---
+
+## Implementation
+
+- Feature: `native-server` (Cargo).
+- Supported commands: GET, SET (EX/PX/NX/XX), DEL, EXISTS, MGET, MSET, EXPIRE, TTL, KEYS (*), PING, FLUSHDB, DBSIZE, COMMAND.
+- Per-key TTL via `DashMap<String, Option<Instant>>` (internal expiry map in the server).
+- Tests: 13 cases in `crates/ag-cache/tests/resp2_compat.rs` via raw `TcpStream`.
+- Validated against redis-cli (inline and array format).

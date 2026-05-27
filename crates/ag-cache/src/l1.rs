@@ -59,7 +59,12 @@ impl L1Cache {
         }
     }
 
-    /// Removes all entries and clears the tag index.
+    /// Removes all entries and clears the tag index (RESP2 FLUSHDB equivalent).
+    ///
+    /// Not atomic with respect to concurrent writes: entries inserted between
+    /// `invalidate_all()` and the tag-index clear may lose tag tracking.
+    /// Callers must ensure no concurrent writes during this call for a fully
+    /// consistent flush.
     pub async fn flush(&self) {
         self.inner.invalidate_all();
         self.inner.run_pending_tasks().await;
@@ -157,5 +162,10 @@ mod tests {
         cache.flush().await;
         assert!(cache.get_bytes("a").await.is_none());
         assert!(cache.get_bytes("b").await.is_none());
+        // Verify tag index was also cleared: a new entry under the same tag
+        // can be inserted and invalidated independently after flush.
+        cache.set_bytes_tagged("c", b"3".to_vec(), &["tag1"]).await;
+        cache.invalidate_tag("tag1").await;
+        assert!(cache.get_bytes("c").await.is_none());
     }
 }

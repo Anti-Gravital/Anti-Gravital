@@ -36,7 +36,10 @@ CLAUDE.md section 29.
 - Reason: L2 is a stub that only logs a warning; Redis/fred is not wired.
 - Impact: no distributed cache; vendor-lock risk if Redis is added directly.
 - Expected removal: plan P5, gated on RFC-0005 approval.
-- Status: open (blocked on RFC-0005). Target: before Phase 5 if RFC approved.
+- Status: closed (P5, 2026-05-26). `NativeCacheServer` implemented under feature
+  `native-server` (RFC-0005). Supports GET/SET/DEL/EXISTS/MGET/MSET/EXPIRE/TTL/KEYS/
+  PING/FLUSHDB/DBSIZE/COMMAND. Per-key TTL via `DashMap`. 13 integration tests via
+  raw TcpStream. External Redis L2 (multi-instance) remains deferred (TECH-DEBT in lib.rs).
 
 ## ag-domains
 

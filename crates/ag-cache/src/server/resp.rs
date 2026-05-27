@@ -3,7 +3,7 @@
 //! Reads one command at a time from a buffered async reader.
 //! Returns `None` on EOF (client disconnected).
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 /// Alias for the write half of a tokio TCP socket.
@@ -36,7 +36,6 @@ pub async fn read_command(reader: &mut Reader) -> Option<Vec<Vec<u8>>> {
                 let len: usize = len_str.parse().ok()?;
                 // Read DATA + \r\n
                 let mut buf = vec![0u8; len + 2];
-                use tokio::io::AsyncReadExt;
                 reader.read_exact(&mut buf).await.ok()?;
                 buf.truncate(len); // drop trailing \r\n
                 args.push(buf);

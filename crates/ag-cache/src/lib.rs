@@ -2,13 +2,13 @@
 //!
 //! Offers two transparent levels:
 //! - **L1**: moka in memory (TinyLFU, no contended locks, always available).
-//! - **L2**: Redis via fred (optional, for distributed cache across instances).
+//! - **L2 native**: optional in-process RESP2 server (feature `native-server`),
+//!   compatible with any Redis client. Backed by the same L1 store.
 //!
 //! # Status
 //!
-//! L1 fully operational. L2 (Redis/fred) remains pending as TECH-DEBT
-//! for the second iteration of ag-cache in Phase 4 — the fred v10 API
-//! requires feature adjustments and connection configuration in CI.
+//! L1 fully operational. Native RESP2 server (RFC-0005) implemented under
+//! the `native-server` feature. External Redis L2 remains deferred (TECH-DEBT).
 //!
 //! # Minimal usage (L1 only)
 //!
@@ -19,6 +19,21 @@
 //! let cache = AgCache::new(CacheConfig::default()).await?;
 //! cache.set("user:123", b"datos".to_vec(), &[]).await;
 //! let val: Option<Vec<u8>> = cache.get("user:123").await;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Native RESP2 server
+//!
+//! ```no_run
+//! use ag_cache::{AgCache, CacheConfig};
+//!
+//! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
+//! let mut cfg = CacheConfig::default();
+//! cfg.native_server_enabled = true;
+//! cfg.native_server_port = 6379;
+//! let cache = AgCache::new(cfg).await?;
+//! // redis-cli -p 6379 ping  =>  PONG
 //! # Ok(())
 //! # }
 //! ```
@@ -33,6 +48,7 @@ pub mod server;
 pub use config::CacheConfig;
 
 use l1::L1Cache;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Error from the cache subsystem.
@@ -40,24 +56,26 @@ use std::time::Duration;
 pub enum CacheError {
     /// Connection or communication error with Redis.
     Redis(String),
+    /// I/O error starting the native server.
+    #[cfg(feature = "native-server")]
+    NativeServer(std::io::Error),
 }
 
 impl std::fmt::Display for CacheError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CacheError::Redis(msg) => write!(f, "error Redis: {msg}"),
+            CacheError::Redis(msg) => write!(f, "Redis error: {msg}"),
+            #[cfg(feature = "native-server")]
+            CacheError::NativeServer(e) => write!(f, "native server error: {e}"),
         }
     }
 }
 
 impl std::error::Error for CacheError {}
 
-/// Multilevel cache with L1 (moka) and optional L2 (Redis).
-///
-/// Build with [`AgCache::new`] passing a [`CacheConfig`]. If
-/// `config.redis_url` is `None`, only L1 is active.
+/// Multilevel cache with L1 (moka) and optional native RESP2 server.
 pub struct AgCache {
-    l1: L1Cache,
+    l1: Arc<L1Cache>,
     // TECH-DEBT:
     // reason: L2 Redis requires fred with a real connection; the fred v10 API
     //         does not expose the documented features (tokio-runtime, codec).
@@ -69,25 +87,31 @@ pub struct AgCache {
 impl AgCache {
     /// Creates a new [`AgCache`] with the given configuration.
     ///
-    /// If `config.redis_url` is `Some`, emits a warning via tracing but L2
-    /// is not activated until it is implemented (see TECH-DEBT in the code).
+    /// If `native_server_enabled` is `true` and feature `native-server` is active,
+    /// spawns the RESP2 server in a background task.
     pub async fn new(config: CacheConfig) -> Result<Self, CacheError> {
         let ttl = Duration::from_secs(config.l1_ttl_secs);
-        let l1 = L1Cache::new(config.l1_max_capacity, ttl);
+        let l1 = Arc::new(L1Cache::new(config.l1_max_capacity, ttl));
 
         if config.redis_url.is_some() {
             tracing::warn!(
-                "REDIS_URL configurada pero L2 Redis no esta activo en esta version (TECH-DEBT)"
+                "REDIS_URL set but external Redis L2 is not active in this version (TECH-DEBT)"
             );
+        }
+
+        #[cfg(feature = "native-server")]
+        if config.native_server_enabled {
+            let srv =
+                server::NativeCacheServer::bind(config.native_server_port, Arc::clone(&l1))
+                    .await
+                    .map_err(CacheError::NativeServer)?;
+            tokio::spawn(srv.serve());
         }
 
         Ok(Self { l1 })
     }
 
     /// Gets raw bytes from the cache.
-    ///
-    /// Looks up L1 first. On a hit, logs `cache hit L1` via tracing.
-    /// If there is no result, logs `cache miss`.
     pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
         let result = self.l1.get_bytes(key).await;
         if result.is_some() {
@@ -99,8 +123,6 @@ impl AgCache {
     }
 
     /// Stores bytes in the cache with optional tags for invalidation.
-    ///
-    /// Writes to L1. If `tags` is empty, no tags are registered.
     pub async fn set(&self, key: &str, value: Vec<u8>, tags: &[&str]) {
         if tags.is_empty() {
             self.l1.set_bytes(key, value).await;

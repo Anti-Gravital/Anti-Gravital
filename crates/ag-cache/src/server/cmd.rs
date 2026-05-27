@@ -9,6 +9,8 @@ use std::time::{Duration, Instant};
 
 use dashmap::DashMap;
 
+use tokio::io::AsyncWriteExt;
+
 use crate::l1::L1Cache;
 use crate::server::resp::{
     write_array, write_bulk, write_error, write_integer, write_ok, write_simple, Writer,
@@ -230,7 +232,6 @@ pub async fn cmd_mget(
         return;
     }
     let count = args.len() - 1;
-    use tokio::io::AsyncWriteExt;
     let _ = w
         .write_all(format!("*{count}\r\n").as_bytes())
         .await;
@@ -338,20 +339,23 @@ pub async fn cmd_ttl(
     evict_if_expired(cache, expiry, key).await;
     match expiry.get(key) {
         None => write_integer(w, -2).await, // key does not exist
-        Some(entry) => match *entry {
-            None => write_integer(w, -1).await, // persistent key
-            Some(deadline) => {
-                let now = Instant::now();
-                if deadline <= now {
-                    drop(entry);
-                    cache.delete(key).await;
-                    expiry.remove(key);
-                    write_integer(w, -2).await;
-                } else {
-                    write_integer(w, (deadline - now).as_secs() as i64).await;
+        Some(entry) => {
+            let opt = *entry;
+            drop(entry);
+            match opt {
+                None => write_integer(w, -1).await, // persistent key
+                Some(deadline) => {
+                    let now = Instant::now();
+                    if deadline <= now {
+                        cache.delete(key).await;
+                        expiry.remove(key);
+                        write_integer(w, -2).await;
+                    } else {
+                        write_integer(w, (deadline - now).as_secs() as i64).await;
+                    }
                 }
             }
-        },
+        }
     }
 }
 
@@ -414,7 +418,6 @@ pub async fn cmd_dbsize(expiry: &Arc<ExpiryMap>, w: &mut Writer) {
 
 /// Handles the RESP2 `COMMAND` introspection request. Returns an empty array for client compatibility.
 pub async fn cmd_command(w: &mut Writer) {
-    use tokio::io::AsyncWriteExt;
     // Return empty array: enough for clients that auto-detect capabilities.
-    let _ = w.write_all(b"*0\r\n").await;
+    write_array(w, &[]).await;
 }

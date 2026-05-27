@@ -27,6 +27,9 @@ pub mod config;
 pub mod l1;
 pub mod tags;
 
+#[cfg(feature = "native-server")]
+pub mod server;
+
 pub use config::CacheConfig;
 
 use l1::L1Cache;

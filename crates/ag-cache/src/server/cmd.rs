@@ -119,9 +119,10 @@ pub async fn cmd_set(
         match opt.as_str() {
             "EX" => {
                 i += 1;
-                let secs: u64 = match args.get(i).and_then(|a| {
-                    std::str::from_utf8(a).ok().and_then(|s| s.parse().ok())
-                }) {
+                let secs: u64 = match args
+                    .get(i)
+                    .and_then(|a| std::str::from_utf8(a).ok().and_then(|s| s.parse().ok()))
+                {
                     Some(v) => v,
                     None => {
                         write_error(w, "value is not an integer or out of range").await;
@@ -132,9 +133,10 @@ pub async fn cmd_set(
             }
             "PX" => {
                 i += 1;
-                let ms: u64 = match args.get(i).and_then(|a| {
-                    std::str::from_utf8(a).ok().and_then(|s| s.parse().ok())
-                }) {
+                let ms: u64 = match args
+                    .get(i)
+                    .and_then(|a| std::str::from_utf8(a).ok().and_then(|s| s.parse().ok()))
+                {
                     Some(v) => v,
                     None => {
                         write_error(w, "value is not an integer or out of range").await;
@@ -232,9 +234,7 @@ pub async fn cmd_mget(
         return;
     }
     let count = args.len() - 1;
-    let _ = w
-        .write_all(format!("*{count}\r\n").as_bytes())
-        .await;
+    let _ = w.write_all(format!("*{count}\r\n").as_bytes()).await;
     for arg in &args[1..] {
         if let Ok(key) = std::str::from_utf8(arg) {
             evict_if_expired(cache, expiry, key).await;
@@ -312,7 +312,10 @@ pub async fn cmd_expire(
         write_integer(w, 0).await; // key does not exist
         return;
     }
-    expiry.insert(key.to_owned(), Some(Instant::now() + Duration::from_secs(secs)));
+    expiry.insert(
+        key.to_owned(),
+        Some(Instant::now() + Duration::from_secs(secs)),
+    );
     write_integer(w, 1).await;
 }
 
@@ -362,11 +365,7 @@ pub async fn cmd_ttl(
 // ── KEYS ──────────────────────────────────────────────────────────────────
 
 /// Handles the RESP2 `KEYS` command. Only the `*` wildcard and exact-match patterns are supported.
-pub async fn cmd_keys(
-    args: &[Vec<u8>],
-    expiry: &Arc<ExpiryMap>,
-    w: &mut Writer,
-) {
+pub async fn cmd_keys(args: &[Vec<u8>], expiry: &Arc<ExpiryMap>, w: &mut Writer) {
     // Only the `*` wildcard is supported (RFC-0005 section 4.2).
     if args.len() < 2 {
         write_error(w, "wrong number of arguments for KEYS").await;
@@ -389,11 +388,7 @@ pub async fn cmd_keys(
 // ── FLUSHDB ───────────────────────────────────────────────────────────────
 
 /// Handles the RESP2 `FLUSHDB` command. Clears all keys from L1 and the expiry map.
-pub async fn cmd_flushdb(
-    cache: &Arc<L1Cache>,
-    expiry: &Arc<ExpiryMap>,
-    w: &mut Writer,
-) {
+pub async fn cmd_flushdb(cache: &Arc<L1Cache>, expiry: &Arc<ExpiryMap>, w: &mut Writer) {
     cache.flush().await;
     expiry.clear();
     write_ok(w).await;

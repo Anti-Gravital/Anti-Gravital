@@ -64,16 +64,12 @@ pub async fn write_ok(w: &mut Writer) {
 
 /// Writes `+{msg}\r\n`.
 pub async fn write_simple(w: &mut Writer, msg: &str) {
-    let _ = w
-        .write_all(format!("+{msg}\r\n").as_bytes())
-        .await;
+    let _ = w.write_all(format!("+{msg}\r\n").as_bytes()).await;
 }
 
 /// Writes `-ERR {msg}\r\n`.
 pub async fn write_error(w: &mut Writer, msg: &str) {
-    let _ = w
-        .write_all(format!("-ERR {msg}\r\n").as_bytes())
-        .await;
+    let _ = w.write_all(format!("-ERR {msg}\r\n").as_bytes()).await;
 }
 
 /// Writes `:{n}\r\n`.
@@ -88,9 +84,7 @@ pub async fn write_bulk(w: &mut Writer, data: Option<&[u8]>) {
             let _ = w.write_all(b"$-1\r\n").await;
         }
         Some(b) => {
-            let _ = w
-                .write_all(format!("${}\r\n", b.len()).as_bytes())
-                .await;
+            let _ = w.write_all(format!("${}\r\n", b.len()).as_bytes()).await;
             let _ = w.write_all(b).await;
             let _ = w.write_all(b"\r\n").await;
         }

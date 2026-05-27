@@ -4,8 +4,8 @@
 //! RESP2 commands, and asserts the response bytes. This validates protocol
 //! compliance without mocking any layer.
 
-use ag_cache::server::NativeCacheServer;
 use ag_cache::l1::L1Cache;
+use ag_cache::server::NativeCacheServer;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::AsyncWriteExt;
@@ -14,7 +14,9 @@ use tokio::net::TcpStream;
 /// Spawns the server on port 0 and returns the bound port.
 async fn spawn_server() -> u16 {
     let l1 = Arc::new(L1Cache::new(1000, Duration::from_secs(60)));
-    let srv = NativeCacheServer::bind(0, l1).await.expect("bind must succeed");
+    let srv = NativeCacheServer::bind(0, l1)
+        .await
+        .expect("bind must succeed");
     let port = srv.local_addr().expect("local_addr").port();
     tokio::spawn(srv.serve());
     port
@@ -32,7 +34,9 @@ async fn send_recv(stream: &mut TcpStream, cmd: &str) -> String {
 #[tokio::test]
 async fn ping_returns_pong() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
     let resp = send_recv(&mut s, "*1\r\n$4\r\nPING\r\n").await;
     assert_eq!(resp, "+PONG\r\n");
 }
@@ -40,7 +44,9 @@ async fn ping_returns_pong() {
 #[tokio::test]
 async fn ping_with_message_returns_bulk() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
     let resp = send_recv(&mut s, "*2\r\n$4\r\nPING\r\n$5\r\nhello\r\n").await;
     assert_eq!(resp, "$5\r\nhello\r\n");
 }
@@ -48,7 +54,9 @@ async fn ping_with_message_returns_bulk() {
 #[tokio::test]
 async fn set_and_get_roundtrip() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     let set = send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n").await;
     assert_eq!(set, "+OK\r\n");
@@ -60,7 +68,9 @@ async fn set_and_get_roundtrip() {
 #[tokio::test]
 async fn get_missing_key_returns_nil() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
     let resp = send_recv(&mut s, "*2\r\n$3\r\nGET\r\n$7\r\nmissing\r\n").await;
     assert_eq!(resp, "$-1\r\n");
 }
@@ -68,7 +78,9 @@ async fn get_missing_key_returns_nil() {
 #[tokio::test]
 async fn del_removes_key() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$1\r\nx\r\n$1\r\n1\r\n").await;
     let del = send_recv(&mut s, "*2\r\n$3\r\nDEL\r\n$1\r\nx\r\n").await;
@@ -81,7 +93,9 @@ async fn del_removes_key() {
 #[tokio::test]
 async fn set_nx_does_not_overwrite() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$1\r\nk\r\n$5\r\nfirst\r\n").await;
     let nx = send_recv(
@@ -98,7 +112,9 @@ async fn set_nx_does_not_overwrite() {
 #[tokio::test]
 async fn exists_counts_keys() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$2\r\na1\r\n$1\r\n1\r\n").await;
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$2\r\na2\r\n$1\r\n2\r\n").await;
@@ -110,7 +126,9 @@ async fn exists_counts_keys() {
 #[tokio::test]
 async fn dbsize_returns_live_count() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$2\r\nb1\r\n$1\r\n1\r\n").await;
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$2\r\nb2\r\n$1\r\n2\r\n").await;
@@ -122,7 +140,9 @@ async fn dbsize_returns_live_count() {
 #[tokio::test]
 async fn flushdb_clears_all() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(&mut s, "*3\r\n$3\r\nSET\r\n$1\r\nc\r\n$1\r\n1\r\n").await;
     let flush = send_recv(&mut s, "*1\r\n$7\r\nFLUSHDB\r\n").await;
@@ -135,7 +155,9 @@ async fn flushdb_clears_all() {
 #[tokio::test]
 async fn mset_and_mget() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     send_recv(
         &mut s,
@@ -143,11 +165,7 @@ async fn mset_and_mget() {
     )
     .await;
 
-    let resp = send_recv(
-        &mut s,
-        "*3\r\n$4\r\nMGET\r\n$2\r\nm1\r\n$2\r\nm2\r\n",
-    )
-    .await;
+    let resp = send_recv(&mut s, "*3\r\n$4\r\nMGET\r\n$2\r\nm1\r\n$2\r\nm2\r\n").await;
     assert!(resp.contains("$1\r\nA\r\n"));
     assert!(resp.contains("$1\r\nB\r\n"));
 }
@@ -155,7 +173,9 @@ async fn mset_and_mget() {
 #[tokio::test]
 async fn unsupported_command_returns_error() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
     let resp = send_recv(&mut s, "*1\r\n$4\r\nEVAL\r\n").await;
     assert!(resp.starts_with("-ERR"));
     assert!(resp.contains("unsupported"));
@@ -164,7 +184,9 @@ async fn unsupported_command_returns_error() {
 #[tokio::test]
 async fn set_with_ex_and_ttl() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
 
     // SET mykey myval EX 100
     send_recv(
@@ -182,7 +204,9 @@ async fn set_with_ex_and_ttl() {
 #[tokio::test]
 async fn inline_ping() {
     let port = spawn_server().await;
-    let mut s = TcpStream::connect(format!("127.0.0.1:{port}")).await.unwrap();
+    let mut s = TcpStream::connect(format!("127.0.0.1:{port}"))
+        .await
+        .unwrap();
     let resp = send_recv(&mut s, "PING\r\n").await;
     assert_eq!(resp, "+PONG\r\n");
 }

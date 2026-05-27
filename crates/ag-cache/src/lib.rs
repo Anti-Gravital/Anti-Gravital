@@ -101,10 +101,9 @@ impl AgCache {
 
         #[cfg(feature = "native-server")]
         if config.native_server_enabled {
-            let srv =
-                server::NativeCacheServer::bind(config.native_server_port, Arc::clone(&l1))
-                    .await
-                    .map_err(CacheError::NativeServer)?;
+            let srv = server::NativeCacheServer::bind(config.native_server_port, Arc::clone(&l1))
+                .await
+                .map_err(CacheError::NativeServer)?;
             tokio::spawn(srv.serve());
         }
 

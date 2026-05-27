@@ -46,6 +46,7 @@ name = "ag-cache"
 version = "0.0.0"
 dependencies = [
  "ag-core",
+ "dashmap 6.2.1",
  "moka",
  "serde",
  "serde_json",

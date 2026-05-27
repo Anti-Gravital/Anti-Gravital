@@ -1,6 +1,6 @@
 //! Multilevel cache configuration.
 
-/// Configuration for the L1 cache (moka, in memory) and L2 (Redis, optional).
+/// Configuration for the L1 cache (moka, in memory) and optional native RESP2 server.
 #[derive(Debug, Clone)]
 pub struct CacheConfig {
     /// Maximum number of entries in L1. Default: 10_000.
@@ -12,6 +12,10 @@ pub struct CacheConfig {
     pub redis_url: Option<String>,
     /// Number of connections in the Redis pool. Default: 10.
     pub redis_pool_size: u32,
+    /// Enable the native RESP2 server. Requires feature `native-server`. Default: false.
+    pub native_server_enabled: bool,
+    /// TCP port for the native RESP2 server. Default: 6379.
+    pub native_server_port: u16,
 }
 
 impl Default for CacheConfig {
@@ -21,6 +25,8 @@ impl Default for CacheConfig {
             l1_ttl_secs: 300,
             redis_url: None,
             redis_pool_size: 10,
+            native_server_enabled: false,
+            native_server_port: 6379,
         }
     }
 }
@@ -42,6 +48,13 @@ impl CacheConfig {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(10),
+            native_server_enabled: std::env::var("CACHE_NATIVE_SERVER")
+                .map(|v| v == "1" || v.to_lowercase() == "true")
+                .unwrap_or(false),
+            native_server_port: std::env::var("CACHE_NATIVE_PORT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(6379),
         }
     }
 }
@@ -65,5 +78,12 @@ mod tests {
         std::env::remove_var("REDIS_URL");
         let cfg = CacheConfig::from_env();
         assert!(cfg.redis_url.is_none());
+    }
+
+    #[test]
+    fn native_server_defaults_disabled() {
+        let cfg = CacheConfig::default();
+        assert!(!cfg.native_server_enabled);
+        assert_eq!(cfg.native_server_port, 6379);
     }
 }

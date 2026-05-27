@@ -17,7 +17,7 @@ Changes:
 - `crates/ag-cache/src/l1.rs`: added `flush()`.
 - `crates/ag-cache/src/tags.rs`: added `clear()`.
 - `crates/ag-cache/src/config.rs`: added `native_server_enabled`, `native_server_port`.
-- `crates/ag-cache/Cargo.toml`: `native-server` feature + dashmap 6 dep.
+- `crates/ag-cache/Cargo.toml`: `native-server` feature + dashmap 6 dep + `[[test]] required-features` so CI skips test binary without the feature.
 - `crates/ag-cache/tests/resp2_compat.rs`: 13 integration tests via raw TcpStream.
 - `docs/rfc/RFC-0005-ag-cache-native-l2.md`: status updated to Implemented.
 - `crates/ag-cache/README.md`: added Native RESP2 server section.

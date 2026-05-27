@@ -31,6 +31,10 @@ tracing = { workspace = true }
 # Native RESP2 server: per-key expiry tracking and key registry
 dashmap = { version = "6", optional = true }
 
+[[test]]
+name = "resp2_compat"
+required-features = ["native-server"]
+
 [dev-dependencies]
 testcontainers = { workspace = true }
 testcontainers-modules = { workspace = true }

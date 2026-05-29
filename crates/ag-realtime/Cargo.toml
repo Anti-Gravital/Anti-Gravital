@@ -27,9 +27,10 @@ futures-util = { workspace = true }
 rmp-serde = { workspace = true }
 tokio-stream = { workspace = true }
 async-nats = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 
 [features]
-nats-external = ["dep:async-nats"]
+nats-external = ["dep:async-nats", "dep:thiserror"]
 event-persistence = []
 
 [dev-dependencies]

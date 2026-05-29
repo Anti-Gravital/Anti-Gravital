@@ -17,10 +17,10 @@ means a `fail` or `pending` on that row forbids advancing.
 
 | Area | State | Evidence | Blocks Phase 5 | Stage |
 | --- | --- | --- | --- | --- |
-| Build | pending | command + date | yes | 1 |
-| Tests | pending | command + date | yes | 1 |
-| Clippy | pending | command + date | yes | 1 |
-| Docs | pending | command + date | yes | 1 |
+| Build | pass | `cargo clippy --workspace --all-targets --all-features` exit 0, 2026-05-29 (commit 635e623) | yes | 1 |
+| Tests | pass | `cargo test --workspace --all-features`: 564 passed, 0 failed, 7 ignored, 2026-05-29 | yes | 1 |
+| Clippy | pass | `cargo clippy --workspace --all-targets --all-features -- -D warnings` exit 0, 2026-05-29 | yes | 1 |
+| Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
 | Audit | pending | `cargo audit` | yes | 3 |
 | Deny | pending | `cargo deny` | yes | 3 |
 | Fuzz smoke | pending | targets | yes | 4 |
@@ -80,7 +80,7 @@ the plan's final checklist):
 | Stage | Document | Status |
 | --- | --- | --- |
 | 0 | `docs/audits/pre-fase5-inventory.md` | done (PR 1) |
-| 1 | `docs/audits/pre-fase5-build-gate.md` | pending |
+| 1 | `docs/audits/pre-fase5-build-gate.md` | done (PR 2) |
 | 2 | `docs/audits/pre-fase5-architecture.md` | pending |
 | 3 | `docs/audits/pre-fase5-security.md` | pending |
 | 4 | `docs/audits/pre-fase5-fuzzing.md` | pending |

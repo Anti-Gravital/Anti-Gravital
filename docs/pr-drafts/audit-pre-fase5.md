@@ -43,7 +43,8 @@ gate row is `pass`.
 
 - [x] Stage 0 inventory: `docs/audits/pre-fase5-inventory.md`.
 - [x] Release gate skeleton: `docs/audits/PRE_FASE5_RELEASE_GATE.md`.
-- [ ] Stage 1 build/lint/test/docs gate.
+- [x] Stage 1 build/lint/test/docs gate (3 fixes: ag-storage DEL-byte DoS,
+  ag-realtime thiserror build, clippy lints). All rows pass.
 - [ ] Stage 2 architecture audit.
 - [ ] Stage 3 security + supply chain.
 - [ ] Stage 4 fuzzing.

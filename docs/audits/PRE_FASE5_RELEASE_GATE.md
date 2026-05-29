@@ -75,6 +75,17 @@ the plan's final checklist):
 - [ ] Open technical debt is documented.
 - [ ] `ag-cloud` remains a skeleton until this gate closes.
 
+## Execution order (owner decision, 2026-05-29)
+
+Stage 6 (benchmarks / memory / flamegraphs) is executed **last among the
+technical stages, immediately before Stage 10 (docs)**, not as an intermediate
+step. Rationale: benchmarks must measure stabilized code; running them before the
+fuzzing (4), property (5), concurrency (7), per-module security (8) and examples
+(9) fixes would produce numbers invalidated by later changes. Stage numbering and
+gate rows are unchanged — only the execution sequence is:
+
+`0 → 1 → 2 → 3 → 4 → 5 → 7 → 8 → 9 → 6 → 10 → 11`
+
 ## Audit document index
 
 | Stage | Document | Status |

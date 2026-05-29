@@ -94,10 +94,10 @@ impl AgRealtime {
                     let client = NatsExternalClient::connect(&config)
                         .await
                         .map_err(RealtimeError::Nats)?;
-                    return Ok(Self {
+                    Ok(Self {
                         event_bus: None,
                         inner: RealtimeBus::External(Arc::new(client)),
-                    });
+                    })
                 }
                 #[cfg(not(feature = "nats-external"))]
                 {

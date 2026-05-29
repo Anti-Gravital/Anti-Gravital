@@ -13,10 +13,6 @@ ignore = [
     # RUSTSEC-2023-0071: Marvin Attack en rsa 0.9.x (transitivo de jsonwebtoken).
     # Anti-Gravital usa exclusivamente EdDSA; ningun codigo invoca RSA.
     { id = "RUSTSEC-2023-0071" },
-    # RUSTSEC-2026-0119: CPU exhaustion en hickory-proto BinEncoder (O(n^2)).
-    # ag-domains usa hickory-resolver solo como cliente de consulta DNS saliente.
-    # No codificamos mensajes con datos hostiles; el riesgo DoS no aplica.
-    { id = "RUSTSEC-2026-0119" },
 ]
 
 [licenses]

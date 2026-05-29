@@ -21,8 +21,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Tests | pass | `cargo test --workspace --all-features`: 564 passed, 0 failed, 7 ignored, 2026-05-29 | yes | 1 |
 | Clippy | pass | `cargo clippy --workspace --all-targets --all-features -- -D warnings` exit 0, 2026-05-29 | yes | 1 |
 | Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
-| Audit | pending | `cargo audit` | yes | 3 |
-| Deny | pending | `cargo deny` | yes | 3 |
+| Audit | pass | `cargo audit` exit 0, 0 vulnerabilities / 591 deps, 2026-05-29 | yes | 3 |
+| Deny | pass | `cargo deny check` exit 0 (advisories/bans/licenses/sources ok), 2026-05-29 | yes | 3 |
 | Fuzz smoke | pending | targets | yes | 4 |
 | Fuzz 24h | pending | logs | yes | 4 |
 | Coverage | pending | report | yes | 5 |

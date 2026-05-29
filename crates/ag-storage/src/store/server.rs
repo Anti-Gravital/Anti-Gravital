@@ -20,7 +20,7 @@ use crate::{StorageConfig, StorageError};
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Path, Query, Request, State},
-    http::{header, StatusCode},
+    http::{header, HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     routing::{delete, get, head, post, put},
@@ -207,10 +207,19 @@ async fn get_object(
     let (ct, is_attachment) = content_type_for(&key);
     let etag = etag_for(&data);
     let len = data.len();
+    // The object key is untrusted input and may contain bytes that are invalid
+    // in an HTTP header value (control chars, non-ASCII). Echo the raw key when
+    // it is a valid value; otherwise fall back to a percent-encoded form. This
+    // prevents a panic (and a trivial DoS) when building the response.
+    let key_header = match HeaderValue::from_str(&key) {
+        Ok(value) => value,
+        Err(_) => HeaderValue::from_str(&percent_encode_attr(&key))
+            .unwrap_or_else(|_| HeaderValue::from_static("")),
+    };
     let mut builder = Response::builder()
         .header(header::CONTENT_TYPE, ct)
         .header(header::CONTENT_LENGTH, len)
-        .header("X-AG-Store-Key", &key)
+        .header("X-AG-Store-Key", key_header)
         .header(header::ETAG, etag);
     if is_attachment {
         let fname = std::path::Path::new(&key)
@@ -218,12 +227,17 @@ async fn get_object(
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
-        builder = builder.header(
-            header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{fname}\""),
-        );
+        builder = builder.header(header::CONTENT_DISPOSITION, content_disposition(&fname));
     }
-    Ok(builder.body(Body::from(data)).unwrap())
+    // Headers above are guaranteed valid, so this never errors in practice; map
+    // any residual error to a 500 instead of panicking on external input.
+    match builder.body(Body::from(data)) {
+        Ok(response) => Ok(response),
+        Err(error) => {
+            tracing::error!(%error, "failed to build object response");
+            Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response())
+        }
+    }
 }
 
 async fn delete_object(
@@ -283,6 +297,49 @@ async fn copy_object(
 ) -> Result<StatusCode, AppError> {
     store.copy(&params.from, &params.to).await?;
     Ok(StatusCode::CREATED)
+}
+
+// ---------------------------------------------------------------------------
+// Header encoding helpers
+// ---------------------------------------------------------------------------
+
+/// Percent-encodes `input`, keeping only RFC 5987 attr-chars unencoded, so the
+/// result is always valid ASCII usable in an HTTP header value. Used to make
+/// untrusted object keys safe to echo back in headers without panicking.
+fn percent_encode_attr(input: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    // RFC 5987 attr-char set: ALPHA / DIGIT plus a handful of symbols.
+    const SAFE: &[u8] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&+-.^_`|~";
+    let mut out = String::with_capacity(input.len());
+    for &byte in input.as_bytes() {
+        if SAFE.contains(&byte) {
+            out.push(byte as char);
+        } else {
+            out.push('%');
+            out.push(HEX[(byte >> 4) as usize] as char);
+            out.push(HEX[(byte & 0x0f) as usize] as char);
+        }
+    }
+    out
+}
+
+/// Builds a safe `Content-Disposition` value. ASCII filenames use the plain
+/// `filename="..."` form; names with non-token bytes use the RFC 5987
+/// `filename*=UTF-8''...` form so untrusted keys never yield an invalid header.
+fn content_disposition(filename: &str) -> String {
+    let plain_safe = !filename.is_empty()
+        && filename
+            .bytes()
+            .all(|b| (b.is_ascii_graphic() || b == b' ') && b != b'"' && b != b'\\');
+    if plain_safe {
+        format!("attachment; filename=\"{filename}\"")
+    } else {
+        format!(
+            "attachment; filename*=UTF-8''{}",
+            percent_encode_attr(filename)
+        )
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -357,6 +414,47 @@ mod tests {
             .unwrap();
         assert_eq!(get_res.status(), StatusCode::OK);
         assert_eq!(get_res.headers()["X-AG-Store-Key"], "test/hello.txt");
+    }
+
+    #[tokio::test]
+    async fn get_object_with_del_byte_key_does_not_panic() {
+        // Regression: a key containing 0x7F (DEL) passes `validate_key` (which
+        // only rejects bytes < 0x20) but is rejected by `HeaderValue`, so the
+        // old `.body().unwrap()` panicked when echoing the key in a header -- a
+        // trivial DoS reachable from the URL path (`%7F`).
+        let (_dir, store) = temp_store();
+        store
+            .put("a\u{7f}b.txt", bytes::Bytes::from("data"))
+            .await
+            .unwrap();
+        let config = crate::StorageConfig::default();
+        let app = build_router(store, &config);
+
+        // %7F decodes to the DEL control byte in the key.
+        let req = Request::builder()
+            .uri("/v1/objects/a%7Fb.txt")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        // The untrusted byte is percent-encoded in the echoed header.
+        assert_eq!(resp.headers()["X-AG-Store-Key"], "a%7Fb.txt");
+    }
+
+    #[test]
+    fn percent_encode_attr_encodes_unsafe_bytes() {
+        assert_eq!(percent_encode_attr("plain-1.txt"), "plain-1.txt");
+        assert_eq!(percent_encode_attr("café.png"), "caf%C3%A9.png");
+        assert_eq!(percent_encode_attr("a b"), "a%20b");
+    }
+
+    #[test]
+    fn content_disposition_uses_rfc5987_for_non_ascii() {
+        assert_eq!(
+            content_disposition("a.png"),
+            "attachment; filename=\"a.png\""
+        );
+        assert!(content_disposition("café.png").starts_with("attachment; filename*=UTF-8''"));
     }
 
     #[tokio::test]

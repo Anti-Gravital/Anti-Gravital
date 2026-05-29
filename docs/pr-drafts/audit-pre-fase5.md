@@ -45,8 +45,10 @@ gate row is `pass`.
 - [x] Release gate skeleton: `docs/audits/PRE_FASE5_RELEASE_GATE.md`.
 - [x] Stage 1 build/lint/test/docs gate (3 fixes: ag-storage DEL-byte DoS,
   ag-realtime thiserror build, clippy lints). All rows pass.
-- [ ] Stage 2 architecture audit.
-- [ ] Stage 3 security + supply chain.
+- [x] Stage 2 architecture audit (clean: no cycles, ag-core isolated, optional
+  coupling, feature hygiene). `pre-fase5-architecture.md`.
+- [x] Stage 3 security + supply chain (audit/deny clean; fixed Critical 5xx
+  error-leak in ag-core; secrets review clean). `pre-fase5-security.md`.
 - [ ] Stage 4 fuzzing.
 - [ ] Stage 5 property tests.
 - [ ] Stage 6 performance.

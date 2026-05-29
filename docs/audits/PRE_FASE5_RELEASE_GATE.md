@@ -28,8 +28,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Coverage | pending | report | yes | 5 |
 | Benchmarks | pending | docs | yes | 6 |
 | Examples | pending | docs | yes | 9 |
-| Security | pending | report | yes | 3/8 |
-| API/DX | pending | report | yes | 2 |
+| Security | partial | Stage 3 pass (`pre-fase5-security.md`): audit/deny/unsafe/error-leak/secrets, 2026-05-29; Stage 8 per-module pending | yes | 3/8 |
+| API/DX | partial | Stage 2 architecture/deps pass (`pre-fase5-architecture.md`), 2026-05-29; 2.2 ergonomics review pending | yes | 2 |
 | Docs honesty | pending | report | yes | 10 |
 | Open debt | pending | `docs/DEBT.md` | yes | all |
 
@@ -81,8 +81,8 @@ the plan's final checklist):
 | --- | --- | --- |
 | 0 | `docs/audits/pre-fase5-inventory.md` | done (PR 1) |
 | 1 | `docs/audits/pre-fase5-build-gate.md` | done (PR 2) |
-| 2 | `docs/audits/pre-fase5-architecture.md` | pending |
-| 3 | `docs/audits/pre-fase5-security.md` | pending |
+| 2 | `docs/audits/pre-fase5-architecture.md` | done (PR 3) |
+| 3 | `docs/audits/pre-fase5-security.md` | done (PR 3) |
 | 4 | `docs/audits/pre-fase5-fuzzing.md` | pending |
 | 5 | `docs/audits/pre-fase5-properties.md` | pending |
 | 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |

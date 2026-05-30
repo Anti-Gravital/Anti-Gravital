@@ -489,3 +489,30 @@ mod tests {
         assert_eq!(store.get("backup/original.txt").await.unwrap(), data);
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based test (audit Stage 5): the path-traversal safety invariant.
+    //! For ANY input key, `resolve_path` must never return an `Ok` path that
+    //! escapes the storage root. Rejecting the key with an error is always fine.
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn resolve_path_never_escapes_root(key in ".*") {
+            let dir = tempfile::tempdir().unwrap();
+            let root = dir.path();
+            if let Ok(resolved) = resolve_path(root, &key) {
+                let canonical_root = root.canonicalize().unwrap();
+                prop_assert!(
+                    resolved.starts_with(&canonical_root),
+                    "resolved {:?} escaped root {:?} for key {:?}",
+                    resolved,
+                    canonical_root,
+                    key
+                );
+            }
+        }
+    }
+}

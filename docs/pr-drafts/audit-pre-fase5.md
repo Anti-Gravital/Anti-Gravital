@@ -51,7 +51,8 @@ gate row is `pass`.
   error-leak in ag-core; secrets review clean). `pre-fase5-security.md`.
 - [x] Stage 4 fuzzing (3 new targets; fixed Critical RESP2 unbounded-alloc DoS;
   smoke ~9.3M runs 0 crashes). `pre-fase5-fuzzing.md`. 24h gate pending (manual).
-- [ ] Stage 5 property tests.
+- [x] Stage 5 property tests (proptest: ag-storage signed-URL crypto + path
+  confinement, 6 properties green). `pre-fase5-properties.md`.
 - [ ] Stage 6 performance.
 - [ ] Stage 7 concurrency.
 - [ ] Stage 8 per-module security.

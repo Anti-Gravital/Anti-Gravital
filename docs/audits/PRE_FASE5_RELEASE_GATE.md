@@ -95,7 +95,7 @@ gate rows are unchanged — only the execution sequence is:
 | 2 | `docs/audits/pre-fase5-architecture.md` | done (PR 3) |
 | 3 | `docs/audits/pre-fase5-security.md` | done (PR 3) |
 | 4 | `docs/audits/pre-fase5-fuzzing.md` | done (PR 4) |
-| 5 | `docs/audits/pre-fase5-properties.md` | pending |
+| 5 | `docs/audits/pre-fase5-properties.md` | done (PR 5) |
 | 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |
 | 7 | `docs/audits/pre-fase5-concurrency.md` | pending |
 | 9 | `docs/audits/pre-fase5-examples.md` | pending |

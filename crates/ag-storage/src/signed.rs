@@ -198,3 +198,61 @@ mod tests {
         assert_ne!(t1, t2);
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based tests (audit Stage 5) for the signed-URL invariants:
+    //! a fresh token always verifies; a token never verifies under a different
+    //! key or secret; any signature tamper is rejected; expired tokens fail.
+    use super::*;
+    use proptest::prelude::*;
+
+    // Far-future expiry so the time check never triggers in roundtrip tests.
+    const FUTURE: u64 = u64::MAX;
+
+    proptest! {
+        #[test]
+        fn fresh_token_always_verifies(secret in "[!-~]{1,64}", key in "[!-~]{0,128}") {
+            let token = sign_url(&secret, &key, FUTURE).unwrap();
+            prop_assert_eq!(verify_signed_url(&secret, &key, &token), Ok(()));
+        }
+
+        #[test]
+        fn different_key_is_rejected(
+            secret in "[!-~]{1,64}", a in "[!-~]{0,64}", b in "[!-~]{0,64}",
+        ) {
+            prop_assume!(a != b);
+            let token = sign_url(&secret, &a, FUTURE).unwrap();
+            prop_assert!(verify_signed_url(&secret, &b, &token).is_err());
+        }
+
+        #[test]
+        fn different_secret_is_rejected(
+            s1 in "[!-~]{1,64}", s2 in "[!-~]{1,64}", key in "[!-~]{0,64}",
+        ) {
+            prop_assume!(s1 != s2);
+            let token = sign_url(&s1, &key, FUTURE).unwrap();
+            prop_assert!(verify_signed_url(&s2, &key, &token).is_err());
+        }
+
+        #[test]
+        fn tampered_signature_is_rejected(secret in "[!-~]{1,64}", key in "[!-~]{0,64}") {
+            let token = sign_url(&secret, &key, FUTURE).unwrap();
+            // Flip the first byte (always part of the base64url signature).
+            let mut bytes = token.into_bytes();
+            bytes[0] ^= 0x01;
+            let tampered = String::from_utf8_lossy(&bytes).into_owned();
+            prop_assert!(verify_signed_url(&secret, &key, &tampered).is_err());
+        }
+
+        #[test]
+        fn expired_token_is_rejected(secret in "[!-~]{1,64}", key in "[!-~]{0,64}") {
+            // expires_at = 0 (1970) is always in the past.
+            let token = sign_url(&secret, &key, 0).unwrap();
+            prop_assert_eq!(
+                verify_signed_url(&secret, &key, &token),
+                Err(SignedUrlError::Expired)
+            );
+        }
+    }
+}

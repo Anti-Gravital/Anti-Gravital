@@ -23,8 +23,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
 | Audit | pass | `cargo audit` exit 0, 0 vulnerabilities / 591 deps, 2026-05-29 | yes | 3 |
 | Deny | pass | `cargo deny check` exit 0 (advisories/bans/licenses/sources ok), 2026-05-29 | yes | 3 |
-| Fuzz smoke | pending | targets | yes | 4 |
-| Fuzz 24h | pending | logs | yes | 4 |
+| Fuzz smoke | pass | 6 targets (3 DSL + fuzz_resp/storage_key/signed_url), ~9.3M runs, 0 crashes, 2026-05-29 | yes | 4 |
+| Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md` | yes | 4 |
 | Coverage | pending | report | yes | 5 |
 | Benchmarks | pending | docs | yes | 6 |
 | Examples | pending | docs | yes | 9 |
@@ -94,7 +94,7 @@ gate rows are unchanged — only the execution sequence is:
 | 1 | `docs/audits/pre-fase5-build-gate.md` | done (PR 2) |
 | 2 | `docs/audits/pre-fase5-architecture.md` | done (PR 3) |
 | 3 | `docs/audits/pre-fase5-security.md` | done (PR 3) |
-| 4 | `docs/audits/pre-fase5-fuzzing.md` | pending |
+| 4 | `docs/audits/pre-fase5-fuzzing.md` | done (PR 4) |
 | 5 | `docs/audits/pre-fase5-properties.md` | pending |
 | 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |
 | 7 | `docs/audits/pre-fase5-concurrency.md` | pending |

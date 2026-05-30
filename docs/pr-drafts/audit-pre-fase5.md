@@ -49,7 +49,8 @@ gate row is `pass`.
   coupling, feature hygiene). `pre-fase5-architecture.md`.
 - [x] Stage 3 security + supply chain (audit/deny clean; fixed Critical 5xx
   error-leak in ag-core; secrets review clean). `pre-fase5-security.md`.
-- [ ] Stage 4 fuzzing.
+- [x] Stage 4 fuzzing (3 new targets; fixed Critical RESP2 unbounded-alloc DoS;
+  smoke ~9.3M runs 0 crashes). `pre-fase5-fuzzing.md`. 24h gate pending (manual).
 - [ ] Stage 5 property tests.
 - [ ] Stage 6 performance.
 - [ ] Stage 7 concurrency.

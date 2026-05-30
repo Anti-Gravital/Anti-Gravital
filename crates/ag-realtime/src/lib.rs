@@ -94,10 +94,10 @@ impl AgRealtime {
                     let client = NatsExternalClient::connect(&config)
                         .await
                         .map_err(RealtimeError::Nats)?;
-                    return Ok(Self {
+                    Ok(Self {
                         event_bus: None,
                         inner: RealtimeBus::External(Arc::new(client)),
-                    });
+                    })
                 }
                 #[cfg(not(feature = "nats-external"))]
                 {
@@ -156,6 +156,29 @@ impl AgRealtime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn broadcast_with_no_subscriber_is_ok() {
+        // Mirrors the bus-level guarantee at the AgRealtime layer: publishing
+        // with no active subscriber must not error (regression for the
+        // realtime-chat POST-500 bug).
+        let rt = AgRealtime::new(RealtimeConfig::default()).await.unwrap();
+        assert!(rt.broadcast("no.listeners", b"x".to_vec()).is_ok());
+        assert!(rt.broadcast_json("no.listeners", &1u8).is_ok());
+        assert!(rt.bus().is_some());
+    }
+
+    #[test]
+    fn realtime_error_from_bus_error_and_display() {
+        let err: RealtimeError = BusError::Closed.into();
+        match &err {
+            RealtimeError::Bus(BusError::Closed) => {}
+            other => panic!("unexpected variant: {other:?}"),
+        }
+        assert_eq!(err.to_string(), "bus error: bus closed");
+        let dyn_err: &dyn std::error::Error = &err;
+        assert!(dyn_err.source().is_none());
+    }
 
     #[tokio::test]
     async fn new_inprocess_and_broadcast() {

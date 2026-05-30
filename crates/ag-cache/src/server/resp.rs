@@ -11,11 +11,29 @@ pub type Writer = OwnedWriteHalf;
 /// Alias for a buffered reader over the read half of a tokio TCP socket.
 pub type Reader = BufReader<OwnedReadHalf>;
 
+/// Maximum number of elements in a RESP2 multibulk command (matches Redis
+/// `proto-max-multibulk-len`). Bounds the per-command argument count so a tiny
+/// header cannot force a large pre-allocation (DoS guard).
+const MAX_ARRAY_ELEMENTS: usize = 1024 * 1024;
+
+/// Maximum size of a single RESP2 bulk string (matches Redis
+/// `proto-max-bulk-len`, 512 MiB). Bounds a single allocation so a tiny header
+/// (`$999999999999`) cannot trigger a huge allocation / OOM (DoS guard).
+const MAX_BULK_LEN: usize = 512 * 1024 * 1024;
+
 /// Reads the next RESP2 command from the client.
 ///
-/// Returns `None` if the client closed the connection.
-/// Returns `Some(args)` where `args[0]` is the command name (uppercase bytes).
-pub async fn read_command(reader: &mut Reader) -> Option<Vec<Vec<u8>>> {
+/// Returns `None` if the client closed the connection, on malformed input, or
+/// when an array/bulk-string length exceeds the configured maximum (the
+/// connection is then dropped by the caller). Returns `Some(args)` where
+/// `args[0]` is the command name.
+///
+/// Generic over the reader so it can be driven from a `Cursor` in tests and
+/// fuzzing as well as from a live TCP socket in production.
+pub async fn read_command<R>(reader: &mut R) -> Option<Vec<Vec<u8>>>
+where
+    R: AsyncBufReadExt + AsyncReadExt + Unpin,
+{
     let mut line = String::new();
     let n = reader.read_line(&mut line).await.ok()?;
     if n == 0 {
@@ -26,7 +44,12 @@ pub async fn read_command(reader: &mut Reader) -> Option<Vec<Vec<u8>>> {
     if let Some(count_str) = line.strip_prefix('*') {
         // Array format: *N\r\n$L\r\nDATA\r\n ...
         let count: usize = count_str.parse().ok()?;
-        let mut args = Vec::with_capacity(count);
+        if count > MAX_ARRAY_ELEMENTS {
+            return None; // reject oversized multibulk before allocating
+        }
+        // Never pre-allocate the attacker-controlled `count`; grow as elements
+        // actually arrive.
+        let mut args = Vec::with_capacity(count.min(16));
         for _ in 0..count {
             // Read $L line
             let mut len_line = String::new();
@@ -34,7 +57,10 @@ pub async fn read_command(reader: &mut Reader) -> Option<Vec<Vec<u8>>> {
             let len_line = len_line.trim_end_matches(['\r', '\n']);
             if let Some(len_str) = len_line.strip_prefix('$') {
                 let len: usize = len_str.parse().ok()?;
-                // Read DATA + \r\n
+                if len > MAX_BULK_LEN {
+                    return None; // reject oversized bulk string before allocating
+                }
+                // `len <= MAX_BULK_LEN`, so `len + 2` cannot overflow.
                 let mut buf = vec![0u8; len + 2];
                 reader.read_exact(&mut buf).await.ok()?;
                 buf.truncate(len); // drop trailing \r\n
@@ -103,6 +129,48 @@ pub async fn write_array(w: &mut Writer, items: &[Vec<u8>]) {
 
 #[cfg(test)]
 mod tests {
-    // Parser is tested via the integration test (Task 7) through a real
-    // TCP connection. The response writers are pure I/O and tested there too.
+    use super::*;
+    use std::io::Cursor;
+    use tokio::io::BufReader;
+
+    async fn parse(input: &[u8]) -> Option<Vec<Vec<u8>>> {
+        let mut reader = BufReader::new(Cursor::new(input.to_vec()));
+        read_command(&mut reader).await
+    }
+
+    #[tokio::test]
+    async fn parses_array_command() {
+        let cmd = parse(b"*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n").await.unwrap();
+        assert_eq!(cmd, vec![b"GET".to_vec(), b"foo".to_vec()]);
+    }
+
+    #[tokio::test]
+    async fn parses_inline_command() {
+        let cmd = parse(b"PING\r\n").await.unwrap();
+        assert_eq!(cmd, vec![b"PING".to_vec()]);
+    }
+
+    #[tokio::test]
+    async fn eof_returns_none() {
+        assert!(parse(b"").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn oversized_bulk_len_is_rejected_without_allocating() {
+        // Regression: a tiny header claiming a ~1 TB bulk string must be
+        // rejected, not allocated (unbounded-allocation DoS guard).
+        assert!(parse(b"*1\r\n$999999999999\r\n").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn oversized_array_count_is_rejected() {
+        assert!(parse(b"*999999999999\r\n").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn bulk_len_at_usize_max_does_not_overflow() {
+        // `len + 2` must not overflow; oversized len is rejected first.
+        let input = format!("*1\r\n${}\r\n", usize::MAX);
+        assert!(parse(input.as_bytes()).await.is_none());
+    }
 }

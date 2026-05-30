@@ -178,25 +178,31 @@ mod tests {
 
     #[test]
     fn connect_options_tls_level1() {
-        let mut config = RealtimeConfig::default();
-        config.nats_tls = true;
+        let config = RealtimeConfig {
+            nats_tls: true,
+            ..Default::default()
+        };
         let result = build_connect_options(&config);
         assert!(result.is_ok());
     }
 
     #[test]
     fn connect_options_tls_level2_ca_path() {
-        let mut config = RealtimeConfig::default();
-        config.nats_tls_ca_path = Some("/tmp/ca.pem".to_string());
+        let config = RealtimeConfig {
+            nats_tls_ca_path: Some("/tmp/ca.pem".to_string()),
+            ..Default::default()
+        };
         let result = build_connect_options(&config);
         assert!(result.is_ok());
     }
 
     #[test]
     fn connect_options_tls_level3_mtls() {
-        let mut config = RealtimeConfig::default();
-        config.nats_tls_cert_path = Some("/tmp/client.crt".to_string());
-        config.nats_tls_key_path = Some("/tmp/client.key".to_string());
+        let config = RealtimeConfig {
+            nats_tls_cert_path: Some("/tmp/client.crt".to_string()),
+            nats_tls_key_path: Some("/tmp/client.key".to_string()),
+            ..Default::default()
+        };
         let result = build_connect_options(&config);
         assert!(result.is_ok());
     }
@@ -206,9 +212,11 @@ mod tests {
         if nats_available() {
             return; // skip if a real server is available
         }
-        let mut config = RealtimeConfig::default();
-        config.nats_mode = NatsMode::External;
-        config.nats_url = "nats://127.0.0.1:14222".to_string(); // nonexistent port
+        let config = RealtimeConfig {
+            nats_mode: NatsMode::External,
+            nats_url: "nats://127.0.0.1:14222".to_string(), // nonexistent port
+            ..Default::default()
+        };
         let result = NatsExternalClient::connect(&config).await;
         assert!(result.is_err(), "debe fallar sin servidor NATS");
     }
@@ -218,9 +226,11 @@ mod tests {
         if !nats_available() {
             return; // skip in CI without NATS
         }
-        let mut config = RealtimeConfig::default();
-        config.nats_mode = NatsMode::External;
-        config.nats_url = std::env::var("NATS_URL").unwrap();
+        let config = RealtimeConfig {
+            nats_mode: NatsMode::External,
+            nats_url: std::env::var("NATS_URL").unwrap(),
+            ..Default::default()
+        };
 
         let client = NatsExternalClient::connect(&config)
             .await
@@ -252,11 +262,13 @@ mod tests {
         if !nats_available() {
             return;
         }
-        let mut config = RealtimeConfig::default();
-        config.nats_mode = NatsMode::External;
-        config.nats_url = std::env::var("NATS_URL").unwrap();
-        config.jetstream_enabled = true;
-        config.jetstream_stream_name = "AG_EVENTS_TEST".to_string();
+        let config = RealtimeConfig {
+            nats_mode: NatsMode::External,
+            nats_url: std::env::var("NATS_URL").unwrap(),
+            jetstream_enabled: true,
+            jetstream_stream_name: "AG_EVENTS_TEST".to_string(),
+            ..Default::default()
+        };
 
         let client = NatsExternalClient::connect(&config)
             .await

@@ -116,11 +116,23 @@ struct ErrorBody<'a> {
 
 impl IntoResponse for AgError {
     fn into_response(self) -> Response {
+        let status = self.status();
+        // Never leak internal detail (database errors, file paths, config/TLS
+        // internals) to the client on server-side (5xx) errors: log the real
+        // error and return a generic message. Client (4xx) errors keep their
+        // message, which is actionable and contains no internal secrets. The
+        // stable `code` is always returned so clients can branch on the class.
+        let message = if status.is_server_error() {
+            tracing::error!(code = self.code(), error = %self, "server error");
+            "internal server error".to_string()
+        } else {
+            self.to_string()
+        };
         let body = ErrorBody {
             code: self.code(),
-            message: self.to_string(),
+            message,
         };
-        (self.status(), Json(body)).into_response()
+        (status, Json(body)).into_response()
     }
 }
 
@@ -174,5 +186,37 @@ mod tests {
         let err = AgError::Database("connection refused".into());
         assert_eq!(err.status(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(err.code(), "database_error");
+    }
+
+    #[tokio::test]
+    async fn server_errors_do_not_leak_internal_detail() {
+        // A 500 response must expose the stable code but never the inner detail
+        // (here a simulated raw DB error containing credentials).
+        let err =
+            AgError::Database("FATAL: password authentication failed for user \"admin\"".into());
+        let resp = err.into_response();
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(body.contains("database_error"), "code must be present");
+        assert!(body.contains("internal server error"), "generic message");
+        assert!(!body.contains("password"), "must not leak inner detail");
+        assert!(!body.contains("admin"), "must not leak inner detail");
+    }
+
+    #[tokio::test]
+    async fn client_errors_keep_their_message() {
+        // 4xx errors are actionable and free of internal secrets; keep message.
+        let err = AgError::NotFound("todo 42".into());
+        let resp = err.into_response();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(body.contains("not_found"));
+        assert!(body.contains("todo 42"));
     }
 }

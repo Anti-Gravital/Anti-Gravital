@@ -74,10 +74,13 @@ pub struct ResendSender {
 impl ResendSender {
     /// Builds the sender from the configuration.
     pub fn new(config: ResendConfig) -> Self {
-        Self {
-            client: reqwest::Client::new(),
-            config,
-        }
+        // Bound every Resend API call so a slow/unresponsive endpoint cannot
+        // hang the send path indefinitely (Stage 7 external-timeout rule).
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+        Self { client, config }
     }
 }
 

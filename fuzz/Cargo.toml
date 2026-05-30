@@ -25,8 +25,29 @@ path = "fuzz_targets/fuzz_compile.rs"
 test = false
 doc = false
 
+[[bin]]
+name = "fuzz_resp"
+path = "fuzz_targets/fuzz_resp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_storage_key"
+path = "fuzz_targets/fuzz_storage_key.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_signed_url"
+path = "fuzz_targets/fuzz_signed_url.rs"
+test = false
+doc = false
+
 [dependencies]
 libfuzzer-sys = "0.4"
 ag-dsl = { path = "../crates/ag-dsl" }
+ag-cache = { path = "../crates/ag-cache", features = ["native-server"] }
+ag-storage = { path = "../crates/ag-storage" }
+tokio = { version = "1", features = ["rt", "io-util"] }
 
 [workspace]

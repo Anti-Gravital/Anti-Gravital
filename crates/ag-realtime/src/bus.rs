@@ -27,8 +27,8 @@ pub enum BusError {
 impl std::fmt::Display for BusError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BusError::Lagged(n) => write!(f, "bus lagged: {n} eventos perdidos"),
-            BusError::Closed => write!(f, "bus cerrado"),
+            BusError::Lagged(n) => write!(f, "bus lagged: {n} events lost"),
+            BusError::Closed => write!(f, "bus closed"),
         }
     }
 }
@@ -130,6 +130,15 @@ mod tests {
         let event = rx.recv().await.unwrap();
         let val: serde_json::Value = serde_json::from_slice(&event.payload).unwrap();
         assert_eq!(val["id"], 7);
+    }
+
+    #[test]
+    fn bus_error_display_is_english() {
+        assert_eq!(BusError::Lagged(7).to_string(), "bus lagged: 7 events lost");
+        assert_eq!(BusError::Closed.to_string(), "bus closed");
+        // Exercise the std::error::Error impl as well.
+        let err: &dyn std::error::Error = &BusError::Closed;
+        assert!(err.source().is_none());
     }
 
     #[tokio::test]

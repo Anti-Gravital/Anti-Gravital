@@ -96,3 +96,39 @@ CLAUDE.md section 29.
 - Status: closed (P6, 2026-05-26). `install.sh` (Linux/macOS) and `install.ps1` (Windows)
   added to repo root. Both verify the Rust toolchain, build the workspace in release mode,
   and install `ag` via `cargo install --locked`. Auditable per ADR-0009 rule 4.
+
+## Pre-Phase 5 audit (2026-05-29)
+
+Non-blocking items found by the pre-Phase 5 audit (see `docs/audits/`). Blocking
+findings were fixed in-branch and are not listed here.
+
+### DEBT-012 — ag-realtime event-persistence does synchronous, per-event file I/O
+- Reason: `EventBuffer::append` (feature `event-persistence`) opens and writes the
+  file on every call; if used on an async hot path it blocks the runtime.
+- Impact: throughput degradation under high event rates when the feature is on.
+- Expected removal: async I/O or `spawn_blocking` + a persistent file handle.
+- Status: open. Severity: Medium. Source: `pre-fase5-concurrency.md` S7-1.
+
+### DEBT-013 — native cache server has no connection cap
+- Reason: the RESP2 server spawns one task per connection without a limit.
+- Impact: a connection flood can spawn many tasks (DoS surface). The Stage 4 fix
+  already bounds per-command allocation.
+- Expected removal: a connection-limit semaphore in the accept loop.
+- Status: open. Severity: Low. Source: `pre-fase5-concurrency.md` S7-2.
+
+### DEBT-014 — broaden fuzz and property coverage
+- Reason: Stage 4 added targets for RESP2/storage-key/signed-URL; Stage 5 added
+  properties for ag-storage. ag-auth/ag-mail/ag-domains/ag-dsl still lack
+  dedicated fuzz/property coverage.
+- Impact: lower assurance on those parsers/validators (currently covered by unit
+  tests only).
+- Expected removal: add targets/properties per `pre-fase5-fuzzing.md` §4.6 and
+  `pre-fase5-properties.md` § Recommended.
+- Status: open. Severity: Medium.
+
+### DEBT-015 — 24h fuzz manual gate not yet executed
+- Reason: only 60s smoke runs were executed in the audit; the 24h gate is manual.
+- Impact: deep fuzz assurance pending.
+- Expected removal: run `cargo +nightly fuzz run <target> -- -max_total_time=86400`
+  per target on a Linux x86-64 host; record logs.
+- Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.

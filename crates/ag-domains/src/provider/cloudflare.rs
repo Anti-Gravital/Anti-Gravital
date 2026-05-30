@@ -43,6 +43,9 @@ impl CloudflareProvider {
     pub fn with_base_url(token: impl Into<String>, base_url: impl Into<String>) -> Self {
         let client = reqwest::Client::builder()
             .user_agent(concat!("ag-domains/", env!("CARGO_PKG_VERSION")))
+            // Bound every Cloudflare API call so a slow/unresponsive endpoint
+            // cannot hang the caller indefinitely (Stage 7 external-timeout rule).
+            .timeout(std::time::Duration::from_secs(30))
             .build()
             .expect("construccion del cliente reqwest siempre tiene exito con defaults TLS");
         Self {

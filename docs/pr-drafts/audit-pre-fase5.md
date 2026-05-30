@@ -54,7 +54,9 @@ gate row is `pass`.
 - [x] Stage 5 property tests (proptest: ag-storage signed-URL crypto + path
   confinement, 6 properties green). `pre-fase5-properties.md`.
 - [ ] Stage 6 performance.
-- [ ] Stage 7 concurrency.
+- [x] Stage 7 concurrency (no unbounded channels; mail queue bounded; storage
+  I/O non-blocking; fixed missing reqwest timeouts on Cloudflare+Resend).
+  `pre-fase5-concurrency.md`.
 - [ ] Stage 8 per-module security.
 - [ ] Stage 9 examples/templates.
 - [ ] Stage 10 docs honesty reconciliation.

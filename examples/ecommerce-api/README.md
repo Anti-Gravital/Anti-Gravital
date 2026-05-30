@@ -42,7 +42,8 @@ Artefactos generados en `generated/`:
 | `src/router.rs`                  | Router con todas las rutas        |
 | `clients/typescript/types.ts`    | Interfaces TypeScript             |
 | `clients/typescript/client.ts`   | Cliente HTTP tipado               |
-| `openapi.json`                   | Especificacion OpenAPI 3.1        |
+| `openapi.json`                   | Especificacion OpenAPI 3.1 (JSON) |
+| `openapi.yaml`                   | Especificacion OpenAPI 3.1 (YAML) |
 
 ## Regenerar
 

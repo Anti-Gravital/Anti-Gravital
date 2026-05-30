@@ -5,14 +5,15 @@ Mientras `examples/` contiene los proyectos Rust ejecutables, esta
 carpeta documenta cada ejemplo, su proposito y la fase en la que se
 entrega.
 
-## Ejemplos previstos por fase
+## Ejemplos por fase
 
 | Fase | Ejemplo | Estado |
 | --- | --- | --- |
-| 2 | `todo-api` | Pendiente |
-| 3 | `ecommerce-api` | Pendiente |
-| 4 | `realtime-chat` | Pendiente |
-| 4 | `ai-backend` | Pendiente |
+| 2 | `todo-api` | Entregado |
+| 3 | `ecommerce-api` | Entregado |
+| 4 | `realtime-chat` | Entregado |
+| 4 | `ai-backend` | Entregado |
+| 4 | `auth-mail-demo` | Entregado |
 | 8 | `flutter-fullstack` | Pendiente |
 
 ## Reglas
@@ -26,5 +27,7 @@ entrega.
 
 ## Estado
 
-Fase 0: catalogo vacio. El primer ejemplo (`todo-api`) llega en
-Fase 2.
+Cinco ejemplos entregados (cuatro binarios + el ejemplo DSL
+`ecommerce-api`). Pendiente: `flutter-fullstack` (Fase 8). Los example
+README de `examples/` estan en espanol; su migracion a ingles
+(ADR-0008) se hara de forma gradual.

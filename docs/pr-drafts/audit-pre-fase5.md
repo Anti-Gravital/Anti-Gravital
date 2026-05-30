@@ -60,6 +60,8 @@ gate row is `pass`.
 - [x] Stage 8 per-module security (10 crates pass; JWT alg-pinned, API keys
   constant-time, SQL parameterized; fixed metric-cardinality footgun doc).
   `pre-fase5-security-modules.md`.
-- [ ] Stage 9 examples/templates.
+- [x] Stage 9 examples (5 examples build/run as documented; fixed ag-realtime
+  publish-with-no-subscriber 500; regenerated ecommerce-api English+reproducible;
+  added 2 missing READMEs; fixed stale index docs). `pre-fase5-examples.md`.
 - [ ] Stage 10 docs honesty reconciliation.
 - [ ] Stage 11 release gate evaluated.

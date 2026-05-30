@@ -132,3 +132,11 @@ findings were fixed in-branch and are not listed here.
 - Expected removal: run `cargo +nightly fuzz run <target> -- -max_total_time=86400`
   per target on a Linux x86-64 host; record logs.
 - Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
+
+### DEBT-016 — example READMEs still in Spanish
+- Reason: the five `examples/` READMEs predate ADR-0008 (English-canonical) and
+  remain in Spanish. ADR-0008 permits gradual on-touch migration and does not
+  block.
+- Impact: cosmetic/consistency only; content is accurate.
+- Expected removal: translate to English when each example is next touched.
+- Status: open. Severity: Low. Source: `pre-fase5-examples.md` F9-6.

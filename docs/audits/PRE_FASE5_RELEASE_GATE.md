@@ -27,7 +27,7 @@ means a `fail` or `pending` on that row forbids advancing.
 | Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md` | yes | 4 |
 | Coverage | pending | report | yes | 5 |
 | Benchmarks | pending | docs | yes | 6 |
-| Examples | pending | docs | yes | 9 |
+| Examples | pass | Stage 9 (`pre-fase5-examples.md`): 4 binaries build, self-contained ones run as documented, `ecommerce-api` regen reproducible (`diff -rq` identical), 3 `ag new` templates scaffold clean, docs honest, 2026-05-29 | yes | 9 |
 | Security | pass | Stage 3 (`pre-fase5-security.md`) + Stage 8 per-module (`pre-fase5-security-modules.md`): all 10 functional crates pass, 2026-05-29 | yes | 3/8 |
 | API/DX | pass | Stage 2 architecture (`pre-fase5-architecture.md`) + module API review (Stage 8); footguns documented, 2026-05-29 | yes | 2 |
 | Docs honesty | pending | report | yes | 10 |
@@ -99,6 +99,6 @@ gate rows are unchanged — only the execution sequence is:
 | 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |
 | 7 | `docs/audits/pre-fase5-concurrency.md` | done (PR 5) |
 | 8 | `docs/audits/pre-fase5-security-modules.md` | done (PR 5) |
-| 9 | `docs/audits/pre-fase5-examples.md` | pending |
+| 9 | `docs/audits/pre-fase5-examples.md` | done (PR 6) |
 | 10 | `docs/audits/pre-fase5-docs-reconciliation.md` | pending |
 | 11 | `docs/audits/PRE_FASE5_RELEASE_GATE.md` | this file |

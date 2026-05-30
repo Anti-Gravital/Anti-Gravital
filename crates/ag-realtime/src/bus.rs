@@ -53,18 +53,24 @@ impl EventBus {
         }
     }
 
-    /// Publishes an event on the bus. Active subscribers receive it.
+    /// Publishes an event on the bus (fire-and-forget). Active subscribers
+    /// receive it; if there are none, the event is dropped silently.
     ///
-    /// Returns an error if the bus is closed (no active senders).
+    /// Publishing with zero subscribers is a successful no-op, not an error:
+    /// a broadcast bus owns its [`broadcast::Sender`] for its whole lifetime,
+    /// so it is never actually closed, and `send` only reports the transient
+    /// "no current receivers" condition. Returning `Ok(())` here keeps the
+    /// InProcess path consistent with the External (NATS) path, which is also
+    /// fire-and-forget.
     pub fn publish(&self, subject: impl Into<String>, payload: Vec<u8>) -> Result<(), BusError> {
         let event = Event {
             subject: subject.into(),
             payload,
         };
-        self.sender
-            .send(event)
-            .map(|_| ())
-            .map_err(|_| BusError::Closed)
+        // `send` returns `Err` only when there are no active receivers; treat
+        // that as a delivered-to-nobody no-op rather than a failure.
+        let _ = self.sender.send(event);
+        Ok(())
     }
 
     /// Publishes an event serialized as JSON.
@@ -127,12 +133,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn publish_to_closed_bus_returns_error() {
+    async fn publish_with_no_subscribers_is_ok() {
+        // Regression for the realtime-chat example: POST /messages must not
+        // fail (HTTP 500) just because no SSE client is currently connected.
+        // Publishing into an empty bus is a fire-and-forget no-op.
         let bus = EventBus::new(1);
-        // With no active subscribers, send may return Err.
-        // With broadcast, if there are no receivers, the send fails with SendError.
-        // We verify that there is no panic and that the result is handleable.
-        let result = bus.publish("x", b"y".to_vec());
-        let _ = result;
+        assert!(bus.publish("x", b"y".to_vec()).is_ok());
+        assert!(bus.publish_json("x", &7u32).is_ok());
+    }
+
+    #[tokio::test]
+    async fn late_subscriber_only_sees_events_after_subscribing() {
+        let bus = EventBus::new(16);
+        // Published before anyone subscribed: dropped, no error.
+        bus.publish("early", b"lost".to_vec()).unwrap();
+        let mut rx = bus.subscribe();
+        bus.publish("late", b"seen".to_vec()).unwrap();
+        assert_eq!(rx.recv().await.unwrap().subject, "late");
     }
 }

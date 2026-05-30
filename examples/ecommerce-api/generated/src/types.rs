@@ -14,8 +14,8 @@ pub struct CreateUserRequest {
 }
 
 impl CreateUserRequest {
-/// Validates all constraints declared in the DSL schema.
-/// Returns the list of errors; empty means valid.
+/// Valida todas las restricciones declaradas en el schema DSL.
+/// Retorna la lista de errores; vacio significa valido.
 pub fn validate(&self) -> Vec<String> {
 let mut errors: Vec<String> = Vec::new();
     {
@@ -24,20 +24,20 @@ let valid = s.contains('@') && s.rfind('@')
 .map(|i| s[i+1..].contains('.'))
 .unwrap_or(false);
 if !valid {
-errors.push("email: invalid email format".to_owned());
+errors.push("email: formato de email invalido".to_owned());
 }
 }
     if self.email.len() > 255 {
-errors.push(format!("email: maximum length is 255, found {} characters", self.email.len()));
+errors.push(format!("email: longitud maxima es 255, encontrado {} caracteres", self.email.len()));
 }
     if self.email.len() < 5 {
-errors.push(format!("email: minimum length is 5, found {} characters", self.email.len()));
+errors.push(format!("email: longitud minima es 5, encontrado {} caracteres", self.email.len()));
 }
     if self.name.len() < 2 {
-errors.push(format!("name: minimum length is 2, found {} characters", self.name.len()));
+errors.push(format!("name: longitud minima es 2, encontrado {} caracteres", self.name.len()));
 }
     if self.name.len() > 100 {
-errors.push(format!("name: maximum length is 100, found {} characters", self.name.len()));
+errors.push(format!("name: longitud maxima es 100, encontrado {} caracteres", self.name.len()));
 }
     errors
 }
@@ -53,21 +53,21 @@ pub struct CreateProductRequest {
 }
 
 impl CreateProductRequest {
-/// Validates all constraints declared in the DSL schema.
-/// Returns the list of errors; empty means valid.
+/// Valida todas las restricciones declaradas en el schema DSL.
+/// Retorna la lista de errores; vacio significa valido.
 pub fn validate(&self) -> Vec<String> {
 let mut errors: Vec<String> = Vec::new();
     if self.name.len() < 2 {
-errors.push(format!("name: minimum length is 2, found {} characters", self.name.len()));
+errors.push(format!("name: longitud minima es 2, encontrado {} caracteres", self.name.len()));
 }
     if self.name.len() > 200 {
-errors.push(format!("name: maximum length is 200, found {} characters", self.name.len()));
+errors.push(format!("name: longitud maxima es 200, encontrado {} caracteres", self.name.len()));
 }
     if (self.price as i64) < 0 {
-errors.push("price: minimum value is 0".to_owned());
+errors.push("price: valor minimo es 0".to_owned());
 }
     if (self.stock as i64) < 0 {
-errors.push("stock: minimum value is 0".to_owned());
+errors.push("stock: valor minimo es 0".to_owned());
 }
     errors
 }
@@ -108,19 +108,19 @@ pub struct OrderResponse {
     pub created_at: uuid::Uuid,
 }
 
-/// HTTP 404 error: Resource not found
+/// Error HTTP 404: Recurso no encontrado
 pub const NOT_FOUND_STATUS: u16 = 404;
-pub const NOT_FOUND_MESSAGE: &str = "Resource not found";
+pub const NOT_FOUND_MESSAGE: &str = "Recurso no encontrado";
 
-/// HTTP 409 error: Email already registered
+/// Error HTTP 409: El email ya esta registrado
 pub const EMAIL_TAKEN_STATUS: u16 = 409;
-pub const EMAIL_TAKEN_MESSAGE: &str = "Email already registered";
+pub const EMAIL_TAKEN_MESSAGE: &str = "El email ya esta registrado";
 
-/// HTTP 422 error: Insufficient stock to complete the order
+/// Error HTTP 422: Stock insuficiente para completar el pedido
 pub const INSUFFICIENT_STOCK_STATUS: u16 = 422;
-pub const INSUFFICIENT_STOCK_MESSAGE: &str = "Insufficient stock to complete the order";
+pub const INSUFFICIENT_STOCK_MESSAGE: &str = "Stock insuficiente para completar el pedido";
 
-/// HTTP 400 error: Invalid input data
+/// Error HTTP 400: Datos de entrada invalidos
 pub const INVALID_INPUT_STATUS: u16 = 400;
-pub const INVALID_INPUT_MESSAGE: &str = "Invalid input data";
+pub const INVALID_INPUT_MESSAGE: &str = "Datos de entrada invalidos";
 

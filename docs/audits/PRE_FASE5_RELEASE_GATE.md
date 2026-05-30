@@ -28,8 +28,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Coverage | pending | report | yes | 5 |
 | Benchmarks | pending | docs | yes | 6 |
 | Examples | pending | docs | yes | 9 |
-| Security | partial | Stage 3 pass (`pre-fase5-security.md`): audit/deny/unsafe/error-leak/secrets, 2026-05-29; Stage 8 per-module pending | yes | 3/8 |
-| API/DX | partial | Stage 2 architecture/deps pass (`pre-fase5-architecture.md`), 2026-05-29; 2.2 ergonomics review pending | yes | 2 |
+| Security | pass | Stage 3 (`pre-fase5-security.md`) + Stage 8 per-module (`pre-fase5-security-modules.md`): all 10 functional crates pass, 2026-05-29 | yes | 3/8 |
+| API/DX | pass | Stage 2 architecture (`pre-fase5-architecture.md`) + module API review (Stage 8); footguns documented, 2026-05-29 | yes | 2 |
 | Docs honesty | pending | report | yes | 10 |
 | Open debt | pending | `docs/DEBT.md` | yes | all |
 
@@ -98,6 +98,7 @@ gate rows are unchanged — only the execution sequence is:
 | 5 | `docs/audits/pre-fase5-properties.md` | done (PR 5) |
 | 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |
 | 7 | `docs/audits/pre-fase5-concurrency.md` | done (PR 5) |
+| 8 | `docs/audits/pre-fase5-security-modules.md` | done (PR 5) |
 | 9 | `docs/audits/pre-fase5-examples.md` | pending |
 | 10 | `docs/audits/pre-fase5-docs-reconciliation.md` | pending |
 | 11 | `docs/audits/PRE_FASE5_RELEASE_GATE.md` | this file |

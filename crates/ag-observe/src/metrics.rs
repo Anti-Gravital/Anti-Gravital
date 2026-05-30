@@ -6,6 +6,14 @@ use axum::response::IntoResponse;
 ///
 /// Should be called at the end of each handler, typically from an
 /// observability middleware in the Shield.
+///
+/// # Cardinality
+///
+/// `endpoint` becomes a metric label. Pass the **matched route pattern**
+/// (e.g. `/users/:id`), never the raw request path (`/users/123`). Using the
+/// raw path makes label cardinality grow without bound (one series per distinct
+/// id), which exhausts memory in Prometheus and the exporter. With Axum, derive
+/// it from `MatchedPath`, not `Uri::path`.
 pub fn record_request(method: &str, endpoint: &str, status: u16, duration_secs: f64) {
     metrics::counter!(
         "ag_requests_total",

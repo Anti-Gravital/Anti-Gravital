@@ -57,7 +57,9 @@ gate row is `pass`.
 - [x] Stage 7 concurrency (no unbounded channels; mail queue bounded; storage
   I/O non-blocking; fixed missing reqwest timeouts on Cloudflare+Resend).
   `pre-fase5-concurrency.md`.
-- [ ] Stage 8 per-module security.
+- [x] Stage 8 per-module security (10 crates pass; JWT alg-pinned, API keys
+  constant-time, SQL parameterized; fixed metric-cardinality footgun doc).
+  `pre-fase5-security-modules.md`.
 - [ ] Stage 9 examples/templates.
 - [ ] Stage 10 docs honesty reconciliation.
 - [ ] Stage 11 release gate evaluated.

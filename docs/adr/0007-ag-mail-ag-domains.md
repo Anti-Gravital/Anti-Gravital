@@ -1,6 +1,10 @@
 ## ADR-0007: Incorporación de `ag-mail` y `ag-domains` como Fase aditiva 4.5
 
-**Estado:** Aprobado
+**Estado:** Aprobado. El alcance v1 de `ag-mail` ("Lo que `ag-mail` NO hace
+en v1": MTA completo, inbound) queda **superseded por `ADR-0010`** (pivot a
+MTA outbound nativo, 2026-06-03). El resto de este ADR sigue vigente:
+`ag-domains`, la clasificacion estandar diferido y la direccionalidad
+`ag-auth -> ag-mail` no cambian.
 **Fecha:** 2026-05-23
 **Autor:** Angel Nereira (BDFL)
 **Crates afectados:** nuevos `ag-mail`, `ag-domains`; consumidores `ag-auth`, `ag-cloud`; generador `ag-dsl`

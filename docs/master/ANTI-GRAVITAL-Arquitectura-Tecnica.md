@@ -690,6 +690,8 @@ Introduced by `ADR-0007` in Phase 4.5. `ag-mail` is a **deferred** standard modu
 
 The v1 scope is **exclusively outbound**. `ag-mail` is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer persistent mailboxes, it does NOT implement antispam, filtering, or IP reputation management. This restriction is deliberate and is fixed in the ADR: the inbound and complete mail server capabilities are the work of a different project, not of Anti-Gravital.
 
+> **Scope update (`ADR-0010`, 2026-06-03).** The "NOT an MTA / inbound never" restriction above is **superseded**: `ag-mail` is being expanded into a native outbound MTA (MX resolution, ESMTP+STARTTLS delivery, DKIM signing, bounce classification) so a project can send authenticated mail with no third party in the sending path. The expansion is phased and opt-in behind Cargo features (`mta`, `api`, `queue-jetstream`); the outbound-relay baseline described here remains the default and is unchanged. Mailbox hosting, IMAP/POP/JMAP and general inbound stay out of scope; inbound is admitted only as DSN/ARF parsing for bounce processing. Technical plan: `RFC-0009`. The native MTA is forward work and is not claimed as implemented here.
+
 The technical stack is `lettre` with async Tokio transport and `rustls` for the native SMTP sender (coherent with The Shield). The provider adapters are declared as Cargo features (`--features resend,ses,postmark`) and each one implements the same `MailSender` trait:
 
 ```rust
@@ -1950,6 +1952,17 @@ recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
 antispam, filtrado ni gestión de reputación de IP. Esta restricción es
 deliberada y está fijada en el ADR: las capacidades inbound y de servidor
 de correo completo son trabajo de un proyecto distinto, no de Anti-Gravital.
+
+> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
+> un MTA / inbound nunca" de arriba queda **superseded**: `ag-mail` se expande
+> a un MTA outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
+> clasificación de bounces) para enviar correo autenticado sin terceros en la
+> ruta de envío. La expansión es por fases y opt-in tras features de Cargo
+> (`mta`, `api`, `queue-jetstream`); el baseline de relay outbound descrito
+> aquí sigue siendo el modo por defecto y no cambia. Buzones, IMAP/POP/JMAP e
+> inbound general siguen fuera de alcance; inbound se admite solo como parsing
+> de DSN/ARF para procesar bounces. Plan técnico: `RFC-0009`. El MTA nativo es
+> trabajo futuro y no se declara implementado aquí.
 
 El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
 sender SMTP nativo (coherente con The Shield). Los adapters de proveedor se

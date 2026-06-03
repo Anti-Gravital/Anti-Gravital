@@ -88,6 +88,16 @@ recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
 antispam, filtrado ni gestión de reputación de IP. Esta restricción es
 deliberada y está fijada en el ADR.
 
+> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
+> un MTA / inbound nunca" queda **superseded**: `ag-mail` se expande a un MTA
+> outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
+> clasificación de bounces) para enviar correo autenticado sin terceros en la
+> ruta de envío. Es por fases y opt-in tras features de Cargo (`mta`, `api`,
+> `queue-jetstream`); el baseline de relay outbound sigue siendo el modo por
+> defecto. Buzones, IMAP/POP/JMAP e inbound general siguen fuera de alcance;
+> inbound solo como parsing de DSN/ARF para bounces. Plan técnico: `RFC-0009`.
+> Trabajo futuro, no implementado aún.
+
 El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
 sender SMTP nativo. Los adapters de proveedor se declaran como features de
 Cargo (`--features resend,ses,postmark`) y cada uno implementa el trait

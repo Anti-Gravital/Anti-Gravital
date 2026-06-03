@@ -378,6 +378,18 @@ rule: both crates are abstractions with adapters, not replacements for
 providers. The boundary is fixed in `ADR-0007` and does not move without a new
 ADR.
 
+### 4.5.5 Forward note — Phase 4.6 native MTA (`ADR-0010`)
+
+That `ADR-0007` boundary has now moved, via the new ADR it required.
+`ADR-0010` (2026-06-03) supersedes the v1 "NOT an MTA / inbound never"
+restriction and expands `ag-mail` into a native outbound MTA, phased and
+opt-in behind Cargo features, preserving the Native | Adapter pattern and the
+implemented Phase 4.5 baseline. The work is forward Phase 4.6 (`RFC-0009`
+section 5: stages A-D) plus continuous deliverability hardening in Phase 5+.
+Phase 4.5 stays complete for its original outbound-relay scope; the native MTA
+is not claimed as implemented. The ESP adapters remain the recommended
+production path until native deliverability is proven.
+
 ---
 
 ## Phase 5 — `ag-cloud` simplified deployment
@@ -1002,6 +1014,19 @@ acumulación de capacidades. La mitigación es la regla de interoperabilidad
 del proyecto: ambos crates son abstracciones con adapters, no reemplazos de
 proveedores. La frontera está fijada en `ADR-0007` y no se mueve sin un nuevo
 ADR.
+
+### 4.5.5 Nota futura — Fase 4.6 MTA nativo (`ADR-0010`)
+
+Esa frontera de `ADR-0007` ya se movió, mediante el nuevo ADR que ella misma
+exigía. `ADR-0010` (2026-06-03) supersede la restricción v1 "NO es un MTA /
+inbound nunca" y expande `ag-mail` a un MTA outbound nativo, por fases y
+opt-in tras features de Cargo, conservando el patrón Native | Adapter y el
+baseline implementado de la Fase 4.5. El trabajo es la Fase 4.6 futura
+(`RFC-0009` sección 5: etapas A-D) más endurecimiento continuo de
+entregabilidad en la Fase 5+. La Fase 4.5 sigue completa para su alcance de
+relay outbound original; el MTA nativo no se declara implementado. Los
+adapters de proveedor siguen siendo la ruta de producción recomendada hasta
+demostrar la entregabilidad nativa.
 
 ---
 

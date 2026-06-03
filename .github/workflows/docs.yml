@@ -45,8 +45,8 @@ jobs:
           # los maestros markdown gobiernan (VERSION.md politica #4).
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6"
-          expected_arch="d511e96b4a00a6eb2aec09efe7a7fd6c15a0cef7ff89d055f3e2f9fff7b8de31"
-          expected_road="ce1218a572e09bfebf997752273e009a1963f57a3add0b3b71b09c25fc9b5a1d"
+          expected_arch="b3752b155dc9269238a13d81e8fae7f342c321c0e13a3826e144fe1e7f2a0ad6"
+          expected_road="cf7bc8ae7f0914374c08cc978637762941f4ad5af112242f6e37d475491b2d36"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"

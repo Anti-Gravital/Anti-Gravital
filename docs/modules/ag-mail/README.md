@@ -51,8 +51,13 @@ queue worker, custom SMTP headers, external template engines).
 ## Planned: native outbound MTA (ADR-0010 / RFC-0009)
 
 Phased, opt-in behind Cargo features, preserving the Native | Adapter pattern
-and full backward compatibility. Nothing below is implemented yet; this
-section is a forward plan, not a capability claim.
+and full backward compatibility. The expansion is **additive only**: it adds a
+new opt-in `MtaSender` and new feature-gated subsystems without removing,
+demoting, or changing the behavior of anything in the baseline above. The
+default features, the default `SmtpSender`, the ESP adapters, and the existing
+queues all stay as they are; the native MTA is never silently made the
+default. Nothing below is implemented yet; this section is a forward plan, not
+a capability claim.
 
 - `mta` feature: MX resolution (`hickory-resolver`) with `site_name` rollup,
   ESMTP+STARTTLS sessions via `mail-send`, outbound DKIM signing via

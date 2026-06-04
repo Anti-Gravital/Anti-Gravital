@@ -17,6 +17,10 @@ Solo documentacion y gobernanza; sin codigo funcional nuevo.
   clasificacion de bounces), por fases y opt-in tras features de Cargo,
   conservando el patron Native | Adapter y la direccionalidad `ag-auth ->
   ag-mail`. `ADR-0007` sigue vigente para `ag-domains` y la clasificacion.
+  Principio aditivo-only vinculante: el MTA se anade como `MtaSender` opt-in
+  sin degradar el baseline (default `SmtpSender`, adapters Resend/SES/Postmark
+  y colas existentes permanecen sin cambios). Se rechaza el "overwrite / MTA
+  por defecto / Resend no-produccion / migrar la cola" del blueprint.
 - `docs/rfc/RFC-0009-ag-mail-native-mta.md`: plan tecnico (6 subsistemas,
   dependencias `mail-send`/`mail-builder`/`mail-auth`/`mail-parser`/
   `hickory-resolver` tras feature `mta`, cola de dos niveles, modelo de datos,

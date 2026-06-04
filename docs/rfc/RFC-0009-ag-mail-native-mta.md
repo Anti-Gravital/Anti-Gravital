@@ -72,10 +72,19 @@ Rejected (see `ADR-0010` alternative B).
 
 ### D (chosen). Expand `ag-mail` in place, phased, behind opt-in features
 
-The native MTA becomes the implementation of the `SmtpSender` native path.
-Adapters stay as Cargo features. Durable queue, PostgreSQL state, REST API,
-webhooks, and IP pools are each behind features with a native default. One
-crate, one abstraction, one dependency direction.
+The native MTA is added as a new opt-in `MtaSender` (`mta` feature), alongside
+the existing default `SmtpSender` relay and the ESP adapters, which are kept
+unchanged. Durable queue, PostgreSQL state, REST API, webhooks, and IP pools
+are each behind features with a native default. One crate, one abstraction,
+one dependency direction.
+
+This RFC is **additive-only** per `ADR-0010`: it must not remove, demote, or
+change the behavior of any existing public item. The default Cargo features,
+the default `SmtpSender`, the `MailSender`/`AgMail`/`NullSender` API, the
+adapters, the in-memory and `ag-data` queues, the typed templates, and the
+`ag-auth` integration all stay exactly as shipped. Every item below is a new,
+feature-gated addition. The blueprint's "make the MTA the default / demote
+Resend / migrate the queue" framing is explicitly out of scope.
 
 ## 4. Proposed design
 

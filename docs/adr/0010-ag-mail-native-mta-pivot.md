@@ -50,10 +50,30 @@ decision.
 ## Decision
 
 `ag-mail` is expanded from an outbound transactional relay into a native,
-self-contained outbound MTA, delivered across phases, while preserving full
-backward compatibility with the current crate.
+self-contained outbound MTA, delivered across phases, **additively**: the
+expansion only adds capability behind opt-in Cargo features and never removes,
+demotes, or changes the behavior of anything the crate already ships.
 
-Concretely:
+This additive-only constraint is binding and overrides the framing of the
+research blueprint that motivated this ADR. The blueprint proposed to
+*overwrite* the crate — make the native MTA the default sender, relegate
+`ResendSender`/third-party SMTP to a "not for production" feature, and
+*migrate* the in-memory/`ag-data` queue to JetStream. That degradation is
+**rejected**. Concretely, the following are preserved unchanged and remain
+the defaults:
+
+- the default Cargo features (`smtp`, `templates`, `metrics`) and the default
+  `SmtpSender` (lettre relay) as the out-of-the-box sender;
+- the `MailSender` trait, the `AgMail` enum, `NullSender`, and the
+  `ResendSender` / `SesSender` / `PostmarkSender` adapters as first-class,
+  production-supported senders (no demotion);
+- the in-memory retry queue as the default backend and the optional
+  `ag-data` persistent queue (`queue-persistent`); JetStream is an
+  **additional** optional backend, not a replacement;
+- the typed compile-time templates, the `ag-auth -> ag-mail` integration, and
+  the `ag mail test` CLI.
+
+Concretely, the expansion:
 
 1. The v1 "NOT an MTA / inbound never" restriction of `ADR-0007` is
    **superseded**. `ag-mail` may now resolve destination MX records, open
@@ -62,12 +82,14 @@ Concretely:
    asynchronous DSNs), and maintain delivery and suppression state.
 
 2. The expansion follows the existing **Native | Adapter** pattern. The new
-   MTA engine becomes the native sending path; the existing `ResendSender`,
-   `SesSender`, `PostmarkSender`, and any third-party SMTP relay remain
-   available behind Cargo features as the "integrate, do not replace" path.
-   This keeps Blueprint section 3.3 (interoperability) satisfied: a project
-   that prefers an ESP keeps using one; a project that wants zero third
-   parties uses the native MTA.
+   MTA engine is added as a **new** opt-in sender (a `MtaSender` behind the
+   `mta` feature), alongside — not in place of — the existing default
+   `SmtpSender` relay and the `ResendSender` / `SesSender` / `PostmarkSender`
+   adapters, which all remain first-class and production-supported. This keeps
+   Blueprint section 3.3 (interoperability) satisfied: a project that prefers
+   an ESP keeps using one with no change; a project that wants zero third
+   parties opts into the native MTA. Which sender is the default is the
+   integrator's choice; the crate's own default does not change.
 
 3. The expansion is **opt-in and self-sufficient** per `ADR-0009`. Every
    external integration (durable queue over NATS/JetStream, PostgreSQL state

@@ -32,6 +32,15 @@ codigo. Este PR entrega esa capa de gobernanza y deja la documentacion
 coherente con el estado real (baseline implementado) y con la direccion
 acordada (MTA por fases, opt-in, sin declararlo implementado).
 
+**Principio aditivo-only (vinculante).** La expansion solo anade capacidad
+tras features opt-in; no elimina, degrada ni cambia el comportamiento de nada
+del baseline. El blueprint proponia *sobrescribir* (MTA por defecto, Resend a
+feature "no produccion", migrar la cola en memoria); eso se **rechaza** en
+`ADR-0010`/`RFC-0009`. Permanecen sin cambios: features por defecto (`smtp`,
+`templates`, `metrics`), `SmtpSender` por defecto, `MailSender`/`AgMail`/
+`NullSender`, adapters Resend/SES/Postmark, colas en memoria y `ag-data`,
+templates tipados, integracion `ag-auth` y CLI `ag mail test`.
+
 **Gobernanza:**
 - `ADR-0010`: supersede el alcance v1 "NO es un MTA / inbound nunca" de
   `ADR-0007`; expande `ag-mail` a MTA outbound nativo (resolucion MX,
@@ -89,6 +98,7 @@ acordada (MTA por fases, opt-in, sin declararlo implementado).
 - [x] No rompe arquitectura (Native | Adapter y dependencias preservadas)
 - [x] No anade complejidad innecesaria (sin codigo; features opt-in en el plan)
 - [x] No crea dependencias circulares (`ag-mail` sigue sin depender de `ag-auth`)
+- [x] Aditivo-only: no elimina ni degrada el baseline (default, adapters, colas)
 - [x] No declara capacidades inexistentes (regla 26)
 - [x] Maestros con hashes actualizados (VERSION.md + workflow)
 - [x] Sin emojis ni evidencia de herramientas IA en el contenido

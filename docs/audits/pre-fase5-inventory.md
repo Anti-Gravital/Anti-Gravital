@@ -178,11 +178,11 @@ skeleton. LOC is `src/` only. "Tests" counts `#[test]`/`#[tokio::test]` in
 - **Real state:** Functional. `MailSender` trait + `SmtpSender` (lettre+rustls) +
   provider adapters; `StringTemplate` with `{{var}}`; async retry/backoff queue;
   persistent queue over ag-data; metrics.
-- **Public API:** `MailSender`, `SmtpSender`, `ResendSender`, `MailTemplate`,
+- **Public API:** `MailSender`, `SmtpSender`, `MailTemplate`,
   `StringTemplate`, `InMemoryQueue`, `PersistentQueue`, `NullSender` (test-utils).
 - **Tests:** ~42 test fns; `tests/` dir.
 - **Cargo features:** `default = [smtp, templates, metrics]`; opt-in
-  `resend`/`ses`/`postmark` (reqwest), `queue-persistent` (ag-data), `test-utils`.
+  `mta` (mail-send/mail-auth/hickory), `queue-persistent` (ag-data), `test-utils`.
 - **Main deps:** lettre (smtp, default-on protocol client).
 - **Open debt:** DEBT-001 closed (persistent queue), DEBT-002 closed (custom
   headers), DEBT-003 open (external template engines, Phase 5+).

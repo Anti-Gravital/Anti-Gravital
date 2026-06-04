@@ -17,18 +17,23 @@
 ## Context
 
 `ADR-0007` introduced `ag-mail` (Phase 4.5) with a deliberately narrow v1
-scope: outbound transactional email only, native `lettre` SMTP sender plus
-managed adapters (Resend, SES, Postmark). That ADR fixed, as "out of scope,
+scope: outbound transactional email only, native `lettre` SMTP relay plus
+optional provider HTTP adapters. That ADR fixed, as "out of scope,
 not deferrable", the following: complete MTA, inbound reception (IMAP/POP),
 persistent mailboxes, antispam/IP reputation, and bounce handling beyond
 logging. RFC-0006 turned that scope into the implemented crate that exists
 today.
 
+> Note (`ADR-0011`, 2026-06-04): the provider-brand adapters mentioned in this
+> ADR were removed by `ADR-0011`. The external-provider path is now the native
+> `SmtpSender` relay pointed at the provider's SMTP endpoint, so no capability
+> is lost. Read "provider adapters" below as that native relay path.
+
 The implemented baseline is real and works: `MailSender` trait, native
-`SmtpSender` (default), `ResendSender`/`SesSender`/`PostmarkSender` adapters
-behind Cargo features, an in-memory retry queue with an optional persistent
-backend (`queue-persistent` via `ag-data`), typed templates validated at
-build time, and `ag-observe` metrics. `ag-auth` consumes it for verification,
+`SmtpSender` (default relay), an in-memory retry queue with an optional
+persistent backend (`queue-persistent` via `ag-data`), typed templates
+validated at build time, and `ag-observe` metrics. `ag-auth` consumes it for
+verification,
 recovery, and magic links.
 
 A new product requirement has been raised by the BDFL: a native, self-hosted,
@@ -60,16 +65,16 @@ demotes, or changes the behavior of anything the crate already ships.
 
 This additive-only constraint is binding and overrides the framing of the
 research blueprint that motivated this ADR. The blueprint proposed to
-*overwrite* the crate — make the native MTA the default sender, relegate
-`ResendSender`/third-party SMTP to a "not for production" feature, and
+*overwrite* the crate — make the native MTA the default sender, relegate the
+provider relay/third-party SMTP to a "not for production" feature, and
 *migrate* the in-memory/`ag-data` queue to JetStream. That degradation is
 **rejected**. Concretely, the following are preserved unchanged and remain
 the defaults:
 
 - the default Cargo features (`smtp`, `templates`, `metrics`) and the default
   `SmtpSender` (lettre relay) as the out-of-the-box sender;
-- the `MailSender` trait, the `AgMail` enum, `NullSender`, and the
-  `ResendSender` / `SesSender` / `PostmarkSender` adapters as first-class,
+- the `MailSender` trait, the `AgMail` enum, `NullSender`, and the native
+  `SmtpSender` relay (the path to any external provider) as first-class,
   production-supported senders (no demotion);
 - the in-memory retry queue as the default backend and the optional
   `ag-data` persistent queue (`queue-persistent`); JetStream is an
@@ -88,10 +93,11 @@ Concretely, the expansion:
 2. The expansion follows the existing **Native | Adapter** pattern. The new
    MTA engine is added as a **new** opt-in sender (a `MtaSender` behind the
    `mta` feature), alongside — not in place of — the existing default
-   `SmtpSender` relay and the `ResendSender` / `SesSender` / `PostmarkSender`
-   adapters, which all remain first-class and production-supported. This keeps
+   `SmtpSender` relay (the path to any external provider via its SMTP
+   endpoint), which remains first-class and production-supported. This keeps
    Blueprint section 3.3 (interoperability) satisfied: a project that prefers
-   an ESP keeps using one with no change; a project that wants zero third
+   an external provider keeps using one with no change; a project that wants
+   zero third
    parties opts into the native MTA. Which sender is the default is the
    integrator's choice; the crate's own default does not change.
 

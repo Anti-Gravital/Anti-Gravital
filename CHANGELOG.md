@@ -51,7 +51,7 @@ Solo documentacion y gobernanza; sin codigo funcional nuevo.
 - `docs/rfc/RFC-0009-ag-mail-native-mta.md`: plan tecnico (6 subsistemas,
   dependencias `mail-send`/`mail-builder`/`mail-auth`/`mail-parser`/
   `hickory-resolver` tras feature `mta`, cola de dos niveles, modelo de datos,
-  superficie REST, webhooks estilo Svix, plan por fases 4.6-A..D + Fase 5+).
+  superficie REST, webhooks firmados HMAC-SHA256, plan por fases 4.6-A..D + Fase 5+).
   Supersede a `RFC-0006` para el alcance de `ag-mail`.
 - Alineacion documental: `docs/modules/ag-mail/README.md` reescrito (baseline
   implementado real + direccion MTA, fin del estado "Pendiente"); notas de
@@ -66,8 +66,8 @@ Solo documentacion y gobernanza; sin codigo funcional nuevo.
 
 Anadido:
 
-- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls)
-  + `ResendSender` (HTTP). `InMemoryQueue` con reintentos y backoff exponencial.
+- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls).
+  `InMemoryQueue` con reintentos y backoff exponencial.
   `StringTemplate` + `MailTemplate` trait. `NullSender` (feature `test-utils`). 38 tests.
 
 - `crates/ag-domains` (opcional infra): `DnsProvider` trait + `CloudflareProvider` (reqwest).

@@ -221,7 +221,7 @@ fn hover_content_for_word(word: &str) -> Option<String> {
         "mail" => {
             "**mail** (DSL v0.7) — Bloque de configuracion de correo transaccional.\n\n\
             ```ag\nmail nombre {\n    provider smtp\n    from \"noreply@ejemplo.com\"\n    template bienvenida {\n        subject \"Bienvenido {{nombre}}\"\n        vars [nombre, token]\n    }\n}\n```\n\n\
-            Proveedores soportados: `smtp`, `resend`, `ses`, `postmark`."
+            Modos soportados: `smtp` (relay nativo) y `mta` (MTA nativo)."
         }
         "domain" => {
             "**domain** (DSL v0.7) — Bloque de configuracion DNS de un dominio.\n\n\
@@ -234,7 +234,7 @@ fn hover_content_for_word(word: &str) -> Option<String> {
             Las `vars` declaradas son validadas en compile-time contra el HTML del template."
         }
         // Properties of mail/domain blocks
-        "provider" => "**provider** — Proveedor del bloque. En `mail`: `smtp`, `resend`, `ses`, `postmark`. En `domain`: `cloudflare`.",
+        "provider" => "**provider** — Modo/proveedor del bloque. En `mail`: `smtp`, `mta`. En `domain`: `cloudflare`.",
         "from" => "**from** — Direccion de correo remitente. Debe referenciar un `domain` declarado en el mismo schema.",
         "subject" => "**subject** — Asunto del correo. Admite variables `{{nombre}}` declaradas en `vars`.",
         "vars" => "**vars** — Lista de variables del template de correo. Validadas en compile-time contra el HTML/texto.",
@@ -290,7 +290,7 @@ fn static_completion_items() -> Vec<CompletionItem> {
     let mail_domain_props: &[(&str, &str)] = &[
         (
             "provider",
-            "Proveedor: smtp | resend | ses | postmark | cloudflare",
+            "Modo/proveedor: smtp | mta (mail); cloudflare (domain)",
         ),
         (
             "from",

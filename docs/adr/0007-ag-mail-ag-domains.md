@@ -25,7 +25,7 @@ cubre y que NO son responsabilidad de `ag-cloud`:
 1. **Comunicación transaccional outbound.** `ag-auth` ya genera flujos de
    verificación de correo, recuperación de contraseña y magic links, pero hoy
    esos flujos no tienen un emisor real dentro del ecosistema. El consumidor
-   queda obligado a integrar Resend, SES, Postmark o un SMTP propio "por fuera",
+   queda obligado a integrar un proveedor de correo externo o un SMTP propio "por fuera",
    lo cual rompe la promesa schema-first del proyecto: el correo declarado en
    `schema.ag` no se valida contra ninguna implementación.
 
@@ -43,8 +43,7 @@ alcance de `ag-cloud`, que se define como "despliegue simplificado", no como
 La regla de interoperabilidad del Blueprint (§3.3) — *cuando exista una
 herramienta dominante en un dominio adyacente, la estrategia es integrar, no
 reemplazar* — impone una restricción adicional: las dos capacidades deben
-modelarse como abstracciones con adapters, no como reemplazos nativos de Resend,
-SES, Cloudflare, Route53 ni Let's Encrypt.
+modelarse como abstracciones con adapters, no como reemplazos nativos de los proveedores dominantes (Cloudflare, Route53, Let's Encrypt).
 
 ---
 
@@ -55,7 +54,7 @@ Se introduce una **Fase 4.5 aditiva** entre la Fase 4 (completa) y la Fase 5
 
 - **`ag-mail`** — clasificación **Estándar diferido**.
   Outbound transaccional. Sender SMTP nativo (`lettre` + `rustls`) **y** adapters
-  de primera clase (Resend, SES, Postmark). Templates `askama` tipados validados
+  para proveedores externos (vía SMTP). Templates `askama` tipados validados
   en compile-time contra `schema.ag`. Cola asíncrona con reintentos y backoff
   exponencial. Métricas hacia `ag-observe`. Consumido por `ag-auth` para
   verificación, recuperación y magic links.
@@ -80,7 +79,7 @@ Fase 9**, manteniendo la cadencia hasta la congelación v1.0 en Fase 10.
 ### Lo que `ag-mail` SÍ hace en v1
 
 - Envío outbound de correo transaccional.
-- Sender SMTP nativo + adapters Resend / SES / Postmark como features de Cargo.
+- Sender SMTP nativo; proveedores externos vía su endpoint SMTP.
 - Templates HTML y plaintext con validación build-time de variables.
 - Cola asíncrona con reintentos, backoff y métricas.
 
@@ -170,8 +169,7 @@ Confunde el alcance de `ag-cloud`, convirtiéndolo en una plataforma de
 correo + DNS + despliegue. Rompe la separación de responsabilidades por crate.
 Descartada.
 
-**C. Implementar `ag-mail` como wrapper exclusivo de un proveedor (p. ej.
-Resend).**
+**C. Implementar `ag-mail` como wrapper exclusivo de un proveedor (un solo ESP).**
 Más rápido, pero rompe la regla de interoperabilidad: convierte al ecosistema
 en cliente cautivo de un proveedor. Descartada en favor del patrón
 abstracción + adapters.

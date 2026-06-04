@@ -34,3 +34,4 @@ Consecuencias, Alternativas, Estado.
 | 0008 | Politica de idioma (ingles canonico) | aceptado | `0008-politica-de-idioma.md` |
 | 0009 | Gobernanza correctiva pre-Fase 5 | aceptado | `0009-gobernanza-correctiva.md` |
 | 0010 | ag-mail native outbound MTA pivot | aceptado | `0010-ag-mail-native-mta-pivot.md` |
+| 0011 | Politica de marcas comerciales de terceros | aceptado | `0011-politica-marcas-comerciales.md` |

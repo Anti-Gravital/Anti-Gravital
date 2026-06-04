@@ -28,8 +28,7 @@ La introducción de esta fase está oficializada en `ADR-0007`.
 ### 4.5.2 Entregables
 
 - [ ] Crate `ag-mail` (estándar diferido): sender SMTP outbound nativo
-  (`lettre` + `rustls`) más trait `MailSender` con adapters (Resend, SES,
-  Postmark) como features de Cargo.
+  (`lettre` + `rustls`) más trait `MailSender`; para proveedores externos se usa el relay SMTP nativo.
 - [ ] Templates HTML/plaintext con `askama` tipados, validados en compile-time
   contra `schema.ag`.
 - [ ] Declaración de correos en `schema.ag` (bloque `mail`).

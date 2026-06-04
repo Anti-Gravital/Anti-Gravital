@@ -2,8 +2,8 @@
 
 **[English](#in-english) | [Espanol](#en-espanol)**
 
-> Status: Phase 4.5 technical implementation complete — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 cross-module E2E tests.
-> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
+> Status: Phase 4.5 technical implementation complete — ag-mail (SMTP relay + native MTA), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 cross-module E2E tests.
+> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP relay + native MTA), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
 
 Anti-Gravital is an open source ecosystem for building high-performance
 backend applications in pure Rust, with three core properties: no
@@ -106,7 +106,7 @@ criteria (community, crates.io publication) pending.
 (2026-05-24). Two new crates introduced by ADR-0007:
 
 - `ag-mail` (deferred standard): `MailSender` trait + `SmtpSender` (lettre +
-  rustls) + adapters for Resend, SES and Postmark as Cargo features.
+  rustls) plus an opt-in native outbound MTA.
   `StringTemplate` engine for HTML/plaintext with compile-time var validation.
   Async queue with retries and exponential backoff (`InMemoryQueue`). Metrics
   towards `ag-observe` (feature `"metrics"`). Integration with `ag-auth` via
@@ -344,7 +344,7 @@ Cobertura >= 80% en todos los modulos. Criterios externos (comunidad, publicacio
 Dos crates nuevos introducidos por ADR-0007:
 
 - `ag-mail` (estandar diferido): trait `MailSender` + `SmtpSender` (lettre + rustls)
-  + adapters para Resend, SES y Postmark como Cargo features. Motor `StringTemplate`
+  mas un MTA outbound nativo opt-in. Motor `StringTemplate`
   para HTML/plaintext con validacion de vars en compile-time. Cola asincrona con
   reintentos y backoff exponencial (`InMemoryQueue`). Metricas hacia `ag-observe`
   (feature `"metrics"`). Integracion con `ag-auth` via `AuthMailer` para verificacion,

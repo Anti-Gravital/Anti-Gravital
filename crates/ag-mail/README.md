@@ -3,7 +3,7 @@
 Correo transaccional outbound para Anti-Gravital.
 
 Status: **Phase 4.5 — implemented**, plus the opt-in native MTA core of
-**Phase 4.6-A**. Native SMTP sender, Resend/SES/Postmark adapters, in-memory
+**Phase 4.6-A**. Native SMTP relay, an opt-in native MTA, in-memory
 and persistent retry queues, custom SMTP headers, string templating and
 `ag-observe` metrics are functional. The `mta` feature (off by default) adds a
 native outbound MTA: MX resolution, ESMTP+STARTTLS direct delivery, Ed25519
@@ -16,7 +16,7 @@ Technical plans: `docs/rfc/RFC-0006-ag-mail-alcance.md`,
 
 ## Alcance v1
 
-- Sender SMTP nativo (lettre + rustls) y adapters Resend/SES/Postmark.
+- Relay SMTP nativo (lettre + rustls) y MTA outbound nativo (opt-in).
 - HTML/plaintext templates via the built-in `StringTemplate` engine. Compile-time
   validation against `schema.ag` and external engines (askama/minijinja) are tracked
   as tech debt in `docs/DEBT.md`.
@@ -52,10 +52,9 @@ esta documentada como sexta regla de dependencias en
 
 ## Features de Cargo
 
-- `smtp` (default): sender SMTP nativo.
+- `smtp` (default): relay SMTP nativo (apuntable a cualquier proveedor externo).
 - `templates` (default): built-in StringTemplate rendering.
 - `metrics` (default): metricas hacia ag-observe.
-- `resend`, `ses`, `postmark`: adapters de proveedor (opcionales).
 - `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
   migration in `migrations/0001_mail_queue.sql`).
 - `mta` (opt-in): native outbound MTA core (MX resolution, ESMTP+STARTTLS

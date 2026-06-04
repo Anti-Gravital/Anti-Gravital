@@ -1,17 +1,19 @@
 //! Outbound transactional email for the Anti-Gravital ecosystem.
 //!
 //! `ag-mail` covers sending transactional email (account verification,
-//! magic links, password recovery, alerts) with a native SMTP sender and
-//! first-class adapters for Resend, SES and Postmark.
+//! magic links, password recovery, alerts) with a native SMTP relay and an
+//! opt-in native outbound MTA. To send through an external email provider,
+//! point the native SMTP relay at that provider's SMTP endpoint — there are
+//! no provider-brand adapters (see `ADR-0011`).
 //!
 //! # Status
 //!
-//! Phase 4.5 — implemented. Public API: [`sender::MailSender`] trait with `SmtpSender`
-//! (default) and `ResendSender`/`SesSender`/`PostmarkSender` adapters, the
-//! [`message::Email`]/`EmailBuilder` model, an in-memory retry queue and `ag-observe`
-//! metrics. Outstanding tech debt (persistent queue, custom SMTP headers,
-//! external template engines) is tracked in `docs/DEBT.md`. Governing decision:
-//! `ADR-0007`; technical plan: `RFC-0006`.
+//! Phase 4.5 — implemented. Public API: [`sender::MailSender`] trait with the
+//! native `SmtpSender` (default relay), the [`message::Email`]/`EmailBuilder`
+//! model, an in-memory retry queue and `ag-observe` metrics. Outstanding tech
+//! debt (persistent queue worker, custom SMTP headers, external template
+//! engines) is tracked in `docs/DEBT.md`. Governing decisions: `ADR-0007`,
+//! `ADR-0011`; technical plans: `RFC-0006`, `RFC-0010`.
 //!
 //! # Native MTA (opt-in, `mta` feature)
 //!

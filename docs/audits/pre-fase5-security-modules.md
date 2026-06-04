@@ -83,7 +83,7 @@
 ## ag-mail
 - Outbound-only (not an MTA). Templates validate variables; malformed headers are
   handled (DEBT-002 closed). Queue is bounded with backpressure (Stage 7).
-- **External timeout (Stage 7, fixed):** Resend client now has a 30s timeout.
+- **External timeout (Stage 7, fixed):** The provider HTTP adapter now has a 30s timeout.
 - Secrets (SMTP creds, tokens) not logged.
 - Verdict: **pass.**
 

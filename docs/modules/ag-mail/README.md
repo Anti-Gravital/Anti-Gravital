@@ -48,21 +48,39 @@ This is what the crate ships today. The status here must match the code
 Outstanding debt for this baseline is tracked in `docs/DEBT.md` (persistent
 queue worker, custom SMTP headers, external template engines).
 
-## Planned: native outbound MTA (ADR-0010 / RFC-0009)
+## Native outbound MTA (ADR-0010 / RFC-0009)
 
 Phased, opt-in behind Cargo features, preserving the Native | Adapter pattern
 and full backward compatibility. The expansion is **additive only**: it adds a
 new opt-in `MtaSender` and new feature-gated subsystems without removing,
 demoting, or changing the behavior of anything in the baseline above. The
-default features, the default `SmtpSender`, the ESP adapters, and the existing
-queues all stay as they are; the native MTA is never silently made the
-default. Nothing below is implemented yet; this section is a forward plan, not
-a capability claim.
+default features, the default `SmtpSender`, the provider adapters, and the
+existing queues all stay as they are; the native MTA is never silently made
+the default.
 
-- `mta` feature: MX resolution (`hickory-resolver`) with `site_name` rollup,
-  ESMTP+STARTTLS sessions via `mail-send`, outbound DKIM signing via
-  `mail-auth` (signed last, after any link rewriting), bounce classification
-  from SMTP codes and DSNs (`mail-parser`).
+### Implemented — Phase 4.6-A (`mta` feature)
+
+The native MTA core is implemented and unit-tested (the live delivery path is
+exercised by `#[ignore]` network tests):
+
+- `sender::mta::MtaSender` (implements `MailSender`): direct delivery to the
+  destination MX over ESMTP with opportunistic STARTTLS (`mail-send`),
+  per-domain envelope grouping, RFC 5322 build via `mail-builder`.
+- `sender::mta::resolve`: MX resolution (`hickory-resolver`) with preference
+  ordering, `site_name` rollup, and the RFC 5321 implicit-MX fallback.
+- `sender::mta::dkim`: outbound DKIM signing with Ed25519 keys (RFC 8463),
+  signed last so the signature covers the final bytes; key material is
+  supplied by the caller / `ag-domains` (no DNS ownership here).
+- `sender::mta::bounce`: pure SMTP/RFC 3463 bounce classifier
+  (transient vs permanent) feeding retry-vs-suppress decisions.
+
+RSA DKIM keys, metrics wiring for the MTA path, and a CI job for the `mta`
+feature are tracked in `docs/DEBT.md`.
+
+### Planned — Phase 4.6-B and later
+
+Not implemented yet; forward plan, not a capability claim.
+
 - Two-tier queue (KumoMTA-inspired): scheduled queue keyed
   `tenant:campaign:domain`, ready queue keyed `egress_source + site_name`.
   Native in-memory/`ag-data` default; optional durable backend over

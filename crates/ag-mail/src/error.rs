@@ -43,4 +43,16 @@ pub enum AgMailError {
     /// Queue storage error (persistent backend).
     #[error("queue error: {0}")]
     Queue(String),
+
+    /// MX resolution failure for a destination domain (native MTA).
+    #[error("error de resolucion DNS/MX: {0}")]
+    Dns(String),
+
+    /// The destination domain exposes no usable mail host (native MTA).
+    #[error("el dominio destino no expone host de correo: {0}")]
+    NoMailHost(String),
+
+    /// DKIM signing key or signer construction failure (native MTA).
+    #[error("error de firma DKIM: {0}")]
+    Dkim(String),
 }

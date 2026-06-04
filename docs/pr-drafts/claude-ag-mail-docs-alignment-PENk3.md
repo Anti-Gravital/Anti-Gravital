@@ -1,16 +1,16 @@
-# docs(ag-mail): pivot a MTA outbound nativo (ADR-0010, RFC-0009) y alineacion documental
+# feat(ag-mail): MTA outbound nativo opt-in (Fase 4.6-A) + gobernanza ADR-0010/RFC-0009
 
 ## Fase afectada
 
-Gobernanza aditiva entre Fase 4.5 (completa) y la nueva Fase 4.6 futura.
-No introduce codigo funcional: registra la decision de expandir `ag-mail` a
-un MTA outbound nativo y alinea la documentacion afectada. La implementacion
-queda bloqueada hasta que este conjunto documental este mergeado (regla 27).
+Gobernanza aditiva (ADR-0010 / RFC-0009) entre Fase 4.5 (completa) y la Fase
+4.6, **mas** la implementacion de la Fase 4.6-A (nucleo del MTA nativo). Todo
+es aditivo y opt-in: no degrada ni cambia el baseline existente.
 
 ## Tipo de cambio
 
-Documentacion y gobernanza (`docs`). Sin cambios de codigo, API ni
-comportamiento.
+Gobernanza (`docs`) + implementacion (`feat`) aditiva tras la feature de Cargo
+`mta`, apagada por defecto. Sin cambios en la API publica existente, el sender
+por defecto, los adapters ni las colas.
 
 ## Documentos relacionados
 
@@ -69,40 +69,60 @@ tipados, integracion `ag-auth` y CLI `ag mail test`.
 - Indices `docs/adr/README.md` y `docs/rfc/README.md` completados y con los
   estados superseded correctos; `RFC-0006` y `ADR-0007` anotados.
 
+**Implementacion Fase 4.6-A (feature `mta`, opt-in):**
+- `crates/ag-mail/src/sender/mta/`:
+  - `mod.rs` — `MtaSender` (implementa `MailSender`): entrega directa al MX,
+    agrupacion por dominio, MIME via `mail-builder`, firma DKIM al final.
+  - `resolve.rs` — resolucion MX (`hickory-resolver`), orden por preferencia,
+    rollup `site_name`, fallback MX implicito (RFC 5321).
+  - `dkim.rs` — firma DKIM Ed25519 (`mail-auth`); clave aportada por el
+    llamador / `ag-domains`; `Debug` redacta el material de clave.
+  - `bounce.rs` — clasificador SMTP/RFC 3463 (transitorio vs permanente), puro.
+- `error.rs`: variantes `Dns`, `NoMailHost`, `Dkim`.
+- `Cargo.toml`: feature `mta` + deps opcionales `mail-send`/`mail-auth`/
+  `hickory-resolver` (no en build por defecto).
+- Documentacion fiel al codigo: `lib.rs` `//!`, crate README, modulo README
+  (seccion "Implemented — Phase 4.6-A"), `docs/DEBT.md` (DEBT-012/013/014).
+
 **Integridad de maestros:**
-- `VERSION.md` y `.github/workflows/docs.yml`: SHA-256 de Arquitectura y
-  Hoja-de-Ruta recalculados; entrada nueva en el historial de revisiones.
+- `VERSION.md` y `.github/workflows/docs.yml`: SHA-256 de Hoja-de-Ruta
+  recalculado tras la nota 4.5.5; entradas nuevas en el historial.
 
 ## Plan de prueba
 
-- `sha256sum` de los dos maestros coincide con `VERSION.md` y con
-  `.github/workflows/docs.yml` (job `masters integrity`).
-- Job `prohibited content scan`: sin emojis ni evidencia de herramientas IA en
-  el contenido.
-- Revision manual: ningun documento declara el MTA como implementado (regla
-  26); el baseline descrito coincide con `crates/ag-mail` real.
-- Sin cambios de codigo: `cargo build/test` no afectados.
+- `cargo build --workspace` verde (lockfile unifica `hickory-resolver 0.26`
+  con `ag-domains`).
+- `cargo test -p ag-mail --features mta` — 58 pasan, 1 ignorado (entrega en
+  vivo, requiere red/puerto 25).
+- `cargo clippy -p ag-mail --features mta --all-targets -- -D warnings` y con
+  features por defecto: sin warnings. `cargo fmt --check` limpio.
+- `sha256sum` de los maestros coincide con `VERSION.md` y `docs.yml`
+  (job `masters integrity`).
+- Job `prohibited content scan`: sin emojis ni evidencia de herramientas IA.
+- `cargo audit` / `cargo deny`: se ejecutan en CI (no instalados localmente).
 
 ## Criterios de salida avanzados
 
-- Decision de pivot registrada en ADR + RFC antes de cualquier codigo (reglas
-  5, 22, 28).
-- Documentacion de `ag-mail` coherente entre maestros, derivados, modulo y
-  README raiz.
-- `RFC-0006`/`ADR-0007` correctamente marcados superseded para el alcance de
-  `ag-mail`, sin perder su vigencia para `ag-domains`.
-- Repositorio listo para abrir la Fase 4.6-A (PoC del MTA) en una rama
-  posterior.
+- Decision de pivot registrada en ADR + RFC antes del codigo (reglas 5, 22, 28).
+- Fase 4.6-A: `MtaSender` entrega via MX con STARTTLS y firma DKIM Ed25519;
+  clasificacion de bounces; todo tras la feature `mta` opt-in.
+- Aditivo: build y comportamiento por defecto sin cambios; baseline intacto.
+- Documentacion de `ag-mail` coherente entre maestros, derivados, modulo,
+  crate README, `lib.rs` y `docs/DEBT.md`.
+- `RFC-0006`/`ADR-0007` marcados superseded para el alcance de `ag-mail`.
 
 ## Checklist final
 
-- [x] Pertenece a la fase correcta (gobernanza previa a Fase 4.6)
-- [x] Respeta la documentacion (ADR + RFC para el cambio de alcance)
+- [x] Pertenece a la fase correcta (gobernanza 4.6 + implementacion 4.6-A)
+- [x] Respeta la documentacion (ADR + RFC antes del codigo)
 - [x] No rompe arquitectura (Native | Adapter y dependencias preservadas)
-- [x] No anade complejidad innecesaria (sin codigo; features opt-in en el plan)
+- [x] No anade complejidad innecesaria (feature opt-in, deps tras `mta`)
 - [x] No crea dependencias circulares (`ag-mail` sigue sin depender de `ag-auth`)
 - [x] Aditivo-only: no elimina ni degrada el baseline (default, adapters, colas)
-- [x] No declara capacidades inexistentes (regla 26)
+- [x] Compila (`cargo build --workspace`)
+- [x] Pasa tests (`cargo test -p ag-mail --features mta`)
+- [x] Pasa fmt y clippy (`-D warnings`, default y `mta`)
+- [x] No declara capacidades inexistentes (regla 26); deuda en `docs/DEBT.md`
 - [x] Maestros con hashes actualizados (VERSION.md + workflow)
 - [x] Sin emojis ni evidencia de herramientas IA en el contenido
 - [x] Mantiene coherencia con Anti-Gravital v4.0/v4.1

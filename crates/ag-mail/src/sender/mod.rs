@@ -20,6 +20,9 @@ pub mod ses;
 #[cfg(feature = "postmark")]
 pub mod postmark;
 
+#[cfg(feature = "mta")]
+pub mod mta;
+
 /// Result of a successful send.
 #[derive(Debug, Clone)]
 pub struct SendResult {

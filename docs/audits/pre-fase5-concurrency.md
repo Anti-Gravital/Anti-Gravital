@@ -56,7 +56,7 @@ Plan rule: every external connection needs a timeout + controlled retry.
 
 ### Finding S7-4 — reqwest clients without timeout (Medium, fixed)
 - `ag-domains` `CloudflareProvider` built its reqwest client with no `.timeout()`.
-- `ag-mail` `ResendSender` used `reqwest::Client::new()` (no timeout).
+- `ag-mail` provider HTTP adapter used `reqwest::Client::new()` (no timeout).
 - A slow/unresponsive endpoint could hang the call indefinitely (resource
   exhaustion). **Fixed:** both now set a 30s `.timeout(...)`.
 - `ag-auth` OAuth uses an **injected** client (`OAuthClient::from_config(cfg,
@@ -69,7 +69,7 @@ Plan rule: every external connection needs a timeout + controlled retry.
 
 | ID | Severity | Status |
 | --- | --- | --- |
-| S7-4 | Medium | Fixed — 30s timeout on Cloudflare + Resend reqwest clients |
+| S7-4 | Medium | Fixed — 30s timeout on Cloudflare + provider HTTP reqwest clients |
 | S7-1 | Medium | Open (non-blocking): `ag-realtime` `EventBuffer::append` (feature `event-persistence`) does a synchronous file open+write **per event** and reopens the file each call. If used on an async hot path it blocks the runtime. Recommend async I/O / `spawn_blocking` and a persistent handle. Opt-in feature, durability tradeoff. |
 | S7-2 | Low | Open: native cache server spawns one task per connection with no connection cap; recommend a connection-limit semaphore (complements the Stage 4 RESP2 DoS fix). |
 | S7-3 | Low | Open: mail retry spawns one task per retry (bounded by channel capacities); a timer/delay-queue would be cleaner. |

@@ -9,7 +9,7 @@ use metrics::{counter, histogram};
 
 /// Records a completed send attempt.
 ///
-/// `provider` is the adapter name (e.g., `"smtp"`, `"resend"`).
+/// `provider` is the sender name (e.g., `"smtp"`, `"mta"`).
 /// `success` distinguishes success from failure.
 pub fn record_send(provider: &str, success: bool) {
     #[cfg(feature = "metrics")]
@@ -69,8 +69,8 @@ mod tests {
     #[test]
     fn metrics_do_not_panic() {
         record_send("smtp", true);
-        record_send("resend", false);
+        record_send("mta", false);
         record_retry("smtp");
-        record_send_latency("resend", 0.42);
+        record_send_latency("mta", 0.42);
     }
 }

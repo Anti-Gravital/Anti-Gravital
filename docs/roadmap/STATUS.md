@@ -308,7 +308,7 @@ Vease `docs/roadmap/fase-04-5-ag-mail-y-ag-domains.md` y `docs/adr/0007-ag-mail-
 
 ### Entregables (4.5.2)
 
-- [x] Crate ag-mail (estandar diferido): MailSender trait + SmtpSender (lettre + rustls) + ResendSender. 38 tests.
+- [x] Crate ag-mail (estandar diferido): MailSender trait + SmtpSender (lettre + rustls). 38 tests.
 - [x] Templates HTML/plaintext: MailTemplate trait + StringTemplate con sustitucion {{var}}. Motor externo (askama, minijinja) integrable via trait. Validacion de vars en compile-time via template::validate.
 - [x] Declaracion de correos en schema.ag (bloque mail). DSL v0.7.
 - [x] Integracion ag-auth -> ag-mail para verificacion, recuperacion y magic links. AuthMailer con feature "mail".
@@ -326,7 +326,7 @@ Vease `docs/roadmap/fase-04-5-ag-mail-y-ag-domains.md` y `docs/adr/0007-ag-mail-
 
 ### Criterios de salida (4.5.3, puerta antes de Fase 5)
 
-- [x] ag-mail envia correo transaccional HTML y plaintext via SmtpSender y ResendSender.
+- [x] ag-mail envia correo transaccional HTML y plaintext via SmtpSender (relay nativo).
 - [x] ag-auth usa ag-mail para los tres flujos en auth-mail-demo.
 - [x] ag-domains implementa CloudflareProvider funcional con tests de contrato.
 - [x] ag-domains implementa ACME completo (issue + renovacion automatica) contra Let's Encrypt staging/production.

@@ -1292,7 +1292,7 @@ mail transaccional {
     fn parse_mail_block_with_templates() {
         let src = r#"
 mail transaccional {
-    provider resend
+    provider mta
     from "noreply@ejemplo.com"
 
     template bienvenida {

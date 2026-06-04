@@ -7,12 +7,67 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.6-A - Implementacion: motor MTA outbound nativo de ag-mail (opt-in)
+
+Aditivo. Nueva feature de Cargo `mta` en `ag-mail`, apagada por defecto; el
+sender por defecto y los adapters no cambian (ADR-0010 / RFC-0009).
+
+Anadido:
+
+- `crates/ag-mail` feature `mta`: `sender::mta::MtaSender` (implementa
+  `MailSender`) con entrega directa al MX destino via ESMTP+STARTTLS
+  (`mail-send`), agrupacion de destinatarios por dominio y construccion MIME
+  RFC 5322 (`mail-builder`).
+- `sender::mta::resolve`: resolucion MX (`hickory-resolver`) con orden por
+  preferencia, rollup `site_name` y fallback de MX implicito (RFC 5321).
+- `sender::mta::dkim`: firma DKIM Ed25519 (RFC 8463) aplicada al final;
+  el material de clave lo aporta el llamador / `ag-domains`.
+- `sender::mta::bounce`: clasificador de bounces SMTP/RFC 3463 (transitorio
+  vs permanente), puro y unit-testeado.
+- Nuevas variantes de error `AgMailError::{Dns, NoMailHost, Dkim}`.
+- Dependencias opcionales tras `mta`: `mail-send 0.6` (features `builder`,
+  `ring`, `tls12`), `mail-auth 0.9` (`ring`), `hickory-resolver 0.26`.
+
+Notas: la ruta de entrega en vivo se cubre con tests `#[ignore]` (requiere
+red/puerto 25). Deuda registrada en `docs/DEBT.md` (DEBT-012 RSA DKIM,
+DEBT-013 metricas+CI, DEBT-014 colas/shaping/DSN-FBL).
+
+### Gobernanza - Pivot ag-mail a MTA outbound nativo (2026-06-03)
+
+Solo documentacion y gobernanza; sin codigo funcional nuevo.
+
+- `docs/adr/0010-ag-mail-native-mta-pivot.md`: nuevo ADR que supersede el
+  alcance v1 "NO es un MTA / inbound nunca" de `ADR-0007` y expande `ag-mail`
+  a un MTA outbound nativo (resolucion MX, ESMTP+STARTTLS, firma DKIM,
+  clasificacion de bounces), por fases y opt-in tras features de Cargo,
+  conservando el patron Native | Adapter y la direccionalidad `ag-auth ->
+  ag-mail`. `ADR-0007` sigue vigente para `ag-domains` y la clasificacion.
+  Principio aditivo-only vinculante: el MTA se anade como `MtaSender` opt-in
+  sin degradar el baseline (default `SmtpSender`, adapters de proveedor
+  existentes y colas permanecen sin cambios). Se rechaza el "overwrite / MTA
+  por defecto / degradar adapters / migrar la cola" del blueprint. Las
+  plataformas externas citadas en la investigacion son solo referencia, no
+  dependencias ni objetivos de integracion del proyecto.
+- `docs/rfc/RFC-0009-ag-mail-native-mta.md`: plan tecnico (6 subsistemas,
+  dependencias `mail-send`/`mail-builder`/`mail-auth`/`mail-parser`/
+  `hickory-resolver` tras feature `mta`, cola de dos niveles, modelo de datos,
+  superficie REST, webhooks firmados HMAC-SHA256, plan por fases 4.6-A..D + Fase 5+).
+  Supersede a `RFC-0006` para el alcance de `ag-mail`.
+- Alineacion documental: `docs/modules/ag-mail/README.md` reescrito (baseline
+  implementado real + direccion MTA, fin del estado "Pendiente"); notas de
+  actualizacion de alcance en Arquitectura `§8.8` (maestro EN+ES y derivado) y
+  nota futura `§4.5.5` en Hoja-de-Ruta (maestro EN+ES y derivado de fase);
+  README raiz (EN+ES); indices de ADR y RFC; `RFC-0006`/`ADR-0007` marcados
+  superseded para el alcance de `ag-mail`.
+- `docs/master/VERSION.md` y `.github/workflows/docs.yml`: hashes SHA-256 de
+  los dos maestros recalculados.
+
 ### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
 
 Anadido:
 
-- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls)
-  + `ResendSender` (HTTP). `InMemoryQueue` con reintentos y backoff exponencial.
+- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls).
+  `InMemoryQueue` con reintentos y backoff exponencial.
   `StringTemplate` + `MailTemplate` trait. `NullSender` (feature `test-utils`). 38 tests.
 
 - `crates/ag-domains` (opcional infra): `DnsProvider` trait + `CloudflareProvider` (reqwest).

@@ -2,7 +2,8 @@
 //!
 //! `AuthMailer` wraps any `ag_mail::sender::MailSender` and exposes
 //! three high-level operations. The caller injects the concrete sender
-//! (SMTP, Resend, NullSender in tests) when constructing `AgAuth`.
+//! (the native SMTP relay, the native MTA, or `NullSender` in tests) when
+//! constructing `AgAuth`.
 //!
 //! # Dependency rule
 //!

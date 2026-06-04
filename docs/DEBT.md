@@ -30,6 +30,30 @@ CLAUDE.md section 29.
 - Expected removal: future plan; trait-based engine selection.
 - Status: open. Target: Phase 5+.
 
+### DEBT-012 — Native MTA: RSA DKIM keys
+- Reason: `sender::mta::dkim` (feature `mta`) signs with Ed25519 only.
+- Impact: domains that publish only an RSA DKIM key cannot be signed natively.
+- Expected removal: add `RsaKey<Sha256>` support (PKCS#1/PKCS#8) to `DkimConfig`.
+- Status: open. Owning plan: RFC-0009 Phase 4.6-A follow-up. Target: Phase 4.6-B.
+
+### DEBT-013 — Native MTA: metrics and CI coverage
+- Reason: the `mta` send path emits `tracing` events but not `ag-observe`
+  metrics, and CI has no job exercising the `mta` feature.
+- Impact: no `ag_mail_*` counters for native deliveries; `mta` tests run only
+  locally / on demand.
+- Expected removal: wire metrics into `MtaSender` and add a `mail-mta` CI job
+  (`cargo test -p ag-mail --features mta`) per RFC-0009 section 4.8.
+- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B.
+
+### DEBT-014 — Native MTA: durable queue, shaping and DSN/FBL
+- Reason: Phase 4.6-A is synchronous direct delivery; it does not yet use the
+  two-tier scheduled/ready queue, per-`site_name` traffic shaping, egress IP
+  pools, or asynchronous DSN/ARF (feedback-loop) processing.
+- Impact: no persistence of in-flight MTA deliveries, no provider throttling,
+  no automatic suppression from asynchronous bounces.
+- Expected removal: Phase 4.6-B/C per RFC-0009 section 5.
+- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+
 ## ag-cache
 
 ### DEBT-004 — Native L2 over RESP2 (no Redis)

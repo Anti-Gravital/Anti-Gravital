@@ -94,14 +94,14 @@ satisfying ADR-0009 rule 2 (native default, external never mandatory):
 | ag-storage | native FS | `s3` (object_store), `auth` (ag-auth) |
 | ag-cache | L1 (moka) | `native-server` (dashmap) |
 | ag-realtime | in-process bus | `nats-external` (async-nats), `event-persistence` |
-| ag-mail | smtp, templates, metrics | `resend`/`ses`/`postmark` (reqwest), `queue-persistent` (ag-data) |
+| ag-mail | smtp, templates, metrics | `mta` (mail-send/mail-auth/hickory), `queue-persistent` (ag-data) |
 | ag-domains | acme, propagation (protocol clients) | `cloudflare` (reqwest) |
 | ag-auth | none | `persistent` (ag-data), `mail` (ag-mail) |
 
 Note: `ag-mail` default includes `smtp` (lettre) and `ag-domains` default
 includes `acme`/`propagation` (instant-acme, hickory-resolver). These are
 *protocol clients*, not vendor SDKs, so they are not vendor lock-in; the vendor
-*adapters* (Cloudflare, Resend, SES, Postmark, S3) are all opt-in. This is
+*adapters* (Cloudflare, provider HTTP adapters, S3) are all opt-in. This is
 consistent with the rule.
 
 ## Findings

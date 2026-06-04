@@ -69,5 +69,8 @@ como `superseded`.
 | 0002 | Diseno del Shield MVP (Fase 1) | aceptado | `RFC-0002-diseno-shield-mvp.md` |
 | 0003 | Librerias base del compilador ag-dsl (Fase 3) | aceptado | `RFC-0003-librerias-compilador-ag-dsl.md` |
 | 0005 | ag-cache L2 nativo RESP2 (Fase 4) | propuesto | `RFC-0005-ag-cache-native-l2.md` |
-| 0006 | ag-mail alcance, stack y plan de implementacion (Fase 4.5) | aceptada | `RFC-0006-ag-mail-alcance.md` |
+| 0006 | ag-mail alcance, stack y plan de implementacion (Fase 4.5) | superseded por RFC-0009 (alcance ag-mail) | `RFC-0006-ag-mail-alcance.md` |
 | 0007 | ag-domains alcance, stack y plan de implementacion (Fase 4.5) | aceptada | `RFC-0007-ag-domains-alcance.md` |
+| 0008 | Politica de idioma (ingles canonico) | aceptada | `RFC-0008-politica-de-idioma.md` |
+| 0009 | ag-mail native outbound MTA: alcance, stack y plan por fases (Fase 4.6) | aceptada | `RFC-0009-ag-mail-native-mta.md` |
+| 0010 | ag-mail superficie de envio sin marcas comerciales | aceptada | `RFC-0010-ag-mail-superficie-sin-marcas.md` |

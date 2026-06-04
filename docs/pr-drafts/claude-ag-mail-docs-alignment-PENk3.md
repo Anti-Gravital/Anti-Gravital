@@ -25,21 +25,24 @@ comportamiento.
 ## Resumen
 
 El research report adjunto reformula `ag-mail` desde un relay outbound
-transaccional ("NO es un MTA", `ADR-0007`/`RFC-0006`) hacia una replica
-nativa de Resend con MTA propio. Es una reversion de alcance, no una sync de
-docs, y por las reglas 5, 22 y 28 del `CLAUDE.md` exige gobernanza antes de
-codigo. Este PR entrega esa capa de gobernanza y deja la documentacion
-coherente con el estado real (baseline implementado) y con la direccion
-acordada (MTA por fases, opt-in, sin declararlo implementado).
+transaccional ("NO es un MTA", `ADR-0007`/`RFC-0006`) hacia un MTA outbound
+nativo propio, self-hosted e independiente de proveedores. Es una reversion de
+alcance, no una sync de docs, y por las reglas 5, 22 y 28 del `CLAUDE.md` exige
+gobernanza antes de codigo. Este PR entrega esa capa de gobernanza y deja la
+documentacion coherente con el estado real (baseline implementado) y con la
+direccion acordada (MTA por fases, opt-in, sin declararlo implementado).
+Cualquier plataforma de correo externa citada en la investigacion es solo
+referencia de ingenieria: no es dependencia ni objetivo de integracion.
 
 **Principio aditivo-only (vinculante).** La expansion solo anade capacidad
 tras features opt-in; no elimina, degrada ni cambia el comportamiento de nada
-del baseline. El blueprint proponia *sobrescribir* (MTA por defecto, Resend a
-feature "no produccion", migrar la cola en memoria); eso se **rechaza** en
-`ADR-0010`/`RFC-0009`. Permanecen sin cambios: features por defecto (`smtp`,
-`templates`, `metrics`), `SmtpSender` por defecto, `MailSender`/`AgMail`/
-`NullSender`, adapters Resend/SES/Postmark, colas en memoria y `ag-data`,
-templates tipados, integracion `ag-auth` y CLI `ag mail test`.
+del baseline. El blueprint proponia *sobrescribir* (MTA por defecto, degradar
+los adapters de proveedor a "no produccion", migrar la cola en memoria); eso
+se **rechaza** en `ADR-0010`/`RFC-0009`. Permanecen sin cambios: features por
+defecto (`smtp`, `templates`, `metrics`), `SmtpSender` por defecto,
+`MailSender`/`AgMail`/`NullSender`, los adapters de proveedor existentes
+(opcionales, off por defecto), colas en memoria y `ag-data`, templates
+tipados, integracion `ag-auth` y CLI `ag mail test`.
 
 **Gobernanza:**
 - `ADR-0010`: supersede el alcance v1 "NO es un MTA / inbound nunca" de
@@ -56,7 +59,7 @@ templates tipados, integracion `ag-auth` y CLI `ag mail test`.
 
 **Alineacion documental (fiel al codigo real):**
 - `docs/modules/ag-mail/README.md` reescrito: separa el baseline implementado
-  (SmtpSender + Resend/SES/Postmark + cola persistente + templates tipados)
+  (`SmtpSender` + adapters de proveedor + cola persistente + templates tipados)
   de la direccion MTA planeada; corrige el estado obsoleto "Pendiente / se
   creara".
 - Maestros: nota de actualizacion de alcance en Arquitectura §8.8 (EN+ES) y

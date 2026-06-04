@@ -67,10 +67,10 @@ a capability claim.
   `tenant:campaign:domain`, ready queue keyed `egress_source + site_name`.
   Native in-memory/`ag-data` default; optional durable backend over
   NATS/JetStream (`queue-jetstream`) mirrored to PostgreSQL.
-- `api` feature: multi-tenant REST surface (Axum) drop-in conceptual vs
-  Resend (`/emails`, `/emails/batch`, `/domains`, `/api-keys`, `/webhooks`,
-  marketing objects), BLAKE3 API keys via `ag-auth`, idempotency, batch,
-  scheduling; Svix-compatible HMAC-SHA256 signed webhooks.
+- `api` feature: multi-tenant REST surface (Axum) with the conventional
+  email-sending endpoints (`/emails`, `/emails/batch`, `/domains`,
+  `/api-keys`, `/webhooks`, marketing objects), BLAKE3 API keys via `ag-auth`,
+  idempotency, batch, scheduling; HMAC-SHA256 signed webhooks.
 - Per-tenant egress IP pools with weighted round-robin warm-up; suppression
   lists (hard bounce / complaint / unsubscribe).
 - Deliverability hardening (continuous, Phase 5+): MTA-STS, TLS-RPT, ARC,
@@ -129,9 +129,9 @@ mail WelcomeEmail {
 Build-time validations: the `from` references a declared `domain`; the
 template file exists; the HTML variables match the declared `vars`; a
 plaintext fallback or explicit policy exists. A malformed email becomes a
-compile error instead of a runtime bug — the real differentiator versus
-Resend. The MTA expansion does not change the DSL; traffic shaping and egress
-pools are runtime/TOML config (a DSL change would require its own RFC).
+compile error instead of a runtime bug — the schema-first differentiator of
+`ag-mail`. The MTA expansion does not change the DSL; traffic shaping and
+egress pools are runtime/TOML config (a DSL change would require its own RFC).
 
 ## Cooperation with `ag-domains`
 

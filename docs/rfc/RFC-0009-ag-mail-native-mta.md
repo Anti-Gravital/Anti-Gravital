@@ -37,12 +37,14 @@ private-key ownership split with `ag-domains`, the multi-tenant REST surface,
 the webhook signing scheme, and the order of pull requests. Without agreement
 on these, the implementer improvises and PR review becomes expensive.
 
-The research baseline behind this RFC (Resend internals, the KumoMTA queueing
-model, bulk-sender requirements from Gmail/Yahoo/Microsoft, the Rust mail
-ecosystem) is recorded in the engineering blueprint that accompanies this RFC.
-That blueprint is research input, not a specification; this RFC is the
-specification and supersedes any factual drift in it (notably: the current
-crate already ships `SesSender`, `PostmarkSender`, and a persistent queue).
+The research baseline behind this RFC (the KumoMTA queueing model, bulk-sender
+requirements from Gmail/Yahoo/Microsoft, and the Rust mail ecosystem) is
+recorded in the engineering blueprint that accompanies this RFC. Any external
+email platform named in that blueprint is an engineering reference only — not
+a dependency, an integration target, or a design to mirror. That blueprint is
+research input, not a specification; this RFC is the specification and
+supersedes any drift in it (notably: the current crate already ships the
+managed-provider adapters and a persistent queue).
 
 ## 3. Alternatives considered
 
@@ -83,8 +85,8 @@ change the behavior of any existing public item. The default Cargo features,
 the default `SmtpSender`, the `MailSender`/`AgMail`/`NullSender` API, the
 adapters, the in-memory and `ag-data` queues, the typed templates, and the
 `ag-auth` integration all stay exactly as shipped. Every item below is a new,
-feature-gated addition. The blueprint's "make the MTA the default / demote
-Resend / migrate the queue" framing is explicitly out of scope.
+feature-gated addition. The blueprint's "make the MTA the default / demote the
+provider adapters / migrate the queue" framing is explicitly out of scope.
 
 ## 4. Proposed design
 
@@ -158,7 +160,8 @@ mode (`ADR-0009` rule 2 and 5).
 
 ### 4.5 Data model (PostgreSQL via sqlx, optional)
 
-Behind `queue-persistent`/`api`, the schema mirrors Resend's objects:
+Behind `queue-persistent`/`api`, the schema covers the standard
+email-platform objects:
 `tenants`, `api_keys` (BLAKE3 via `ag-auth` hashing), `domains`, `dkim_keys`,
 `emails`, `events` (append-only), `suppressions`, `webhooks`,
 `webhook_deliveries`, `ip_pools`/`ip_addresses`, `delivery_queue` (scheduled
@@ -167,7 +170,7 @@ queue mirror); marketing objects (`contacts`, `audiences`/`segments`,
 (existing `ag-mail/migrations` pattern). The native default mode does not
 require this schema.
 
-### 4.6 REST surface (drop-in conceptual vs Resend)
+### 4.6 REST surface (conventional email-sending API)
 
 `POST /emails`, `POST /emails/batch`, `GET /emails/{id}`,
 `POST /emails/{id}/cancel`, `/domains` (+`/verify`), `/api-keys`,

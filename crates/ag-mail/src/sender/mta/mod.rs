@@ -20,6 +20,7 @@ pub mod bounce;
 pub mod dkim;
 pub mod egress;
 pub mod resolve;
+pub mod shaping;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -40,6 +41,7 @@ use crate::{
 pub use dkim::DkimConfig;
 pub use egress::{EgressPool, EgressSource};
 pub use resolve::ResolverConfigMta;
+pub use shaping::{Shaper, ShapingConfig, ShapingLimits};
 
 /// Configuration for the native MTA sender.
 #[derive(Debug, Clone)]

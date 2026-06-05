@@ -10,7 +10,7 @@ blueprint and the current state of the code, so the remaining work is explicit
 
 Governing docs: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
 `docs/adr/0010-ag-domains-control-plane.md`. Cross-refs: `docs/DEBT.md`
-(DEBT-017, DEBT-018).
+(DEBT-024, DEBT-025).
 
 ## 1. Blueprint acceptance checklist (§21)
 
@@ -18,7 +18,7 @@ Governing docs: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
 |---|------|--------|------|
 | 1 | Existing routing unchanged without feature flags | DONE | All additions are additive / feature-gated. |
 | 2 | Existing tests pass | DONE | Workspace builds; touched crates green. |
-| 3 | New domain tables are additive migrations | PARTIAL | Native store (in-memory + JSON) instead of SQL; SQL migrations are phase D. |
+| 3 | New domain tables are additive migrations | DONE | `sql-store` feature: `SqlAttachmentStore` + `migrations/0001_*.sql` (additive `CREATE TABLE IF NOT EXISTS`). Native store remains default. |
 | 4 | Hostname normalization | DONE | `hostname.rs` (idna). |
 | 5 | TXT ownership verification | DONE | `ownership.rs` + propagation. |
 | 6 | DNS instruction generation (apex + subdomain) | DONE | `instructions.rs` (+ wildcard, + BIND export). |
@@ -43,6 +43,7 @@ Governing docs: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
 | 1 | Manual attachment (CLI/API, TXT, instructions, diagnostics, shadow) | DONE | — |
 | 2 | Managed TLS for exact hostnames | PARTIAL | issuance queue, dedup, ARI-aware renewal, `#[ignore]` staging E2E. |
 | 3 | Active routing + canonical policies | DONE | http->https upgrade at listener (only canonical redirects today). |
+| D | SQL-backed store (`sql-store`, Postgres) | DONE | `SqlAttachmentStore` (JSONB + indexed columns) + migration; `#[ignore]` integration tests requiring `DATABASE_URL`. Native store stays default. |
 | 4 | Provider automation | PARTIAL | Domain Connect; Route 53 / Google / Azure / Namecheap adapters; richer adapter SDK (discover/read/diff/apply/rollback/verify). BIND export DONE; Cloudflare DONE. |
 | 5 | Wildcards + DNS-01 | PARTIAL | classification/routing/cert selection DONE; end-to-end wildcard issuance orchestration + stricter wildcard policy pending. |
 | 6 | ag-registrars module | TODO | Design proposal only (out of v1 by ADR-0007). |
@@ -72,15 +73,14 @@ TODO:
 | Control-plane metrics (`dag_domains_*`) | PARTIAL | `ag-domains::metrics` exists; full §16.1 metric set not wired. |
 | Dangling-DNS detection worker | TODO | Background scan for hosts pointing at edge but unattached. |
 | Abuse controls (per-tenant limits, global ACME queue, rate limits) | TODO | — |
-| eTLD+1 via Public Suffix List | TODO | DEBT-017; current two-label heuristic. |
-| SQL-backed store (Postgres) behind `sql-store` | TODO | DEBT-018 phase D; `#[ignore]` integration tests. |
+| eTLD+1 via Public Suffix List | TODO | DEBT-024; current two-label heuristic. |
+| SQL-backed store (Postgres) behind `sql-store` | DONE | `SqlAttachmentStore` + migration; `#[ignore]` integration tests. |
 
 ## 5. Suggested next order
 
-1. Phase D: `sql-store` feature (`SqlAttachmentStore` + migration + `#[ignore]` tests).
-2. Phase 2 hardening: attachment->issue->edge glue + issuance queue + `#[ignore]` staging E2E.
-3. Provider how-to guides + capability matrix (docs, no code risk).
-4. Domain event log + control-plane metrics.
-5. Phase E provider adapters (each behind a feature, native default preserved).
-6. DEBT-017 PSL (needs a dependency RFC).
-7. Phase F `ag-registrars` design RFC.
+1. Phase 2 hardening: attachment->issue->edge glue + issuance queue + `#[ignore]` staging E2E.
+2. Provider how-to guides + capability matrix (docs, no code risk).
+3. Domain event log + control-plane metrics.
+4. Phase E provider adapters (each behind a feature, native default preserved).
+5. DEBT-024 PSL (needs a dependency RFC).
+6. Phase F `ag-registrars` design RFC.

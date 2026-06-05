@@ -7,6 +7,26 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains: store SQL Postgres (RFC-0009, fase D)
+
+Anadido:
+
+- `crates/ag-domains` feature `sql-store`: `SqlAttachmentStore` (Postgres via
+  sqlx) que implementa `AttachmentStore`. Almacena el attachment como JSONB con
+  columnas indexadas (id, hostname, lifecycle) y tabla de tombstones; esquema
+  embebido + `migrations/0001_ag_domains_attachments.sql`. Mapea violacion de
+  unicidad a `AlreadyExists` y respeta tombstones en `create`. El store nativo
+  (memoria/JSON) sigue siendo el predeterminado (ADR-0009). Tests de integracion
+  `#[ignore]` que requieren `DATABASE_URL`.
+
+Cambios internos (no rompen la API publica del crate):
+
+- El trait `AttachmentStore` pasa a asincrono y `&self` (mutabilidad interior),
+  para poder compartir un store como `Arc<dyn AttachmentStore>` entre tareas y
+  permitir backends async. `InMemoryStore`/`JsonFileStore` adaptados; la API REST
+  ya no envuelve el store en un `Mutex` externo; la CLI ejecuta los comandos de
+  dominios sobre el runtime tokio.
+
 ### ag-domains/ag-edge: edge en vivo + API REST (RFC-0009, fases B y C)
 
 Anadido:

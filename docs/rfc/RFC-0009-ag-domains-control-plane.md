@@ -121,9 +121,10 @@ Phase C (DONE): REST API behind the `api` feature in ag-domains
   (/v1/domains/attachments ...), backed by any AttachmentStore. Covered by
   real-HTTP integration tests. OpenAPI updated to the implemented contract.
 
-Phase D (later): SQL-backed store (Postgres) behind a `sql-store` feature.
-  Real tests require a database (testcontainers / DATABASE_URL), per the
-  repo's existing `#[ignore]` convention for service-backed tests.
+Phase D (DONE): SQL-backed store (Postgres) behind the `sql-store` feature
+  (`SqlAttachmentStore`), with an embedded schema/migration. The native
+  in-memory/JSON store stays the default. Integration tests are `#[ignore]`
+  and require `DATABASE_URL`, per the repo convention for service-backed tests.
 
 Phase E (later): provider automation (Domain Connect, additional adapters).
   DNS-01 issuance already exists in `ag-domains::acme` (used for wildcards).

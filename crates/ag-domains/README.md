@@ -54,7 +54,7 @@ domain attachment and serving control plane:
 This is additive: the declarative DNS+TLS library is unchanged. It remains not a
 registrar, not a Terraform replacement, and not an arbitrary multi-tenant DNS
 hosting panel (RFC-0009 §3.2). Deferred phases (live edge, REST API, SQL store,
-provider automation, registrar module) are tracked in `docs/DEBT.md` (DEBT-018).
+provider automation, registrar module) are tracked in `docs/DEBT.md` (DEBT-025).
 
 The data-plane logic (hostname routing, SNI certificate selection,
 canonical/redirect policy) and the runnable HTTP/HTTPS edge listeners live in
@@ -67,6 +67,13 @@ Enables `ag_domains::api`, an `axum` router (`build_router` / `serve`) exposing
 any `AttachmentStore`. The native store keeps it self-hostable; no database is
 required. Covered by `tests/api_rest.rs` (real HTTP). See
 `openapi/ag-domains.v1.yaml`.
+
+### `sql-store` feature (RFC-0009 phase D)
+
+Enables `ag_domains::sql_store::SqlAttachmentStore`, a Postgres-backed
+`AttachmentStore` (sqlx) with an embedded schema/migration. Optional accelerator
+for multi-node operation; the native in-memory/JSON store stays the default
+(ADR-0009). Integration tests are `#[ignore]` and require `DATABASE_URL`.
 
 ## Tech Debt
 

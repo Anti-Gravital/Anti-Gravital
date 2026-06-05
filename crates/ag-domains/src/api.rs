@@ -13,7 +13,7 @@
 //! - `GET    /attachments/{id}/status`  readiness status
 //! - `POST   /attachments/{id}/detach`  detach + tombstone
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -35,13 +35,13 @@ use crate::store::{now_unix, AttachmentStore, StoreError, DEFAULT_TOMBSTONE_SECS
 /// generate DNS instructions.
 #[derive(Clone)]
 pub struct ApiState {
-    store: Arc<Mutex<dyn AttachmentStore + Send>>,
+    store: Arc<dyn AttachmentStore>,
     edge: EdgeTargets,
 }
 
 impl ApiState {
-    /// Builds API state from a store and edge targets.
-    pub fn new(store: Arc<Mutex<dyn AttachmentStore + Send>>, edge: EdgeTargets) -> Self {
+    /// Builds API state from a shared store and edge targets.
+    pub fn new(store: Arc<dyn AttachmentStore>, edge: EdgeTargets) -> Self {
         Self { store, edge }
     }
 }
@@ -280,25 +280,25 @@ async fn create_attachment(
     attachment.recompute_lifecycle();
 
     let dto = AttachmentDto::from(&attachment);
-    {
-        let mut store = state.store.lock().expect("store lock poisoned");
-        store.create(attachment)?;
-    }
+    state.store.create(attachment).await?;
     Ok((StatusCode::CREATED, Json(dto)))
 }
 
-async fn list_attachments(State(state): State<ApiState>) -> Json<Vec<AttachmentDto>> {
-    let store = state.store.lock().expect("store lock poisoned");
-    Json(store.list().iter().map(AttachmentDto::from).collect())
+async fn list_attachments(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<AttachmentDto>>, ApiError> {
+    let all = state.store.list().await?;
+    Ok(Json(all.iter().map(AttachmentDto::from).collect()))
 }
 
 async fn get_attachment(
     State(state): State<ApiState>,
     Path(id): Path<String>,
 ) -> Result<Json<AttachmentDto>, ApiError> {
-    let store = state.store.lock().expect("store lock poisoned");
-    store
+    state
+        .store
         .get_by_id(&id)
+        .await?
         .map(|a| Json(AttachmentDto::from(&a)))
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, format!("no attachment {id}")))
 }
@@ -307,12 +307,11 @@ async fn get_instructions(
     State(state): State<ApiState>,
     Path(id): Path<String>,
 ) -> Result<Json<InstructionsDto>, ApiError> {
-    let attachment = {
-        let store = state.store.lock().expect("store lock poisoned");
-        store
-            .get_by_id(&id)
-            .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, format!("no attachment {id}")))?
-    };
+    let attachment = state
+        .store
+        .get_by_id(&id)
+        .await?
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, format!("no attachment {id}")))?;
 
     let ins = generate_instructions(
         &attachment.hostname,
@@ -339,11 +338,15 @@ async fn detach_attachment(
     State(state): State<ApiState>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    let mut store = state.store.lock().expect("store lock poisoned");
-    let attachment = store
+    let attachment = state
+        .store
         .get_by_id(&id)
+        .await?
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, format!("no attachment {id}")))?;
-    store.detach(attachment.hostname.ascii(), DEFAULT_TOMBSTONE_SECS)?;
+    state
+        .store
+        .detach(attachment.hostname.ascii(), DEFAULT_TOMBSTONE_SECS)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -353,8 +356,7 @@ mod tests {
     use crate::store::InMemoryStore;
 
     fn state() -> ApiState {
-        let store: Arc<Mutex<dyn AttachmentStore + Send>> =
-            Arc::new(Mutex::new(InMemoryStore::new()));
+        let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
         ApiState::new(store, EdgeTargets::new("edge.example-cloud.net"))
     }
 

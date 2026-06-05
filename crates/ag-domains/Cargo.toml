@@ -27,6 +27,9 @@ cloudflare = ["dep:reqwest"]
 # REST API surface for the control plane (RFC-0009 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]
+# SQL-backed attachment store (RFC-0009 phase D, Postgres). Optional accelerator
+# for multi-node operation; the native in-memory/JSON store remains the default.
+sql-store = ["dep:sqlx"]
 
 [dependencies]
 ag-core = { workspace = true }
@@ -46,6 +49,9 @@ reqwest = { workspace = true, optional = true }
 
 # REST API (feature "api")
 axum = { workspace = true, optional = true }
+
+# SQL store (feature "sql-store")
+sqlx = { workspace = true, optional = true }
 
 # Propagacion DNS (hickory-resolver)
 hickory-resolver = { version = "0.26.1", default-features = false, features = ["tokio"], optional = true }

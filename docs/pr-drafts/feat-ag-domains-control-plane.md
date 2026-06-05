@@ -1,17 +1,18 @@
-# ag-domains control plane + ag-edge data plane (ADR-0010 / RFC-0009, phases A-C)
+# ag-domains control plane + ag-edge data plane (ADR-0010 / RFC-0009, phases A-D)
 
 ## Summary
 
 Extends `ag-domains` from a declarative DNS+TLS library into a native domain
 attachment and serving control plane, and adds the `ag-edge` data-plane crate,
-per ADR-0010 / RFC-0009 (phases A, B and C). Additive and non-regressive: the
-existing declarative library, CLI commands and routing are unchanged.
+per ADR-0010 / RFC-0009 (phases A, B, C and D). Additive and non-regressive: the
+existing declarative library and routing are unchanged.
 
 Phase B adds runnable edge listeners in `ag-edge`: an HTTP listener (ACME
 HTTP-01 responder + Host/:authority routing + canonical redirects, fail-closed)
 and an HTTPS listener with SNI certificate selection from a rustls cert store
 (PEM bridge from ACME issuance). Phase C adds the `/v1/domains/...` REST API in
-`ag-domains` backed by the native store. Both have real TCP/TLS/HTTP tests.
+`ag-domains` backed by the native store. Phase D adds an optional Postgres store
+(`sql-store`). All have real TCP/TLS/HTTP tests; SQL via `#[ignore]` tests.
 
 Changes:
 
@@ -31,6 +32,11 @@ Changes:
   `challenge::Http01ChallengeStore`); `server` feature (`server::serve_http`);
   `tls` feature (`cert::CertStore` + `SniCertResolver` + `server::serve_https`).
 - `crates/ag-domains/src/api.rs`: `api` feature — axum `/v1/domains/...` REST API.
+- `crates/ag-domains/src/sql_store.rs`: `sql-store` feature — Postgres
+  `SqlAttachmentStore` (sqlx) + `migrations/0001_*.sql`; `#[ignore]` tests.
+- `AttachmentStore` trait is now async + `&self` (interior mutability); the REST
+  API holds `Arc<dyn AttachmentStore>` (no external Mutex); the CLI runs domain
+  commands on the tokio runtime.
 - `crates/ag-cli/src/main.rs`: `ag domains attach|instructions|export-zone|status|list|verify|detach`.
 - Workspace `Cargo.toml`: `hyper-util` gains `server-auto` + `service` features.
 - Governance/docs: `RFC-0009`, `ADR-0010`, `docs/ag-domains/**`,
@@ -50,14 +56,15 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 
 - `docs/rfc/RFC-0009-ag-domains-control-plane.md`
 - `docs/adr/0010-ag-domains-control-plane.md`
-- `docs/DEBT.md` — DEBT-017 (eTLD+1/PSL), DEBT-018 (deferred phases B-F)
+- `docs/DEBT.md` — DEBT-017 (eTLD+1/PSL), DEBT-018 (deferred phases E-F)
+- `docs/ag-domains/BACKLOG.md` — blueprint gap analysis
 
 ## Test plan
 
-- [x] `cargo test -p ag-domains --all-features` — 82 unit + 4 REST integration + doctests pass
+- [x] `cargo test -p ag-domains --all-features` — 84 unit + 4 REST + 3 ignored SQL + doctests pass
 - [x] `cargo test -p ag-edge --features tls` — 25 unit + 5 HTTP + 1 real HTTPS/SNI pass
 - [x] `cargo build -p ag-cli` — compiles; manual flow smoke-tested
-      (attach apex+subdomain, list, status, export-zone, detach, tombstone block)
+      (attach, list, detach + tombstone re-claim block)
 - [x] `cargo clippy -p ag-domains --all-features --all-targets -- -D warnings` — clean
 - [x] `cargo clippy -p ag-edge --all-features --all-targets -- -D warnings` — clean
 - [x] `cargo clippy -p ag-cli --all-targets -- -D warnings` — clean
@@ -65,9 +72,10 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 
 ## Exit criteria advanced
 
-- RFC-0009 phases A, B and C delivered: control-plane library + manual CLI flow,
-  live edge listeners (HTTP-01 + routing + HTTPS/SNI), and the REST API.
-- Deferred phases D-F (SQL store, provider automation, registrar) tracked in DEBT-018.
+- RFC-0009 phases A, B, C and D delivered: control-plane library + manual CLI
+  flow, live edge listeners (HTTP-01 + routing + HTTPS/SNI), the REST API, and
+  the optional Postgres store.
+- Deferred phases E-F (provider automation, registrar) tracked in DEBT-018.
 
 ## Final checklist
 

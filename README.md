@@ -149,8 +149,11 @@ HTTP listener (ACME HTTP-01 responder + Host/:authority routing + canonical
 redirects, fail-closed for unknown hosts) and an HTTPS listener that selects
 certificates by SNI from a rustls store (with a PEM bridge from ACME issuance);
 `ag-domains` (`api` feature) exposes the `/v1/domains/...` REST API backed by the
-native store. Both are covered by real TCP/TLS/HTTP integration tests. Remaining
-(RFC-0009 D-F): SQL-backed store, provider automation, and the registrar module.
+native store. Phase D adds an optional Postgres store (`sql-store` feature,
+`SqlAttachmentStore` + migration) while the native store stays the default. All
+covered by real TCP/TLS/HTTP integration tests (SQL via `#[ignore]` tests
+requiring `DATABASE_URL`). Remaining (RFC-0009 E-F): provider automation and the
+registrar module.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -413,9 +416,11 @@ un listener HTTP real (responder ACME HTTP-01 + enrutado por Host/:authority +
 redirecciones canonicas, fail-closed para hosts desconocidos) y un listener
 HTTPS que selecciona certificados por SNI desde un almacen rustls (con puente
 PEM desde la emision ACME); `ag-domains` (feature `api`) expone la API REST
-`/v1/domains/...` respaldada por el almacen nativo. Ambas con tests de
-integracion reales sobre TCP/TLS/HTTP. Pendiente (RFC-0009 D-F): almacen SQL,
-automatizacion de proveedores y el modulo registrador.
+`/v1/domains/...` respaldada por el almacen nativo. La fase D anade un almacen
+Postgres opcional (feature `sql-store`, `SqlAttachmentStore` + migracion)
+manteniendo el nativo como predeterminado. Todo con tests de integracion reales
+sobre TCP/TLS/HTTP (SQL via tests `#[ignore]` que requieren `DATABASE_URL`).
+Pendiente (RFC-0009 E-F): automatizacion de proveedores y el modulo registrador.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

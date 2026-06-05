@@ -1,7 +1,7 @@
 //! Integration tests for the control-plane REST API over real HTTP.
 #![cfg(feature = "api")]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use ag_domains::api::{build_router, ApiState};
 use ag_domains::instructions::EdgeTargets;
@@ -9,7 +9,7 @@ use ag_domains::store::{AttachmentStore, InMemoryStore};
 use serde_json::Value;
 
 async fn start() -> String {
-    let store: Arc<Mutex<dyn AttachmentStore + Send>> = Arc::new(Mutex::new(InMemoryStore::new()));
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
     let edge = EdgeTargets::new("edge.example-cloud.net");
     let state = ApiState::new(store, edge);
     let app = build_router(state);

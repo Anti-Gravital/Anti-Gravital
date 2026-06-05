@@ -31,4 +31,4 @@ Ownership is proven once at the registrable domain (`example.com`) via a TXT
 record under `_ag-domain`, so a single proof covers the apex and its
 subdomains. Deriving the registrable domain correctly for multi-label public
 suffixes (`co.uk`) needs the Public Suffix List; the current heuristic uses the
-last two labels and is tracked as tech debt (DEBT-017).
+last two labels and is tracked as tech debt (DEBT-024).

@@ -5,9 +5,9 @@ Documentation for the `ag-domains` control plane and the `ag-edge` data plane
 
 This documents the implemented control plane and data plane: the control-plane
 library, the data-plane library, the manual CLI flow (phase A), the live edge
-listeners (HTTP-01 + routing + HTTPS/SNI, phase B) and the REST API (phase C).
-The SQL store and provider automation are later phases (see `docs/DEBT.md`,
-DEBT-018).
+listeners (HTTP-01 + routing + HTTPS/SNI, phase B), the REST API (phase C) and
+the optional Postgres store (phase D). Provider automation and the registrar
+module are later phases (see `docs/DEBT.md`, DEBT-025).
 
 ## Structure
 

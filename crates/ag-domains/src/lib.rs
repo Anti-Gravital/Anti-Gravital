@@ -59,6 +59,9 @@ pub mod store;
 #[cfg(feature = "api")]
 pub mod api;
 
+#[cfg(feature = "sql-store")]
+pub mod sql_store;
+
 pub use attachment::DomainAttachment;
 pub use error::AgDomainsError;
 pub use hostname::{Hostname, HostnameKind};

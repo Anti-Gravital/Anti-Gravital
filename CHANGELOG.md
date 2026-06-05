@@ -7,6 +7,30 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains/ag-edge: edge en vivo + API REST (RFC-0009, fases B y C)
+
+Anadido:
+
+- `crates/ag-edge` feature `server`: listener HTTP ejecutable (`serve_http`,
+  axum) que sirve el challenge ACME HTTP-01 (`Http01ChallengeStore` +
+  `acme_challenge_token`, con proteccion ante path traversal), aplica politica
+  canonica/redireccion y enruta por `Host`/`:authority` con fail-closed para
+  hosts desconocidos. Tests de integracion sobre TCP real.
+- `crates/ag-edge` feature `tls`: almacen `CertStore` de certificados rustls
+  (exacto + wildcard) con puente PEM desde la salida de emision ACME
+  (`insert_pem`), `SniCertResolver` (RFC 6066) y `serve_https`. Test de
+  integracion con handshake TLS real verificando seleccion por SNI.
+- `crates/ag-domains` feature `api`: API REST `/v1/domains/attachments`
+  (crear/listar/obtener/instructions/status/detach) respaldada por cualquier
+  `AttachmentStore`, con mapeo de errores a codigos HTTP. Tests de integracion
+  sobre HTTP real (`tests/api_rest.rs`).
+- `openapi/ag-domains.v1.yaml` actualizado al contrato implementado.
+
+Cambios de workspace:
+
+- `hyper-util`: features `server-auto` y `service` anadidas (para el listener
+  HTTPS del edge).
+
 ### ag-domains plano de control + ag-edge (ADR-0010 / RFC-0009, fase A)
 
 Anadido:

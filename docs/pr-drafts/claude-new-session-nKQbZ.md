@@ -1,11 +1,17 @@
-# ag-domains control plane + ag-edge data plane (ADR-0010 / RFC-0009, phase A)
+# ag-domains control plane + ag-edge data plane (ADR-0010 / RFC-0009, phases A-C)
 
 ## Summary
 
 Extends `ag-domains` from a declarative DNS+TLS library into a native domain
 attachment and serving control plane, and adds the `ag-edge` data-plane crate,
-per ADR-0010 / RFC-0009 (phase A). Additive and non-regressive: the existing
-declarative library, CLI commands and routing are unchanged.
+per ADR-0010 / RFC-0009 (phases A, B and C). Additive and non-regressive: the
+existing declarative library, CLI commands and routing are unchanged.
+
+Phase B adds runnable edge listeners in `ag-edge`: an HTTP listener (ACME
+HTTP-01 responder + Host/:authority routing + canonical redirects, fail-closed)
+and an HTTPS listener with SNI certificate selection from a rustls cert store
+(PEM bridge from ACME issuance). Phase C adds the `/v1/domains/...` REST API in
+`ag-domains` backed by the native store. Both have real TCP/TLS/HTTP tests.
 
 Changes:
 
@@ -20,11 +26,15 @@ Changes:
 - `crates/ag-domains/src/caa.rs`: CAA preflight (pure decision + resolver query).
 - `crates/ag-domains/src/diagnostics.rs`: expected vs observed comparison.
 - `crates/ag-domains/Cargo.toml`, workspace `Cargo.toml`: `idna`, `uuid` deps.
-- `crates/ag-edge/*`: new crate — `router::resolve_hostname`, `tls::SniCertStore`
-  + `allow_on_demand`, `redirect::CanonicalPolicy`.
+- `crates/ag-edge/*`: new crate — pure logic (`router::resolve_hostname`,
+  `tls::SniCertStore` + `allow_on_demand`, `redirect::CanonicalPolicy`,
+  `challenge::Http01ChallengeStore`); `server` feature (`server::serve_http`);
+  `tls` feature (`cert::CertStore` + `SniCertResolver` + `server::serve_https`).
+- `crates/ag-domains/src/api.rs`: `api` feature — axum `/v1/domains/...` REST API.
 - `crates/ag-cli/src/main.rs`: `ag domains attach|instructions|export-zone|status|list|verify|detach`.
+- Workspace `Cargo.toml`: `hyper-util` gains `server-auto` + `service` features.
 - Governance/docs: `RFC-0009`, `ADR-0010`, `docs/ag-domains/**`,
-  `openapi/ag-domains.v1.yaml` (phase-C draft), README/CHANGELOG/DEBT updates.
+  `openapi/ag-domains.v1.yaml` (implemented contract), README/CHANGELOG/DEBT updates.
 
 ## Phase affected
 
@@ -44,20 +54,20 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 
 ## Test plan
 
-- [x] `cargo test -p ag-domains --all-features` — 80 tests + doctests pass
-- [x] `cargo test -p ag-edge` — 17 tests pass
+- [x] `cargo test -p ag-domains --all-features` — 82 unit + 4 REST integration + doctests pass
+- [x] `cargo test -p ag-edge --features tls` — 25 unit + 5 HTTP + 1 real HTTPS/SNI pass
 - [x] `cargo build -p ag-cli` — compiles; manual flow smoke-tested
       (attach apex+subdomain, list, status, export-zone, detach, tombstone block)
-- [x] `cargo fmt --check -p ag-domains -p ag-edge -p ag-cli` — clean
 - [x] `cargo clippy -p ag-domains --all-features --all-targets -- -D warnings` — clean
-- [x] `cargo clippy -p ag-edge --all-targets -- -D warnings` — clean
+- [x] `cargo clippy -p ag-edge --all-features --all-targets -- -D warnings` — clean
 - [x] `cargo clippy -p ag-cli --all-targets -- -D warnings` — clean
 - [x] `cargo build --workspace` — no errors
 
 ## Exit criteria advanced
 
-- RFC-0009 phase A delivered (control plane library, ag-edge, manual CLI flow).
-- Deferred phases B-F tracked in DEBT-018.
+- RFC-0009 phases A, B and C delivered: control-plane library + manual CLI flow,
+  live edge listeners (HTTP-01 + routing + HTTPS/SNI), and the REST API.
+- Deferred phases D-F (SQL store, provider automation, registrar) tracked in DEBT-018.
 
 ## Final checklist
 

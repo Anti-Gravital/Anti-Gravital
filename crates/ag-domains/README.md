@@ -57,7 +57,16 @@ hosting panel (RFC-0009 §3.2). Deferred phases (live edge, REST API, SQL store,
 provider automation, registrar module) are tracked in `docs/DEBT.md` (DEBT-018).
 
 The data-plane logic (hostname routing, SNI certificate selection,
-canonical/redirect policy) lives in the `ag-edge` crate.
+canonical/redirect policy) and the runnable HTTP/HTTPS edge listeners live in
+the `ag-edge` crate.
+
+### `api` feature (RFC-0009 phase C)
+
+Enables `ag_domains::api`, an `axum` router (`build_router` / `serve`) exposing
+`/v1/domains/attachments` (create/list/get/instructions/status/detach) backed by
+any `AttachmentStore`. The native store keeps it self-hostable; no database is
+required. Covered by `tests/api_rest.rs` (real HTTP). See
+`openapi/ag-domains.v1.yaml`.
 
 ## Tech Debt
 

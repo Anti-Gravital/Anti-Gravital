@@ -56,6 +56,9 @@ pub mod instructions;
 pub mod ownership;
 pub mod store;
 
+#[cfg(feature = "api")]
+pub mod api;
+
 pub use attachment::DomainAttachment;
 pub use error::AgDomainsError;
 pub use hostname::{Hostname, HostnameKind};

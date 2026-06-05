@@ -98,7 +98,7 @@ edge logic can be unit-tested in isolation first).
 ## 5. Phased plan (additive, non-regressive)
 
 ```text
-Phase A (this RFC, first installment):
+Phase A (DONE):
   - hostname normalization + classification (idna)
   - attachment state machine types
   - attachment store trait + in-memory + JSON-file native impls
@@ -107,21 +107,30 @@ Phase A (this RFC, first installment):
   - CAA preflight
   - diagnostics (expected vs observed)
   - ag-edge crate: resolve_hostname + canonical/redirect policy + SNI selector
-  - ag-cli: attach / status / detach / instructions / export-zone / diagnose
-  - docs (Diataxis skeleton), OpenAPI skeleton, README/CHANGELOG sync
+  - ag-cli: attach / status / list / detach / instructions / export-zone / verify
+  - docs (Diataxis), OpenAPI, README/CHANGELOG sync
 
-Phase B (later): live edge listeners (80/443), HTTP-01 responder wired to
-  the running edge, SNI certificate serving end to end.
+Phase B (DONE): live edge listeners behind the `server`/`tls` features in
+  ag-edge. serve_http (axum) serves the ACME HTTP-01 challenge, applies
+  canonical/redirect policy and routes by Host/:authority (fail-closed for
+  unknown hosts). serve_https selects certificates by SNI from a rustls
+  CertStore with a PEM bridge from the ACME issuance output. Covered by real
+  TCP/TLS integration tests.
 
-Phase C (later): REST API surface (/v1/domains/...) backed by the store,
-  behind an `api` feature; OpenAPI fully populated.
+Phase C (DONE): REST API behind the `api` feature in ag-domains
+  (/v1/domains/attachments ...), backed by any AttachmentStore. Covered by
+  real-HTTP integration tests. OpenAPI updated to the implemented contract.
 
 Phase D (later): SQL-backed store (Postgres) behind a `sql-store` feature.
+  Real tests require a database (testcontainers / DATABASE_URL), per the
+  repo's existing `#[ignore]` convention for service-backed tests.
 
-Phase E (later): provider automation (Domain Connect, additional adapters),
-  DNS-01 wildcard automation.
+Phase E (later): provider automation (Domain Connect, additional adapters).
+  DNS-01 issuance already exists in `ag-domains::acme` (used for wildcards).
+  Real provider apply requires credentials, exercised via `#[ignore]` tests.
 
-Phase F (later): ag-registrars design proposal (separate module).
+Phase F (later): ag-registrars design proposal (separate module). Not stubbed:
+  it remains a documented future module until designed.
 ```
 
 Each phase keeps the previous behavior intact. No phase removes a working path.

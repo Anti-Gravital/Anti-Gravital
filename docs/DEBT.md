@@ -153,15 +153,18 @@ findings were fixed in-branch and are not listed here.
   keeps working offline.
 - Status: open. Severity: Medium. Source: RFC-0009 §7.
 
-### DEBT-018 — ag-domains control plane deferred phases (RFC-0009 B-F)
-- Reason: phase A landed the control-plane library, the `ag-edge` data-plane
-  library and the manual CLI flow. Live edge listeners (80/443) + HTTP-01
-  responder (phase B), REST API `/v1/domains/...` (phase C), SQL-backed store
-  (phase D), provider automation / Domain Connect / DNS-01 wildcards (phase E)
-  and the `ag-registrars` module (phase F) are not implemented.
-- Impact: native serving of HTTPS for an attached hostname is not wired end to
-  end yet; attachment, instructions, ownership proof and routing logic exist and
-  are tested in isolation.
-- Expected removal: implement phases B-F per RFC-0009, each additive and
-  feature-gated with a native default.
+### DEBT-018 — ag-domains control plane deferred phases (RFC-0009 D-F)
+- Reason: phases A, B and C are implemented. A = control-plane library + manual
+  CLI flow. B = live edge listeners (`ag-edge` `server`/`tls` features): HTTP-01
+  responder, Host/:authority routing, canonical redirects and HTTPS with SNI
+  certificate selection (real TCP/TLS integration tests). C = REST API
+  (`ag-domains` `api` feature) with real-HTTP integration tests. Remaining:
+  SQL-backed store (phase D), provider automation / Domain Connect / additional
+  adapters (phase E), and the `ag-registrars` module (phase F).
+- Impact: D/E/F require external services (Postgres, provider credentials) to
+  exercise end to end; the native default flow (attach -> instructions ->
+  ownership -> serve HTTPS via edge) is complete and tested.
+- Expected removal: implement phases D-F per RFC-0009, each additive and
+  feature-gated with a native default; service-backed tests use the repo's
+  `#[ignore]` convention.
 - Status: open. Severity: Medium. Source: RFC-0009 §5.

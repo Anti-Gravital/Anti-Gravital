@@ -126,11 +126,17 @@ serving control plane: hostname normalization/classification, an attachment
 state machine, a native attachment store (in-memory + JSON file), TXT ownership
 proof, a DNS instruction engine with BIND zone export, CAA preflight and
 diagnostics. A new crate `ag-edge` holds the data-plane logic (hostname
-routing, SNI certificate selection, canonical/redirect policy) as a pure,
-unit-tested library. New CLI commands: `ag domains attach`, `instructions`,
-`export-zone`, `status`, `list`, `verify`, `detach`. Manual attachment requires
-no provider credentials. Live edge listeners, a REST API and a SQL store are
-later phases tracked in RFC-0009.
+routing, SNI certificate selection, canonical/redirect policy). New CLI
+commands: `ag domains attach`, `instructions`, `export-zone`, `status`, `list`,
+`verify`, `detach`. Manual attachment requires no provider credentials.
+
+Phases B and C are implemented: `ag-edge` (`server`/`tls` features) runs a real
+HTTP listener (ACME HTTP-01 responder + Host/:authority routing + canonical
+redirects, fail-closed for unknown hosts) and an HTTPS listener that selects
+certificates by SNI from a rustls store (with a PEM bridge from ACME issuance);
+`ag-domains` (`api` feature) exposes the `/v1/domains/...` REST API backed by the
+native store. Both are covered by real TCP/TLS/HTTP integration tests. Remaining
+(RFC-0009 D-F): SQL-backed store, provider automation, and the registrar module.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
@@ -372,11 +378,18 @@ attachment, almacen nativo (en memoria + archivo JSON), prueba de propiedad TXT,
 motor de instrucciones DNS con exportacion a zona BIND, preflight CAA y
 diagnosticos. Un crate nuevo `ag-edge` contiene la logica de plano de datos
 (enrutado por hostname, seleccion de certificado por SNI, politica
-canonica/redireccion) como libreria pura y probada. Comandos CLI nuevos:
-`ag domains attach`, `instructions`, `export-zone`, `status`, `list`, `verify`,
-`detach`. El attachment manual no requiere credenciales de proveedor. Los
-listeners de edge en vivo, una API REST y un almacen SQL son fases posteriores
-seguidas en RFC-0009.
+canonica/redireccion). Comandos CLI nuevos: `ag domains attach`,
+`instructions`, `export-zone`, `status`, `list`, `verify`, `detach`. El
+attachment manual no requiere credenciales de proveedor.
+
+Las fases B y C estan implementadas: `ag-edge` (features `server`/`tls`) corre
+un listener HTTP real (responder ACME HTTP-01 + enrutado por Host/:authority +
+redirecciones canonicas, fail-closed para hosts desconocidos) y un listener
+HTTPS que selecciona certificados por SNI desde un almacen rustls (con puente
+PEM desde la emision ACME); `ag-domains` (feature `api`) expone la API REST
+`/v1/domains/...` respaldada por el almacen nativo. Ambas con tests de
+integracion reales sobre TCP/TLS/HTTP. Pendiente (RFC-0009 D-F): almacen SQL,
+automatizacion de proveedores y el modulo registrador.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

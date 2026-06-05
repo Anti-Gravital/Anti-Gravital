@@ -7,6 +7,31 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.6-A - Implementacion: motor MTA outbound nativo de ag-mail (opt-in)
+
+Aditivo. Nueva feature de Cargo `mta` en `ag-mail`, apagada por defecto; el
+sender por defecto y los adapters no cambian (ADR-0010 / RFC-0009).
+
+Anadido:
+
+- `crates/ag-mail` feature `mta`: `sender::mta::MtaSender` (implementa
+  `MailSender`) con entrega directa al MX destino via ESMTP+STARTTLS
+  (`mail-send`), agrupacion de destinatarios por dominio y construccion MIME
+  RFC 5322 (`mail-builder`).
+- `sender::mta::resolve`: resolucion MX (`hickory-resolver`) con orden por
+  preferencia, rollup `site_name` y fallback de MX implicito (RFC 5321).
+- `sender::mta::dkim`: firma DKIM Ed25519 (RFC 8463) aplicada al final;
+  el material de clave lo aporta el llamador / `ag-domains`.
+- `sender::mta::bounce`: clasificador de bounces SMTP/RFC 3463 (transitorio
+  vs permanente), puro y unit-testeado.
+- Nuevas variantes de error `AgMailError::{Dns, NoMailHost, Dkim}`.
+- Dependencias opcionales tras `mta`: `mail-send 0.6` (features `builder`,
+  `ring`, `tls12`), `mail-auth 0.9` (`ring`), `hickory-resolver 0.26`.
+
+Notas: la ruta de entrega en vivo se cubre con tests `#[ignore]` (requiere
+red/puerto 25). Deuda registrada en `docs/DEBT.md` (DEBT-012 RSA DKIM,
+DEBT-013 metricas+CI, DEBT-014 colas/shaping/DSN-FBL).
+
 ### Gobernanza - Pivot ag-mail a MTA outbound nativo (2026-06-03)
 
 Solo documentacion y gobernanza; sin codigo funcional nuevo.

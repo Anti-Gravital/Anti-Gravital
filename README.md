@@ -35,10 +35,11 @@ It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
 PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
 scientific computing framework. `ag-mail` is not a full mail server:
 it sends outbound transactional email; it does not host mailboxes and
-does not implement IMAP/POP. A native outbound MTA expansion (direct
-MX delivery, DKIM signing, bounce processing — still no mailboxes,
-still opt-in) is planned per `ADR-0010` and is not yet implemented.
-`ag-domains` is not a domain registrar: domains are
+does not implement IMAP/POP. A native outbound MTA core (direct MX
+delivery, ESMTP+STARTTLS, Ed25519 DKIM signing, bounce classification)
+is available as the opt-in `mta` feature per `ADR-0010` (Phase 4.6-A);
+it is off by default and still hosts no mailboxes. `ag-domains` is not
+a domain registrar: domains are
 purchased externally. See the scope chapter at
 `docs/architecture/03-alcance-y-limites.md`.
 
@@ -274,9 +275,10 @@ reemplaza Next.js. No reemplaza Docker. No reemplaza PostgreSQL,
 Redis, MinIO ni NATS. No es un motor de juegos ni un framework de
 computo cientifico. `ag-mail` no es un servidor de correo completo:
 envia correo outbound transaccional, no aloja buzones ni implementa
-IMAP/POP. Una expansion a MTA outbound nativo (entrega MX directa,
-firma DKIM, procesado de bounces, sin buzones, opt-in) esta planeada
-en `ADR-0010` y aun no esta implementada. `ag-domains`
+IMAP/POP. Un nucleo de MTA outbound nativo (entrega MX directa,
+ESMTP+STARTTLS, firma DKIM Ed25519, clasificacion de bounces) esta
+disponible como feature opt-in `mta` segun `ADR-0010` (Fase 4.6-A);
+esta apagado por defecto y sigue sin alojar buzones. `ag-domains`
 no es un registrador de dominios: el dominio se compra externamente.
 Vease el capitulo de alcance en
 `docs/architecture/03-alcance-y-limites.md`.

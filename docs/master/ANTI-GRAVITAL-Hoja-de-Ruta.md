@@ -384,11 +384,13 @@ That `ADR-0007` boundary has now moved, via the new ADR it required.
 `ADR-0010` (2026-06-03) supersedes the v1 "NOT an MTA / inbound never"
 restriction and expands `ag-mail` into a native outbound MTA, phased and
 opt-in behind Cargo features, preserving the Native | Adapter pattern and the
-implemented Phase 4.5 baseline. The work is forward Phase 4.6 (`RFC-0009`
+implemented Phase 4.5 baseline. The work is phased Phase 4.6 (`RFC-0009`
 section 5: stages A-D) plus continuous deliverability hardening in Phase 5+.
-Phase 4.5 stays complete for its original outbound-relay scope; the native MTA
-is not claimed as implemented. The ESP adapters remain the recommended
-production path until native deliverability is proven.
+Phase 4.6-A (the native MTA core: MX resolution, ESMTP+STARTTLS delivery,
+Ed25519 DKIM signing and bounce classification) is implemented behind the
+opt-in `mta` Cargo feature; stages 4.6-B..D remain forward work. Phase 4.5
+stays complete for its original outbound-relay scope. The provider adapters
+remain a supported production path until native deliverability is proven.
 
 ---
 
@@ -1021,12 +1023,14 @@ Esa frontera de `ADR-0007` ya se movió, mediante el nuevo ADR que ella misma
 exigía. `ADR-0010` (2026-06-03) supersede la restricción v1 "NO es un MTA /
 inbound nunca" y expande `ag-mail` a un MTA outbound nativo, por fases y
 opt-in tras features de Cargo, conservando el patrón Native | Adapter y el
-baseline implementado de la Fase 4.5. El trabajo es la Fase 4.6 futura
+baseline implementado de la Fase 4.5. El trabajo es la Fase 4.6 por fases
 (`RFC-0009` sección 5: etapas A-D) más endurecimiento continuo de
-entregabilidad en la Fase 5+. La Fase 4.5 sigue completa para su alcance de
-relay outbound original; el MTA nativo no se declara implementado. Los
-adapters de proveedor siguen siendo la ruta de producción recomendada hasta
-demostrar la entregabilidad nativa.
+entregabilidad en la Fase 5+. La Fase 4.6-A (núcleo del MTA: resolución MX,
+entrega ESMTP+STARTTLS, firma DKIM Ed25519 y clasificación de bounces) está
+implementada tras la feature opt-in `mta`; las etapas 4.6-B..D siguen siendo
+trabajo futuro. La Fase 4.5 sigue completa para su alcance de relay outbound
+original. Los adapters de proveedor siguen siendo una ruta de producción
+soportada hasta demostrar la entregabilidad nativa.
 
 ---
 

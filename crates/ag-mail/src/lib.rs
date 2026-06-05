@@ -13,12 +13,25 @@
 //! external template engines) is tracked in `docs/DEBT.md`. Governing decision:
 //! `ADR-0007`; technical plan: `RFC-0006`.
 //!
+//! # Native MTA (opt-in, `mta` feature)
+//!
+//! Phase 4.6-A adds an opt-in native outbound MTA behind the `mta` feature:
+//! [`sender::mta::MtaSender`] resolves the destination MX, opens an ESMTP
+//! session with opportunistic STARTTLS, signs with DKIM (Ed25519), and
+//! delivers directly to the recipient server, plus a pure bounce classifier
+//! ([`sender::mta::bounce`]). This is additive: the default sender and the
+//! provider adapters are unchanged, and the feature is off by default.
+//! Governing decision: `ADR-0010`; technical plan: `RFC-0009`. Durable queues,
+//! traffic shaping, the REST API, and DSN/FBL processing are later phases.
+//!
 //! # Scope
 //!
-//! Outbound only. It is **not** an MTA, it does **not** receive email, it
-//! does **not** offer IMAP/POP or antispam. See
+//! Outbound only. Even with the `mta` feature it does **not** receive email
+//! (beyond future DSN/FBL parsing for bounces), does **not** offer IMAP/POP,
+//! and is **not** a complete mail server. See
 //! `docs/architecture/08-modulos-batteries-included.md` section 8.8 and the
-//! ADR `docs/adr/0007-ag-mail-ag-domains.md`.
+//! ADRs `docs/adr/0007-ag-mail-ag-domains.md` and
+//! `docs/adr/0010-ag-mail-native-mta-pivot.md`.
 //!
 //! # Dependency direction
 //!

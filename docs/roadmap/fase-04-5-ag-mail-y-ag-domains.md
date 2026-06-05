@@ -102,8 +102,10 @@ exigía. `ADR-0010` (2026-06-03) supersede la restricción v1 "NO es un MTA /
 inbound nunca" y expande `ag-mail` a un MTA outbound nativo, por fases y
 opt-in tras features de Cargo, conservando el patrón Native | Adapter y el
 baseline implementado de la Fase 4.5. Plan técnico: `RFC-0009`. La Fase 4.5
-sigue completa para su alcance original; el MTA nativo es trabajo futuro, no
-implementado. Origen de la decisión:
+sigue completa para su alcance original. La Fase 4.6-A (núcleo del MTA:
+resolución MX, ESMTP+STARTTLS, firma DKIM Ed25519, clasificación de bounces)
+está implementada tras la feature opt-in `mta`; 4.6-B..D siguen pendientes.
+Origen de la decisión:
 [docs/adr/0010-ag-mail-native-mta-pivot.md](../adr/0010-ag-mail-native-mta-pivot.md).
 
 ---

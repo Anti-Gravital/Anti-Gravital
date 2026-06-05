@@ -46,7 +46,7 @@ jobs:
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6"
           expected_arch="b3752b155dc9269238a13d81e8fae7f342c321c0e13a3826e144fe1e7f2a0ad6"
-          expected_road="cf7bc8ae7f0914374c08cc978637762941f4ad5af112242f6e37d475491b2d36"
+          expected_road="07d0ad40ac7f19a169e9507ba7a581f770b72e38115c526563614bca2c434b4b"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"

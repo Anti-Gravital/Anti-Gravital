@@ -1,24 +1,28 @@
-//! Native outbound MTA engine (Phase 4.6-A).
+//! Native outbound MTA engine (Phases 4.6-A and 4.6-B).
 //!
 //! `MtaSender` is a new, opt-in [`MailSender`](crate::sender::MailSender) that
 //! delivers mail **directly** to the recipients' mail servers instead of
 //! relaying through an SMTP host or a provider HTTP API. It resolves the
-//! destination MX, opens an ESMTP session with opportunistic STARTTLS, signs
-//! the message with DKIM, and submits it.
+//! destination MX, optionally selects an egress source (source IP + EHLO) from
+//! a weighted pool, opens an ESMTP session with opportunistic STARTTLS, signs
+//! the message with DKIM (Ed25519 or RSA), and submits it.
 //!
-//! This is additive: it does not replace the default `SmtpSender` relay or any
-//! provider adapter, and it lives behind the `mta` Cargo feature. Durable
-//! scheduled/ready queues, per-`site_name` traffic shaping, egress IP pools,
-//! and asynchronous DSN/FBL processing are later phases (`RFC-0009`); this
-//! phase is the synchronous direct-delivery core plus bounce classification.
+//! This is additive: it does not replace the default `SmtpSender` relay, and it
+//! lives behind the `mta` Cargo feature. Implemented: MX resolution
+//! ([`resolve`]), egress sources/pools ([`egress`]), DKIM signing ([`dkim`]),
+//! bounce classification ([`bounce`]), and `ag-observe` metrics. Durable
+//! scheduled/ready queues, per-`site_name` traffic shaping, and asynchronous
+//! DSN/FBL processing are later parts of Phase 4.6-B (`RFC-0009`).
 //!
 //! Governing decision: `ADR-0010`; technical plan: `RFC-0009`.
 
 pub mod bounce;
 pub mod dkim;
+pub mod egress;
 pub mod resolve;
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use mail_send::{
@@ -34,6 +38,7 @@ use crate::{
 };
 
 pub use dkim::DkimConfig;
+pub use egress::{EgressPool, EgressSource};
 pub use resolve::ResolverConfigMta;
 
 /// Configuration for the native MTA sender.
@@ -53,6 +58,10 @@ pub struct MtaConfig {
     /// Optional DKIM signing configuration. When `None`, messages are sent
     /// unsigned (not recommended for production).
     pub dkim: Option<DkimConfig>,
+    /// Optional egress pool. When set, each delivery picks a source (source IP
+    /// and EHLO name) by weighted round-robin; when `None`, the OS default
+    /// route and `helo_host` are used.
+    pub egress: Option<Arc<EgressPool>>,
 }
 
 impl MtaConfig {
@@ -64,12 +73,19 @@ impl MtaConfig {
             opportunistic_tls: true,
             resolver: ResolverConfigMta::default(),
             dkim: None,
+            egress: None,
         }
     }
 
     /// Sets the DKIM signing configuration.
     pub fn with_dkim(mut self, dkim: DkimConfig) -> Self {
         self.dkim = Some(dkim);
+        self
+    }
+
+    /// Sets the egress pool used to pick the source IP and EHLO per delivery.
+    pub fn with_egress(mut self, pool: Arc<EgressPool>) -> Self {
+        self.egress = Some(pool);
         self
     }
 
@@ -135,6 +151,7 @@ impl MtaSender {
         recipients: &[String],
         content: &[u8],
         from: &str,
+        egress: Option<&EgressSource>,
     ) -> Result<(), AgMailError> {
         let hosts = resolve::resolve_mx(domain, &self.config.resolver).await?;
         if hosts.is_empty() {
@@ -145,7 +162,10 @@ impl MtaSender {
         let mut last_err: Option<AgMailError> = None;
 
         for host in &hosts {
-            match self.submit(&host.exchange, from, &rcpts, content).await {
+            match self
+                .submit(&host.exchange, from, &rcpts, content, egress)
+                .await
+            {
                 Ok(()) => return Ok(()),
                 Err(err) => {
                     crate::metrics::record_retry("mta");
@@ -170,11 +190,18 @@ impl MtaSender {
         from: &str,
         rcpts: &[&str],
         content: &[u8],
+        egress: Option<&EgressSource>,
     ) -> Result<(), AgMailError> {
+        // The egress source, when present, overrides the EHLO name and binds
+        // the outgoing socket to a specific source IP.
+        let helo = egress.map_or(self.config.helo_host.as_str(), |s| s.ehlo_domain.as_str());
         let mut builder = SmtpClientBuilder::new(mx_host, self.config.port)
             .map_err(|e| AgMailError::Config(e.to_string()))?
             .implicit_tls(false)
-            .helo_host(self.config.helo_host.clone());
+            .helo_host(helo.to_owned());
+        if let Some(ip) = egress.and_then(|s| s.source_ip) {
+            builder = builder.local_ip(ip);
+        }
         if self.config.opportunistic_tls {
             builder = builder.allow_invalid_certs();
         }
@@ -204,9 +231,18 @@ impl MailSender for MtaSender {
         let outcome = async {
             let content = self.render(email)?;
             let groups = group_recipients_by_domain(email)?;
+            // Pick one egress identity for the whole message so its EHLO and
+            // source IP stay consistent across domains and MX retries.
+            let egress = self.config.egress.as_ref().map(|pool| pool.select());
             for (domain, recipients) in groups {
-                self.deliver_domain(&domain, &recipients, &content, &email.from.email)
-                    .await?;
+                self.deliver_domain(
+                    &domain,
+                    &recipients,
+                    &content,
+                    &email.from.email,
+                    egress.as_ref(),
+                )
+                .await?;
             }
             Ok::<(), AgMailError>(())
         }
@@ -321,7 +357,26 @@ mod tests {
         assert_eq!(cfg.port, 25);
         assert!(cfg.opportunistic_tls);
         assert!(cfg.dkim.is_none());
+        assert!(cfg.egress.is_none());
         assert_eq!(MtaSender::new(cfg).name(), "mta");
+    }
+
+    #[test]
+    fn config_with_egress_pool() {
+        let pool = EgressPool::new(
+            "tenant-a",
+            vec![
+                EgressSource::new("ip1", "mx1.send.example").with_weight(3),
+                EgressSource::new("ip2", "mx2.send.example"),
+            ],
+        )
+        .unwrap();
+        let cfg = MtaConfig::new("mail.send.example").with_egress(Arc::new(pool));
+        let egress = cfg.egress.as_ref().expect("egress set");
+        assert_eq!(egress.len(), 2);
+        // Selection cycles through the pool deterministically.
+        let first = egress.select();
+        assert!(["ip1", "ip2"].contains(&first.name.as_str()));
     }
 
     #[test]

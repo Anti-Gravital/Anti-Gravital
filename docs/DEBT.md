@@ -25,10 +25,14 @@ CLAUDE.md section 29.
   and skipped gracefully.
 
 ### DEBT-003 — External template engines
-- Reason: only the built-in `StringTemplate` engine exists.
-- Impact: no askama/minijinja support; no compile-time variable validation vs DSL.
-- Expected removal: future plan; trait-based engine selection.
-- Status: open. Target: Phase 5+.
+- Reason: only the built-in `StringTemplate` (`{{var}}` substitution) engine
+  existed; templates with loops/conditionals/filters were not supported.
+- Status: closed (2026-06-04). The `MailTemplate` trait already abstracts the
+  engine; `template::jinja::MinijinjaTemplate` (feature `minijinja`) implements
+  it over the `minijinja` engine, supporting loops, conditionals and filters,
+  as a drop-in alternative. `StringTemplate` stays the default with no extra
+  dependency. Compile-time variable validation against the DSL remains via
+  `template::validate` (unchanged).
 
 ### DEBT-017 — Native MTA: RSA DKIM keys
 - Reason: `sender::mta::dkim` (feature `mta`) initially signed with Ed25519 only.

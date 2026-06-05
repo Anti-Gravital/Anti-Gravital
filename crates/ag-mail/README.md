@@ -61,6 +61,9 @@ esta documentada como sexta regla de dependencias en
 
 - `smtp` (default): relay SMTP nativo (apuntable a cualquier proveedor externo).
 - `templates` (default): built-in StringTemplate rendering.
+- `minijinja` (opt-in): external Jinja2-style template engine
+  (`template::jinja::MinijinjaTemplate`, loops/conditionals/filters) via the
+  `MailTemplate` trait. Pulls `minijinja`; StringTemplate stays the default.
 - `metrics` (default): metricas hacia ag-observe.
 - `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
   migration in `migrations/0001_mail_queue.sql`).

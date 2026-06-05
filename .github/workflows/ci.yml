@@ -89,10 +89,10 @@ jobs:
             ${{ runner.os }}-cargo-mta-
 
       - name: cargo build (mta + api)
-        run: cargo build -p ag-mail --features mta,api
+        run: cargo build -p ag-mail --features mta,api,minijinja
 
       - name: cargo test (mta + api)
-        run: cargo test -p ag-mail --features mta,api
+        run: cargo test -p ag-mail --features mta,api,minijinja
 
       - name: cargo clippy (mta + api)
-        run: cargo clippy -p ag-mail --features mta,api --all-targets -- -D warnings
+        run: cargo clippy -p ag-mail --features mta,api,minijinja --all-targets -- -D warnings

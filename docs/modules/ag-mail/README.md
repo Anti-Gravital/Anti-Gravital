@@ -90,10 +90,13 @@ exercised by `#[ignore]` network tests):
   `ag_mail_send_latency_seconds`, `ag_mail_retry_total`, queue depth); a
   `mail-mta` CI job builds, tests and lints `--features mta,api`.
 
+An external template engine is also available via the `MailTemplate` trait:
+`template::jinja::MinijinjaTemplate` (feature `minijinja`) for
+loops/conditionals/filters; the built-in `StringTemplate` stays the default.
+
 Remaining (tracked in `docs/DEBT.md`): durable queue spool over
 JetStream/PostgreSQL (DEBT-023), the REST API routes + data model + marketing
-objects (DEBT-021), the live-delivery test (DEBT-022), and external template
-engines (DEBT-003).
+objects (DEBT-021), and the live-delivery test (DEBT-022).
 
 ### Planned — later phases
 

@@ -7,6 +7,14 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-mail - Motor de plantillas externo (minijinja) (2026-06-04)
+
+Aditivo, tras la feature `minijinja` (apagada por defecto). Cierra DEBT-003.
+
+- `template::jinja::MinijinjaTemplate`: implementa el trait `MailTemplate` sobre
+  el motor `minijinja` (loops, condicionales, filtros), alternativa drop-in al
+  `StringTemplate` por defecto. Dep `minijinja` tras la feature.
+
 ### Fase 4.6-C - MTA: webhooks firmados (2026-06-04)
 
 Aditivo, tras la nueva feature `api` (apagada por defecto). Avanza DEBT-021.

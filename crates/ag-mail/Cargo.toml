@@ -22,6 +22,9 @@ workspace = true
 default = ["smtp", "templates", "metrics"]
 smtp = ["dep:lettre"]
 templates = []
+# Motor de plantillas externo opcional (minijinja) para plantillas con loops y
+# condicionales, implementando el trait `MailTemplate`. Ver DEBT-003.
+minijinja = ["dep:minijinja"]
 metrics = ["dep:metrics"]
 # Para enviar a traves de un proveedor externo se apunta el SmtpSender nativo
 # al endpoint SMTP del proveedor: no se requieren adaptadores con nombre de
@@ -50,6 +53,9 @@ tracing = { workspace = true }
 
 # SMTP nativo
 lettre = { workspace = true, optional = true }
+
+# Motor de plantillas externo opcional
+minijinja = { version = "2", optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }

@@ -80,13 +80,18 @@ CLAUDE.md section 29.
 - Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
 
 ### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
-- Reason: the multi-tenant REST surface, HMAC-SHA256 signed webhooks, and the
-  marketing objects (broadcasts/contacts/segments/topics, one-click
-  unsubscribe) are not implemented.
-- Impact: no managed email-sending API/event surface yet.
-- Expected removal: Phases 4.6-C and 4.6-D per RFC-0009 section 5 (behind the
-  `api` feature).
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-C/D.
+- Reason: the multi-tenant REST surface and the marketing objects
+  (broadcasts/contacts/segments/topics, one-click unsubscribe) are not
+  implemented.
+- Impact: no managed email-sending HTTP API yet.
+- Status: open (narrowed 2026-06-04). Signed webhooks are implemented:
+  `api::webhook` (feature `api`) signs/verifies HMAC-SHA256 over
+  `{id}.{timestamp}.{payload}` with `whsec_` secrets, multi-signature headers
+  and replay-window checks (constant-time verify). The HTTP routes, the
+  PostgreSQL data model, idempotency, and the marketing objects remain.
+- Expected removal: Phases 4.6-C/D per RFC-0009 section 4.5/4.6 (behind the
+  `api` feature; the REST routes need a PostgreSQL test environment).
+- Owning plan: RFC-0009. Target: Phase 4.6-C/D.
 
 ### DEBT-022 — Native MTA: live-delivery integration test
 - Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)

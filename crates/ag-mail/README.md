@@ -64,7 +64,9 @@ esta documentada como sexta regla de dependencias en
 - `metrics` (default): metricas hacia ag-observe.
 - `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
   migration in `migrations/0001_mail_queue.sql`).
-- `mta` (opt-in): native outbound MTA core (MX resolution, ESMTP+STARTTLS
-  delivery, Ed25519/RSA DKIM signing, bounce classification, metrics). Pulls
-  `mail-send`, `mail-auth`, `hickory-resolver`, `rustls-pki-types`; not in the
-  default build.
+- `mta` (opt-in): native outbound MTA (MX resolution, ESMTP+STARTTLS delivery,
+  Ed25519/RSA DKIM, egress pools, traffic shaping, two-tier queue, suppression,
+  DSN/ARF intake, metrics). Pulls `mail-send`, `mail-auth`, `mail-parser`,
+  `hickory-resolver`, `rustls-pki-types`; not in the default build.
+- `api` (opt-in): managed API surface; currently HMAC-SHA256 signed webhooks
+  (`api::webhook`). Pulls `hmac`/`sha2`/`base64`; not in the default build.

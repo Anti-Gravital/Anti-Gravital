@@ -7,6 +7,16 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.6-C - MTA: webhooks firmados (2026-06-04)
+
+Aditivo, tras la nueva feature `api` (apagada por defecto). Avanza DEBT-021.
+
+- `api::webhook`: firma y verificacion de webhooks HMAC-SHA256 sobre
+  `{id}.{timestamp}.{payload}` con secretos `whsec_`, cabecera `v1,<base64>`,
+  soporte de multiples firmas (rotacion) y ventana de tolerancia anti-replay;
+  verificacion en tiempo constante. Deps `hmac`/`sha2`/`base64` tras `api`.
+- `.github/workflows/ci.yml`: el job `mail-mta` ahora ejercita `mta,api`.
+
 ### Fase 4.6-B - MTA: colas, shaping, egress y suppression (2026-06-04)
 
 Aditivo, tras la feature `mta` (apagada por defecto). Cierra DEBT-019 (núcleo) y

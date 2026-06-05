@@ -63,11 +63,11 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --all-targets --target ${{ matrix.target }}
 
-  # The native MTA lives behind the opt-in `mta` feature, off by default, so the
-  # matrix build above never exercises it. This job builds, tests and lints
-  # ag-mail with `mta` on (RFC-0009 section 4.8).
+  # The native MTA and the managed API live behind the opt-in `mta` / `api`
+  # features, off by default, so the matrix build above never exercises them.
+  # This job builds, tests and lints ag-mail with both on (RFC-0009 section 4.8).
   mail-mta:
-    name: ag-mail mta feature
+    name: ag-mail mta + api features
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,11 +88,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-mta-
 
-      - name: cargo build (mta)
-        run: cargo build -p ag-mail --features mta
+      - name: cargo build (mta + api)
+        run: cargo build -p ag-mail --features mta,api
 
-      - name: cargo test (mta)
-        run: cargo test -p ag-mail --features mta
+      - name: cargo test (mta + api)
+        run: cargo test -p ag-mail --features mta,api
 
-      - name: cargo clippy (mta)
-        run: cargo clippy -p ag-mail --features mta --all-targets -- -D warnings
+      - name: cargo clippy (mta + api)
+        run: cargo clippy -p ag-mail --features mta,api --all-targets -- -D warnings

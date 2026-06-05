@@ -83,14 +83,17 @@ exercised by `#[ignore]` network tests):
 - `sender::mta::dsn`: asynchronous DSN (RFC 3464) and ARF feedback-report
   (RFC 5965) parsing (`mail-parser`) that feeds the suppression list
   (`process_dsn` / `process_arf`).
+- `api::webhook` (separate `api` feature): HMAC-SHA256 signed webhooks
+  (`whsec_` secrets, `v1,<base64>` headers, multi-signature + replay-window
+  verification, constant-time compare).
 - `ag-observe` metrics on the MTA path (`ag_mail_sent_total`,
   `ag_mail_send_latency_seconds`, `ag_mail_retry_total`, queue depth); a
-  `mail-mta` CI job builds, tests and lints `--features mta`.
+  `mail-mta` CI job builds, tests and lints `--features mta,api`.
 
 Remaining (tracked in `docs/DEBT.md`): durable queue spool over
-JetStream/PostgreSQL (DEBT-023), the REST API / webhooks / marketing surface
-(DEBT-021), the live-delivery test (DEBT-022), and external template engines
-(DEBT-003).
+JetStream/PostgreSQL (DEBT-023), the REST API routes + data model + marketing
+objects (DEBT-021), the live-delivery test (DEBT-022), and external template
+engines (DEBT-003).
 
 ### Planned — later phases
 

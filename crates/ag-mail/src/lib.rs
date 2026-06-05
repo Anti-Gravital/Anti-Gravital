@@ -48,6 +48,8 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "api")]
+pub mod api;
 pub mod error;
 pub mod message;
 pub mod metrics;

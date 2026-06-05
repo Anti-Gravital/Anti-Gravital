@@ -128,6 +128,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "hickory-resolver",
+ "idna",
  "instant-acme",
  "metrics",
  "rcgen",
@@ -137,6 +138,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+ "uuid",
  "wiremock",
  "x509-parser",
 ]
@@ -149,6 +151,15 @@ dependencies = [
  "logos",
  "serde_json",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "ag-edge"
+version = "0.0.0"
+dependencies = [
+ "ag-domains",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

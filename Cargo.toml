@@ -19,6 +19,7 @@ members = [
     "crates/ag-lsp",
     "crates/ag-mail",
     "crates/ag-domains",
+    "crates/ag-edge",
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
@@ -98,6 +99,9 @@ sha2                     = "0.10"
 p256                     = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac                     = "0.12"
 url                      = "2"
+# IDN / Punycode normalization for hostname identity (RFC-0009, ag-domains
+# control plane). Ubiquitous, well-maintained, already present transitively.
+idna                     = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }

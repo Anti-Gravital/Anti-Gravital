@@ -1,0 +1,28 @@
+[package]
+name = "ag-edge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Anti-Gravital edge data plane: hostname routing, SNI certificate selection and canonical/redirect policy for attached domains"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# Reuses the control-plane hostname normalization without pulling ACME or
+# provider HTTP clients (default-features disabled). Edge is downstream of the
+# ag-domains control plane (ADR-0010 architecture).
+ag-domains = { path = "../ag-domains", version = "0.0.0", default-features = false }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -120,6 +120,18 @@ for the new blocks (hover, completions). CLI commands `ag domains check`,
 `ag domains sync` and `ag mail test` operational. `auth-mail-demo` example
 with three flows. 14 cross-module E2E tests total (7 Phase 4 + 7 Phase 4.5).
 
+**ag-domains control plane (ADR-0010 / RFC-0009, phase A):** `ag-domains`
+extends from a declarative DNS+TLS library into a native domain attachment and
+serving control plane: hostname normalization/classification, an attachment
+state machine, a native attachment store (in-memory + JSON file), TXT ownership
+proof, a DNS instruction engine with BIND zone export, CAA preflight and
+diagnostics. A new crate `ag-edge` holds the data-plane logic (hostname
+routing, SNI certificate selection, canonical/redirect policy) as a pure,
+unit-tested library. New CLI commands: `ag domains attach`, `instructions`,
+`export-zone`, `status`, `list`, `verify`, `detach`. Manual attachment requires
+no provider credentials. Live edge listeners, a REST API and a SQL store are
+later phases tracked in RFC-0009.
+
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
 ### Quick start
@@ -352,6 +364,19 @@ DSL ampliado a v0.7 (bloques `mail`, `domain`, `template`). `ag-lsp` actualizado
 los bloques nuevos (hover, completions). Comandos CLI `ag domains check`,
 `ag domains sync` y `ag mail test` operativos. Example `auth-mail-demo` con tres
 flujos. 14 tests E2E cross-module en total (7 Fase 4 + 7 Fase 4.5).
+
+**Plano de control de ag-domains (ADR-0010 / RFC-0009, fase A):** `ag-domains`
+pasa de libreria declarativa DNS+TLS a plano de control nativo para adjuntar y
+servir dominios: normalizacion/clasificacion de hostnames, maquina de estados de
+attachment, almacen nativo (en memoria + archivo JSON), prueba de propiedad TXT,
+motor de instrucciones DNS con exportacion a zona BIND, preflight CAA y
+diagnosticos. Un crate nuevo `ag-edge` contiene la logica de plano de datos
+(enrutado por hostname, seleccion de certificado por SNI, politica
+canonica/redireccion) como libreria pura y probada. Comandos CLI nuevos:
+`ag domains attach`, `instructions`, `export-zone`, `status`, `list`, `verify`,
+`detach`. El attachment manual no requiere credenciales de proveedor. Los
+listeners de edge en vivo, una API REST y un almacen SQL son fases posteriores
+seguidas en RFC-0009.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

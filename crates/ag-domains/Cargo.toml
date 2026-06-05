@@ -34,6 +34,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+# Control plane (RFC-0009): hostname IDN normalization and attachment ids/tokens.
+idna = { workspace = true }
+uuid = { workspace = true }
 
 # Cloudflare adapter
 reqwest = { workspace = true, optional = true }

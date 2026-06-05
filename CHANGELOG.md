@@ -7,6 +7,36 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains plano de control + ag-edge (ADR-0010 / RFC-0009, fase A)
+
+Anadido:
+
+- `crates/ag-domains`: capa de plano de control aditiva. Modulos `hostname`
+  (normalizacion/clasificacion IDN via `idna`), `attachment` (maquina de estados
+  con dimensiones ownership/dns/tls/routing), `store` (`AttachmentStore` trait +
+  `InMemoryStore` + `JsonFileStore` nativos), `ownership` (token TXT + verificacion
+  via propagacion), `instructions` (motor de registros DNS + exportacion zona BIND),
+  `caa` (preflight CAA antes de ACME) y `diagnostics` (esperado vs observado). La
+  libreria declarativa DNS+TLS previa queda intacta. Dependencias nuevas `idna`,
+  `uuid`. 80 tests.
+
+- `crates/ag-edge` (nuevo crate, plano de datos): `router::resolve_hostname`
+  (precedencia exacto/wildcard/legacy con fail-closed para hostnames
+  desconocidos), `tls::SniCertStore` + `allow_on_demand` (emision on-demand
+  restringida), `redirect::CanonicalPolicy` (www<->apex preservando path/query).
+  Libreria pura y probada; sin listeners en vivo todavia. 17 tests.
+
+- `crates/ag-cli`: subcomandos `ag domains attach`, `instructions`, `export-zone`,
+  `status`, `list`, `verify`, `detach`. Flujo manual sin credenciales de proveedor.
+
+- Gobernanza: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
+  `docs/adr/0010-ag-domains-control-plane.md`. Documentacion en
+  `docs/ag-domains/` y esqueleto OpenAPI en `openapi/ag-domains.v1.yaml`.
+
+Diferido (RFC-0009 fases B-F): listeners de edge 80/443 + responder HTTP-01,
+API REST `/v1/domains/...`, almacen SQL (Postgres), automatizacion de proveedores
+(Domain Connect, adapters), wildcards DNS-01, modulo `ag-registrars`.
+
 ### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
 
 Anadido:

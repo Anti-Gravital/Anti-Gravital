@@ -1,0 +1,109 @@
+openapi: 3.1.0
+info:
+  title: ag-domains control plane API
+  version: 0.1.0-draft
+  description: >
+    DRAFT skeleton. This API surface is RFC-0009 phase C and is NOT served yet.
+    Phase A implements the control plane as a Rust library and a CLI; this
+    document fixes the intended HTTP contract so it can be reviewed and kept in
+    sync before any server is wired. Do not treat these endpoints as live.
+  x-status: planned
+servers:
+  - url: https://api.example/v1
+    description: Placeholder; no server is shipped in phase A.
+tags:
+  - name: domains
+    description: Domain attachment lifecycle.
+paths:
+  /domains/attachments:
+    post:
+      tags: [domains]
+      summary: Create a domain attachment (planned, phase C).
+      x-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachRequest'
+      responses:
+        '201':
+          description: Attachment created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachResponse'
+  /domains/attachments/{id}:
+    get:
+      tags: [domains]
+      summary: Get an attachment (planned, phase C).
+      x-status: planned
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Attachment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachResponse'
+  /domains/attachments/{id}/instructions:
+    get:
+      tags: [domains]
+      summary: DNS instructions for an attachment (planned, phase C).
+      x-status: planned
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: DNS instructions.
+  /domains/attachments/{id}/verify:
+    post:
+      tags: [domains]
+      summary: Verify ownership (planned, phase C).
+      x-status: planned
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Verification result.
+  /domains/attachments/{id}/detach:
+    post:
+      tags: [domains]
+      summary: Detach a domain and tombstone it (planned, phase C).
+      x-status: planned
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Detached.
+components:
+  schemas:
+    AttachRequest:
+      type: object
+      required: [hostname, project_id]
+      properties:
+        hostname: { type: string, example: example.com }
+        project_id: { type: string }
+        environment_id: { type: string, default: production }
+        target_kind: { type: string, enum: [service, project], default: service }
+        target_ref: { type: string }
+        dns_mode: { type: string, enum: [manual, provider], default: manual }
+        tls_mode:
+          type: string
+          enum: [disabled, managed_http01, managed_dns01]
+          default: managed_http01
+    AttachResponse:
+      type: object
+      properties:
+        id: { type: string, example: dom_2130e1be920b48c4acc9baba9bf0324b }
+        hostname_ascii: { type: string, example: example.com }
+        lifecycle:
+          type: string
+          enum: [draft, pending_ownership, pending_dns, pending_tls, active, misconfigured, detached]
+        ownership:
+          type: object
+          properties:
+            method: { type: string, enum: [txt] }
+            name: { type: string, example: _ag-domain.example.com }
+            value: { type: string, example: ag-verification=dom_..-.. }

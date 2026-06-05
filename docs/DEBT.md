@@ -140,3 +140,28 @@ findings were fixed in-branch and are not listed here.
 - Impact: cosmetic/consistency only; content is accurate.
 - Expected removal: translate to English when each example is next touched.
 - Status: open. Severity: Low. Source: `pre-fase5-examples.md` F9-6.
+
+### DEBT-017 — eTLD+1 via two-label heuristic (no Public Suffix List)
+- Reason: `ag-domains::hostname` derives the registrable domain by taking the
+  last two labels. Multi-label public suffixes (`co.uk`, `com.br`, etc.) are
+  misclassified, which skews apex vs subdomain detection and generated DNS
+  instructions for those TLDs.
+- Impact: incorrect instructions/classification for domains under multi-label
+  public suffixes. Single-label TLDs (`.com`, `.net`, `.io`) are correct.
+- Expected removal: a PSL-backed implementation behind a dependency RFC
+  (candidate crate: `psl` or `publicsuffix`); gate it so the native default
+  keeps working offline.
+- Status: open. Severity: Medium. Source: RFC-0009 §7.
+
+### DEBT-018 — ag-domains control plane deferred phases (RFC-0009 B-F)
+- Reason: phase A landed the control-plane library, the `ag-edge` data-plane
+  library and the manual CLI flow. Live edge listeners (80/443) + HTTP-01
+  responder (phase B), REST API `/v1/domains/...` (phase C), SQL-backed store
+  (phase D), provider automation / Domain Connect / DNS-01 wildcards (phase E)
+  and the `ag-registrars` module (phase F) are not implemented.
+- Impact: native serving of HTTPS for an attached hostname is not wired end to
+  end yet; attachment, instructions, ownership proof and routing logic exist and
+  are tested in isolation.
+- Expected removal: implement phases B-F per RFC-0009, each additive and
+  feature-gated with a native default.
+- Status: open. Severity: Medium. Source: RFC-0009 §5.

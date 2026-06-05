@@ -25,6 +25,7 @@ DEBT-018).
   `reference/dns-record-matrix.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
+- Backlog: `BACKLOG.md` (blueprint gap analysis: done / partial / todo)
 
 ## Scope boundary
 

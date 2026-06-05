@@ -58,38 +58,44 @@ default features, the default `SmtpSender`, the provider adapters, and the
 existing queues all stay as they are; the native MTA is never silently made
 the default.
 
-### Implemented — Phase 4.6-A (`mta` feature)
+### Implemented — Phases 4.6-A and 4.6-B (`mta` feature)
 
-The native MTA core is implemented and unit-tested (the live delivery path is
+The native MTA is implemented and unit-tested (the live delivery path is
 exercised by `#[ignore]` network tests):
 
-- `sender::mta::MtaSender` (implements `MailSender`): direct delivery to the
-  destination MX over ESMTP with opportunistic STARTTLS (`mail-send`),
-  per-domain envelope grouping, RFC 5322 build via `mail-builder`.
+- `sender::mta::MtaSender` (implements `MailSender` and `queue::DeliveryBackend`):
+  direct delivery to the destination MX over ESMTP with opportunistic STARTTLS
+  (`mail-send`), per-domain envelope grouping, RFC 5322 build via `mail-builder`,
+  and SMTP-reply classification (only a destination 5xx is permanent).
 - `sender::mta::resolve`: MX resolution (`hickory-resolver`) with preference
   ordering, `site_name` rollup, and the RFC 5321 implicit-MX fallback.
+- `sender::mta::egress`: egress sources/pools (source IP + EHLO) selected by
+  smooth weighted round-robin for IP warming.
 - `sender::mta::dkim`: outbound DKIM signing with Ed25519 (RFC 8463) and
   RSA-SHA256 (RFC 6376) keys, signed last so the signature covers the final
-  bytes; key material is supplied by the caller / `ag-domains` (no DNS
-  ownership here).
-- `sender::mta::bounce`: pure SMTP/RFC 3463 bounce classifier
-  (transient vs permanent) feeding retry-vs-suppress decisions.
-- `ag-observe` metrics on the MTA send path (`ag_mail_sent_total`,
-  `ag_mail_send_latency_seconds`, `ag_mail_retry_total`); a `mail-mta` CI job
-  builds, tests and lints `--features mta`.
+  bytes; key material is supplied by the caller / `ag-domains`.
+- `sender::mta::bounce`: pure SMTP/RFC 3463 bounce classifier.
+- `sender::mta::shaping`: per-`site_name` token-bucket rate limit + connection
+  cap (default plus overrides).
+- `sender::mta::queue` + `suppress`: in-memory two-tier scheduled/ready queue
+  with exponential backoff, max-age and `max_ready`, an automatic suppression
+  list, and a `run` worker; delivery is abstracted via `DeliveryBackend`.
+- `ag-observe` metrics on the MTA path (`ag_mail_sent_total`,
+  `ag_mail_send_latency_seconds`, `ag_mail_retry_total`, queue depth); a
+  `mail-mta` CI job builds, tests and lints `--features mta`.
 
-The remaining phases (durable queue, shaping, DSN/FBL, REST API, webhooks,
-marketing) and the live-delivery integration test are tracked in
-`docs/DEBT.md` (DEBT-019..022).
+Remaining (tracked in `docs/DEBT.md`): durable queue spool over
+JetStream/PostgreSQL (DEBT-023), asynchronous DSN/FBL intake (DEBT-020), the
+REST API / webhooks / marketing surface (DEBT-021), the live-delivery test
+(DEBT-022), and external template engines (DEBT-003).
 
-### Planned — Phase 4.6-B and later
+### Planned — later phases
 
 Not implemented yet; forward plan, not a capability claim.
 
-- Two-tier queue (KumoMTA-inspired): scheduled queue keyed
-  `tenant:campaign:domain`, ready queue keyed `egress_source + site_name`.
-  Native in-memory/`ag-data` default; optional durable backend over
-  NATS/JetStream (`queue-jetstream`) mirrored to PostgreSQL.
+- Durable queue spool: optional backend over NATS/JetStream
+  (`queue-jetstream`) mirrored to PostgreSQL, keeping the in-memory spool the
+  native default.
 - `api` feature: multi-tenant REST surface (Axum) with the conventional
   email-sending endpoints (`/emails`, `/emails/batch`, `/domains`,
   `/api-keys`, `/webhooks`, marketing objects), BLAKE3 API keys via `ag-auth`,

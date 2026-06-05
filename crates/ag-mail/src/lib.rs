@@ -17,14 +17,17 @@
 //!
 //! # Native MTA (opt-in, `mta` feature)
 //!
-//! Phase 4.6-A adds an opt-in native outbound MTA behind the `mta` feature:
-//! [`sender::mta::MtaSender`] resolves the destination MX, opens an ESMTP
-//! session with opportunistic STARTTLS, signs with DKIM (Ed25519 or RSA-SHA256),
-//! emits `ag-observe` metrics, and delivers directly to the recipient server,
-//! plus a pure bounce classifier ([`sender::mta::bounce`]). This is additive:
-//! the default sender is unchanged and the feature is off by default.
-//! Governing decision: `ADR-0010`; technical plan: `RFC-0009`. Durable queues,
-//! traffic shaping, the REST API, and DSN/FBL processing are later phases.
+//! Phases 4.6-A/B add an opt-in native outbound MTA behind the `mta` feature:
+//! [`sender::mta::MtaSender`] resolves the destination MX, optionally picks an
+//! egress source from a weighted pool, opens an ESMTP session with
+//! opportunistic STARTTLS, signs with DKIM (Ed25519 or RSA-SHA256), and
+//! delivers directly, classifying SMTP replies. A two-tier delivery queue
+//! ([`sender::mta::queue`]) adds retry/backoff, per-`site_name` traffic shaping
+//! ([`sender::mta::shaping`]) and an automatic suppression list
+//! ([`sender::mta::suppress`]), with `ag-observe` metrics throughout. This is
+//! additive: the default sender is unchanged and the feature is off by default.
+//! Governing decision: `ADR-0010`; technical plan: `RFC-0009`. A durable queue
+//! spool, the REST API, and asynchronous DSN/FBL intake are later phases.
 //!
 //! # Scope
 //!

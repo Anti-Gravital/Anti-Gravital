@@ -7,6 +7,26 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.6-B - MTA: colas, shaping, egress y suppression (2026-06-04)
+
+Aditivo, tras la feature `mta` (apagada por defecto). Cierra DEBT-019 (núcleo) y
+avanza DEBT-020. Persistencia durable del spool queda como DEBT-023.
+
+- `sender::mta::egress`: `EgressSource`/`EgressPool` con weighted round-robin
+  suave (SWRR) para IP warming; `MtaSender` elige una fuente por mensaje y
+  aplica EHLO + IP de origen al conectar.
+- `sender::mta::shaping`: `ShapingLimits`/`ShapingConfig` por `site_name`
+  (rate token-bucket determinista + cap de conexiones por semáforo).
+- `sender::mta::queue`: cola de dos niveles en memoria (scheduled min-heap +
+  ready batch `max_ready`) con `MtaRetryPolicy` (backoff exponencial, max-age),
+  trait `DeliveryBackend` (lo implementa `MtaSender`), worker `run`, y reportes
+  por ciclo. `MtaSender::build_jobs` genera jobs por dominio desde un `Email`.
+- `sender::mta::suppress`: `SuppressionList` automática (hard bounce 5xx,
+  límite de reintentos), case-insensitive; la cola la consulta y la alimenta.
+- `MtaSender` clasifica los fallos SMTP: solo un 5xx del destino es permanente
+  (suprime); fallos propios (DKIM, MX, TLS) son transitorios (reintentables).
+- Métricas de profundidad de cola; tests deterministas (reloj explícito).
+
 ### Fase 4.6-A - Endurecimiento: RSA DKIM, metricas y CI del MTA (2026-06-04)
 
 Aditivo, cierra deuda de la 4.6-A (DEBT-017/018).

@@ -48,23 +48,36 @@ CLAUDE.md section 29.
   tests and clippies `--features mta` (RFC-0009 section 4.8). (Was DEBT-013;
   renumbered to avoid a collision with the existing ag-cache DEBT-013.)
 
-### DEBT-019 — Native MTA: durable queue, shaping and egress pools (Phase 4.6-B)
-- Reason: Phase 4.6-A is synchronous direct delivery; it does not yet use the
-  two-tier scheduled/ready queue, per-`site_name` traffic shaping, or egress IP
-  pools with weighted round-robin warm-up.
-- Impact: no persistence of in-flight MTA deliveries across restart; no provider
-  throttling; no IP warm-up.
-- Expected removal: Phase 4.6-B per RFC-0009 section 5 (native default queue;
-  optional JetStream backend + PostgreSQL mirror behind a feature).
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B. (Was DEBT-014.)
+### DEBT-019 — Native MTA: two-tier queue, shaping and egress pools (Phase 4.6-B)
+- Reason: Phase 4.6-A was synchronous direct delivery, with no scheduled/ready
+  queue, traffic shaping, or egress pools.
+- Status: closed (2026-06-04). Implemented: `sender::mta::egress` (egress
+  sources/pools with smooth weighted round-robin for IP warming),
+  `sender::mta::shaping` (per-`site_name` token-bucket rate limit + connection
+  cap), and `sender::mta::queue` (in-memory two-tier scheduled/ready queue with
+  retry/backoff, max-age and `max_ready`, a `DeliveryBackend` trait that
+  `MtaSender` implements, and a `run` worker). The optional **durable spool**
+  (JetStream/PostgreSQL) for cross-restart persistence is split out as DEBT-023.
 
-### DEBT-020 — Native MTA: asynchronous DSN/FBL processing and suppression
-- Reason: only synchronous SMTP-reply bounce classification exists
-  (`sender::mta::bounce`); asynchronous DSN (RFC 3464) and ARF feedback-loop
-  parsing, and the automatic suppression list, are not implemented.
-- Impact: no automatic suppression from asynchronous bounces/complaints.
-- Expected removal: Phase 4.6-B/C per RFC-0009 (uses `mail-parser`).
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+### DEBT-020 — Native MTA: asynchronous DSN/FBL intake
+- Reason: bounce/complaint suppression is driven only by synchronous SMTP
+  replies; asynchronous DSN (RFC 3464) and ARF feedback-loop messages are not
+  yet parsed and fed into the suppression list.
+- Impact: complaints and asynchronous bounces do not auto-suppress.
+- Status: open (narrowed 2026-06-04). The suppression list itself
+  (`sender::mta::suppress::SuppressionList`, auto-fed on permanent SMTP failure
+  and attempt/age exhaustion) is implemented; only the inbound DSN/ARF parser
+  (using `mail-parser`) that feeds it remains.
+- Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+
+### DEBT-023 — Native MTA: durable queue spool (JetStream / PostgreSQL)
+- Reason: the two-tier queue (DEBT-019) is in-memory; in-flight deliveries do
+  not survive a restart.
+- Impact: a crash/restart loses scheduled (not-yet-delivered) MTA jobs.
+- Expected removal: a `Spool` backend behind an opt-in feature
+  (`queue-jetstream` and/or a PostgreSQL mirror), keeping the in-memory spool as
+  the native default (`ADR-0009`). Needs a NATS/PostgreSQL test environment.
+- Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
 
 ### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
 - Reason: the multi-tenant REST surface, HMAC-SHA256 signed webhooks, and the

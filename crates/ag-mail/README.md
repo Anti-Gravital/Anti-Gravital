@@ -26,18 +26,23 @@ Technical plans: `docs/rfc/RFC-0006-ag-mail-alcance.md`,
 
 ## Native MTA (feature `mta`, opt-in)
 
-Additive native outbound MTA core (Phase 4.6-A, `ADR-0010` / `RFC-0009`):
+Additive native outbound MTA (Phases 4.6-A/B, `ADR-0010` / `RFC-0009`):
 
-- `MtaSender` — direct delivery to the destination MX over ESMTP+STARTTLS.
+- `MtaSender` — direct delivery to the destination MX over ESMTP+STARTTLS,
+  with SMTP-reply classification; also a `queue::DeliveryBackend`.
 - MX resolution with preference ordering, `site_name` rollup and implicit-MX
   fallback (`hickory-resolver`).
-- Ed25519 and RSA-SHA256 DKIM signing applied last (`mail-auth`); key material
-  supplied by the caller / `ag-domains`.
+- Egress sources/pools (source IP + EHLO) with weighted round-robin warm-up.
+- Ed25519 and RSA-SHA256 DKIM signing applied last (`mail-auth`).
 - Pure SMTP bounce classifier (transient vs permanent, RFC 3463).
-- `ag-observe` metrics on the send path; `mail-mta` CI job.
+- Per-`site_name` traffic shaping (token-bucket rate + connection cap).
+- Two-tier scheduled/ready delivery queue with retry/backoff, max-age,
+  `max_ready` and an automatic suppression list; a `run` worker.
+- `ag-observe` metrics on the send path and queue depth; `mail-mta` CI job.
 
-Off by default; the default sender and adapters are unchanged. Durable queues,
-traffic shaping, REST API, webhooks and DSN/FBL processing are later phases.
+Off by default; the default sender is unchanged. A durable queue spool
+(JetStream/PostgreSQL), the REST API/webhooks, marketing and asynchronous
+DSN/FBL intake are later phases.
 
 ## Fuera de alcance
 

@@ -195,6 +195,7 @@ dependencies = [
  "mail-auth",
  "mail-send",
  "metrics",
+ "rustls-pki-types",
  "serde",
  "serde_json",
  "sqlx",

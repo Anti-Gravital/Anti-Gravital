@@ -30,29 +30,59 @@ CLAUDE.md section 29.
 - Expected removal: future plan; trait-based engine selection.
 - Status: open. Target: Phase 5+.
 
-### DEBT-012 — Native MTA: RSA DKIM keys
-- Reason: `sender::mta::dkim` (feature `mta`) signs with Ed25519 only.
-- Impact: domains that publish only an RSA DKIM key cannot be signed natively.
-- Expected removal: add `RsaKey<Sha256>` support (PKCS#1/PKCS#8) to `DkimConfig`.
-- Status: open. Owning plan: RFC-0009 Phase 4.6-A follow-up. Target: Phase 4.6-B.
+### DEBT-017 — Native MTA: RSA DKIM keys
+- Reason: `sender::mta::dkim` (feature `mta`) initially signed with Ed25519 only.
+- Impact: domains that publish only an RSA DKIM key could not be signed natively.
+- Status: closed (2026-06-04). `DkimConfig` now supports Ed25519 (PKCS#8 DER)
+  and RSA-SHA256 (PKCS#8 DER and PEM) via `mail_auth ... RsaKey::from_key_der`;
+  positive tests for both algorithms. (Was DEBT-012; renumbered to avoid a
+  collision with the existing ag-realtime DEBT-012.)
 
-### DEBT-013 — Native MTA: metrics and CI coverage
-- Reason: the `mta` send path emits `tracing` events but not `ag-observe`
-  metrics, and CI has no job exercising the `mta` feature.
-- Impact: no `ag_mail_*` counters for native deliveries; `mta` tests run only
-  locally / on demand.
-- Expected removal: wire metrics into `MtaSender` and add a `mail-mta` CI job
-  (`cargo test -p ag-mail --features mta`) per RFC-0009 section 4.8.
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B.
+### DEBT-018 — Native MTA: metrics and CI coverage
+- Reason: the `mta` send path emitted only `tracing`, and CI did not exercise
+  the `mta` feature.
+- Impact: no `ag_mail_*` counters for native deliveries; `mta` code unbuilt in CI.
+- Status: closed (2026-06-04). `MtaSender::send` records
+  `ag_mail_sent_total`/`ag_mail_send_latency_seconds` and `ag_mail_retry_total`
+  on MX failover; new `mail-mta` job in `.github/workflows/ci.yml` builds,
+  tests and clippies `--features mta` (RFC-0009 section 4.8). (Was DEBT-013;
+  renumbered to avoid a collision with the existing ag-cache DEBT-013.)
 
-### DEBT-014 — Native MTA: durable queue, shaping and DSN/FBL
+### DEBT-019 — Native MTA: durable queue, shaping and egress pools (Phase 4.6-B)
 - Reason: Phase 4.6-A is synchronous direct delivery; it does not yet use the
-  two-tier scheduled/ready queue, per-`site_name` traffic shaping, egress IP
-  pools, or asynchronous DSN/ARF (feedback-loop) processing.
-- Impact: no persistence of in-flight MTA deliveries, no provider throttling,
-  no automatic suppression from asynchronous bounces.
-- Expected removal: Phase 4.6-B/C per RFC-0009 section 5.
+  two-tier scheduled/ready queue, per-`site_name` traffic shaping, or egress IP
+  pools with weighted round-robin warm-up.
+- Impact: no persistence of in-flight MTA deliveries across restart; no provider
+  throttling; no IP warm-up.
+- Expected removal: Phase 4.6-B per RFC-0009 section 5 (native default queue;
+  optional JetStream backend + PostgreSQL mirror behind a feature).
+- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B. (Was DEBT-014.)
+
+### DEBT-020 — Native MTA: asynchronous DSN/FBL processing and suppression
+- Reason: only synchronous SMTP-reply bounce classification exists
+  (`sender::mta::bounce`); asynchronous DSN (RFC 3464) and ARF feedback-loop
+  parsing, and the automatic suppression list, are not implemented.
+- Impact: no automatic suppression from asynchronous bounces/complaints.
+- Expected removal: Phase 4.6-B/C per RFC-0009 (uses `mail-parser`).
 - Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+
+### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
+- Reason: the multi-tenant REST surface, HMAC-SHA256 signed webhooks, and the
+  marketing objects (broadcasts/contacts/segments/topics, one-click
+  unsubscribe) are not implemented.
+- Impact: no managed email-sending API/event surface yet.
+- Expected removal: Phases 4.6-C and 4.6-D per RFC-0009 section 5 (behind the
+  `api` feature).
+- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-C/D.
+
+### DEBT-022 — Native MTA: live-delivery integration test
+- Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)
+  is only covered by `#[ignore]` tests; live delivery needs outbound DNS and
+  port 25, unavailable in the sandbox/CI.
+- Impact: the network path is exercised manually, not in automated CI.
+- Expected removal: add a CI service container acting as a sink MTA and a
+  fixture resolver, then de-`ignore` the delivery test.
+- Status: open. Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache
 

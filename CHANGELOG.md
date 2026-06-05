@@ -7,6 +7,21 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Fase 4.6-A - Endurecimiento: RSA DKIM, metricas y CI del MTA (2026-06-04)
+
+Aditivo, cierra deuda de la 4.6-A (DEBT-017/018).
+
+- `sender::mta::dkim`: firma DKIM ahora soporta Ed25519 **y RSA-SHA256**
+  (PKCS#8 DER y PEM) via `mail_auth ... RsaKey::from_key_der` (no deprecado);
+  tests positivos para ambos algoritmos. Nueva dep `rustls-pki-types` tras `mta`.
+- `MtaSender::send`: emite metricas `ag_mail_sent_total` /
+  `ag_mail_send_latency_seconds` y `ag_mail_retry_total` en failover de MX.
+- `.github/workflows/ci.yml`: nuevo job `mail-mta` (build + test + clippy
+  `--features mta`), antes el MTA no se compilaba en CI (RFC-0009 §4.8).
+- `docs/DEBT.md`: renumeradas las entradas de MTA (colision de DEBT-012/013/014);
+  DEBT-017/018 cerradas; 4.6-B/C/D y el test de entrega en vivo quedan como
+  DEBT-019..022.
+
 ### Fase 4.6-A - Implementacion: motor MTA outbound nativo de ag-mail (opt-in)
 
 Aditivo. Nueva feature de Cargo `mta` en `ag-mail`, apagada por defecto; el

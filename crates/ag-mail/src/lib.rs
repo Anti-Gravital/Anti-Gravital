@@ -19,10 +19,10 @@
 //!
 //! Phase 4.6-A adds an opt-in native outbound MTA behind the `mta` feature:
 //! [`sender::mta::MtaSender`] resolves the destination MX, opens an ESMTP
-//! session with opportunistic STARTTLS, signs with DKIM (Ed25519), and
-//! delivers directly to the recipient server, plus a pure bounce classifier
-//! ([`sender::mta::bounce`]). This is additive: the default sender and the
-//! provider adapters are unchanged, and the feature is off by default.
+//! session with opportunistic STARTTLS, signs with DKIM (Ed25519 or RSA-SHA256),
+//! emits `ag-observe` metrics, and delivers directly to the recipient server,
+//! plus a pure bounce classifier ([`sender::mta::bounce`]). This is additive:
+//! the default sender is unchanged and the feature is off by default.
 //! Governing decision: `ADR-0010`; technical plan: `RFC-0009`. Durable queues,
 //! traffic shaping, the REST API, and DSN/FBL processing are later phases.
 //!

@@ -148,6 +148,7 @@ impl MtaSender {
             match self.submit(&host.exchange, from, &rcpts, content).await {
                 Ok(()) => return Ok(()),
                 Err(err) => {
+                    crate::metrics::record_retry("mta");
                     tracing::warn!(
                         mx = %host.exchange,
                         domain = %domain,
@@ -199,15 +200,24 @@ impl MailSender for MtaSender {
     }
 
     async fn send(&self, email: &Email) -> Result<SendResult, AgMailError> {
-        let content = self.render(email)?;
-        let groups = group_recipients_by_domain(email)?;
+        let start = std::time::Instant::now();
+        let outcome = async {
+            let content = self.render(email)?;
+            let groups = group_recipients_by_domain(email)?;
+            for (domain, recipients) in groups {
+                self.deliver_domain(&domain, &recipients, &content, &email.from.email)
+                    .await?;
+            }
+            Ok::<(), AgMailError>(())
+        }
+        .await;
 
-        for (domain, recipients) in groups {
-            self.deliver_domain(&domain, &recipients, &content, &email.from.email)
-                .await?;
+        crate::metrics::record_send("mta", outcome.is_ok());
+        if outcome.is_ok() {
+            crate::metrics::record_send_latency("mta", start.elapsed().as_secs_f64());
         }
 
-        Ok(SendResult {
+        outcome.map(|()| SendResult {
             message_id: None,
             provider: "mta",
         })

@@ -68,14 +68,19 @@ exercised by `#[ignore]` network tests):
   per-domain envelope grouping, RFC 5322 build via `mail-builder`.
 - `sender::mta::resolve`: MX resolution (`hickory-resolver`) with preference
   ordering, `site_name` rollup, and the RFC 5321 implicit-MX fallback.
-- `sender::mta::dkim`: outbound DKIM signing with Ed25519 keys (RFC 8463),
-  signed last so the signature covers the final bytes; key material is
-  supplied by the caller / `ag-domains` (no DNS ownership here).
+- `sender::mta::dkim`: outbound DKIM signing with Ed25519 (RFC 8463) and
+  RSA-SHA256 (RFC 6376) keys, signed last so the signature covers the final
+  bytes; key material is supplied by the caller / `ag-domains` (no DNS
+  ownership here).
 - `sender::mta::bounce`: pure SMTP/RFC 3463 bounce classifier
   (transient vs permanent) feeding retry-vs-suppress decisions.
+- `ag-observe` metrics on the MTA send path (`ag_mail_sent_total`,
+  `ag_mail_send_latency_seconds`, `ag_mail_retry_total`); a `mail-mta` CI job
+  builds, tests and lints `--features mta`.
 
-RSA DKIM keys, metrics wiring for the MTA path, and a CI job for the `mta`
-feature are tracked in `docs/DEBT.md`.
+The remaining phases (durable queue, shaping, DSN/FBL, REST API, webhooks,
+marketing) and the live-delivery integration test are tracked in
+`docs/DEBT.md` (DEBT-019..022).
 
 ### Planned — Phase 4.6-B and later
 

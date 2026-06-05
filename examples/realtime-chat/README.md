@@ -1,49 +1,49 @@
 # realtime-chat
 
-Chat en tiempo real de sala unica. Demuestra `ag-realtime` con EventBus
-in-process y streaming SSE. Sin base de datos, sin autenticacion, sin
-servicios externos.
+Single-room real-time chat. Demonstrates `ag-realtime` with an in-process
+EventBus and SSE streaming. No database, no authentication, no external
+services.
 
-## Ejecucion
+## Running
 
 ```bash
 cargo run -p realtime-chat
 ```
 
-Abrir **http://localhost:3000** en dos ventanas del browser para
-ver los mensajes en tiempo real.
+Open **http://localhost:3000** in two browser windows to see the messages in
+real time.
 
-## Variables de entorno
+## Environment variables
 
-| Variable     | Default  | Descripcion           |
+| Variable     | Default  | Description           |
 |--------------|----------|-----------------------|
-| `PORT`       | `3000`   | Puerto del servidor   |
-| `LOG_FORMAT` | `pretty` | `pretty` o `json`     |
+| `PORT`       | `3000`   | Server port           |
+| `LOG_FORMAT` | `pretty` | `pretty` or `json`    |
 
 ## API
 
-| Metodo | Ruta        | Descripcion                    |
+| Method | Path        | Description                   |
 |--------|-------------|-------------------------------|
-| GET    | `/`         | UI de chat (HTML embebido)    |
-| GET    | `/events`   | Stream SSE de mensajes        |
-| POST   | `/messages` | Publicar un mensaje           |
+| GET    | `/`         | Chat UI (embedded HTML)       |
+| GET    | `/events`   | SSE stream of messages        |
+| POST   | `/messages` | Publish a message             |
 | GET    | `/health`   | Health check                  |
 
-### Publicar con curl
+### Publish with curl
 
 ```bash
 curl -X POST http://localhost:3000/messages \
   -H "Content-Type: application/json" \
-  -d '{"user":"alice","text":"hola desde curl"}'
+  -d '{"user":"alice","text":"hello from curl"}'
 ```
 
-### Escuchar eventos con curl
+### Listen for events with curl
 
 ```bash
 curl -N http://localhost:3000/events
 ```
 
-## Crates demostrados
+## Crates demonstrated
 
-- `ag-realtime`: EventBus in-process pub/sub
-- `ag-observe`: logging estructurado
+- `ag-realtime`: in-process EventBus pub/sub
+- `ag-observe`: structured logging

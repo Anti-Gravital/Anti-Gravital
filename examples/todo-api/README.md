@@ -1,63 +1,63 @@
 # todo-api
 
-CRUD completo de tareas sobre PostgreSQL. Demuestra el roundtrip
-`Request -> Shield -> Core -> Handler -> Respuesta` usando `ag-core`
-(capa HTTP con `Shield`) y `ag-data` (pool de conexiones + migraciones).
+Full task CRUD over PostgreSQL. Demonstrates the
+`Request -> Shield -> Core -> Handler -> Response` round-trip using `ag-core`
+(HTTP layer with `Shield`) and `ag-data` (connection pool + migrations).
 
-## Requisitos externos
+## External requirements
 
-- Una base de datos PostgreSQL accesible.
+- A reachable PostgreSQL database.
 
-Las migraciones de `migrations/` se aplican automaticamente al arrancar.
+The migrations in `migrations/` are applied automatically on startup.
 
-## Ejecucion
+## Running
 
 ```bash
-export DATABASE_URL="postgresql://usuario:clave@localhost/todos"
+export DATABASE_URL="postgresql://user:password@localhost/todos"
 cargo run -p todo-api
 ```
 
-Si no se define `DATABASE_URL`, se usa
-`postgresql://postgres:postgres@localhost/todos`.
+If `DATABASE_URL` is not set, `postgresql://postgres:postgres@localhost/todos`
+is used.
 
-## Variables de entorno
+## Environment variables
 
-| Variable                   | Default                                        | Descripcion                  |
-|----------------------------|------------------------------------------------|------------------------------|
-| `DATABASE_URL`             | `postgresql://postgres:postgres@localhost/todos` | Cadena de conexion           |
-| `DATABASE_MAX_CONNECTIONS` | `10`                                           | Tamano maximo del pool       |
-| `BIND`                     | `0.0.0.0:8080`                                 | Direccion de escucha         |
-| `RUST_LOG`                 | `info,sqlx=warn`                               | Filtro de tracing            |
+| Variable                   | Default                                          | Description                  |
+|----------------------------|--------------------------------------------------|------------------------------|
+| `DATABASE_URL`             | `postgresql://postgres:postgres@localhost/todos` | Connection string            |
+| `DATABASE_MAX_CONNECTIONS` | `10`                                             | Maximum pool size            |
+| `BIND`                     | `0.0.0.0:8080`                                   | Listen address               |
+| `RUST_LOG`                 | `info,sqlx=warn`                                 | Tracing filter               |
 
 ## API
 
-| Metodo | Ruta         | Descripcion              |
+| Method | Path         | Description              |
 |--------|--------------|--------------------------|
-| GET    | `/todos`     | Lista todas las tareas   |
-| POST   | `/todos`     | Crea una tarea nueva     |
-| GET    | `/todos/:id` | Obtiene una tarea        |
-| PUT    | `/todos/:id` | Actualiza una tarea      |
-| DELETE | `/todos/:id` | Elimina una tarea        |
-| GET    | `/health`    | Verificacion de estado   |
+| GET    | `/todos`     | List all tasks           |
+| POST   | `/todos`     | Create a new task        |
+| GET    | `/todos/:id` | Get a task               |
+| PUT    | `/todos/:id` | Update a task            |
+| DELETE | `/todos/:id` | Delete a task            |
+| GET    | `/health`    | Health check             |
 
-### Crear una tarea
+### Create a task
 
 ```bash
 curl -X POST http://localhost:8080/todos \
   -H "Content-Type: application/json" \
-  -d '{"title":"comprar pan","done":false}'
+  -d '{"title":"buy bread","done":false}'
 ```
 
 ## Docker
 
-Imagen de produccion (binario estatico MUSL sobre `scratch`):
+Production image (static MUSL binary on `scratch`):
 
 ```bash
 docker build -t todo-api -f examples/todo-api/Dockerfile .
 docker run -e DATABASE_URL=postgresql://... -p 8080:8080 todo-api
 ```
 
-## Crates demostrados
+## Crates demonstrated
 
-- `ag-core`: capa HTTP con `Shield` (defaults seguros).
-- `ag-data`: pool de PostgreSQL y ejecucion de migraciones.
+- `ag-core`: HTTP layer with `Shield` (secure defaults).
+- `ag-data`: PostgreSQL pool and migration execution.

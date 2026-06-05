@@ -188,9 +188,8 @@ findings were fixed in-branch and are not listed here.
 - Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
 
 ### DEBT-016 — example READMEs still in Spanish
-- Reason: the five `examples/` READMEs predate ADR-0008 (English-canonical) and
-  remain in Spanish. ADR-0008 permits gradual on-touch migration and does not
-  block.
-- Impact: cosmetic/consistency only; content is accurate.
-- Expected removal: translate to English when each example is next touched.
-- Status: open. Severity: Low. Source: `pre-fase5-examples.md` F9-6.
+- Reason: the five `examples/` READMEs predated ADR-0008 (English-canonical).
+- Impact: cosmetic/consistency only; content was accurate.
+- Status: closed (2026-06-04). All five `examples/*/README.md`
+  (auth-mail-demo, realtime-chat, todo-api, ecommerce-api, ai-backend)
+  translated to English, preserving code, tables and command examples.

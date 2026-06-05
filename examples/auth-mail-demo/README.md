@@ -1,39 +1,39 @@
 # auth-mail-demo
 
-Demuestra como conectar `ag-auth` con `ag-mail` para los tres flujos
-transaccionales principales:
+Demonstrates how to connect `ag-auth` with `ag-mail` for the three main
+transactional flows:
 
-1. Registro con verificacion de email.
-2. Recuperacion de contrasena.
-3. Autenticacion sin contrasena (magic link).
+1. Sign-up with email verification.
+2. Password recovery.
+3. Passwordless authentication (magic link).
 
-Es un programa de un solo disparo: imprime el resultado de cada flujo y
-termina. No abre puertos ni necesita servicios externos.
+It is a one-shot program: it prints the result of each flow and exits. It opens
+no ports and needs no external services.
 
-## Requisitos externos
+## External requirements
 
-Ninguno. El ejemplo usa `NullSender`, que captura los correos en memoria
-en lugar de enviarlos por SMTP.
+None. The example uses `NullSender`, which captures the emails in memory
+instead of sending them over SMTP.
 
-## Ejecucion
+## Running
 
 ```bash
 cargo run -p auth-mail-demo
 ```
 
-Salida esperada (los tokens son aleatorios en cada ejecucion):
+Expected output (the tokens are random on each run):
 
 ```
-ag-auth + ag-mail conectados.
+ag-auth + ag-mail connected.
 
---- Flujo 1: verificacion de email ---
+--- Flow 1: email verification ---
 ...
-Demo completado: 3 correos enviados sin necesitar SMTP real.
+Demo complete: 3 emails sent without needing real SMTP.
 ```
 
-## Usar SMTP real
+## Using real SMTP
 
-Sustituye `NullSender` por `SmtpSender` en `src/main.rs`:
+Replace `NullSender` with `SmtpSender` in `src/main.rs`:
 
 ```rust
 use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
@@ -41,8 +41,8 @@ let config = SmtpConfig::new("smtp.example.com", 587, "user", "pass");
 let sender = SmtpSender::new(config)?;
 ```
 
-## Crates demostrados
+## Crates demonstrated
 
-- `ag-auth`: generacion de tokens y orquestacion de flujos de auth.
-- `ag-mail`: envio transaccional (feature `smtp`) y `NullSender`
-  (feature `test-utils`) para pruebas sin SMTP.
+- `ag-auth`: token generation and orchestration of the auth flows.
+- `ag-mail`: transactional sending (feature `smtp`) and `NullSender`
+  (feature `test-utils`) for testing without SMTP.

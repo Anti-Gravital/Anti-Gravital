@@ -1,26 +1,35 @@
-# feat(ag-mail): MTA outbound nativo opt-in (Fase 4.6-A) + gobernanza ADR-0010/RFC-0009
+# feat(ag-mail): MTA nativo (Fase 4.6-A) + retiro de adaptadores de marca (ADR-0011)
 
 ## Fase afectada
 
-Gobernanza aditiva (ADR-0010 / RFC-0009) entre Fase 4.5 (completa) y la Fase
-4.6, **mas** la implementacion de la Fase 4.6-A (nucleo del MTA nativo). Todo
-es aditivo y opt-in: no degrada ni cambia el baseline existente.
+Gobernanza (ADR-0010/RFC-0009 y ADR-0011/RFC-0010) entre Fase 4.5 y Fase 4.6,
+**mas** la implementacion de la Fase 4.6-A (nucleo del MTA nativo) y el retiro
+de los adaptadores de correo con nombre de marca comercial.
 
 ## Tipo de cambio
 
-Gobernanza (`docs`) + implementacion (`feat`) aditiva tras la feature de Cargo
-`mta`, apagada por defecto. Sin cambios en la API publica existente, el sender
-por defecto, los adapters ni las colas.
+Gobernanza (`docs`) + implementacion (`feat`). El MTA nativo es aditivo tras la
+feature `mta` (apagada por defecto). El retiro de los adaptadores de marca es
+un cambio de superficie en `ag-mail` (sin releases; `ag-auth` es trait-based).
+
+## Politica de marcas (ADR-0011)
+
+No se usan marcas comerciales de terceros para nombrar componentes propios. Los
+adaptadores de correo con nombre de marca se retiran: para usar un proveedor
+externo se apunta el `SmtpSender` nativo a su endpoint SMTP, y la via sin
+terceros es el `MtaSender` nativo. Se conservan `CloudflareProvider`
+(`ag-domains`) y `S3Store` (`ag-storage`) como etiquetas legitimas de adaptador
+para ese tercero (sin equivalente nativo). El DSL `mail.provider` acepta solo
+`smtp`/`mta`. Un job de CI verifica la ausencia de las marcas retiradas.
 
 ## Documentos relacionados
 
-- `docs/adr/0010-ag-mail-native-mta-pivot.md` — decision (supersede el alcance
-  de `ag-mail` de `ADR-0007`)
-- `docs/rfc/RFC-0009-ag-mail-native-mta.md` — plan tecnico (supersede
-  `RFC-0006` para el alcance de `ag-mail`)
-- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` §8.8 y
-  `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md` §4.5.5
-- `docs/master/VERSION.md` — hashes recalculados
+- `docs/adr/0010-ag-mail-native-mta-pivot.md`, `docs/rfc/RFC-0009-ag-mail-native-mta.md`
+- `docs/adr/0011-politica-marcas-comerciales.md`,
+  `docs/rfc/RFC-0010-ag-mail-superficie-sin-marcas.md`
+- `CLAUDE.md` (politica de marcas), `.github/workflows/docs.yml` (scan)
+- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`,
+  `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`, `docs/master/VERSION.md` (hashes)
 
 ## Resumen
 
@@ -54,7 +63,7 @@ tipados, integracion `ag-auth` y CLI `ag mail test`.
   bounces; buzones/IMAP/POP siguen fuera de alcance.
 - `RFC-0009`: 6 subsistemas, dependencias `mail-send`/`mail-builder`/
   `mail-auth`/`mail-parser`/`hickory-resolver`, cola de dos niveles, modelo de
-  datos PostgreSQL, superficie REST drop-in, webhooks estilo Svix, plan por
+  datos PostgreSQL, superficie REST drop-in, webhooks firmados HMAC-SHA256, plan por
   fases 4.6-A..D mas endurecimiento Fase 5+, riesgos y rollback.
 
 **Alineacion documental (fiel al codigo real):**
@@ -90,15 +99,15 @@ tipados, integracion `ag-auth` y CLI `ag mail test`.
 
 ## Plan de prueba
 
-- `cargo build --workspace` verde (lockfile unifica `hickory-resolver 0.26`
-  con `ag-domains`).
-- `cargo test -p ag-mail --features mta` — 58 pasan, 1 ignorado (entrega en
-  vivo, requiere red/puerto 25).
-- `cargo clippy -p ag-mail --features mta --all-targets -- -D warnings` y con
-  features por defecto: sin warnings. `cargo fmt --check` limpio.
-- `sha256sum` de los maestros coincide con `VERSION.md` y `docs.yml`
-  (job `masters integrity`).
-- Job `prohibited content scan`: sin emojis ni evidencia de herramientas IA.
+- `cargo build --workspace` verde.
+- `cargo test -p ag-mail --features mta` (58, 1 ignorado), `ag-dsl` (155, con
+  tests de regresion: `provider resend` rechazado, `provider mta` valido),
+  `ag-lsp` (15), `ag-cli`, `ag-auth` (32): verdes.
+- `cargo clippy --all-targets -- -D warnings` (default y `mta`) sin warnings;
+  `cargo fmt --check` limpio.
+- `sha256sum` de los maestros coincide con `VERSION.md` y `docs.yml`.
+- `prohibited content scan`: sin emojis, sin evidencia IA, sin marcas
+  comerciales retiradas (nuevo step ADR-0011).
 - `cargo audit` / `cargo deny`: se ejecutan en CI (no instalados localmente).
 
 ## Criterios de salida avanzados
@@ -106,9 +115,11 @@ tipados, integracion `ag-auth` y CLI `ag mail test`.
 - Decision de pivot registrada en ADR + RFC antes del codigo (reglas 5, 22, 28).
 - Fase 4.6-A: `MtaSender` entrega via MX con STARTTLS y firma DKIM Ed25519;
   clasificacion de bounces; todo tras la feature `mta` opt-in.
-- Aditivo: build y comportamiento por defecto sin cambios; baseline intacto.
+- MTA aditivo: build y comportamiento por defecto sin cambios.
+- Sin marcas comerciales de terceros en `ag-mail` (codigo, features, docs,
+  comentarios); politica fijada en `CLAUDE.md`/`ADR-0011` y verificada en CI.
 - Documentacion de `ag-mail` coherente entre maestros, derivados, modulo,
-  crate README, `lib.rs` y `docs/DEBT.md`.
+  crate README, `lib.rs`, `ag-lsp` y `docs/DEBT.md`.
 - `RFC-0006`/`ADR-0007` marcados superseded para el alcance de `ag-mail`.
 
 ## Checklist final

@@ -137,7 +137,10 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
 
 /// Validates `mail` blocks: recognized provider, `from` with an at sign, templates with vars.
 fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
-    const VALID_PROVIDERS: &[&str] = &["smtp", "resend", "ses", "postmark"];
+    // Native senders only. External providers are reached with `smtp` pointed
+    // at the provider's SMTP endpoint; there are no provider-brand values
+    // (ADR-0011). `mta` selects the native outbound MTA.
+    const VALID_PROVIDERS: &[&str] = &["smtp", "mta"];
 
     let mut seen_names: HashMap<&str, usize> = HashMap::new();
     for mail in &schema.mails {
@@ -1330,6 +1333,34 @@ mail transaccional {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("mailgun")));
+    }
+
+    #[test]
+    fn v07_mail_block_brand_provider_removed_is_error() {
+        // Provider-brand values (e.g. "resend") were removed by ADR-0011;
+        // only the native senders "smtp" and "mta" are accepted now.
+        let src = r#"
+mail transaccional {
+    provider resend
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("resend")));
+    }
+
+    #[test]
+    fn v07_mail_block_mta_provider_is_valid() {
+        let src = r#"
+mail transaccional {
+    provider mta
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
     }
 
     #[test]

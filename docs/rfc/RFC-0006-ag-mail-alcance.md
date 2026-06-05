@@ -47,7 +47,7 @@ Aglomerar en `lib.rs` borra esa separacion y dificulta tests por capa.
 Ventaja: compila siempre todo, menos configuracion.
 
 Inconveniente: cualquier proyecto que use el sender SMTP nativo paga el
-binario de `reqwest` aunque no use Resend/SES/Postmark. La regla 13 del
+binario de `reqwest` aunque no use los adaptadores HTTP. La regla 13 del
 CLAUDE.md (simplicidad operacional) y el ADR (adapters como features de
 Cargo) imponen aislar adapters opcionales.
 
@@ -58,7 +58,7 @@ Patron Native | Adapter espejo de `ag-storage` (Native | S3) y `ag-cache`
 (moka | Redis). Tests por capa con strategy de mocks para HTTP y servidor
 SMTP local (Mailpit/MailHog) para integracion.
 
-### D. Diferir el sender SMTP nativo a una iteracion posterior, arrancar solo con Resend
+### D. Diferir el sender SMTP nativo a una iteracion posterior, arrancar solo con un adaptador HTTP de proveedor
 
 Ventaja: time-to-market mas rapido.
 
@@ -83,9 +83,7 @@ crates/ag-mail/
 |  |- sender/
 |  |  |- mod.rs              # trait MailSender + DnsRecordSpec
 |  |  |- smtp.rs             # SmtpSender nativo (lettre+rustls)         [feature "smtp"]
-|  |  |- resend.rs           # adapter Resend HTTP                       [feature "resend"]
-|  |  |- ses.rs              # adapter Amazon SES                        [feature "ses"]
-|  |  |- postmark.rs         # adapter Postmark                          [feature "postmark"]
+|  |  |- (adaptadores de proveedor retirados por ADR-0011)
 |  |- template/
 |  |  |- mod.rs              # render askama, contexto tipado
 |  |  |- validate.rs         # validacion build-time vars↔template (helper para ag-dsl)
@@ -129,7 +127,7 @@ trait, no via dato compartido — `ag-domains` define su propia conversion).
 |---|---|---|---|
 | `lettre` | 0.11 | `smtp` (default) | SMTP transport async Tokio, TLS via rustls. Maduro, mantenido. |
 | `askama` | 0.12 | `templates` (default) | Reusado de `ag-ui`, mismo build-time templating. |
-| `reqwest` | (workspace) | `resend`, `ses`, `postmark` | HTTP client para adapters. Ya en workspace. |
+| (sin deps HTTP de adaptadores; los adaptadores de marca fueron retirados por ADR-0011) |
 | `tokio` | (workspace) | always | Runtime. |
 | `tracing` | (workspace) | always | Spans para observabilidad. |
 | `metrics` | (workspace) | `metrics` (default) | Contadores e histogramas. |
@@ -142,7 +140,7 @@ exista soporte; mientras tanto, container manual en CI.
 - Nuevo job `mail-smoke` en `ci.yml` que arranca Mailpit (`axllent/mailpit`)
   via service container y corre `cargo test -p ag-mail --features smtp`
   contra `127.0.0.1:1025`.
-- Tests con red real (Resend, SES, Postmark) quedan `#[ignore]` con
+- Tests con red real contra proveedores externos quedan `#[ignore]` con
   doc-comment explicando env vars necesarias. CI con secrets corre
   `cargo test -p ag-mail -- --ignored --include-ignored` en push a `main`.
 
@@ -177,7 +175,7 @@ PRs en orden:
 1. **PR Etapa 2-1**: workspace + skeleton de `ag-mail` y `ag-domains`.
    Mismo PR para ambos crates porque comparten el cambio en `Cargo.toml`.
 2. **PR Etapa 2-5**: `ag-mail` message + sender SMTP + templates.
-3. **PR Etapa 2-6**: cola + Resend adapter + metricas.
+3. **PR Etapa 2-6**: cola + adaptador HTTP de proveedor + metricas.
 4. **PR Etapa 2-7**: cooperacion mail↔domains (SPF/DKIM/DMARC).
 5. **PR Etapa 2-8**: DSL v0.7 (bloques mail, domain).
 6. **PR Etapa 2-9**: CLI (`ag mail test`).

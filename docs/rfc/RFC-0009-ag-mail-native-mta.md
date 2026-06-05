@@ -105,19 +105,17 @@ crates/ag-mail/src/
 |  |  |- shaping.rs    # per site_name / egress source throttling
 |  |  |- egress.rs     # egress sources, IP pools, weighted round-robin
 |  |  |- bounce.rs     # SMTP code + DSN classification (IANA TOML table)
-|  |- resend.rs / ses.rs / postmark.rs   # adapters (kept, feature-gated)
 |- auth/               # NEW DKIM signing + SPF/DKIM/DMARC/ARC [feature "mta"]
 |- queue/
 |  |- mod.rs           # native in-memory two-tier queue (default)
 |  |- store.rs         # existing ag-data persistence (kept)
 |  |- jetstream.rs     # NEW durable scheduled queue          [feature "queue-jetstream"]
 |- api/                # NEW multi-tenant REST surface (axum)  [feature "api"]
-|- webhook/            # NEW Svix-compatible signed webhooks   [feature "api"]
+|- webhook/            # NEW HMAC-SHA256 signed webhooks   [feature "api"]
 |- template/           # existing typed templates (kept) + bulletproof components
 ```
 
-The native default (`mta` off) is the current behavior: relay via `SmtpSender`
-or an ESP adapter, in-memory or `ag-data` queue. With `mta` on, the native
+The native default (`mta` off) is the current behavior: relay via `SmtpSender`, in-memory or `ag-data` queue. With `mta` on, the native
 engine resolves MX and delivers directly.
 
 ### 4.2 Queue model (KumoMTA-inspired)
@@ -151,7 +149,7 @@ the reverse.
 | `mail-auth` | 0.8.x | `mta` | DKIM/SPF/DMARC/ARC sign+verify, DMARC/TLS-RPT reports. |
 | `mail-parser` | pin in workspace | `mta` | Parse inbound DSN and ARF for bounce/complaint processing. |
 | `axum` | (workspace) | `api` | Multi-tenant REST API. |
-| `hmac`/`sha2` | (workspace) | `api` | Svix-compatible webhook signatures. |
+| `hmac`/`sha2` | (workspace) | `api` | HMAC-SHA256 webhook signatures (id/timestamp/signature headers). |
 
 All Stalwart `mail-*` crates are Apache-2.0 OR MIT, pinned in the workspace,
 with active upstream watch (precedent: `ADR-0006`). `lettre` stays for the
@@ -177,7 +175,7 @@ require this schema.
 `/audiences` + `/contacts`, `/broadcasts` (+`/send`), `/webhooks`
 (returns `signing_secret` once). Idempotency via `Idempotency-Key`
 (1-256 chars, 24h TTL). Webhooks are HMAC-SHA256 signed over
-`{id}.{timestamp}.{payload}` with a `whsec_` secret and `svix-*` headers,
+`{id}.{timestamp}.{payload}` with a `whsec_` secret and `id`/`timestamp`/`signature` headers,
 at-least-once with dedupe by id.
 
 ### 4.7 DSL
@@ -212,7 +210,7 @@ deliverable.
    site_name traffic shaping. Gate: retries survive restart; provider
    throttling verifiable.
 3. **Phase 4.6-C - REST API + webhooks + multi-tenancy**: axum API with
-   BLAKE3 API keys, idempotency, batch, scheduling; Svix-compatible signed
+   BLAKE3 API keys, idempotency, batch, scheduling; HMAC-SHA256 signed
    webhooks; per-tenant egress IP pools with weighted round-robin warm-up.
    Gate: parity on `emails`, `domains`, `api-keys`, `webhooks`.
 4. **Phase 4.6-D - marketing + templates**: audiences/contacts/segments/

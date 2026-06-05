@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Correo transaccional outbound para Anti-Gravital: sender SMTP nativo + adapters Resend/SES/Postmark con templates tipados validados en compile-time"
+description = "Correo transaccional outbound para Anti-Gravital: relay SMTP nativo y MTA outbound nativo (opt-in) con templates tipados validados en compile-time"
 keywords.workspace = true
 categories.workspace = true
 publish = false
@@ -23,10 +23,10 @@ default = ["smtp", "templates", "metrics"]
 smtp = ["dep:lettre"]
 templates = []
 metrics = ["dep:metrics"]
-# Adapters de proveedor - opcionales (cargo features) para no inflar el binario.
-resend = ["dep:reqwest"]
-ses = ["dep:reqwest"]
-postmark = ["dep:reqwest"]
+# Para enviar a traves de un proveedor externo se apunta el SmtpSender nativo
+# al endpoint SMTP del proveedor: no se requieren adaptadores con nombre de
+# marca. La via sin terceros es el motor MTA nativo (feature `mta`). Ver
+# ADR-0011 (politica de marcas) y RFC-0010.
 # Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
 queue-persistent = ["dep:ag-data", "dep:sqlx", "dep:chrono", "dep:uuid"]
 # Motor MTA outbound nativo (Fase 4.6-A): resolucion MX, entrega ESMTP+STARTTLS
@@ -47,9 +47,6 @@ tracing = { workspace = true }
 
 # SMTP nativo
 lettre = { workspace = true, optional = true }
-
-# Adapters HTTP (Resend, SES, Postmark)
-reqwest = { workspace = true, optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }
@@ -73,4 +70,3 @@ hickory-resolver = { version = "0.26.1", optional = true, default-features = fal
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
-wiremock = { workspace = true }

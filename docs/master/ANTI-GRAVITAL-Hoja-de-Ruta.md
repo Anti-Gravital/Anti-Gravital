@@ -312,8 +312,7 @@ experience. The introduction of this phase is made official in `ADR-0007`.
 ### 4.5.2 Deliverables
 
 - [x] `ag-mail` crate (deferred standard): `MailSender` trait + `SmtpSender`
-  (`lettre` + `rustls`) + `ResendSender`. 38 tests. Adapters for SES and
-  Postmark as Cargo features.
+  (`lettre` + `rustls`). 38 tests.
 - [x] HTML/plaintext templates: `MailTemplate` trait + `StringTemplate` with
   `{{var}}` substitution. External engines (askama, minijinja) integrable via
   trait. Compile-time var validation via `template::validate`.
@@ -950,8 +949,7 @@ La introducción de esta fase está oficializada en `ADR-0007`.
 ### 4.5.2 Entregables
 
 - [ ] Crate `ag-mail` (estándar diferido): sender SMTP outbound nativo
-  (`lettre` + `rustls`) más trait `MailSender` con adapters (Resend, SES,
-  Postmark) como features de Cargo.
+  (`lettre` + `rustls`) más trait `MailSender`; los proveedores externos se usan vía el relay SMTP nativo.
 - [ ] Templates HTML/plaintext con `askama` tipados, validados en compile-time
   contra `schema.ag`.
 - [ ] Declaración de correos en `schema.ag` (bloque `mail`).

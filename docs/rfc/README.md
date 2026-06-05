@@ -73,3 +73,4 @@ como `superseded`.
 | 0007 | ag-domains alcance, stack y plan de implementacion (Fase 4.5) | aceptada | `RFC-0007-ag-domains-alcance.md` |
 | 0008 | Politica de idioma (ingles canonico) | aceptada | `RFC-0008-politica-de-idioma.md` |
 | 0009 | ag-mail native outbound MTA: alcance, stack y plan por fases (Fase 4.6) | aceptada | `RFC-0009-ag-mail-native-mta.md` |
+| 0010 | ag-mail superficie de envio sin marcas comerciales | aceptada | `RFC-0010-ag-mail-superficie-sin-marcas.md` |

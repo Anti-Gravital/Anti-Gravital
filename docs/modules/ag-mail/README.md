@@ -13,10 +13,10 @@
 ## Domain
 
 Outbound transactional communication: account verification, magic links,
-password recovery, alerts and notifications. Native SMTP sender and managed
-provider adapters (Resend, SES, Postmark). Typed HTML/plaintext templates
-validated at compile time against `schema.ag`. Async queue with retries and
-metrics.
+password recovery, alerts and notifications. Native SMTP relay (pointable at
+any external provider's SMTP endpoint) and an opt-in native outbound MTA.
+Typed HTML/plaintext templates validated at compile time against `schema.ag`.
+Async queue with retries and metrics.
 
 `ADR-0010` expands this domain: `ag-mail` is growing a native outbound MTA so
 projects can send authenticated mail directly to recipient servers with no
@@ -29,9 +29,9 @@ This is what the crate ships today. The status here must match the code
 (`CLAUDE.md` rule 26 / `ADR-0009`).
 
 - `MailSender` trait and `AgMail` enum (`Native | Adapter`).
-- Native `SmtpSender` (`lettre` + `rustls`), default sender.
-- Provider adapters behind Cargo features: `ResendSender` (`resend`),
-  `SesSender` (`ses`), `PostmarkSender` (`postmark`).
+- Native `SmtpSender` (`lettre` + `rustls`), default sender. To send through an
+  external provider, point it at that provider's SMTP host (no provider-brand
+  adapters; see `ADR-0011`).
 - `Email` / `EmailBuilder` message model; typed templates validated at build
   time (`template::validate`).
 - Async retry queue with exponential backoff: in-memory by default, optional

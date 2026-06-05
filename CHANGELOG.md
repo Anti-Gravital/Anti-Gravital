@@ -7,6 +7,30 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Gobernanza - Pivot ag-mail a MTA outbound nativo (2026-06-03)
+
+Solo documentacion y gobernanza; sin codigo funcional nuevo.
+
+- `docs/adr/0010-ag-mail-native-mta-pivot.md`: nuevo ADR que supersede el
+  alcance v1 "NO es un MTA / inbound nunca" de `ADR-0007` y expande `ag-mail`
+  a un MTA outbound nativo (resolucion MX, ESMTP+STARTTLS, firma DKIM,
+  clasificacion de bounces), por fases y opt-in tras features de Cargo,
+  conservando el patron Native | Adapter y la direccionalidad `ag-auth ->
+  ag-mail`. `ADR-0007` sigue vigente para `ag-domains` y la clasificacion.
+- `docs/rfc/RFC-0009-ag-mail-native-mta.md`: plan tecnico (6 subsistemas,
+  dependencias `mail-send`/`mail-builder`/`mail-auth`/`mail-parser`/
+  `hickory-resolver` tras feature `mta`, cola de dos niveles, modelo de datos,
+  superficie REST, webhooks estilo Svix, plan por fases 4.6-A..D + Fase 5+).
+  Supersede a `RFC-0006` para el alcance de `ag-mail`.
+- Alineacion documental: `docs/modules/ag-mail/README.md` reescrito (baseline
+  implementado real + direccion MTA, fin del estado "Pendiente"); notas de
+  actualizacion de alcance en Arquitectura `§8.8` (maestro EN+ES y derivado) y
+  nota futura `§4.5.5` en Hoja-de-Ruta (maestro EN+ES y derivado de fase);
+  README raiz (EN+ES); indices de ADR y RFC; `RFC-0006`/`ADR-0007` marcados
+  superseded para el alcance de `ag-mail`.
+- `docs/master/VERSION.md` y `.github/workflows/docs.yml`: hashes SHA-256 de
+  los dos maestros recalculados.
+
 ### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
 
 Anadido:

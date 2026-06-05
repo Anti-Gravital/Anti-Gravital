@@ -1,6 +1,8 @@
 # RFC-0006: ag-mail — alcance, stack tecnico y plan de implementacion
 
-- Estado: aceptada
+- Estado: aceptada; superseded para el alcance de `ag-mail` por `RFC-0009`
+  (`ADR-0010`, 2026-06-03). El relay outbound que esta RFC fijo se conserva
+  como subconjunto; el motor MTA nativo se especifica en `RFC-0009`.
 - Autor: Angel Nereira (BDFL), Gravital Labs
 - Fecha de borrador: 2026-05-24
 - Fase objetivo: Fase 4.5

@@ -23,6 +23,9 @@ avanza DEBT-020. Persistencia durable del spool queda como DEBT-023.
   por ciclo. `MtaSender::build_jobs` genera jobs por dominio desde un `Email`.
 - `sender::mta::suppress`: `SuppressionList` automática (hard bounce 5xx,
   límite de reintentos), case-insensitive; la cola la consulta y la alimenta.
+- `sender::mta::dsn`: intake asíncrono de DSN (RFC 3464) y ARF (RFC 5965) vía
+  `mail-parser`; `process_dsn`/`process_arf` alimentan la suppression list
+  (cierra DEBT-020).
 - `MtaSender` clasifica los fallos SMTP: solo un 5xx del destino es permanente
   (suprime); fallos propios (DKIM, MX, TLS) son transitorios (reintentables).
 - Métricas de profundidad de cola; tests deterministas (reloj explícito).

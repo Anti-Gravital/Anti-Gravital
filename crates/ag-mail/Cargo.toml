@@ -32,7 +32,7 @@ queue-persistent = ["dep:ag-data", "dep:sqlx", "dep:chrono", "dep:uuid"]
 # Motor MTA outbound nativo (Fase 4.6-A): resolucion MX, entrega ESMTP+STARTTLS
 # directa al MX destino, firma DKIM y clasificacion de bounces. Opt-in; el
 # sender por defecto sigue siendo SmtpSender (relay). Ver RFC-0009 / ADR-0010.
-mta = ["dep:mail-send", "dep:mail-auth", "dep:hickory-resolver", "dep:rustls-pki-types"]
+mta = ["dep:mail-send", "dep:mail-auth", "dep:mail-parser", "dep:hickory-resolver", "dep:rustls-pki-types"]
 # NullSender y helpers disponibles para tests en crates externos.
 test-utils = []
 
@@ -66,6 +66,7 @@ uuid = { workspace = true, optional = true }
 # Backend `ring` para coincidir con el rustls/ring de The Shield.
 mail-send = { version = "0.6", optional = true, default-features = false, features = ["builder", "ring", "tls12"] }
 mail-auth = { version = "0.9", optional = true, default-features = false, features = ["ring"] }
+mail-parser = { version = "0.11", optional = true, default-features = false }
 hickory-resolver = { version = "0.26.1", optional = true, default-features = false, features = ["tokio"] }
 rustls-pki-types = { workspace = true, optional = true }
 

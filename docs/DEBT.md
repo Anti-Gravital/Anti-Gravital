@@ -60,15 +60,15 @@ CLAUDE.md section 29.
   (JetStream/PostgreSQL) for cross-restart persistence is split out as DEBT-023.
 
 ### DEBT-020 — Native MTA: asynchronous DSN/FBL intake
-- Reason: bounce/complaint suppression is driven only by synchronous SMTP
-  replies; asynchronous DSN (RFC 3464) and ARF feedback-loop messages are not
-  yet parsed and fed into the suppression list.
-- Impact: complaints and asynchronous bounces do not auto-suppress.
-- Status: open (narrowed 2026-06-04). The suppression list itself
-  (`sender::mta::suppress::SuppressionList`, auto-fed on permanent SMTP failure
-  and attempt/age exhaustion) is implemented; only the inbound DSN/ARF parser
-  (using `mail-parser`) that feeds it remains.
-- Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+- Reason: bounce/complaint suppression was driven only by synchronous SMTP
+  replies; asynchronous DSN (RFC 3464) and ARF feedback-loop messages were not
+  parsed.
+- Status: closed (2026-06-04). `sender::mta::dsn` parses DSN delivery-status
+  and ARF feedback-report messages (`mail-parser`) and feeds the suppression
+  list: `process_dsn` hard-bounces permanently-failed recipients, `process_arf`
+  suppresses complaints. Pure field parsers plus MIME-part location, unit-tested
+  with RFC-shaped sample messages. Wiring an inbound endpoint that calls these
+  is the integrator's responsibility (and part of the REST API, DEBT-021).
 
 ### DEBT-023 — Native MTA: durable queue spool (JetStream / PostgreSQL)
 - Reason: the two-tier queue (DEBT-019) is in-memory; in-flight deliveries do

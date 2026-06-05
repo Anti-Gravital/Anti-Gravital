@@ -193,6 +193,7 @@ dependencies = [
  "hickory-resolver",
  "lettre",
  "mail-auth",
+ "mail-parser",
  "mail-send",
  "metrics",
  "rustls-pki-types",

@@ -21,6 +21,7 @@
 
 pub mod bounce;
 pub mod dkim;
+pub mod dsn;
 pub mod egress;
 pub mod queue;
 pub mod resolve;
@@ -44,6 +45,7 @@ use crate::{
 };
 
 pub use dkim::DkimConfig;
+pub use dsn::{process_arf, process_dsn, DsnAction, DsnRecord};
 pub use egress::{EgressPool, EgressSource};
 pub use queue::{
     CycleReport, DeliveryBackend, DeliveryJob, DeliveryOutcome, MtaQueue, MtaRetryPolicy,

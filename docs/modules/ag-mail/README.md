@@ -80,14 +80,17 @@ exercised by `#[ignore]` network tests):
 - `sender::mta::queue` + `suppress`: in-memory two-tier scheduled/ready queue
   with exponential backoff, max-age and `max_ready`, an automatic suppression
   list, and a `run` worker; delivery is abstracted via `DeliveryBackend`.
+- `sender::mta::dsn`: asynchronous DSN (RFC 3464) and ARF feedback-report
+  (RFC 5965) parsing (`mail-parser`) that feeds the suppression list
+  (`process_dsn` / `process_arf`).
 - `ag-observe` metrics on the MTA path (`ag_mail_sent_total`,
   `ag_mail_send_latency_seconds`, `ag_mail_retry_total`, queue depth); a
   `mail-mta` CI job builds, tests and lints `--features mta`.
 
 Remaining (tracked in `docs/DEBT.md`): durable queue spool over
-JetStream/PostgreSQL (DEBT-023), asynchronous DSN/FBL intake (DEBT-020), the
-REST API / webhooks / marketing surface (DEBT-021), the live-delivery test
-(DEBT-022), and external template engines (DEBT-003).
+JetStream/PostgreSQL (DEBT-023), the REST API / webhooks / marketing surface
+(DEBT-021), the live-delivery test (DEBT-022), and external template engines
+(DEBT-003).
 
 ### Planned — later phases
 

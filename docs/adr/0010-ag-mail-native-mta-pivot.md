@@ -31,15 +31,19 @@ backend (`queue-persistent` via `ag-data`), typed templates validated at
 build time, and `ag-observe` metrics. `ag-auth` consumes it for verification,
 recovery, and magic links.
 
-A new product requirement has been raised by the BDFL: reach functional
-parity with Resend **without depending on a third party** for the actual
-sending path. Resend is a product layer (REST API, React Email, Svix-signed
-webhooks, suppression lists, broadcasts) built on top of Amazon SES as its
-sending engine; it does not run its own MTA. To offer the same capability
-self-hosted and provider-independent, `ag-mail` must grow a native outbound
-MTA engine (MX resolution, delivery queues, traffic shaping, DKIM signing,
-bounce classification) where today it only relays to an SMTP host or an ESP
-HTTP API.
+A new product requirement has been raised by the BDFL: a native, self-hosted,
+**provider-independent** outbound email path. Today `ag-mail` can only relay
+to an SMTP host or call an external email API; in both cases delivery depends
+on a third-party sending service. The requirement is to send authenticated
+mail **directly** to recipient mail servers with no third party in the
+sending path. To offer that, `ag-mail` must grow a native outbound MTA engine
+(MX resolution, delivery queues, traffic shaping, DKIM signing, bounce
+classification) plus a managed email-sending API surface for multi-tenant use.
+
+External email platforms are used only as an engineering reference for *which*
+capabilities a mature email sender provides; none is a dependency or a target
+to integrate with. The existing optional provider adapters remain available
+for projects that choose them, but they are off by default and never required.
 
 This requirement directly contradicts the v1 scope restriction of `ADR-0007`.
 Per `CLAUDE.md` rules 5, 22, and 28, a scope reversal of this magnitude
@@ -108,7 +112,7 @@ Concretely, the expansion:
    Full mailbox hosting, IMAP/POP, JMAP, and a general inbound mail server
    remain out of scope and are still the job of Postfix/Stalwart.
 
-The Resend-parity product surface (multi-tenant REST API, webhooks,
+The managed email-sending product surface (multi-tenant REST API, webhooks,
 suppression lists, broadcasts/contacts/segments, IP pools) is admitted as the
 target but is phased; see RFC-0009 for the phase plan and exit gates. No new
 crate is created: `ag-mail` absorbs the work. The ecosystem stays at 17-18
@@ -131,19 +135,20 @@ Negative:
 
 - `ag-mail` grows from a library into something closer to a service:
   operating a native MTA means owning IP/domain reputation, warm-up, and
-  deliverability — the most expensive and highest-risk part that Resend
-  delegates to SES. This is acknowledged as the dominant risk; mitigation is
-  to keep the ESP adapters as the recommended production path until native
-  deliverability is proven, and to phase the MTA behind opt-in features.
+  deliverability — the most expensive and highest-risk part of running an
+  email sender, normally delegated to a hosted service. This is acknowledged
+  as the dominant risk; mitigation is to keep the optional provider adapters
+  available as a production path until native deliverability is proven, and to
+  phase the MTA behind opt-in features.
 - The crate's surface and test matrix expand substantially (REST API,
   webhooks, suppression, IP pools). Complexity must be contained by the
   feature-gating discipline of `ADR-0009`.
 - New external crates (`mail-send`, `mail-builder`, `mail-auth`,
   `mail-parser`, `hickory-resolver`) enter the dependency set; each is
   pinned and justified in RFC-0009 section 4.
-- The estimated schedule for full Resend parity is large (RFC-0009 estimates
-  five phases); the roadmap reflects this as forward work, not as a
-  completed Phase 4.5 deliverable.
+- The estimated schedule for the full managed email surface is large
+  (RFC-0009 estimates five phases); the roadmap reflects this as forward work,
+  not as a completed Phase 4.5 deliverable.
 
 Neutral:
 

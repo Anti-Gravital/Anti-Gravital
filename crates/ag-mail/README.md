@@ -2,14 +2,15 @@
 
 Correo transaccional outbound para Anti-Gravital.
 
-Status: **Phase 4.5 — implemented**, plus the opt-in native MTA core of
-**Phase 4.6-A**. Native SMTP relay, an opt-in native MTA, in-memory
-and persistent retry queues, custom SMTP headers, string templating and
-`ag-observe` metrics are functional. The `mta` feature (off by default) adds a
-native outbound MTA: MX resolution, ESMTP+STARTTLS direct delivery, Ed25519 and
-RSA-SHA256 DKIM signing, a bounce classifier and MTA metrics. Remaining tech
-debt (external template engines; native MTA durable queue/shaping/DSN-FBL/REST
-in later phases) is tracked in `docs/DEBT.md`. Decisions:
+Status: **Phase 4.5 — implemented**, plus the opt-in native MTA of
+**Phases 4.6-A/B/C**. Native SMTP relay, in-memory and persistent retry queues,
+custom SMTP headers, string templating (and the optional `minijinja` engine)
+and `ag-observe` metrics are functional. The `mta` feature (off by default)
+adds the native outbound MTA: MX resolution, ESMTP+STARTTLS direct delivery,
+Ed25519/RSA DKIM, egress pools, traffic shaping, a two-tier queue, suppression
+and DSN/ARF intake; the `api` feature adds signed webhooks. Remaining tech debt
+(native MTA durable queue spool, REST API routes + marketing, live-delivery
+test) is tracked in `docs/DEBT.md`. Decisions:
 `docs/adr/0007-ag-mail-ag-domains.md`, `docs/adr/0010-ag-mail-native-mta-pivot.md`.
 Technical plans: `docs/rfc/RFC-0006-ag-mail-alcance.md`,
 `docs/rfc/RFC-0009-ag-mail-native-mta.md`. Module sheet:

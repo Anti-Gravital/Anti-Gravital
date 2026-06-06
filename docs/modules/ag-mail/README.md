@@ -45,8 +45,9 @@ This is what the crate ships today. The status here must match the code
   does NOT depend on `ag-auth`.
 - CLI: `ag mail test`.
 
-Outstanding debt for this baseline is tracked in `docs/DEBT.md` (persistent
-queue worker, custom SMTP headers, external template engines).
+The persistent queue, custom SMTP headers and external template engines
+(`minijinja`) for this baseline are implemented; remaining debt is tracked in
+`docs/DEBT.md`.
 
 ## Native outbound MTA (ADR-0010 / RFC-0009)
 

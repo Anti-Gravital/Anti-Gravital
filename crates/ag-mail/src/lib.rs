@@ -10,10 +10,10 @@
 //!
 //! Phase 4.5 — implemented. Public API: [`sender::MailSender`] trait with the
 //! native `SmtpSender` (default relay), the [`message::Email`]/`EmailBuilder`
-//! model, an in-memory retry queue and `ag-observe` metrics. Outstanding tech
-//! debt (persistent queue worker, custom SMTP headers, external template
-//! engines) is tracked in `docs/DEBT.md`. Governing decisions: `ADR-0007`,
-//! `ADR-0011`; technical plans: `RFC-0006`, `RFC-0010`.
+//! model, a retry queue (in-memory plus an optional `ag-data`-backed persistent
+//! backend) and `ag-observe` metrics. Remaining tech debt is tracked in
+//! `docs/DEBT.md`. Governing decisions: `ADR-0007`, `ADR-0011`; technical
+//! plans: `RFC-0006`, `RFC-0010`.
 //!
 //! # Native MTA (opt-in, `mta` feature)
 //!

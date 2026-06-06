@@ -1,16 +1,41 @@
-# feat(ag-mail): MTA nativo (Fase 4.6-A) + retiro de adaptadores de marca (ADR-0011)
+# feat(ag-mail): MTA outbound nativo (Fases 4.6-A/B/C) + retiro de marcas (ADR-0011)
 
 ## Fase afectada
 
 Gobernanza (ADR-0010/RFC-0009 y ADR-0011/RFC-0010) entre Fase 4.5 y Fase 4.6,
-**mas** la implementacion de la Fase 4.6-A (nucleo del MTA nativo) y el retiro
-de los adaptadores de correo con nombre de marca comercial.
+**mas** la implementacion del MTA outbound nativo (Fases 4.6-A/B y parte de
+4.6-C), el motor de plantillas `minijinja`, y el retiro de los adaptadores de
+correo con nombre de marca comercial.
 
 ## Tipo de cambio
 
-Gobernanza (`docs`) + implementacion (`feat`). El MTA nativo es aditivo tras la
-feature `mta` (apagada por defecto). El retiro de los adaptadores de marca es
+Gobernanza (`docs`) + implementacion (`feat`), todo **aditivo** tras features
+opt-in apagadas por defecto (`mta`, `api`, `minijinja`): el build y el
+comportamiento por defecto no cambian. El retiro de los adaptadores de marca es
 un cambio de superficie en `ag-mail` (sin releases; `ag-auth` es trait-based).
+
+## Resumen de lo implementado (cerrado en `docs/DEBT.md`)
+
+- **Gobernanza**: ADR-0010 (pivot a MTA nativo), RFC-0009 (plan), ADR-0011 +
+  RFC-0010 (politica de marcas), con scan de marcas en CI.
+- **MTA nativo (feature `mta`)**: resolucion MX + `site_name` rollup; egress
+  pools (SWRR para IP warming); DKIM Ed25519 **y RSA-SHA256**; clasificacion de
+  bounces; traffic shaping (rate token-bucket + cap de conexiones); cola de dos
+  niveles con retry/backoff/max-age/`max_ready`, worker y `DeliveryBackend`;
+  suppression list automatica; intake asincrono DSN (RFC 3464)/ARF (RFC 5965);
+  metricas y job de CI `mail-mta`. (DEBT-017/018/019/020.)
+- **API (feature `api`)**: webhooks firmados HMAC-SHA256 (`whsec_`, `v1,`,
+  multi-firma, anti-replay, verify en tiempo constante). (Avanza DEBT-021.)
+- **Plantillas (feature `minijinja`)**: `MinijinjaTemplate` via trait
+  `MailTemplate` (loops/condicionales/filtros). (DEBT-003.)
+- **CI**: `cargo doc` y cobertura tarpaulin (>=80%) verdes; modulos opt-in
+  excluidos del gate de cobertura por defecto (se prueban en `mail-mta`).
+
+## Pendiente (deuda con infraestructura requerida)
+
+- **DEBT-021** (resto): rutas REST + modelo de datos PostgreSQL + marketing.
+- **DEBT-022**: test de entrega en vivo (puerto 25 + DNS).
+- **DEBT-023**: spool durable del queue (JetStream/PostgreSQL).
 
 ## Politica de marcas (ADR-0011)
 

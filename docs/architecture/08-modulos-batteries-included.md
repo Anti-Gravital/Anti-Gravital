@@ -88,9 +88,19 @@ recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
 antispam, filtrado ni gestión de reputación de IP. Esta restricción es
 deliberada y está fijada en el ADR.
 
+> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
+> un MTA / inbound nunca" queda **superseded**: `ag-mail` se expande a un MTA
+> outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
+> clasificación de bounces) para enviar correo autenticado sin terceros en la
+> ruta de envío. Es por fases y opt-in tras features de Cargo (`mta`, `api`,
+> `queue-jetstream`); el baseline de relay outbound sigue siendo el modo por
+> defecto. Buzones, IMAP/POP/JMAP e inbound general siguen fuera de alcance;
+> inbound solo como parsing de DSN/ARF para bounces. Plan técnico: `RFC-0009`.
+> Trabajo futuro, no implementado aún.
+
 El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
 sender SMTP nativo. Los adapters de proveedor se declaran como features de
-Cargo (`--features resend,ses,postmark`) y cada uno implementa el trait
+del relay SMTP nativo (apuntable a cualquier proveedor externo); la via sin terceros es el MTA nativo (`mta`). Cada sender implementa el trait
 `MailSender`. El patrón Native | Adapter es idéntico al usado por
 `ag-storage` (`Native | S3`) y `ag-cache` (`moka | Redis`).
 
@@ -100,7 +110,7 @@ referencia un `domain` válido, si el archivo del template no existe o si
 las variables del HTML no coinciden con las `vars` tipadas declaradas, el
 compilador del DSL rechaza el build. Un correo mal formado deja de ser un
 bug de runtime y se convierte en un error de compilación. Este es el
-diferenciador real frente a Resend, no la entregabilidad.
+diferenciador real (correo correcto en build-time), no la entregabilidad.
 
 La **cola asíncrona** acepta jobs con reintentos y backoff exponencial.
 Backend por defecto en memoria; backend opcional persistente vía `ag-data`

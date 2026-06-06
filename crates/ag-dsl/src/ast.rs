@@ -482,7 +482,7 @@ pub fn to_snake_case(s: &str) -> std::string::String {
 pub struct MailBlock {
     /// Block name (logical identifier, e.g., `"transaccional"`).
     pub name: Spanned<std::string::String>,
-    /// Sending provider: `"smtp"`, `"resend"`, `"ses"`, `"postmark"`.
+    /// Sending mode: `"smtp"` (native relay) or `"mta"` (native outbound MTA).
     pub provider: Option<std::string::String>,
     /// Default sender address.
     pub from: Option<std::string::String>,

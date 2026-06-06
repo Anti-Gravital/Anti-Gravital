@@ -24,7 +24,7 @@ Implementacion completa de Fase 4.5 (Etapas 2-1 a 2-12). Agrega correo
 transaccional outbound y gestion DNS via traits con adapters intercambiables.
 
 **ag-mail** (`crates/ag-mail`):
-- `MailSender` trait + `SmtpSender` (lettre + rustls) + `ResendSender` (HTTP)
+- `MailSender` trait + `SmtpSender` (lettre + rustls) (relay nativo)
 - `InMemoryQueue` con reintentos exponenciales y worker tokio
 - `StringTemplate` con sustitucion `{{var}}`
 - `NullSender` (feature test-utils) para tests cross-crate
@@ -72,7 +72,7 @@ transaccional outbound y gestion DNS via traits con adapters intercambiables.
 
 ## Criterios de salida avanzados
 
-- ag-mail operativo con SMTP y Resend adapter
+- ag-mail operativo con relay SMTP nativo
 - ag-domains con upsert idempotente SPF/DKIM/DMARC
 - DSL v0.7 con bloques mail/domain parseados y validados
 - ag-auth puede enviar los tres tipos de correo de autenticacion

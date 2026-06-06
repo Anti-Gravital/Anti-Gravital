@@ -312,8 +312,7 @@ experience. The introduction of this phase is made official in `ADR-0007`.
 ### 4.5.2 Deliverables
 
 - [x] `ag-mail` crate (deferred standard): `MailSender` trait + `SmtpSender`
-  (`lettre` + `rustls`) + `ResendSender`. 38 tests. Adapters for SES and
-  Postmark as Cargo features.
+  (`lettre` + `rustls`). 38 tests.
 - [x] HTML/plaintext templates: `MailTemplate` trait + `StringTemplate` with
   `{{var}}` substitution. External engines (askama, minijinja) integrable via
   trait. Compile-time var validation via `template::validate`.
@@ -377,6 +376,20 @@ accumulation of capabilities. The mitigation is the project's interoperability
 rule: both crates are abstractions with adapters, not replacements for
 providers. The boundary is fixed in `ADR-0007` and does not move without a new
 ADR.
+
+### 4.5.5 Forward note — Phase 4.6 native MTA (`ADR-0010`)
+
+That `ADR-0007` boundary has now moved, via the new ADR it required.
+`ADR-0010` (2026-06-03) supersedes the v1 "NOT an MTA / inbound never"
+restriction and expands `ag-mail` into a native outbound MTA, phased and
+opt-in behind Cargo features, preserving the Native | Adapter pattern and the
+implemented Phase 4.5 baseline. The work is phased Phase 4.6 (`RFC-0009`
+section 5: stages A-D) plus continuous deliverability hardening in Phase 5+.
+Phase 4.6-A (the native MTA core: MX resolution, ESMTP+STARTTLS delivery,
+Ed25519 DKIM signing and bounce classification) is implemented behind the
+opt-in `mta` Cargo feature; stages 4.6-B..D remain forward work. Phase 4.5
+stays complete for its original outbound-relay scope. The provider adapters
+remain a supported production path until native deliverability is proven.
 
 ---
 
@@ -936,8 +949,7 @@ La introducción de esta fase está oficializada en `ADR-0007`.
 ### 4.5.2 Entregables
 
 - [ ] Crate `ag-mail` (estándar diferido): sender SMTP outbound nativo
-  (`lettre` + `rustls`) más trait `MailSender` con adapters (Resend, SES,
-  Postmark) como features de Cargo.
+  (`lettre` + `rustls`) más trait `MailSender`; los proveedores externos se usan vía el relay SMTP nativo.
 - [ ] Templates HTML/plaintext con `askama` tipados, validados en compile-time
   contra `schema.ag`.
 - [ ] Declaración de correos en `schema.ag` (bloque `mail`).
@@ -1002,6 +1014,21 @@ acumulación de capacidades. La mitigación es la regla de interoperabilidad
 del proyecto: ambos crates son abstracciones con adapters, no reemplazos de
 proveedores. La frontera está fijada en `ADR-0007` y no se mueve sin un nuevo
 ADR.
+
+### 4.5.5 Nota futura — Fase 4.6 MTA nativo (`ADR-0010`)
+
+Esa frontera de `ADR-0007` ya se movió, mediante el nuevo ADR que ella misma
+exigía. `ADR-0010` (2026-06-03) supersede la restricción v1 "NO es un MTA /
+inbound nunca" y expande `ag-mail` a un MTA outbound nativo, por fases y
+opt-in tras features de Cargo, conservando el patrón Native | Adapter y el
+baseline implementado de la Fase 4.5. El trabajo es la Fase 4.6 por fases
+(`RFC-0009` sección 5: etapas A-D) más endurecimiento continuo de
+entregabilidad en la Fase 5+. La Fase 4.6-A (núcleo del MTA: resolución MX,
+entrega ESMTP+STARTTLS, firma DKIM Ed25519 y clasificación de bounces) está
+implementada tras la feature opt-in `mta`; las etapas 4.6-B..D siguen siendo
+trabajo futuro. La Fase 4.5 sigue completa para su alcance de relay outbound
+original. Los adapters de proveedor siguen siendo una ruta de producción
+soportada hasta demostrar la entregabilidad nativa.
 
 ---
 

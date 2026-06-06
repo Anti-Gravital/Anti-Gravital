@@ -106,7 +106,7 @@ This list is equally important. Anti-Gravital does **not** intend and will not i
 - **Replace Docker.** It generates Dockerfiles. It runs in containers. It does not reinvent the OCI format.
 - **Replace PostgreSQL, Redis, MinIO, or NATS.** It integrates with them as standard external dependencies.
 - **Replace Terraform or Pulumi.** `ag-cloud` orchestrates simple deployments; for complex multi-cloud infrastructure with policies, declarative IaC, and shared modules, Terraform remains the correct tool. `ag-domains` (Phase 4.5) also does not replace Terraform: it orchestrates DNS and TLS for the domains declared in the project's `schema.ag`, it does not manage arbitrary DNS zones or shared infrastructure.
-- **Be a complete mail server.** `ag-mail` (Phase 4.5) sends outbound transactional mail (verification, recovery, magic links, alerts) via native SMTP or provider adapters (Resend, SES, Postmark). It is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer mailboxes, it does NOT implement antispam or IP reputation management. For inbound or a complete mail server, use Postfix, Stalwart, or another specialized project.
+- **Be a complete mail server.** `ag-mail` (Phase 4.5) sends outbound transactional mail (verification, recovery, magic links, alerts) via native SMTP or the native SMTP relay (pointable at any external provider). It is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer mailboxes, it does NOT implement antispam or IP reputation management. For inbound or a complete mail server, use Postfix, Stalwart, or another specialized project.
 - **Be a domain registrar.** `ag-domains` (Phase 4.5) consumes the domain that the operator already bought (Namecheap, Cloudflare Registrar, etc.) and configures it through an adapter (Cloudflare initially). It does NOT register domains, it does NOT act as a domain marketplace.
 - **Be a game engine, a scientific computing framework, or an alternative to Unreal Engine, Unity, NumPy, PyTorch, or TensorFlow.** These domains have specialized tools that Anti-Gravital does not intend to replicate.
 
@@ -167,7 +167,7 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-cache`         | in-memory moka, Redis adapter, event-based invalidation          | Standard             |
 | `ag-storage`       | S3, MinIO, local filesystem, signed URLs, image processing       | Standard             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, Grafana dashboards           | Standard             |
-| `ag-mail`          | outbound SMTP, typed templates, send queues with retries, adapters (Resend/SES/Postmark), SPF/DKIM/DMARC helpers | Deferred standard |
+| `ag-mail`          | outbound SMTP, typed templates, send queues with retries, relay SMTP nativo, SPF/DKIM/DMARC helpers | Deferred standard |
 | `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
 | `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
 | `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
@@ -212,7 +212,7 @@ The distinction between **core**, **standard**, **deferred standard**, and **opt
 │   │  Estándar diferido       │                                  │
 │   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
 │   │  outbound + adapters     │                                  │
-│   │  (Resend/SES/Postmark)   │                                  │
+│   │  (relay SMTP nativo)     │                                  │
 │   └────────┬─────────────────┘                                  │
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
@@ -239,7 +239,7 @@ Fourth rule: `ag-cli` depends on all the other crates (it is the orchestrator), 
 
 Fifth rule: all crates publish independent semantic versions. A breaking change in `ag-cache` does not force `ag-core` to bump major. This is essential for the sustainability of an open source project.
 
-Sixth rule (introduced by `ADR-0007`, Phase 4.5): the direction of the `ag-auth <-> ag-mail` dependency is strictly unidirectional. `ag-auth` **consumes** `ag-mail` to send verification, password recovery, and magic link emails, defining a small trait that `ag-auth` invokes. `ag-mail` does **NOT** depend on `ag-auth`. This directionality preserves the second rule (no cycles) and keeps `ag-mail` reusable in isolation in any Rust project. The `ag-mail <-> ag-domains` cooperation (to materialize SPF/DKIM/DMARC) is optional, via a Cargo feature: if a project uses `ag-mail` with a managed adapter (Resend) and does not administer its own DNS, `ag-domains` is not necessary.
+Sixth rule (introduced by `ADR-0007`, Phase 4.5): the direction of the `ag-auth <-> ag-mail` dependency is strictly unidirectional. `ag-auth` **consumes** `ag-mail` to send verification, password recovery, and magic link emails, defining a small trait that `ag-auth` invokes. `ag-mail` does **NOT** depend on `ag-auth`. This directionality preserves the second rule (no cycles) and keeps `ag-mail` reusable in isolation in any Rust project. The `ag-mail <-> ag-domains` cooperation (to materialize SPF/DKIM/DMARC) is optional, via a Cargo feature: if a project uses `ag-mail` with a external provider (via SMTP) and does not administer its own DNS, `ag-domains` is not necessary.
 
 Seventh rule (introduced by `ADR-0007`, Phase 4.5): the optional module `ag-cloud` **consumes** `ag-domains` during `ag deploy` to configure DNS and TLS, without the dependency being rigid in all targets. If the project does not declare domains in its `schema.ag`, the flow is omitted. `ag-domains` can be used independently from the CLI without `ag-cloud`.
 
@@ -690,7 +690,9 @@ Introduced by `ADR-0007` in Phase 4.5. `ag-mail` is a **deferred** standard modu
 
 The v1 scope is **exclusively outbound**. `ag-mail` is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer persistent mailboxes, it does NOT implement antispam, filtering, or IP reputation management. This restriction is deliberate and is fixed in the ADR: the inbound and complete mail server capabilities are the work of a different project, not of Anti-Gravital.
 
-The technical stack is `lettre` with async Tokio transport and `rustls` for the native SMTP sender (coherent with The Shield). The provider adapters are declared as Cargo features (`--features resend,ses,postmark`) and each one implements the same `MailSender` trait:
+> **Scope update (`ADR-0010`, 2026-06-03).** The "NOT an MTA / inbound never" restriction above is **superseded**: `ag-mail` is being expanded into a native outbound MTA (MX resolution, ESMTP+STARTTLS delivery, DKIM signing, bounce classification) so a project can send authenticated mail with no third party in the sending path. The expansion is phased and opt-in behind Cargo features (`mta`, `api`, `queue-jetstream`); the outbound-relay baseline described here remains the default and is unchanged. Mailbox hosting, IMAP/POP/JMAP and general inbound stay out of scope; inbound is admitted only as DSN/ARF parsing for bounce processing. Technical plan: `RFC-0009`. The native MTA is forward work and is not claimed as implemented here.
+
+The technical stack is `lettre` with async Tokio transport and `rustls` for the native SMTP sender (coherent with The Shield). External providers are reached with the native SMTP relay; the no-third-party path is the native MTA (`mta` feature). The `MailSender` trait abstracts both:
 
 ```rust
 #[async_trait::async_trait]
@@ -702,13 +704,13 @@ pub trait MailSender: Send + Sync {
 
 pub enum AgMail {
     Native(SmtpSender),                // lettre + rustls
-    Adapter(Box<dyn MailSender>),      // Resend, SES, Postmark, ...
+    Adapter(Box<dyn MailSender>),      // external providers via SMTP
 }
 ```
 
 The Native | Adapter pattern is identical to the one used by `ag-storage` (`Native | S3`) and to the one planned for the L2 of `ag-cache` (L1 `moka` native today; L2 RESP2 native proposed in `RFC-0005`), reinforcing the project's interoperability rule: integrate dominant providers, do not replace them.
 
-The **templates** are modeled with the `MailTemplate` trait and a `StringTemplate` implementation of `{{var}}` substitution; any external engine (askama, minijinja) can be plugged in by implementing the trait. Variable validation is done against the `schema.ag`: the DSL compiler emits a warning when the `from` of a `mail` block does not reference a declared `domain`, and verifies that the typed `vars` of the template match the markers used. A malformed email ceases to be a runtime bug and approaches a build-detectable error. This is the **real differentiator** versus Resend, not deliverability: deliverability is the provider's job; the correctness of the contract is the framework's job.
+The **templates** are modeled with the `MailTemplate` trait and a `StringTemplate` implementation of `{{var}}` substitution; any external engine (askama, minijinja) can be plugged in by implementing the trait. Variable validation is done against the `schema.ag`: the DSL compiler emits a warning when the `from` of a `mail` block does not reference a declared `domain`, and verifies that the typed `vars` of the template match the markers used. A malformed email ceases to be a runtime bug and approaches a build-detectable error. This is the **real differentiator** (build-time correctness), not deliverability: deliverability is the provider's job; the correctness of the contract is the framework's job.
 
 The **async queue** accepts jobs with retries and exponential backoff. Default backend in memory (Tokio task + channel). Optional persistent backend via `ag-data` (jobs table) to survive restarts. Optional integration with `ag-realtime` for event fan-out. Each job emits metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`, `ag_mail_retry_total`, latency histogram.
 
@@ -750,7 +752,7 @@ Small, versioned, with **contract tests** that every adapter must pass. The init
 
 The **ACME client** (`instant-acme`) issues and renews Let's Encrypt certificates. It supports the DNS-01 challenge (preferred, uses the `DnsProvider` itself to create the required TXT) and HTTP-01 (alternative). The renewal runs as a background Tokio task, watching expiration and renewing before the configured threshold. Certificate storage is filesystem by default, or optional `ag-storage`.
 
-The cooperation with `ag-mail` materializes in `generate_mail_records`: `ag-mail` declares its requirements via `MailSender::dns_requirements` and `ag-domains` materializes them as records (SPF, DKIM, DMARC). This is a **cooperation** relationship, not a control one: `ag-mail` does not depend on `ag-domains`; a project can use `ag-mail` with a managed adapter (Resend) without `ag-domains` participating.
+The cooperation with `ag-mail` materializes in `generate_mail_records`: `ag-mail` declares its requirements via `MailSender::dns_requirements` and `ag-domains` materializes them as records (SPF, DKIM, DMARC). This is a **cooperation** relationship, not a control one: `ag-mail` does not depend on `ag-domains`; a project can use `ag-mail` with a external provider (via SMTP) without `ag-domains` participating.
 
 The **propagation verification** uses `hickory-resolver` to query multiple public resolvers and confirm that the records propagated before marking an operation as successful. This blocks `ag deploy` until the domain responds, avoiding delivering URLs that the operator promised but that do not resolve yet.
 
@@ -841,7 +843,7 @@ Starting from version 1.0 of the framework, an official registry is published at
 
 ## 10. Deployment subsystem (`ag-cloud` + `ag-domains`)
 
-One of the most important structural corrections derived from the critical analysis is that `ag-cloud` is not a competitor of Terraform or of Kubernetes. Its target range is the same one covered by Railway, Fly.io, Render, and Coolify: simplify the deployment of backend applications to typical environments without forcing the team to operate complete infrastructure. Since Phase 4.5 (`ADR-0007`), `ag-cloud` cooperates with `ag-domains` to resolve domain, TLS, and mail records within the `ag deploy` flow itself, without replacing the dominant providers (Let's Encrypt, Cloudflare, Resend) and without becoming a hosting panel.
+One of the most important structural corrections derived from the critical analysis is that `ag-cloud` is not a competitor of Terraform or of Kubernetes. Its target range is the same one covered by Railway, Fly.io, Render, and Coolify: simplify the deployment of backend applications to typical environments without forcing the team to operate complete infrastructure. Since Phase 4.5 (`ADR-0007`), `ag-cloud` cooperates with `ag-domains` to resolve domain, TLS, and mail records within the `ag deploy` flow itself, without replacing the dominant providers (Let's Encrypt, Cloudflare) and without becoming a hosting panel.
 
 ### 10.1 Philosophy of `ag-cloud`
 
@@ -1341,7 +1343,7 @@ Esta lista es igualmente importante. Anti-Gravital **no** intenta ni intentará:
 - **No reemplaza Docker.** Genera Dockerfiles. Se ejecuta en contenedores. No reinventa el formato OCI.
 - **No reemplaza PostgreSQL, Redis, MinIO ni NATS.** Se integra con ellos como dependencias externas estándar.
 - **No reemplaza Terraform ni Pulumi.** `ag-cloud` orquesta despliegues simples; para infraestructura compleja multi-cloud con políticas, IaC declarativa y módulos compartidos, Terraform sigue siendo la herramienta correcta. `ag-domains` (Fase 4.5) tampoco reemplaza Terraform: orquesta DNS y TLS para los dominios declarados en el `schema.ag` del proyecto, no gestiona zonas DNS arbitrarias ni infraestructura compartida.
-- **No es un servidor de correo completo.** `ag-mail` (Fase 4.5) envía correo transaccional outbound (verificación, recuperación, magic links, alertas) vía SMTP nativo o adapters de proveedor (Resend, SES, Postmark). NO es un MTA, NO recibe correo (sin IMAP/POP), NO ofrece buzones, NO implementa antispam ni gestión de reputación de IP. Para inbound o un servidor de correo completo, usar Postfix, Stalwart u otro proyecto especializado.
+- **No es un servidor de correo completo.** `ag-mail` (Fase 4.5) envía correo transaccional outbound (verificación, recuperación, magic links, alertas) vía SMTP nativo o relay SMTP nativo (apuntable a cualquier proveedor externo). NO es un MTA, NO recibe correo (sin IMAP/POP), NO ofrece buzones, NO implementa antispam ni gestión de reputación de IP. Para inbound o un servidor de correo completo, usar Postfix, Stalwart u otro proyecto especializado.
 - **No es un registrador de dominios.** `ag-domains` (Fase 4.5) consume el dominio que el operador ya compró (Namecheap, Cloudflare Registrar, etc.) y lo configura mediante un adapter (Cloudflare inicialmente). NO registra dominios, NO actúa como mercado de dominios.
 - **No es un motor de juegos, ni un framework de cómputo científico, ni una alternativa a Unreal Engine, Unity, NumPy, PyTorch o TensorFlow.** Estos dominios tienen herramientas especializadas que Anti-Gravital no intenta replicar.
 
@@ -1402,7 +1404,7 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
 | `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
-| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, adapters (Resend/SES/Postmark), helpers SPF/DKIM/DMARC | Estándar diferido |
+| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, relay SMTP nativo, helpers SPF/DKIM/DMARC | Estándar diferido |
 | `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
 | `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
@@ -1447,7 +1449,7 @@ La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opci
 │   │  Estándar diferido       │                                  │
 │   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
 │   │  outbound + adapters     │                                  │
-│   │  (Resend/SES/Postmark)   │                                  │
+│   │  (relay SMTP nativo)     │                                  │
 │   └────────┬─────────────────┘                                  │
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
@@ -1482,7 +1484,7 @@ contraseña y magic links, definiendo un trait pequeño que `ag-auth` invoca.
 segunda regla (no ciclos) y mantiene a `ag-mail` reusable de forma aislada
 en cualquier proyecto Rust. La cooperación `ag-mail ↔ ag-domains` (para
 materializar SPF/DKIM/DMARC) es opcional, vía feature de Cargo: si un
-proyecto usa `ag-mail` con un adapter gestionado (Resend) y no administra
+proyecto usa `ag-mail` con un proveedor externo (via SMTP) y no administra
 DNS propio, `ag-domains` no es necesario.
 
 Séptima regla (introducida por `ADR-0007`, Fase 4.5): el módulo opcional
@@ -1951,9 +1953,20 @@ antispam, filtrado ni gestión de reputación de IP. Esta restricción es
 deliberada y está fijada en el ADR: las capacidades inbound y de servidor
 de correo completo son trabajo de un proyecto distinto, no de Anti-Gravital.
 
+> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
+> un MTA / inbound nunca" de arriba queda **superseded**: `ag-mail` se expande
+> a un MTA outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
+> clasificación de bounces) para enviar correo autenticado sin terceros en la
+> ruta de envío. La expansión es por fases y opt-in tras features de Cargo
+> (`mta`, `api`, `queue-jetstream`); el baseline de relay outbound descrito
+> aquí sigue siendo el modo por defecto y no cambia. Buzones, IMAP/POP/JMAP e
+> inbound general siguen fuera de alcance; inbound se admite solo como parsing
+> de DSN/ARF para procesar bounces. Plan técnico: `RFC-0009`. El MTA nativo es
+> trabajo futuro y no se declara implementado aquí.
+
 El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
 sender SMTP nativo (coherente con The Shield). Los adapters de proveedor se
-declaran como features de Cargo (`--features resend,ses,postmark`) y cada
+se alcanzan apuntando el relay SMTP nativo a su endpoint; la via sin terceros es el MTA nativo (`mta`). El trait `MailSender` abstrae ambos. Cada
 uno implementa el mismo trait `MailSender`:
 
 ```rust
@@ -1966,7 +1979,7 @@ pub trait MailSender: Send + Sync {
 
 pub enum AgMail {
     Native(SmtpSender),                // lettre + rustls
-    Adapter(Box<dyn MailSender>),      // Resend, SES, Postmark, ...
+    Adapter(Box<dyn MailSender>),      // external providers via SMTP
 }
 ```
 
@@ -1984,7 +1997,7 @@ DSL emite un aviso cuando el `from` de un bloque `mail` no referencia un
 `domain` declarado, y verifica que las `vars` tipadas del template
 coincidan con los marcadores usados. Un correo mal formado deja de ser un
 bug de runtime y se acerca a un error detectable en build. Este es el
-**diferenciador real** frente a Resend, no la entregabilidad: la
+**diferenciador real** (correctitud en build-time), no la entregabilidad: la
 entregabilidad es trabajo del proveedor; la corrección del contrato es
 trabajo del framework.
 
@@ -2058,7 +2071,7 @@ La cooperación con `ag-mail` se materializa en `generate_mail_records`:
 `ag-domains` los materializa como registros (SPF, DKIM, DMARC). Esta es una
 relación de **cooperación**, no de control: `ag-mail` no depende de
 `ag-domains`; un proyecto puede usar `ag-mail` con un adapter gestionado
-(Resend) sin que `ag-domains` participe.
+(via SMTP) sin que `ag-domains` participe.
 
 La **verificación de propagación** usa `hickory-resolver` para consultar
 múltiples resolvers públicos y confirmar que los registros propagaron antes
@@ -2153,7 +2166,7 @@ A partir de la versión 1.0 del framework, se publica un registro oficial en `pl
 
 ## 10. Subsistema de despliegue (`ag-cloud` + `ag-domains`)
 
-Una de las correcciones estructurales más importantes derivadas del análisis crítico es que `ag-cloud` no es un competidor de Terraform ni de Kubernetes. Su rango objetivo es el mismo que cubren Railway, Fly.io, Render y Coolify: simplificar el despliegue de aplicaciones backend a entornos típicos sin obligar al equipo a operar infraestructura completa. Desde la Fase 4.5 (`ADR-0007`), `ag-cloud` coopera con `ag-domains` para resolver dominio, TLS y registros de correo dentro del propio flujo de `ag deploy`, sin reemplazar a los proveedores dominantes (Let's Encrypt, Cloudflare, Resend) y sin convertirse en un panel de hosting.
+Una de las correcciones estructurales más importantes derivadas del análisis crítico es que `ag-cloud` no es un competidor de Terraform ni de Kubernetes. Su rango objetivo es el mismo que cubren Railway, Fly.io, Render y Coolify: simplificar el despliegue de aplicaciones backend a entornos típicos sin obligar al equipo a operar infraestructura completa. Desde la Fase 4.5 (`ADR-0007`), `ag-cloud` coopera con `ag-domains` para resolver dominio, TLS y registros de correo dentro del propio flujo de `ag deploy`, sin reemplazar a los proveedores dominantes (Let's Encrypt, Cloudflare) y sin convertirse en un panel de hosting.
 
 ### 10.1 Filosofía de `ag-cloud`
 

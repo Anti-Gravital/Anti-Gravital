@@ -45,8 +45,8 @@ jobs:
           # los maestros markdown gobiernan (VERSION.md politica #4).
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6"
-          expected_arch="d511e96b4a00a6eb2aec09efe7a7fd6c15a0cef7ff89d055f3e2f9fff7b8de31"
-          expected_road="ce1218a572e09bfebf997752273e009a1963f57a3add0b3b71b09c25fc9b5a1d"
+          expected_arch="34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6"
+          expected_road="02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"
@@ -90,3 +90,22 @@ jobs:
             exit 1
           fi
           echo "Sin emojis."
+
+      - name: Reject retired third-party brand names (ADR-0011)
+        run: |
+          set -euo pipefail
+          # Las marcas de correo retiradas no deben reaparecer. Se excluyen los
+          # archivos que DEFINEN la politica (deben nombrar las marcas) y el
+          # propio workflow. Cloudflare/S3 (adaptadores legitimos) y los
+          # proveedores de buzon destino (Gmail/Yahoo/Outlook) no se escanean.
+          if grep -RInE "\\b(Resend|Postmark|Svix)\\b|\\bSES\\b|(Resend|Ses|Postmark)Sender" \
+                --include='*.md' --include='*.rs' --include='*.toml' \
+                --include='*.yml' --include='*.yaml' --include='*.sh' \
+                --exclude='0011-politica-marcas-comerciales.md' \
+                --exclude='RFC-0010-ag-mail-superficie-sin-marcas.md' \
+                --exclude='docs.yml' \
+                --exclude-dir=target --exclude-dir=.git . ; then
+            echo "Encontradas marcas comerciales de terceros retiradas (ver ADR-0011)."
+            exit 1
+          fi
+          echo "Sin marcas comerciales de terceros prohibidas."

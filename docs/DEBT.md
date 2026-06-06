@@ -25,10 +25,86 @@ CLAUDE.md section 29.
   and skipped gracefully.
 
 ### DEBT-003 — External template engines
-- Reason: only the built-in `StringTemplate` engine exists.
-- Impact: no askama/minijinja support; no compile-time variable validation vs DSL.
-- Expected removal: future plan; trait-based engine selection.
-- Status: open. Target: Phase 5+.
+- Reason: only the built-in `StringTemplate` (`{{var}}` substitution) engine
+  existed; templates with loops/conditionals/filters were not supported.
+- Status: closed (2026-06-04). The `MailTemplate` trait already abstracts the
+  engine; `template::jinja::MinijinjaTemplate` (feature `minijinja`) implements
+  it over the `minijinja` engine, supporting loops, conditionals and filters,
+  as a drop-in alternative. `StringTemplate` stays the default with no extra
+  dependency. Compile-time variable validation against the DSL remains via
+  `template::validate` (unchanged).
+
+### DEBT-017 — Native MTA: RSA DKIM keys
+- Reason: `sender::mta::dkim` (feature `mta`) initially signed with Ed25519 only.
+- Impact: domains that publish only an RSA DKIM key could not be signed natively.
+- Status: closed (2026-06-04). `DkimConfig` now supports Ed25519 (PKCS#8 DER)
+  and RSA-SHA256 (PKCS#8 DER and PEM) via `mail_auth ... RsaKey::from_key_der`;
+  positive tests for both algorithms. (Was DEBT-012; renumbered to avoid a
+  collision with the existing ag-realtime DEBT-012.)
+
+### DEBT-018 — Native MTA: metrics and CI coverage
+- Reason: the `mta` send path emitted only `tracing`, and CI did not exercise
+  the `mta` feature.
+- Impact: no `ag_mail_*` counters for native deliveries; `mta` code unbuilt in CI.
+- Status: closed (2026-06-04). `MtaSender::send` records
+  `ag_mail_sent_total`/`ag_mail_send_latency_seconds` and `ag_mail_retry_total`
+  on MX failover; new `mail-mta` job in `.github/workflows/ci.yml` builds,
+  tests and clippies `--features mta` (RFC-0009 section 4.8). (Was DEBT-013;
+  renumbered to avoid a collision with the existing ag-cache DEBT-013.)
+
+### DEBT-019 — Native MTA: two-tier queue, shaping and egress pools (Phase 4.6-B)
+- Reason: Phase 4.6-A was synchronous direct delivery, with no scheduled/ready
+  queue, traffic shaping, or egress pools.
+- Status: closed (2026-06-04). Implemented: `sender::mta::egress` (egress
+  sources/pools with smooth weighted round-robin for IP warming),
+  `sender::mta::shaping` (per-`site_name` token-bucket rate limit + connection
+  cap), and `sender::mta::queue` (in-memory two-tier scheduled/ready queue with
+  retry/backoff, max-age and `max_ready`, a `DeliveryBackend` trait that
+  `MtaSender` implements, and a `run` worker). The optional **durable spool**
+  (JetStream/PostgreSQL) for cross-restart persistence is split out as DEBT-023.
+
+### DEBT-020 — Native MTA: asynchronous DSN/FBL intake
+- Reason: bounce/complaint suppression was driven only by synchronous SMTP
+  replies; asynchronous DSN (RFC 3464) and ARF feedback-loop messages were not
+  parsed.
+- Status: closed (2026-06-04). `sender::mta::dsn` parses DSN delivery-status
+  and ARF feedback-report messages (`mail-parser`) and feeds the suppression
+  list: `process_dsn` hard-bounces permanently-failed recipients, `process_arf`
+  suppresses complaints. Pure field parsers plus MIME-part location, unit-tested
+  with RFC-shaped sample messages. Wiring an inbound endpoint that calls these
+  is the integrator's responsibility (and part of the REST API, DEBT-021).
+
+### DEBT-023 — Native MTA: durable queue spool (JetStream / PostgreSQL)
+- Reason: the two-tier queue (DEBT-019) is in-memory; in-flight deliveries do
+  not survive a restart.
+- Impact: a crash/restart loses scheduled (not-yet-delivered) MTA jobs.
+- Expected removal: a `Spool` backend behind an opt-in feature
+  (`queue-jetstream` and/or a PostgreSQL mirror), keeping the in-memory spool as
+  the native default (`ADR-0009`). Needs a NATS/PostgreSQL test environment.
+- Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
+
+### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
+- Reason: the multi-tenant REST surface and the marketing objects
+  (broadcasts/contacts/segments/topics, one-click unsubscribe) are not
+  implemented.
+- Impact: no managed email-sending HTTP API yet.
+- Status: open (narrowed 2026-06-04). Signed webhooks are implemented:
+  `api::webhook` (feature `api`) signs/verifies HMAC-SHA256 over
+  `{id}.{timestamp}.{payload}` with `whsec_` secrets, multi-signature headers
+  and replay-window checks (constant-time verify). The HTTP routes, the
+  PostgreSQL data model, idempotency, and the marketing objects remain.
+- Expected removal: Phases 4.6-C/D per RFC-0009 section 4.5/4.6 (behind the
+  `api` feature; the REST routes need a PostgreSQL test environment).
+- Owning plan: RFC-0009. Target: Phase 4.6-C/D.
+
+### DEBT-022 — Native MTA: live-delivery integration test
+- Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)
+  is only covered by `#[ignore]` tests; live delivery needs outbound DNS and
+  port 25, unavailable in the sandbox/CI.
+- Impact: the network path is exercised manually, not in automated CI.
+- Expected removal: add a CI service container acting as a sink MTA and a
+  fixture resolver, then de-`ignore` the delivery test.
+- Status: open. Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache
 
@@ -134,14 +210,15 @@ findings were fixed in-branch and are not listed here.
 - Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
 
 ### DEBT-016 — example READMEs still in Spanish
-- Reason: the five `examples/` READMEs predate ADR-0008 (English-canonical) and
-  remain in Spanish. ADR-0008 permits gradual on-touch migration and does not
-  block.
-- Impact: cosmetic/consistency only; content is accurate.
-- Expected removal: translate to English when each example is next touched.
-- Status: open. Severity: Low. Source: `pre-fase5-examples.md` F9-6.
+- Reason: the five `examples/` READMEs predated ADR-0008 (English-canonical).
+- Impact: cosmetic/consistency only; content was accurate.
+- Status: closed (2026-06-04). All five `examples/*/README.md`
+  (auth-mail-demo, realtime-chat, todo-api, ecommerce-api, ai-backend)
+  translated to English, preserving code, tables and command examples.
 
-### DEBT-017 — eTLD+1 via two-label heuristic (no Public Suffix List)
+## ag-domains control plane
+
+### DEBT-024 — eTLD+1 via two-label heuristic (no Public Suffix List)
 - Reason: `ag-domains::hostname` derives the registrable domain by taking the
   last two labels. Multi-label public suffixes (`co.uk`, `com.br`, etc.) are
   misclassified, which skews apex vs subdomain detection and generated DNS
@@ -153,18 +230,20 @@ findings were fixed in-branch and are not listed here.
   keeps working offline.
 - Status: open. Severity: Medium. Source: RFC-0009 §7.
 
-### DEBT-018 — ag-domains control plane deferred phases (RFC-0009 D-F)
+### DEBT-025 — ag-domains control plane deferred phases (RFC-0009 D-F)
 - Reason: phases A, B and C are implemented. A = control-plane library + manual
   CLI flow. B = live edge listeners (`ag-edge` `server`/`tls` features): HTTP-01
   responder, Host/:authority routing, canonical redirects and HTTPS with SNI
   certificate selection (real TCP/TLS integration tests). C = REST API
   (`ag-domains` `api` feature) with real-HTTP integration tests. Remaining:
-  SQL-backed store (phase D), provider automation / Domain Connect / additional
-  adapters (phase E), and the `ag-registrars` module (phase F).
-- Impact: D/E/F require external services (Postgres, provider credentials) to
-  exercise end to end; the native default flow (attach -> instructions ->
-  ownership -> serve HTTPS via edge) is complete and tested.
-- Expected removal: implement phases D-F per RFC-0009, each additive and
-  feature-gated with a native default; service-backed tests use the repo's
-  `#[ignore]` convention.
+  SQL-backed store (phase D); Domain Connect and additional provider
+  adapters (phase E, partially implemented because Cloudflare sync and BIND export
+  already exist); and the `ag-registrars` module (phase F).
+- Impact: phase D and the remaining phase E adapters require external services
+  (Postgres or provider credentials) for end-to-end verification. Phase F has no
+  implementation yet. The native attach -> instructions -> ownership -> edge flow
+  is implemented and covered by HTTP/TLS integration tests.
+- Expected removal: implement phase D, complete the missing phase E integrations,
+  and design/implement phase F per RFC-0009. Keep each addition feature-gated with
+  a native default; service-backed tests use the repository's `#[ignore]` convention.
 - Status: open. Severity: Medium. Source: RFC-0009 §5.

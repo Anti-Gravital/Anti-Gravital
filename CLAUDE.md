@@ -959,6 +959,40 @@ en mensajes de commit, ni en titulos de PR, ni en issues, ni en
 plantillas. Los iconos se manejan como SVG o glifos tipograficos cuando
 sea estrictamente necesario.
 
+### Politica de marcas comerciales de terceros (ADR-0011)
+
+No se usan nombres de marcas comerciales de terceros para nombrar componentes
+del proyecto: ni en codigo, ni en identificadores, ni en features de Cargo, ni
+en comentarios, ni en documentacion. Un nombre de marca comercial de tercero
+solo se admite con una unica condicion:
+
+- como etiqueta explicita de un adaptador que integra especificamente a ese
+  tercero (para que el contribuidor sepa donde "enchufar" ese servicio),
+  confinado al modulo de ese adaptador y detras de su feature de Cargo, y
+  solo cuando NO existe una via nativa generica que cubra la misma necesidad.
+
+Esta prohibido usar una marca comercial como nombre de un componente propio o
+generico, como parte de la superficie publica del producto, o por comodidad de
+no inventar un nombre propio.
+
+Excepciones:
+
+- Tecnologias open-source en las que nos apoyamos o que usamos para construir
+  Anti-Gravital no son marcas comerciales prohibidas y se mantienen (p. ej.
+  `lettre`, `mail-send`, `mail-auth`, `hickory-resolver`, `rustls`, `tokio`,
+  `axum`, `sqlx`, `moka`).
+- Proveedores de buzon/destino citados como requisito de interoperabilidad o
+  entregabilidad (aquellos cuyas reglas SPF/DKIM/DMARC o de envio masivo hay
+  que cumplir) no son componentes nuestros y se mantienen donde sea
+  tecnicamente necesario.
+
+Caso aplicado: `ag-mail` no expone adaptadores con nombre de marca; para usar
+un proveedor externo se apunta el `SmtpSender` nativo a su endpoint SMTP, y la
+via sin terceros es el `MtaSender` nativo. Los adaptadores `CloudflareProvider`
+(`ag-domains`) y `S3Store` (`ag-storage`) se conservan como etiquetas legitimas
+de adaptador. El job `prohibited content scan` en `.github/workflows/docs.yml`
+verifica la ausencia de las marcas de correo retiradas.
+
 ### Sincronizacion obligatoria del README
 
 El `README.md` es la ventana publica del proyecto. Cualquier cambio que

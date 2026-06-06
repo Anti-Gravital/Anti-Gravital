@@ -22,7 +22,7 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
 | `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
-| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, adapters (Resend/SES/Postmark), helpers SPF/DKIM/DMARC | Estándar diferido |
+| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, relay SMTP nativo, helpers SPF/DKIM/DMARC | Estándar diferido |
 | `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
 | `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
@@ -67,7 +67,7 @@ La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opci
 │   │  Estándar diferido       │                                  │
 │   │  ag-mail (◄── ag-auth)   │ ──► cooperación SPF/DKIM/DMARC   │
 │   │  outbound + adapters     │                                  │
-│   │  (Resend/SES/Postmark)   │                                  │
+│   │  (relay SMTP nativo)     │                                  │
 │   └────────┬─────────────────┘                                  │
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
@@ -102,7 +102,7 @@ contraseña y magic links, definiendo un trait pequeño que `ag-auth` invoca.
 segunda regla (no ciclos) y mantiene a `ag-mail` reusable de forma aislada
 en cualquier proyecto Rust. La cooperación `ag-mail ↔ ag-domains` (para
 materializar SPF/DKIM/DMARC) es opcional, vía feature de Cargo: si un
-proyecto usa `ag-mail` con un adapter gestionado (Resend) y no administra
+proyecto usa `ag-mail` con un proveedor externo (via SMTP) y no administra
 DNS propio, `ag-domains` no es necesario.
 
 Séptima regla (introducida por `ADR-0007`, Fase 4.5): el módulo opcional

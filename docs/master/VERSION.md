@@ -26,8 +26,8 @@ desde el origen autorizado antes de continuar.
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
 | `ANTI-GRAVITAL-Blueprint-v4.1.md` | 10007 | `a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 203145 | `d511e96b4a00a6eb2aec09efe7a7fd6c15a0cef7ff89d055f3e2f9fff7b8de31` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 67968 | `ce1218a572e09bfebf997752273e009a1963f57a3add0b3b71b09c25fc9b5a1d` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 204762 | `34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 69719 | `02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424` |
 
 ### Deuda explícita — Blueprint PDF v4.1
 
@@ -57,6 +57,9 @@ nueva del historial de revisiones.
 | 2026-05-25 | Cierre documental Fase 4.0-4.5: (1) maestros markdown convertidos a bilingüe (inglés canónico primero, español después) según `ADR-0008`; (2) fidelidad a implementación real — fases 1-4.5 marcadas técnicamente completas en la Hoja-de-Ruta, y en la Arquitectura se corrigió WebAuthn (ciborium/p256/ed25519 vía ADR-0006), templates de correo (StringTemplate), y caché L2 (RFC-0005, no implementado); (3) nuevo `ANTI-GRAVITAL-Blueprint-v4.1.md` como fuente markdown versionable del Blueprint. Blueprint PDF sigue como deuda pendiente de re-export. | Decisión del BDFL vía ADR-0008. |
 | 2026-05-26 | Hoja-de-Ruta: checkboxes de la Fase 4.5 (4.5.1, 4.5.2, 4.5.3) marcados `[x]` con notas de implementación real; cabecera de estado bilingüe añadida. Hash actualizado a `24bc86759f6a26617a5f7a3d655f7083db7c3d11f48c5e6572da6ab080322678` (67745 bytes). | Rama `docs-cierre-fase-4.5`, cierre de fase. |
 | 2026-05-26 | Hoja-de-Ruta: correcciones correctivas pre-Fase-5 (deudas tecnicas DEBT-001–011 actualizadas, estado real de fases). Hash actualizado a `ce1218a572e09bfebf997752273e009a1963f57a3add0b3b71b09c25fc9b5a1d` (67968 bytes). | Rama `corrective-before-fase-5`. |
+| 2026-06-03 | Pivot `ag-mail` a MTA outbound nativo (`ADR-0010` / `RFC-0009`): nota de actualizacion de alcance en Arquitectura §8.8 (EN+ES) y nota futura Fase 4.6 en Hoja-de-Ruta §4.5.5 (EN+ES). No declara el MTA implementado. Arquitectura → `b3752b155dc9269238a13d81e8fae7f342c321c0e13a3826e144fe1e7f2a0ad6` (204649 bytes); Hoja-de-Ruta → `cf7bc8ae7f0914374c08cc978637762941f4ad5af112242f6e37d475491b2d36` (69443 bytes). | Decision del BDFL vía ADR-0010. |
+| 2026-06-03 | Implementacion Fase 4.6-A (motor MTA nativo opt-in, feature `mta`): Hoja-de-Ruta §4.5.5 (EN+ES) actualizada para reflejar el nucleo 4.6-A implementado (resolucion MX, ESMTP+STARTTLS, DKIM Ed25519, clasificacion de bounces). Hoja-de-Ruta → `07d0ad40ac7f19a169e9507ba7a581f770b72e38115c526563614bca2c434b4b` (69789 bytes). | Implementacion RFC-0009 Fase 4.6-A. |
+| 2026-06-04 | Politica de marcas comerciales (`ADR-0011`/`RFC-0010`): retirados los adaptadores con nombre de marca de `ag-mail`; saneo de las menciones de marca en ambos maestros (relay SMTP nativo / MTA nativo). Arquitectura → `34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6` (204762 bytes); Hoja-de-Ruta → `02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424` (69719 bytes). | Decision del BDFL vía ADR-0011. |
 
 ## Verificación local
 

@@ -11,10 +11,10 @@
 //!   wildcard / legacy-fallback precedence, fail-closed for unknown hosts),
 //!   [`redirect::CanonicalPolicy`], [`tls`] SNI handle selection and restricted
 //!   on-demand issuance, and [`challenge`] HTTP-01 responder state.
-//! - `server` feature: a runnable HTTP listener ([`server::serve_http`]) that
+//! - `server` feature: a runnable HTTP listener (`server::serve_http`) that
 //!   serves challenges, applies redirects and routes by `Host`/`:authority`.
 //! - `tls` feature: a real `rustls` certificate store with PEM bridge
-//!   ([`cert`]) and an HTTPS listener ([`server::serve_https`]) that selects
+//!   (`cert`) and an HTTPS listener (`server::serve_https`) that selects
 //!   certificates by SNI.
 //!
 //! # Backward compatibility

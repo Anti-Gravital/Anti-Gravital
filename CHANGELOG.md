@@ -7,6 +7,62 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-mail - Motor de plantillas externo (minijinja) (2026-06-04)
+
+Aditivo, tras la feature `minijinja` (apagada por defecto). Cierra DEBT-003.
+
+- `template::jinja::MinijinjaTemplate`: implementa el trait `MailTemplate` sobre
+  el motor `minijinja` (loops, condicionales, filtros), alternativa drop-in al
+  `StringTemplate` por defecto. Dep `minijinja` tras la feature.
+
+### Fase 4.6-C - MTA: webhooks firmados (2026-06-04)
+
+Aditivo, tras la nueva feature `api` (apagada por defecto). Avanza DEBT-021.
+
+- `api::webhook`: firma y verificacion de webhooks HMAC-SHA256 sobre
+  `{id}.{timestamp}.{payload}` con secretos `whsec_`, cabecera `v1,<base64>`,
+  soporte de multiples firmas (rotacion) y ventana de tolerancia anti-replay;
+  verificacion en tiempo constante. Deps `hmac`/`sha2`/`base64` tras `api`.
+- `.github/workflows/ci.yml`: el job `mail-mta` ahora ejercita `mta,api`.
+
+### Fase 4.6-B - MTA: colas, shaping, egress y suppression (2026-06-04)
+
+Aditivo, tras la feature `mta` (apagada por defecto). Cierra DEBT-019 (núcleo) y
+avanza DEBT-020. Persistencia durable del spool queda como DEBT-023.
+
+- `sender::mta::egress`: `EgressSource`/`EgressPool` con weighted round-robin
+  suave (SWRR) para IP warming; `MtaSender` elige una fuente por mensaje y
+  aplica EHLO + IP de origen al conectar.
+- `sender::mta::shaping`: `ShapingLimits`/`ShapingConfig` por `site_name`
+  (rate token-bucket determinista + cap de conexiones por semáforo).
+- `sender::mta::queue`: cola de dos niveles en memoria (scheduled min-heap +
+  ready batch `max_ready`) con `MtaRetryPolicy` (backoff exponencial, max-age),
+  trait `DeliveryBackend` (lo implementa `MtaSender`), worker `run`, y reportes
+  por ciclo. `MtaSender::build_jobs` genera jobs por dominio desde un `Email`.
+- `sender::mta::suppress`: `SuppressionList` automática (hard bounce 5xx,
+  límite de reintentos), case-insensitive; la cola la consulta y la alimenta.
+- `sender::mta::dsn`: intake asíncrono de DSN (RFC 3464) y ARF (RFC 5965) vía
+  `mail-parser`; `process_dsn`/`process_arf` alimentan la suppression list
+  (cierra DEBT-020).
+- `MtaSender` clasifica los fallos SMTP: solo un 5xx del destino es permanente
+  (suprime); fallos propios (DKIM, MX, TLS) son transitorios (reintentables).
+- Métricas de profundidad de cola; tests deterministas (reloj explícito).
+
+### Fase 4.6-A - Endurecimiento: RSA DKIM, metricas y CI del MTA (2026-06-04)
+
+Aditivo, cierra deuda de la 4.6-A (DEBT-017/018).
+
+- `sender::mta::dkim`: firma DKIM ahora soporta Ed25519 **y RSA-SHA256**
+  (PKCS#8 DER y PEM) via `mail_auth ... RsaKey::from_key_der` (no deprecado);
+  tests positivos para ambos algoritmos. Nueva dep `rustls-pki-types` tras `mta`.
+- `MtaSender::send`: emite metricas `ag_mail_sent_total` /
+  `ag_mail_send_latency_seconds` y `ag_mail_retry_total` en failover de MX.
+- `.github/workflows/ci.yml`: nuevo job `mail-mta` (build + test + clippy
+  `--features mta`), antes el MTA no se compilaba en CI (RFC-0009 §4.8).
+- `docs/DEBT.md`: renumeradas las entradas de MTA (colision de DEBT-012/013/014);
+  DEBT-017/018 cerradas; 4.6-B/C/D y el test de entrega en vivo quedan como
+  DEBT-019..022.
+
 ### Fase 4.6-A - Implementacion: motor MTA outbound nativo de ag-mail (opt-in)
 
 Aditivo. Nueva feature de Cargo `mta` en `ag-mail`, apagada por defecto; el

@@ -1,24 +1,35 @@
-//! Native outbound MTA engine (Phase 4.6-A).
+//! Native outbound MTA engine (Phases 4.6-A and 4.6-B).
 //!
 //! `MtaSender` is a new, opt-in [`MailSender`](crate::sender::MailSender) that
 //! delivers mail **directly** to the recipients' mail servers instead of
 //! relaying through an SMTP host or a provider HTTP API. It resolves the
-//! destination MX, opens an ESMTP session with opportunistic STARTTLS, signs
-//! the message with DKIM, and submits it.
+//! destination MX, optionally selects an egress source (source IP + EHLO) from
+//! a weighted pool, opens an ESMTP session with opportunistic STARTTLS, signs
+//! the message with DKIM (Ed25519 or RSA), and submits it.
 //!
-//! This is additive: it does not replace the default `SmtpSender` relay or any
-//! provider adapter, and it lives behind the `mta` Cargo feature. Durable
-//! scheduled/ready queues, per-`site_name` traffic shaping, egress IP pools,
-//! and asynchronous DSN/FBL processing are later phases (`RFC-0009`); this
-//! phase is the synchronous direct-delivery core plus bounce classification.
+//! This is additive: it does not replace the default `SmtpSender` relay, and it
+//! lives behind the `mta` Cargo feature. Implemented: MX resolution
+//! ([`resolve`]), egress sources/pools ([`egress`]), DKIM signing ([`dkim`]),
+//! bounce classification ([`bounce`]), per-`site_name` traffic shaping
+//! ([`shaping`]), a two-tier scheduled/ready delivery queue with retry/backoff
+//! and automatic suppression ([`queue`], [`suppress`]), and `ag-observe`
+//! metrics. `MtaSender` is the direct sender and also a [`queue::DeliveryBackend`].
+//! A durable queue spool (JetStream / PostgreSQL) and asynchronous DSN/FBL
+//! intake are later, optional parts of Phase 4.6-B (`RFC-0009`, `docs/DEBT.md`).
 //!
 //! Governing decision: `ADR-0010`; technical plan: `RFC-0009`.
 
 pub mod bounce;
 pub mod dkim;
+pub mod dsn;
+pub mod egress;
+pub mod queue;
 pub mod resolve;
+pub mod shaping;
+pub mod suppress;
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use mail_send::{
@@ -34,7 +45,15 @@ use crate::{
 };
 
 pub use dkim::DkimConfig;
+pub use dsn::{process_arf, process_dsn, DsnAction, DsnRecord};
+pub use egress::{EgressPool, EgressSource};
+pub use queue::{
+    CycleReport, DeliveryBackend, DeliveryJob, DeliveryOutcome, MtaQueue, MtaRetryPolicy,
+    QueueConfig,
+};
 pub use resolve::ResolverConfigMta;
+pub use shaping::{Shaper, ShapingConfig, ShapingLimits};
+pub use suppress::{SuppressionList, SuppressionReason};
 
 /// Configuration for the native MTA sender.
 #[derive(Debug, Clone)]
@@ -53,6 +72,10 @@ pub struct MtaConfig {
     /// Optional DKIM signing configuration. When `None`, messages are sent
     /// unsigned (not recommended for production).
     pub dkim: Option<DkimConfig>,
+    /// Optional egress pool. When set, each delivery picks a source (source IP
+    /// and EHLO name) by weighted round-robin; when `None`, the OS default
+    /// route and `helo_host` are used.
+    pub egress: Option<Arc<EgressPool>>,
 }
 
 impl MtaConfig {
@@ -64,12 +87,19 @@ impl MtaConfig {
             opportunistic_tls: true,
             resolver: ResolverConfigMta::default(),
             dkim: None,
+            egress: None,
         }
     }
 
     /// Sets the DKIM signing configuration.
     pub fn with_dkim(mut self, dkim: DkimConfig) -> Self {
         self.dkim = Some(dkim);
+        self
+    }
+
+    /// Sets the egress pool used to pick the source IP and EHLO per delivery.
+    pub fn with_egress(mut self, pool: Arc<EgressPool>) -> Self {
+        self.egress = Some(pool);
         self
     }
 
@@ -96,6 +126,38 @@ impl MtaSender {
     /// Builds the sender from its configuration.
     pub fn new(config: MtaConfig) -> Self {
         Self { config }
+    }
+
+    /// Renders `email` and splits it into one [`queue::DeliveryJob`] per
+    /// recipient domain, ready to be enqueued on a [`queue::MtaQueue`]. The
+    /// shaping `site_name` is set to the recipient domain (the true MX rollup is
+    /// resolved at delivery time). `now` is the logical enqueue time.
+    pub fn build_jobs(
+        &self,
+        email: &Email,
+        tenant: impl Into<String>,
+        campaign: impl Into<String>,
+        now: std::time::Instant,
+    ) -> Result<Vec<queue::DeliveryJob>, AgMailError> {
+        let content = self.render(email)?;
+        let groups = group_recipients_by_domain(email)?;
+        let tenant = tenant.into();
+        let campaign = campaign.into();
+        Ok(groups
+            .into_iter()
+            .map(|(domain, recipients)| {
+                queue::DeliveryJob::new(
+                    tenant.clone(),
+                    campaign.clone(),
+                    domain.clone(),
+                    domain,
+                    email.from.email.clone(),
+                    recipients,
+                    content.clone(),
+                    now,
+                )
+            })
+            .collect())
     }
 
     /// Renders the RFC 5322 message bytes once; the same content is submitted
@@ -135,6 +197,7 @@ impl MtaSender {
         recipients: &[String],
         content: &[u8],
         from: &str,
+        egress: Option<&EgressSource>,
     ) -> Result<(), AgMailError> {
         let hosts = resolve::resolve_mx(domain, &self.config.resolver).await?;
         if hosts.is_empty() {
@@ -142,16 +205,20 @@ impl MtaSender {
         }
 
         let rcpts: Vec<&str> = recipients.iter().map(String::as_str).collect();
-        let mut last_err: Option<AgMailError> = None;
+        let mut last_err: Option<SubmitError> = None;
 
         for host in &hosts {
-            match self.submit(&host.exchange, from, &rcpts, content).await {
+            match self
+                .submit(&host.exchange, from, &rcpts, content, egress)
+                .await
+            {
                 Ok(()) => return Ok(()),
                 Err(err) => {
+                    crate::metrics::record_retry("mta");
                     tracing::warn!(
                         mx = %host.exchange,
                         domain = %domain,
-                        error = %err,
+                        error = %err.message,
                         "MX delivery attempt failed, trying next host"
                     );
                     last_err = Some(err);
@@ -159,36 +226,95 @@ impl MtaSender {
             }
         }
 
-        Err(last_err.unwrap_or_else(|| AgMailError::NoMailHost(domain.to_owned())))
+        Err(last_err
+            .map(|e| AgMailError::Provider {
+                provider: "mta",
+                message: e.message,
+            })
+            .unwrap_or_else(|| AgMailError::NoMailHost(domain.to_owned())))
     }
 
-    /// Opens an ESMTP session to a single MX host and submits the message.
+    /// Opens an ESMTP session to a single MX host and submits the message,
+    /// classifying any failure as transient or permanent.
     async fn submit(
         &self,
         mx_host: &str,
         from: &str,
         rcpts: &[&str],
         content: &[u8],
-    ) -> Result<(), AgMailError> {
+        egress: Option<&EgressSource>,
+    ) -> Result<(), SubmitError> {
+        // The egress source, when present, overrides the EHLO name and binds
+        // the outgoing socket to a specific source IP.
+        let helo = egress.map_or(self.config.helo_host.as_str(), |s| s.ehlo_domain.as_str());
         let mut builder = SmtpClientBuilder::new(mx_host, self.config.port)
-            .map_err(|e| AgMailError::Config(e.to_string()))?
+            .map_err(|e| SubmitError::transient(format!("smtp client: {e}")))?
             .implicit_tls(false)
-            .helo_host(self.config.helo_host.clone());
+            .helo_host(helo.to_owned());
+        if let Some(ip) = egress.and_then(|s| s.source_ip) {
+            builder = builder.local_ip(ip);
+        }
         if self.config.opportunistic_tls {
             builder = builder.allow_invalid_certs();
         }
 
         // DKIM-sign last, right before submission, so the signature covers the
-        // exact bytes that go over the wire.
+        // exact bytes that go over the wire. A signing failure is our own fault,
+        // not the recipient's, so it is transient (retryable), never permanent.
         let body = match &self.config.dkim {
-            Some(dkim) => dkim.sign(content)?,
+            Some(dkim) => dkim
+                .sign(content)
+                .map_err(|e| SubmitError::transient(format!("dkim: {e}")))?,
             None => content.to_vec(),
         };
 
-        let mut client = builder.connect().await.map_err(provider_err)?;
+        let mut client = builder.connect().await.map_err(classify_mail_send)?;
         let envelope = Envelope::new(from, rcpts.iter().copied(), body.as_slice());
-        client.send(envelope).await.map_err(provider_err)?;
+        client.send(envelope).await.map_err(classify_mail_send)?;
         Ok(())
+    }
+}
+
+#[async_trait]
+impl queue::DeliveryBackend for MtaSender {
+    async fn deliver(&self, job: &queue::DeliveryJob) -> queue::DeliveryOutcome {
+        use queue::DeliveryOutcome;
+
+        let egress = self.config.egress.as_ref().map(|pool| pool.select());
+        let rcpts: Vec<&str> = job.recipients.iter().map(String::as_str).collect();
+
+        let hosts = match resolve::resolve_mx(&job.domain, &self.config.resolver).await {
+            Ok(hosts) if !hosts.is_empty() => hosts,
+            Ok(_) => return DeliveryOutcome::Transient(format!("no MX for {}", job.domain)),
+            Err(e) => return DeliveryOutcome::Transient(format!("MX resolution: {e}")),
+        };
+
+        let mut last = String::from("delivery failed");
+        for host in &hosts {
+            match self
+                .submit(
+                    &host.exchange,
+                    &job.from,
+                    &rcpts,
+                    &job.content,
+                    egress.as_ref(),
+                )
+                .await
+            {
+                Ok(()) => return DeliveryOutcome::Delivered,
+                // A permanent (5xx) rejection will repeat on every MX, so stop
+                // and let the queue suppress the recipients.
+                Err(SubmitError {
+                    kind: SubmitKind::Permanent,
+                    message,
+                }) => return DeliveryOutcome::Permanent(message),
+                Err(SubmitError { message, .. }) => {
+                    crate::metrics::record_retry("mta");
+                    last = message;
+                }
+            }
+        }
+        DeliveryOutcome::Transient(last)
     }
 }
 
@@ -199,15 +325,33 @@ impl MailSender for MtaSender {
     }
 
     async fn send(&self, email: &Email) -> Result<SendResult, AgMailError> {
-        let content = self.render(email)?;
-        let groups = group_recipients_by_domain(email)?;
-
-        for (domain, recipients) in groups {
-            self.deliver_domain(&domain, &recipients, &content, &email.from.email)
+        let start = std::time::Instant::now();
+        let outcome = async {
+            let content = self.render(email)?;
+            let groups = group_recipients_by_domain(email)?;
+            // Pick one egress identity for the whole message so its EHLO and
+            // source IP stay consistent across domains and MX retries.
+            let egress = self.config.egress.as_ref().map(|pool| pool.select());
+            for (domain, recipients) in groups {
+                self.deliver_domain(
+                    &domain,
+                    &recipients,
+                    &content,
+                    &email.from.email,
+                    egress.as_ref(),
+                )
                 .await?;
+            }
+            Ok::<(), AgMailError>(())
+        }
+        .await;
+
+        crate::metrics::record_send("mta", outcome.is_ok());
+        if outcome.is_ok() {
+            crate::metrics::record_send_latency("mta", start.elapsed().as_secs_f64());
         }
 
-        Ok(SendResult {
+        outcome.map(|()| SendResult {
             message_id: None,
             provider: "mta",
         })
@@ -256,11 +400,52 @@ fn mb_list(addrs: &[Address]) -> MbAddress<'static> {
     MbAddress::new_list(addrs.iter().map(mb_address).collect())
 }
 
-/// Maps a `mail-send` SMTP error to an `ag-mail` provider error.
-fn provider_err(error: mail_send::Error) -> AgMailError {
-    AgMailError::Provider {
-        provider: "mta",
-        message: error.to_string(),
+/// Whether a submit failure is worth retrying or is a permanent rejection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SubmitKind {
+    /// Temporary failure (4xx, connection, TLS, local signing): retry later.
+    Transient,
+    /// Permanent destination rejection (5xx): suppress the recipients.
+    Permanent,
+}
+
+/// A classified delivery-attempt failure.
+#[derive(Debug)]
+struct SubmitError {
+    kind: SubmitKind,
+    message: String,
+}
+
+impl SubmitError {
+    fn transient(message: impl Into<String>) -> Self {
+        Self {
+            kind: SubmitKind::Transient,
+            message: message.into(),
+        }
+    }
+
+    fn permanent(message: impl Into<String>) -> Self {
+        Self {
+            kind: SubmitKind::Permanent,
+            message: message.into(),
+        }
+    }
+}
+
+/// Classifies a `mail-send` SMTP error. Only a permanent (5xx) reply from the
+/// destination is permanent; everything else (4xx, connection, TLS, timeout) is
+/// transient and retryable.
+fn classify_mail_send(error: mail_send::Error) -> SubmitError {
+    match error {
+        mail_send::Error::UnexpectedReply(reply)
+        | mail_send::Error::AuthenticationFailed(reply) => {
+            let message = format!("{} {}", reply.code, reply.message);
+            match bounce::classify_code(reply.code) {
+                Some(bounce::BounceClass::Permanent) => SubmitError::permanent(message),
+                _ => SubmitError::transient(message),
+            }
+        }
+        other => SubmitError::transient(other.to_string()),
     }
 }
 
@@ -311,12 +496,49 @@ mod tests {
         assert_eq!(cfg.port, 25);
         assert!(cfg.opportunistic_tls);
         assert!(cfg.dkim.is_none());
+        assert!(cfg.egress.is_none());
         assert_eq!(MtaSender::new(cfg).name(), "mta");
+    }
+
+    #[test]
+    fn config_with_egress_pool() {
+        let pool = EgressPool::new(
+            "tenant-a",
+            vec![
+                EgressSource::new("ip1", "mx1.send.example").with_weight(3),
+                EgressSource::new("ip2", "mx2.send.example"),
+            ],
+        )
+        .unwrap();
+        let cfg = MtaConfig::new("mail.send.example").with_egress(Arc::new(pool));
+        let egress = cfg.egress.as_ref().expect("egress set");
+        assert_eq!(egress.len(), 2);
+        // Selection cycles through the pool deterministically.
+        let first = egress.select();
+        assert!(["ip1", "ip2"].contains(&first.name.as_str()));
     }
 
     #[test]
     fn name_is_mta() {
         let sender = MtaSender::new(MtaConfig::new("mail.send.example"));
         assert_eq!(sender.name(), "mta");
+    }
+
+    #[test]
+    fn build_jobs_one_per_domain() {
+        let sender = MtaSender::new(MtaConfig::new("mail.send.example"));
+        let now = std::time::Instant::now();
+        let jobs = sender
+            .build_jobs(&email(), "tenant-a", "welcome", now)
+            .unwrap();
+        // gmail.com (to+cc) and outlook.com (bcc) => two jobs.
+        assert_eq!(jobs.len(), 2);
+        let gmail = jobs.iter().find(|j| j.domain == "gmail.com").unwrap();
+        assert_eq!(gmail.tenant, "tenant-a");
+        assert_eq!(gmail.campaign, "welcome");
+        assert_eq!(gmail.site_name, "gmail.com");
+        assert_eq!(gmail.recipients.len(), 2);
+        assert!(!gmail.content.is_empty());
+        assert_eq!(gmail.scheduled_key(), "tenant-a:welcome:gmail.com");
     }
 }

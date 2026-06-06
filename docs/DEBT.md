@@ -25,34 +25,86 @@ CLAUDE.md section 29.
   and skipped gracefully.
 
 ### DEBT-003 — External template engines
-- Reason: only the built-in `StringTemplate` engine exists.
-- Impact: no askama/minijinja support; no compile-time variable validation vs DSL.
-- Expected removal: future plan; trait-based engine selection.
-- Status: open. Target: Phase 5+.
+- Reason: only the built-in `StringTemplate` (`{{var}}` substitution) engine
+  existed; templates with loops/conditionals/filters were not supported.
+- Status: closed (2026-06-04). The `MailTemplate` trait already abstracts the
+  engine; `template::jinja::MinijinjaTemplate` (feature `minijinja`) implements
+  it over the `minijinja` engine, supporting loops, conditionals and filters,
+  as a drop-in alternative. `StringTemplate` stays the default with no extra
+  dependency. Compile-time variable validation against the DSL remains via
+  `template::validate` (unchanged).
 
-### DEBT-012 — Native MTA: RSA DKIM keys
-- Reason: `sender::mta::dkim` (feature `mta`) signs with Ed25519 only.
-- Impact: domains that publish only an RSA DKIM key cannot be signed natively.
-- Expected removal: add `RsaKey<Sha256>` support (PKCS#1/PKCS#8) to `DkimConfig`.
-- Status: open. Owning plan: RFC-0009 Phase 4.6-A follow-up. Target: Phase 4.6-B.
+### DEBT-017 — Native MTA: RSA DKIM keys
+- Reason: `sender::mta::dkim` (feature `mta`) initially signed with Ed25519 only.
+- Impact: domains that publish only an RSA DKIM key could not be signed natively.
+- Status: closed (2026-06-04). `DkimConfig` now supports Ed25519 (PKCS#8 DER)
+  and RSA-SHA256 (PKCS#8 DER and PEM) via `mail_auth ... RsaKey::from_key_der`;
+  positive tests for both algorithms. (Was DEBT-012; renumbered to avoid a
+  collision with the existing ag-realtime DEBT-012.)
 
-### DEBT-013 — Native MTA: metrics and CI coverage
-- Reason: the `mta` send path emits `tracing` events but not `ag-observe`
-  metrics, and CI has no job exercising the `mta` feature.
-- Impact: no `ag_mail_*` counters for native deliveries; `mta` tests run only
-  locally / on demand.
-- Expected removal: wire metrics into `MtaSender` and add a `mail-mta` CI job
-  (`cargo test -p ag-mail --features mta`) per RFC-0009 section 4.8.
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B.
+### DEBT-018 — Native MTA: metrics and CI coverage
+- Reason: the `mta` send path emitted only `tracing`, and CI did not exercise
+  the `mta` feature.
+- Impact: no `ag_mail_*` counters for native deliveries; `mta` code unbuilt in CI.
+- Status: closed (2026-06-04). `MtaSender::send` records
+  `ag_mail_sent_total`/`ag_mail_send_latency_seconds` and `ag_mail_retry_total`
+  on MX failover; new `mail-mta` job in `.github/workflows/ci.yml` builds,
+  tests and clippies `--features mta` (RFC-0009 section 4.8). (Was DEBT-013;
+  renumbered to avoid a collision with the existing ag-cache DEBT-013.)
 
-### DEBT-014 — Native MTA: durable queue, shaping and DSN/FBL
-- Reason: Phase 4.6-A is synchronous direct delivery; it does not yet use the
-  two-tier scheduled/ready queue, per-`site_name` traffic shaping, egress IP
-  pools, or asynchronous DSN/ARF (feedback-loop) processing.
-- Impact: no persistence of in-flight MTA deliveries, no provider throttling,
-  no automatic suppression from asynchronous bounces.
-- Expected removal: Phase 4.6-B/C per RFC-0009 section 5.
-- Status: open. Owning plan: RFC-0009. Target: Phase 4.6-B/C.
+### DEBT-019 — Native MTA: two-tier queue, shaping and egress pools (Phase 4.6-B)
+- Reason: Phase 4.6-A was synchronous direct delivery, with no scheduled/ready
+  queue, traffic shaping, or egress pools.
+- Status: closed (2026-06-04). Implemented: `sender::mta::egress` (egress
+  sources/pools with smooth weighted round-robin for IP warming),
+  `sender::mta::shaping` (per-`site_name` token-bucket rate limit + connection
+  cap), and `sender::mta::queue` (in-memory two-tier scheduled/ready queue with
+  retry/backoff, max-age and `max_ready`, a `DeliveryBackend` trait that
+  `MtaSender` implements, and a `run` worker). The optional **durable spool**
+  (JetStream/PostgreSQL) for cross-restart persistence is split out as DEBT-023.
+
+### DEBT-020 — Native MTA: asynchronous DSN/FBL intake
+- Reason: bounce/complaint suppression was driven only by synchronous SMTP
+  replies; asynchronous DSN (RFC 3464) and ARF feedback-loop messages were not
+  parsed.
+- Status: closed (2026-06-04). `sender::mta::dsn` parses DSN delivery-status
+  and ARF feedback-report messages (`mail-parser`) and feeds the suppression
+  list: `process_dsn` hard-bounces permanently-failed recipients, `process_arf`
+  suppresses complaints. Pure field parsers plus MIME-part location, unit-tested
+  with RFC-shaped sample messages. Wiring an inbound endpoint that calls these
+  is the integrator's responsibility (and part of the REST API, DEBT-021).
+
+### DEBT-023 — Native MTA: durable queue spool (JetStream / PostgreSQL)
+- Reason: the two-tier queue (DEBT-019) is in-memory; in-flight deliveries do
+  not survive a restart.
+- Impact: a crash/restart loses scheduled (not-yet-delivered) MTA jobs.
+- Expected removal: a `Spool` backend behind an opt-in feature
+  (`queue-jetstream` and/or a PostgreSQL mirror), keeping the in-memory spool as
+  the native default (`ADR-0009`). Needs a NATS/PostgreSQL test environment.
+- Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
+
+### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
+- Reason: the multi-tenant REST surface and the marketing objects
+  (broadcasts/contacts/segments/topics, one-click unsubscribe) are not
+  implemented.
+- Impact: no managed email-sending HTTP API yet.
+- Status: open (narrowed 2026-06-04). Signed webhooks are implemented:
+  `api::webhook` (feature `api`) signs/verifies HMAC-SHA256 over
+  `{id}.{timestamp}.{payload}` with `whsec_` secrets, multi-signature headers
+  and replay-window checks (constant-time verify). The HTTP routes, the
+  PostgreSQL data model, idempotency, and the marketing objects remain.
+- Expected removal: Phases 4.6-C/D per RFC-0009 section 4.5/4.6 (behind the
+  `api` feature; the REST routes need a PostgreSQL test environment).
+- Owning plan: RFC-0009. Target: Phase 4.6-C/D.
+
+### DEBT-022 — Native MTA: live-delivery integration test
+- Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)
+  is only covered by `#[ignore]` tests; live delivery needs outbound DNS and
+  port 25, unavailable in the sandbox/CI.
+- Impact: the network path is exercised manually, not in automated CI.
+- Expected removal: add a CI service container acting as a sink MTA and a
+  fixture resolver, then de-`ignore` the delivery test.
+- Status: open. Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache
 
@@ -158,9 +210,8 @@ findings were fixed in-branch and are not listed here.
 - Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
 
 ### DEBT-016 — example READMEs still in Spanish
-- Reason: the five `examples/` READMEs predate ADR-0008 (English-canonical) and
-  remain in Spanish. ADR-0008 permits gradual on-touch migration and does not
-  block.
-- Impact: cosmetic/consistency only; content is accurate.
-- Expected removal: translate to English when each example is next touched.
-- Status: open. Severity: Low. Source: `pre-fase5-examples.md` F9-6.
+- Reason: the five `examples/` READMEs predated ADR-0008 (English-canonical).
+- Impact: cosmetic/consistency only; content was accurate.
+- Status: closed (2026-06-04). All five `examples/*/README.md`
+  (auth-mail-demo, realtime-chat, todo-api, ecommerce-api, ai-backend)
+  translated to English, preserving code, tables and command examples.

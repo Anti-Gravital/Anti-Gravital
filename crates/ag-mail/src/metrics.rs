@@ -73,4 +73,11 @@ mod tests {
         record_retry("smtp");
         record_send_latency("mta", 0.42);
     }
+
+    #[test]
+    fn queue_depth_gauge_does_not_panic() {
+        queue_depth_inc();
+        queue_depth_inc();
+        queue_depth_dec();
+    }
 }

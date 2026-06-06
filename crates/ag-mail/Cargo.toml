@@ -22,6 +22,9 @@ workspace = true
 default = ["smtp", "templates", "metrics"]
 smtp = ["dep:lettre"]
 templates = []
+# Motor de plantillas externo opcional (minijinja) para plantillas con loops y
+# condicionales, implementando el trait `MailTemplate`. Ver DEBT-003.
+minijinja = ["dep:minijinja"]
 metrics = ["dep:metrics"]
 # Para enviar a traves de un proveedor externo se apunta el SmtpSender nativo
 # al endpoint SMTP del proveedor: no se requieren adaptadores con nombre de
@@ -32,7 +35,10 @@ queue-persistent = ["dep:ag-data", "dep:sqlx", "dep:chrono", "dep:uuid"]
 # Motor MTA outbound nativo (Fase 4.6-A): resolucion MX, entrega ESMTP+STARTTLS
 # directa al MX destino, firma DKIM y clasificacion de bounces. Opt-in; el
 # sender por defecto sigue siendo SmtpSender (relay). Ver RFC-0009 / ADR-0010.
-mta = ["dep:mail-send", "dep:mail-auth", "dep:hickory-resolver"]
+mta = ["dep:mail-send", "dep:mail-auth", "dep:mail-parser", "dep:hickory-resolver", "dep:rustls-pki-types"]
+# Superficie de API gestionada (Fase 4.6-C). Por ahora: firma de webhooks
+# HMAC-SHA256. Opt-in; ver RFC-0009. Las rutas REST llegan en pasos posteriores.
+api = ["dep:hmac", "dep:sha2", "dep:base64"]
 # NullSender y helpers disponibles para tests en crates externos.
 test-utils = []
 
@@ -47,6 +53,9 @@ tracing = { workspace = true }
 
 # SMTP nativo
 lettre = { workspace = true, optional = true }
+
+# Motor de plantillas externo opcional
+minijinja = { version = "2", optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }
@@ -66,7 +75,14 @@ uuid = { workspace = true, optional = true }
 # Backend `ring` para coincidir con el rustls/ring de The Shield.
 mail-send = { version = "0.6", optional = true, default-features = false, features = ["builder", "ring", "tls12"] }
 mail-auth = { version = "0.9", optional = true, default-features = false, features = ["ring"] }
+mail-parser = { version = "0.11", optional = true, default-features = false }
 hickory-resolver = { version = "0.26.1", optional = true, default-features = false, features = ["tokio"] }
+rustls-pki-types = { workspace = true, optional = true }
+
+# Firma de webhooks (feature "api").
+hmac = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

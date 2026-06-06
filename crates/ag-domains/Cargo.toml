@@ -24,6 +24,9 @@ acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:chrono"]
 propagation = ["dep:hickory-resolver"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
+# REST API surface for the control plane (RFC-0009 phase C), backed by the
+# native attachment store. Optional: the library and CLI work without it.
+api = ["dep:axum"]
 
 [dependencies]
 ag-core = { workspace = true }
@@ -34,9 +37,15 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+# Control plane (RFC-0009): hostname IDN normalization and attachment ids/tokens.
+idna = { workspace = true }
+uuid = { workspace = true }
 
 # Cloudflare adapter
 reqwest = { workspace = true, optional = true }
+
+# REST API (feature "api")
+axum = { workspace = true, optional = true }
 
 # Propagacion DNS (hickory-resolver)
 hickory-resolver = { version = "0.26.1", default-features = false, features = ["tokio"], optional = true }
@@ -48,5 +57,6 @@ x509-parser = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["test-util"] }
+tokio = { workspace = true, features = ["test-util", "rt-multi-thread", "macros", "net"] }
 wiremock = { workspace = true }
+reqwest = { workspace = true }

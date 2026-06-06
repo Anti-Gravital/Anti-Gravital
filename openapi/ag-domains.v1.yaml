@@ -1,0 +1,177 @@
+openapi: 3.1.0
+info:
+  title: ag-domains control plane API
+  version: 0.1.0
+  description: >
+    Control-plane REST API (RFC-0009 phase C), implemented behind the
+    `api` Cargo feature of the `ag-domains` crate and backed by any
+    AttachmentStore (native by default). Build the router with
+    `ag_domains::api::build_router` or serve it with `ag_domains::api::serve`.
+    This document matches the implemented endpoints and is covered by the
+    `tests/api_rest.rs` integration tests.
+servers:
+  - url: /v1/domains
+    description: Mounted under the host application's base URL.
+tags:
+  - name: domains
+    description: Domain attachment lifecycle.
+paths:
+  /attachments:
+    post:
+      tags: [domains]
+      summary: Create a domain attachment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachRequest'
+      responses:
+        '201':
+          description: Attachment created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+        '400':
+          description: Invalid hostname.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Hostname already attached or tombstoned.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      tags: [domains]
+      summary: List attachments.
+      responses:
+        '200':
+          description: All attachments.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Attachment' }
+  /attachments/{id}:
+    get:
+      tags: [domains]
+      summary: Get an attachment.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Attachment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /attachments/{id}/status:
+    get:
+      tags: [domains]
+      summary: Readiness status (same shape as the attachment).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Attachment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /attachments/{id}/instructions:
+    get:
+      tags: [domains]
+      summary: DNS instructions for an attachment.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: DNS instructions.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Instructions' }
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /attachments/{id}/detach:
+    post:
+      tags: [domains]
+      summary: Detach a domain and write a takeover tombstone.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '204':
+          description: Detached.
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    AttachRequest:
+      type: object
+      required: [hostname, project_id]
+      properties:
+        hostname: { type: string, example: example.com }
+        project_id: { type: string }
+        environment_id: { type: string, default: production }
+        target_kind: { type: string, enum: [service, project], default: service }
+        target_ref: { type: string, default: default }
+        tls_mode:
+          type: string
+          enum: [disabled, managed_http01, managed_dns01]
+    Ownership:
+      type: object
+      properties:
+        method: { type: string, enum: [txt] }
+        name: { type: string, example: _ag-domain.example.com }
+        value: { type: string, example: ag-verification=dom_..-.. }
+    Attachment:
+      type: object
+      properties:
+        id: { type: string, example: dom_2130e1be920b48c4acc9baba9bf0324b }
+        hostname_ascii: { type: string, example: example.com }
+        hostname_unicode: { type: string, example: example.com }
+        project: { type: string }
+        environment: { type: string }
+        lifecycle:
+          type: string
+          enum: [draft, pending_ownership, pending_dns, pending_tls, active, misconfigured, detached]
+        ownership_status: { type: string, enum: [pending, verified, failed, expired] }
+        dns_status: { type: string, enum: [pending, routable, wrong_target, conflicting_records, unknown, failed] }
+        tls_status: { type: string, enum: [disabled, pending, active, renewal_due, failed, expired, retired] }
+        routing_status: { type: string, enum: [disabled, shadow, ready, active, suspended] }
+        ownership: { $ref: '#/components/schemas/Ownership' }
+    Instructions:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              record_type: { type: string, example: CNAME }
+              name: { type: string }
+              value: { type: string }
+              ttl: { type: integer }
+              is_ownership: { type: boolean }
+        notes:
+          type: array
+          items: { type: string }
+    Error:
+      type: object
+      properties:
+        error: { type: string }

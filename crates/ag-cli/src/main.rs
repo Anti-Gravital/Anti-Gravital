@@ -173,6 +173,96 @@ enum DomainsCommands {
         #[arg(long, env = "AG_CLOUDFLARE_TOKEN")]
         token: String,
     },
+    /// Attaches an external domain to a project and prints DNS instructions.
+    ///
+    /// Native and manual: writes a local attachment store and produces the
+    /// exact records to paste at your DNS provider. No credentials required.
+    Attach {
+        /// Hostname to attach (e.g. example.com, api.example.com, *.example.com).
+        domain: String,
+        /// Project identifier.
+        #[arg(long)]
+        project: String,
+        /// Environment identifier.
+        #[arg(long, default_value = "production")]
+        env: String,
+        /// Target service reference.
+        #[arg(long, default_value = "default")]
+        service: String,
+        /// Edge CNAME target host for subdomains/wildcards.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable; A/AAAA records).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Reprints DNS instructions for an attached domain.
+    Instructions {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Exports a BIND zone-file fragment for an attached domain.
+    ExportZone {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Shows the status of an attached domain.
+    Status {
+        /// Attached hostname.
+        domain: String,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Lists all attached domains in the local store.
+    List {
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Verifies the TXT ownership record across public resolvers.
+    Verify {
+        /// Attached hostname.
+        domain: String,
+        /// Minimum number of resolvers that must confirm.
+        #[arg(long, default_value = "1")]
+        min_confirmed: usize,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Detaches a domain, stops renewal and writes a takeover tombstone.
+    Detach {
+        /// Attached hostname.
+        domain: String,
+        /// Tombstone duration in days (subdomain-takeover prevention).
+        #[arg(long, default_value = "30")]
+        tombstone_days: u64,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
 }
 
 /// Sub-commands of `ag mail`.
@@ -238,6 +328,41 @@ fn main() {
                     zone_id,
                     token,
                 } => rt.block_on(cmd_domains_sync(&schema, &zone_id, &token)),
+                DomainsCommands::Attach {
+                    domain,
+                    project,
+                    env,
+                    service,
+                    edge_host,
+                    ips,
+                    state,
+                } => {
+                    cmd_domains_attach(&domain, &project, &env, &service, &edge_host, &ips, &state)
+                }
+                DomainsCommands::Instructions {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => cmd_domains_instructions(&domain, &edge_host, &ips, &state),
+                DomainsCommands::ExportZone {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => cmd_domains_export_zone(&domain, &edge_host, &ips, &state),
+                DomainsCommands::Status { domain, state } => cmd_domains_status(&domain, &state),
+                DomainsCommands::List { state } => cmd_domains_list(&state),
+                DomainsCommands::Verify {
+                    domain,
+                    min_confirmed,
+                    state,
+                } => rt.block_on(cmd_domains_verify(&domain, min_confirmed, &state)),
+                DomainsCommands::Detach {
+                    domain,
+                    tombstone_days,
+                    state,
+                } => cmd_domains_detach(&domain, tombstone_days, &state),
             }
         }
         Commands::Mail { command } => {
@@ -772,6 +897,257 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
     }
 
     println!("Sincronizacion completada.");
+    Ok(())
+}
+
+// ============================================================
+// ag domains control-plane commands (RFC-0009, phase A)
+// ============================================================
+
+use std::net::{Ipv4Addr, Ipv6Addr};
+
+use ag_domains::attachment::{
+    AttachmentLifecycle, DnsMode, DnsStatus, DomainAttachment, OwnershipMethod, OwnershipStatus,
+    RoutingStatus, TargetKind, TlsMode, TlsStatus,
+};
+use ag_domains::hostname::{Hostname, HostnameKind};
+use ag_domains::instructions::{export_bind_zone, generate_instructions, EdgeTargets};
+use ag_domains::ownership::{generate_attachment_id, generate_token, ownership_record_name};
+use ag_domains::store::{now_unix, AttachmentStore, JsonFileStore};
+
+fn parse_edge_targets(edge_host: &str, ips: &[String]) -> Result<EdgeTargets, String> {
+    let mut targets = EdgeTargets::new(edge_host);
+    for ip in ips {
+        if let Ok(v4) = ip.parse::<Ipv4Addr>() {
+            targets = targets.with_ipv4(v4);
+        } else if let Ok(v6) = ip.parse::<Ipv6Addr>() {
+            targets = targets.with_ipv6(v6);
+        } else {
+            return Err(format!("invalid IP address: '{ip}'"));
+        }
+    }
+    Ok(targets)
+}
+
+fn open_store(state: &Path) -> Result<JsonFileStore, String> {
+    JsonFileStore::open(state)
+        .map_err(|e| format!("could not open store '{}': {e}", state.display()))
+}
+
+fn print_instructions(ins: &ag_domains::instructions::DnsInstructions) {
+    println!("Type   Name                              Value");
+    for rec in ins.all() {
+        println!(
+            "{:<6} {:<33} {}",
+            rec.record_type.to_string(),
+            rec.name,
+            rec.value
+        );
+    }
+    for note in &ins.notes {
+        println!("\nNote: {note}");
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cmd_domains_attach(
+    domain: &str,
+    project: &str,
+    env: &str,
+    service: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let mut store = open_store(state)?;
+
+    if store.is_tombstoned(hostname.ascii(), now_unix()) {
+        return Err(format!(
+            "'{}' is tombstoned (takeover protection); wait for expiry or use a different host",
+            hostname.ascii()
+        ));
+    }
+
+    let id = generate_attachment_id();
+    let ownership_value = generate_token(&id);
+    let ownership_name = ownership_record_name(&hostname);
+    let tls_mode = match hostname.kind() {
+        HostnameKind::Wildcard => TlsMode::ManagedDns01,
+        _ => TlsMode::ManagedHttp01,
+    };
+
+    let mut attachment = DomainAttachment {
+        id: id.clone(),
+        hostname: hostname.clone(),
+        project: project.to_owned(),
+        environment: env.to_owned(),
+        target_kind: TargetKind::Service,
+        target_ref: service.to_owned(),
+        dns_mode: DnsMode::Manual,
+        tls_mode,
+        ownership_method: OwnershipMethod::Txt,
+        ownership_name,
+        ownership_value: ownership_value.clone(),
+        ownership_status: OwnershipStatus::Pending,
+        dns_status: DnsStatus::Pending,
+        tls_status: TlsStatus::Pending,
+        routing_status: RoutingStatus::Disabled,
+        lifecycle: AttachmentLifecycle::Draft,
+        created_at: now_unix(),
+    };
+    attachment.recompute_lifecycle();
+
+    store
+        .create(attachment)
+        .map_err(|e| format!("could not attach: {e}"))?;
+
+    println!("Domain attachment created.\n");
+    println!("Domain:      {}", hostname.ascii());
+    println!("Project:     {project}");
+    println!("Environment: {env}");
+    println!("Attachment:  {id}");
+    println!("Status:      pending_ownership\n");
+
+    let ins = generate_instructions(&hostname, &targets, &ownership_value);
+    println!("Add these records at your DNS provider:\n");
+    print_instructions(&ins);
+    println!("\nThen run:\n  ag domains verify {}", hostname.ascii());
+    Ok(())
+}
+
+fn cmd_domains_instructions(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store.get(hostname.ascii()).ok_or_else(|| {
+        format!(
+            "no attachment for '{}'; run 'ag domains attach' first",
+            hostname.ascii()
+        )
+    })?;
+
+    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+    println!("DNS instructions for {}\n", hostname.ascii());
+    print_instructions(&ins);
+    Ok(())
+}
+
+fn cmd_domains_export_zone(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+    print!("{}", export_bind_zone(&hostname, &ins));
+    Ok(())
+}
+
+fn cmd_domains_status(domain: &str, state: &Path) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let store = open_store(state)?;
+    let a = store
+        .get(hostname.ascii())
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    println!("Domain:      {}", a.hostname.ascii());
+    println!("Attachment:  {}", a.id);
+    println!("Project:     {}", a.project);
+    println!("Environment: {}\n", a.environment);
+    println!("Lifecycle:   {:?}", a.lifecycle);
+    println!("Ownership:   {:?}", a.ownership_status);
+    println!("DNS:         {:?}", a.dns_status);
+    println!("TLS:         {:?}", a.tls_status);
+    println!("Routing:     {:?}", a.routing_status);
+    Ok(())
+}
+
+fn cmd_domains_list(state: &Path) -> Result<(), String> {
+    let store = open_store(state)?;
+    let all = store.list();
+    if all.is_empty() {
+        println!("No attached domains.");
+        return Ok(());
+    }
+    println!(
+        "{:<32} {:<16} {:<14} LIFECYCLE",
+        "HOSTNAME", "PROJECT", "ENVIRONMENT"
+    );
+    for a in all {
+        println!(
+            "{:<32} {:<16} {:<14} {:?}",
+            a.hostname.ascii(),
+            a.project,
+            a.environment,
+            a.lifecycle
+        );
+    }
+    Ok(())
+}
+
+async fn cmd_domains_verify(
+    domain: &str,
+    min_confirmed: usize,
+    state: &Path,
+) -> Result<(), String> {
+    use ag_domains::ownership::verify_ownership;
+    use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
+
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let mut store = open_store(state)?;
+    let mut attachment = store
+        .get(hostname.ascii())
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    println!("Verifying ownership TXT for '{}'...", hostname.ascii());
+    let checker = PropagationChecker::new(DEFAULT_RESOLVERS, min_confirmed);
+    let probe = verify_ownership(&checker, &hostname, &attachment.ownership_value).await;
+
+    if probe.confirmed >= min_confirmed {
+        attachment.ownership_status = OwnershipStatus::Verified;
+        attachment.recompute_lifecycle();
+        store
+            .update(attachment)
+            .map_err(|e| format!("could not update store: {e}"))?;
+        println!(
+            "OK — ownership verified ({}/{} resolvers).",
+            probe.confirmed, probe.total
+        );
+    } else {
+        println!(
+            "PENDING — {}/{} resolvers confirm the token. Wait for DNS propagation and retry.",
+            probe.confirmed, probe.total
+        );
+    }
+    Ok(())
+}
+
+fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let mut store = open_store(state)?;
+    let tombstone_secs = tombstone_days.saturating_mul(24 * 60 * 60);
+    store
+        .detach(hostname.ascii(), tombstone_secs)
+        .map_err(|e| format!("could not detach: {e}"))?;
+    println!("Detached '{}'.", hostname.ascii());
+    println!("Routing removed and certificate renewal stopped.");
+    println!(
+        "Tombstoned for {tombstone_days} day(s) to prevent takeover. Remove the DNS records at your provider."
+    );
     Ok(())
 }
 

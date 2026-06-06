@@ -215,3 +215,35 @@ findings were fixed in-branch and are not listed here.
 - Status: closed (2026-06-04). All five `examples/*/README.md`
   (auth-mail-demo, realtime-chat, todo-api, ecommerce-api, ai-backend)
   translated to English, preserving code, tables and command examples.
+
+## ag-domains control plane
+
+### DEBT-024 — eTLD+1 via two-label heuristic (no Public Suffix List)
+- Reason: `ag-domains::hostname` derives the registrable domain by taking the
+  last two labels. Multi-label public suffixes (`co.uk`, `com.br`, etc.) are
+  misclassified, which skews apex vs subdomain detection and generated DNS
+  instructions for those TLDs.
+- Impact: incorrect instructions/classification for domains under multi-label
+  public suffixes. Single-label TLDs (`.com`, `.net`, `.io`) are correct.
+- Expected removal: a PSL-backed implementation behind a dependency RFC
+  (candidate crate: `psl` or `publicsuffix`); gate it so the native default
+  keeps working offline.
+- Status: open. Severity: Medium. Source: RFC-0009 §7.
+
+### DEBT-025 — ag-domains control plane deferred phases (RFC-0009 D-F)
+- Reason: phases A, B and C are implemented. A = control-plane library + manual
+  CLI flow. B = live edge listeners (`ag-edge` `server`/`tls` features): HTTP-01
+  responder, Host/:authority routing, canonical redirects and HTTPS with SNI
+  certificate selection (real TCP/TLS integration tests). C = REST API
+  (`ag-domains` `api` feature) with real-HTTP integration tests. Remaining:
+  SQL-backed store (phase D); Domain Connect and additional provider
+  adapters (phase E, partially implemented because Cloudflare sync and BIND export
+  already exist); and the `ag-registrars` module (phase F).
+- Impact: phase D and the remaining phase E adapters require external services
+  (Postgres or provider credentials) for end-to-end verification. Phase F has no
+  implementation yet. The native attach -> instructions -> ownership -> edge flow
+  is implemented and covered by HTTP/TLS integration tests.
+- Expected removal: implement phase D, complete the missing phase E integrations,
+  and design/implement phase F per RFC-0009. Keep each addition feature-gated with
+  a native default; service-backed tests use the repository's `#[ignore]` convention.
+- Status: open. Severity: Medium. Source: RFC-0009 §5.

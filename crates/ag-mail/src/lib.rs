@@ -17,24 +17,26 @@
 //!
 //! # Native MTA (opt-in, `mta` feature)
 //!
-//! Phases 4.6-A/B add an opt-in native outbound MTA behind the `mta` feature:
-//! [`sender::mta::MtaSender`] resolves the destination MX, optionally picks an
-//! egress source from a weighted pool, opens an ESMTP session with
-//! opportunistic STARTTLS, signs with DKIM (Ed25519 or RSA-SHA256), and
-//! delivers directly, classifying SMTP replies. A two-tier delivery queue
-//! ([`sender::mta::queue`]) adds retry/backoff, per-`site_name` traffic shaping
-//! ([`sender::mta::shaping`]) and an automatic suppression list
-//! ([`sender::mta::suppress`]) fed by both synchronous SMTP failures and
-//! asynchronous DSN/ARF intake ([`sender::mta::dsn`]), with `ag-observe`
-//! metrics throughout. This is additive: the default sender is unchanged and
-//! the feature is off by default. Governing decision: `ADR-0010`; technical
-//! plan: `RFC-0009`. A durable queue spool and the REST API are later phases.
+//! The `mta` feature adds an opt-in native outbound MTA (`sender::mta`):
+//! `MtaSender` resolves the destination MX, optionally picks an egress source
+//! from a weighted pool (`sender::mta::egress`), opens an ESMTP session with
+//! opportunistic STARTTLS, signs with DKIM (Ed25519 or RSA-SHA256,
+//! `sender::mta::dkim`), and delivers directly, classifying SMTP replies. A
+//! two-tier delivery queue (`sender::mta::queue`) adds retry/backoff,
+//! per-`site_name` traffic shaping (`sender::mta::shaping`) and an automatic
+//! suppression list (`sender::mta::suppress`) fed by synchronous failures and
+//! by asynchronous DSN/ARF intake (`sender::mta::dsn`), with `ag-observe`
+//! metrics throughout. The separate `api` feature adds HMAC-SHA256 signed
+//! webhooks (`api::webhook`). All of this is additive: the default sender is
+//! unchanged and these features are off by default. Governing decision:
+//! `ADR-0010`; technical plan: `RFC-0009`. A durable queue spool and the REST
+//! API routes are later phases (`docs/DEBT.md`).
 //!
 //! # Scope
 //!
-//! Outbound only. Even with the `mta` feature it does **not** receive email
-//! (beyond future DSN/FBL parsing for bounces), does **not** offer IMAP/POP,
-//! and is **not** a complete mail server. See
+//! Outbound only. Even with the `mta` feature it does **not** offer IMAP/POP
+//! and is **not** a complete mail server (inbound is limited to DSN/ARF parsing
+//! for bounce and complaint processing). See
 //! `docs/architecture/08-modulos-batteries-included.md` section 8.8 and the
 //! ADRs `docs/adr/0007-ag-mail-ag-domains.md` and
 //! `docs/adr/0010-ag-mail-native-mta-pivot.md`.

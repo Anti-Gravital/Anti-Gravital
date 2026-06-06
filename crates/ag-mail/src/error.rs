@@ -56,3 +56,48 @@ pub enum AgMailError {
     #[error("error de firma DKIM: {0}")]
     Dkim(String),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::AgMailError;
+
+    #[test]
+    fn every_variant_displays_its_payload() {
+        let cases = [
+            AgMailError::SendExhausted("x".into()),
+            AgMailError::InvalidAddress("x".into()),
+            AgMailError::Template("x".into()),
+            AgMailError::VarMismatch("x".into()),
+            AgMailError::Config("x".into()),
+            AgMailError::Provider {
+                provider: "smtp",
+                message: "x".into(),
+            },
+            AgMailError::Queue("x".into()),
+            AgMailError::Dns("x".into()),
+            AgMailError::NoMailHost("x".into()),
+            AgMailError::Dkim("x".into()),
+        ];
+        for err in &cases {
+            let rendered = err.to_string();
+            assert!(!rendered.is_empty(), "{err:?} renders empty");
+        }
+    }
+
+    #[test]
+    fn native_mta_variants_render_expected_text() {
+        assert!(AgMailError::Dns("mx".into()).to_string().contains("DNS/MX"));
+        assert!(AgMailError::NoMailHost("d".into())
+            .to_string()
+            .contains("host de correo"));
+        assert!(AgMailError::Dkim("k".into())
+            .to_string()
+            .contains("firma DKIM"));
+        assert!(AgMailError::Provider {
+            provider: "mta",
+            message: "boom".into(),
+        }
+        .to_string()
+        .contains("mta"));
+    }
+}

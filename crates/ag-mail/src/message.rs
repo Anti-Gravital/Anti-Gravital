@@ -337,4 +337,60 @@ mod tests {
         assert!(email.reply_to.is_some());
         assert_eq!(email.headers[0].0, "X-Custom");
     }
+
+    #[test]
+    fn address_validate_rejects_trailing_at_and_empty() {
+        assert!(matches!(
+            Address::new("user@").validate(),
+            Err(AgMailError::InvalidAddress(_))
+        ));
+        assert!(matches!(
+            Address::new("   ").validate(),
+            Err(AgMailError::InvalidAddress(_))
+        ));
+    }
+
+    #[test]
+    fn builder_rejects_invalid_cc_and_bcc() {
+        let cc_err = EmailBuilder::new()
+            .from(Address::new("f@f.com"))
+            .to(Address::new("t@t.com"))
+            .cc(Address::new("not-an-email"))
+            .subject("s")
+            .text_body("t")
+            .build()
+            .unwrap_err();
+        assert!(matches!(cc_err, AgMailError::InvalidAddress(_)));
+
+        let bcc_err = EmailBuilder::new()
+            .from(Address::new("f@f.com"))
+            .to(Address::new("t@t.com"))
+            .bcc(Address::new("@nope"))
+            .subject("s")
+            .text_body("t")
+            .build()
+            .unwrap_err();
+        assert!(matches!(bcc_err, AgMailError::InvalidAddress(_)));
+    }
+
+    #[test]
+    fn builder_with_attachment_and_many_recipients() {
+        let attachment = Attachment {
+            filename: "invoice.pdf".to_owned(),
+            content_type: "application/pdf".to_owned(),
+            data: vec![1, 2, 3, 4],
+        };
+        let email = EmailBuilder::new()
+            .from(Address::new("f@f.com"))
+            .to_many([Address::new("a@x.com"), Address::new("b@x.com")])
+            .subject("s")
+            .html_body("<p>hi</p>")
+            .attachment(attachment.clone())
+            .build()
+            .unwrap();
+        assert_eq!(email.to.len(), 2);
+        assert_eq!(email.attachments.len(), 1);
+        assert_eq!(email.attachments[0], attachment);
+        assert_eq!(email.attachments[0].filename, "invoice.pdf");
+    }
 }

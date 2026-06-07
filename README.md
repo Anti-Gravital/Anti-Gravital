@@ -35,10 +35,11 @@ It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
 PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
 scientific computing framework. `ag-mail` is not a full mail server:
 it sends outbound transactional email; it does not host mailboxes and
-does not implement IMAP/POP. A native outbound MTA core (direct MX
-delivery, ESMTP+STARTTLS, Ed25519 DKIM signing, bounce classification)
-is available as the opt-in `mta` feature per `ADR-0010` (Phase 4.6-A);
-it is off by default and still hosts no mailboxes. `ag-domains` is not
+does not implement IMAP/POP. A native outbound MTA (direct MX delivery,
+ESMTP+STARTTLS, Ed25519/RSA DKIM, egress pools, traffic shaping, a
+two-tier delivery queue, suppression and DSN/ARF intake) is available as
+the opt-in `mta` feature per `ADR-0010`; it is off by default and still
+hosts no mailboxes. `ag-domains` is not
 a domain registrar: domains are
 purchased externally. See the scope chapter at
 `docs/architecture/03-alcance-y-limites.md`.
@@ -105,13 +106,14 @@ criteria (community, crates.io publication) pending.
 **Phase 4.5 — ag-mail + ag-domains:** technical implementation complete
 (2026-05-24). Two new crates introduced by ADR-0007:
 
-- `ag-mail` (deferred standard): `MailSender` trait + `SmtpSender` (lettre +
-  rustls) plus an opt-in native outbound MTA.
-  `StringTemplate` engine for HTML/plaintext with compile-time var validation.
-  Async queue with retries and exponential backoff (`InMemoryQueue`). Metrics
-  towards `ag-observe` (feature `"metrics"`). Integration with `ag-auth` via
-  `AuthMailer` for email verification, password recovery and magic links. 38
-  tests.
+- `ag-mail` (deferred standard): `MailSender` trait + native `SmtpSender`
+  (lettre + rustls). To use an external provider, point `SmtpSender` at its SMTP
+  endpoint — there are no provider-brand adapters (`ADR-0011`). `StringTemplate`
+  engine (and the optional `minijinja` engine) for HTML/plaintext with
+  compile-time var validation. Async queue with retries and exponential backoff;
+  optional persistent backend over `ag-data`. Metrics towards `ag-observe`.
+  Integration with `ag-auth` via `AuthMailer` for email verification, password
+  recovery and magic links.
 - `ag-domains` (optional infra): `DnsProvider` trait + `CloudflareProvider`
   for A/AAAA/CNAME/TXT/MX records. ACME/Let's Encrypt via `instant-acme`
   (DNS-01 challenge, automatic renewal). SPF/DKIM/DMARC generation
@@ -123,6 +125,15 @@ for the new blocks (hover, completions). CLI commands `ag domains check`,
 `ag domains sync` and `ag mail test` operational. `auth-mail-demo` example
 with three flows. 14 cross-module E2E tests total (7 Phase 4 + 7 Phase 4.5).
 
+**Phase 4.6 — native MTA (in progress):** `ag-mail` grows an opt-in native
+outbound MTA (`ADR-0010` / `RFC-0009`), additive and off by default. Done: MX
+resolution, egress pools (weighted round-robin warm-up), Ed25519/RSA DKIM,
+traffic shaping, a two-tier delivery queue with retry/backoff and an automatic
+suppression list, asynchronous DSN/ARF intake (feature `mta`), and HMAC-SHA256
+signed webhooks (feature `api`). Third-party commercial brand names were removed
+from the codebase per `ADR-0011`. Pending (need infrastructure to test): the
+REST API routes + data model, a durable queue spool, and the live-delivery test
+(`docs/DEBT.md`).
 **ag-domains control plane (ADR-0010 / RFC-0009, phase A):** `ag-domains`
 extends from a declarative DNS+TLS library into a native domain attachment and
 serving control plane: hostname normalization/classification, an attachment
@@ -293,10 +304,10 @@ reemplaza Next.js. No reemplaza Docker. No reemplaza PostgreSQL,
 Redis, MinIO ni NATS. No es un motor de juegos ni un framework de
 computo cientifico. `ag-mail` no es un servidor de correo completo:
 envia correo outbound transaccional, no aloja buzones ni implementa
-IMAP/POP. Un nucleo de MTA outbound nativo (entrega MX directa,
-ESMTP+STARTTLS, firma DKIM Ed25519, clasificacion de bounces) esta
-disponible como feature opt-in `mta` segun `ADR-0010` (Fase 4.6-A);
-esta apagado por defecto y sigue sin alojar buzones. `ag-domains`
+IMAP/POP. Un MTA outbound nativo (entrega MX directa, ESMTP+STARTTLS,
+DKIM Ed25519/RSA, pools de egress, traffic shaping, cola de dos niveles,
+suppression e intake DSN/ARF) esta disponible como feature opt-in `mta`
+segun `ADR-0010`; esta apagado por defecto y sigue sin alojar buzones. `ag-domains`
 no es un registrador de dominios: el dominio se compra externamente.
 Vease el capitulo de alcance en
 `docs/architecture/03-alcance-y-limites.md`.
@@ -361,12 +372,13 @@ Cobertura >= 80% en todos los modulos. Criterios externos (comunidad, publicacio
 **Fase 4.5 — ag-mail + ag-domains:** implementacion tecnica completa (2026-05-24).
 Dos crates nuevos introducidos por ADR-0007:
 
-- `ag-mail` (estandar diferido): trait `MailSender` + `SmtpSender` (lettre + rustls)
-  mas un MTA outbound nativo opt-in. Motor `StringTemplate`
-  para HTML/plaintext con validacion de vars en compile-time. Cola asincrona con
-  reintentos y backoff exponencial (`InMemoryQueue`). Metricas hacia `ag-observe`
-  (feature `"metrics"`). Integracion con `ag-auth` via `AuthMailer` para verificacion,
-  recuperacion y magic links. 38 tests.
+- `ag-mail` (estandar diferido): trait `MailSender` + `SmtpSender` nativo (lettre +
+  rustls). Para un proveedor externo se apunta el `SmtpSender` a su endpoint SMTP:
+  no hay adaptadores con nombre de marca (`ADR-0011`). Motor `StringTemplate` (y el
+  motor opcional `minijinja`) para HTML/plaintext con validacion de vars en
+  compile-time. Cola asincrona con reintentos y backoff exponencial; backend
+  persistente opcional via `ag-data`. Metricas hacia `ag-observe`. Integracion con
+  `ag-auth` via `AuthMailer` para verificacion, recuperacion y magic links.
 - `ag-domains` (opcional infra): trait `DnsProvider` + `CloudflareProvider` para
   registros A/AAAA/CNAME/TXT/MX. ACME/Let's Encrypt via `instant-acme` (DNS-01,
   renovacion automatica). Generacion SPF/DKIM/DMARC (`apply_mail_records`,
@@ -377,6 +389,14 @@ los bloques nuevos (hover, completions). Comandos CLI `ag domains check`,
 `ag domains sync` y `ag mail test` operativos. Example `auth-mail-demo` con tres
 flujos. 14 tests E2E cross-module en total (7 Fase 4 + 7 Fase 4.5).
 
+**Fase 4.6 — MTA nativo (en curso):** `ag-mail` incorpora un MTA outbound nativo
+opt-in (`ADR-0010` / `RFC-0009`), aditivo y apagado por defecto. Hecho: resolucion
+MX, pools de egress (warm-up por round-robin ponderado), DKIM Ed25519/RSA, traffic
+shaping, cola de dos niveles con retry/backoff y suppression list automatica,
+intake asincrono DSN/ARF (feature `mta`), y webhooks firmados HMAC-SHA256 (feature
+`api`). Se retiraron los nombres de marcas comerciales de terceros del codigo segun
+`ADR-0011`. Pendiente (requiere infraestructura para probar): rutas REST + modelo de
+datos, spool durable de la cola y el test de entrega en vivo (`docs/DEBT.md`).
 **Plano de control de ag-domains (ADR-0010 / RFC-0009, fase A):** `ag-domains`
 pasa de libreria declarativa DNS+TLS a plano de control nativo para adjuntar y
 servir dominios: normalizacion/clasificacion de hostnames, maquina de estados de
@@ -566,6 +586,7 @@ inicial: Angel Nereira.
 | 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
 | 4            | Modulos estandar              | Implementacion completa / Technical implementation complete |
 | 4.5          | ag-mail + ag-domains: comunicacion y dominios | Implementacion completa / Technical implementation complete |
+| 4.6          | ag-mail MTA outbound nativo (opt-in) | En curso / In progress                           |
 | 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
 | 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
 | 7            | ag-migrate importadores       | Pendiente / Pending                                     |

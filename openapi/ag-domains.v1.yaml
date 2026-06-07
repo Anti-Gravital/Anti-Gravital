@@ -3,7 +3,7 @@ info:
   title: ag-domains control plane API
   version: 0.1.0
   description: >
-    Control-plane REST API (RFC-0009 phase C), implemented behind the
+    Control-plane REST API (RFC-0011 phase C), implemented behind the
     `api` Cargo feature of the `ag-domains` crate and backed by any
     AttachmentStore (native by default). Build the router with
     `ag_domains::api::build_router` or serve it with `ag_domains::api::serve`.

@@ -3,7 +3,7 @@
 //! Identity is the lowercase ASCII (Punycode / A-label) form. The Unicode
 //! display form is preserved separately so internationalized domains render
 //! correctly without breaking identity comparisons (CLAUDE.md security rule
-//! 16; ADR-0010 native-first). Wildcard and apex/subdomain classification feed
+//! 16; ADR-0012 native-first). Wildcard and apex/subdomain classification feed
 //! the DNS instruction engine and the edge router.
 //!
 //! # Examples

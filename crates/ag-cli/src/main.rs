@@ -336,23 +336,25 @@ fn main() {
                     edge_host,
                     ips,
                     state,
-                } => {
-                    cmd_domains_attach(&domain, &project, &env, &service, &edge_host, &ips, &state)
-                }
+                } => rt.block_on(cmd_domains_attach(
+                    &domain, &project, &env, &service, &edge_host, &ips, &state,
+                )),
                 DomainsCommands::Instructions {
                     domain,
                     edge_host,
                     ips,
                     state,
-                } => cmd_domains_instructions(&domain, &edge_host, &ips, &state),
+                } => rt.block_on(cmd_domains_instructions(&domain, &edge_host, &ips, &state)),
                 DomainsCommands::ExportZone {
                     domain,
                     edge_host,
                     ips,
                     state,
-                } => cmd_domains_export_zone(&domain, &edge_host, &ips, &state),
-                DomainsCommands::Status { domain, state } => cmd_domains_status(&domain, &state),
-                DomainsCommands::List { state } => cmd_domains_list(&state),
+                } => rt.block_on(cmd_domains_export_zone(&domain, &edge_host, &ips, &state)),
+                DomainsCommands::Status { domain, state } => {
+                    rt.block_on(cmd_domains_status(&domain, &state))
+                }
+                DomainsCommands::List { state } => rt.block_on(cmd_domains_list(&state)),
                 DomainsCommands::Verify {
                     domain,
                     min_confirmed,
@@ -362,7 +364,7 @@ fn main() {
                     domain,
                     tombstone_days,
                     state,
-                } => cmd_domains_detach(&domain, tombstone_days, &state),
+                } => rt.block_on(cmd_domains_detach(&domain, tombstone_days, &state)),
             }
         }
         Commands::Mail { command } => {
@@ -901,7 +903,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 }
 
 // ============================================================
-// ag domains control-plane commands (RFC-0009, phase A)
+// ag domains control-plane commands (RFC-0011, phase A)
 // ============================================================
 
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -950,7 +952,7 @@ fn print_instructions(ins: &ag_domains::instructions::DnsInstructions) {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn cmd_domains_attach(
+async fn cmd_domains_attach(
     domain: &str,
     project: &str,
     env: &str,
@@ -961,9 +963,13 @@ fn cmd_domains_attach(
 ) -> Result<(), String> {
     let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
     let targets = parse_edge_targets(edge_host, ips)?;
-    let mut store = open_store(state)?;
+    let store = open_store(state)?;
 
-    if store.is_tombstoned(hostname.ascii(), now_unix()) {
+    if store
+        .is_tombstoned(hostname.ascii(), now_unix())
+        .await
+        .map_err(|e| e.to_string())?
+    {
         return Err(format!(
             "'{}' is tombstoned (takeover protection); wait for expiry or use a different host",
             hostname.ascii()
@@ -1001,6 +1007,7 @@ fn cmd_domains_attach(
 
     store
         .create(attachment)
+        .await
         .map_err(|e| format!("could not attach: {e}"))?;
 
     println!("Domain attachment created.\n");
@@ -1017,29 +1024,7 @@ fn cmd_domains_attach(
     Ok(())
 }
 
-fn cmd_domains_instructions(
-    domain: &str,
-    edge_host: &str,
-    ips: &[String],
-    state: &Path,
-) -> Result<(), String> {
-    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
-    let targets = parse_edge_targets(edge_host, ips)?;
-    let store = open_store(state)?;
-    let attachment = store.get(hostname.ascii()).ok_or_else(|| {
-        format!(
-            "no attachment for '{}'; run 'ag domains attach' first",
-            hostname.ascii()
-        )
-    })?;
-
-    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
-    println!("DNS instructions for {}\n", hostname.ascii());
-    print_instructions(&ins);
-    Ok(())
-}
-
-fn cmd_domains_export_zone(
+async fn cmd_domains_instructions(
     domain: &str,
     edge_host: &str,
     ips: &[String],
@@ -1050,6 +1035,34 @@ fn cmd_domains_export_zone(
     let store = open_store(state)?;
     let attachment = store
         .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| {
+            format!(
+                "no attachment for '{}'; run 'ag domains attach' first",
+                hostname.ascii()
+            )
+        })?;
+
+    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+    println!("DNS instructions for {}\n", hostname.ascii());
+    print_instructions(&ins);
+    Ok(())
+}
+
+async fn cmd_domains_export_zone(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
 
     let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
@@ -1057,11 +1070,13 @@ fn cmd_domains_export_zone(
     Ok(())
 }
 
-fn cmd_domains_status(domain: &str, state: &Path) -> Result<(), String> {
+async fn cmd_domains_status(domain: &str, state: &Path) -> Result<(), String> {
     let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
     let store = open_store(state)?;
     let a = store
         .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
 
     println!("Domain:      {}", a.hostname.ascii());
@@ -1076,9 +1091,9 @@ fn cmd_domains_status(domain: &str, state: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_domains_list(state: &Path) -> Result<(), String> {
+async fn cmd_domains_list(state: &Path) -> Result<(), String> {
     let store = open_store(state)?;
-    let all = store.list();
+    let all = store.list().await.map_err(|e| e.to_string())?;
     if all.is_empty() {
         println!("No attached domains.");
         return Ok(());
@@ -1108,9 +1123,11 @@ async fn cmd_domains_verify(
     use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
 
     let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
-    let mut store = open_store(state)?;
+    let store = open_store(state)?;
     let mut attachment = store
         .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
 
     println!("Verifying ownership TXT for '{}'...", hostname.ascii());
@@ -1122,6 +1139,7 @@ async fn cmd_domains_verify(
         attachment.recompute_lifecycle();
         store
             .update(attachment)
+            .await
             .map_err(|e| format!("could not update store: {e}"))?;
         println!(
             "OK — ownership verified ({}/{} resolvers).",
@@ -1136,12 +1154,13 @@ async fn cmd_domains_verify(
     Ok(())
 }
 
-fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> Result<(), String> {
+async fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> Result<(), String> {
     let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
-    let mut store = open_store(state)?;
+    let store = open_store(state)?;
     let tombstone_secs = tombstone_days.saturating_mul(24 * 60 * 60);
     store
         .detach(hostname.ascii(), tombstone_secs)
+        .await
         .map_err(|e| format!("could not detach: {e}"))?;
     println!("Detached '{}'.", hostname.ascii());
     println!("Routing removed and certificate renewal stopped.");

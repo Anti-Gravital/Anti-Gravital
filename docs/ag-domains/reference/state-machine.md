@@ -1,7 +1,7 @@
 # Reference — attachment state machine
 
 An attachment tracks four independent readiness dimensions plus a derived
-lifecycle. A single boolean is deliberately avoided (RFC-0009 §6).
+lifecycle. A single boolean is deliberately avoided (RFC-0011 §6).
 
 ## Readiness dimensions
 
@@ -41,4 +41,4 @@ A hostname must not serve traffic until activation holds.
 ## Tombstones
 
 Detaching writes a tombstone (default 30 days) that blocks re-claiming the
-hostname until it expires (subdomain-takeover prevention, RFC-0009 §7).
+hostname until it expires (subdomain-takeover prevention, RFC-0011 §7).

@@ -1,4 +1,4 @@
-## ADR-0010: ag-domains as a native domain attachment and serving control plane
+## ADR-0012: ag-domains as a native domain attachment and serving control plane
 
 **Status:** Accepted
 **Date:** 2026-06-04
@@ -51,7 +51,7 @@ contributors understand why `ag-domains` grew a control plane and why a new
    The default store is in-memory / local JSON; the default edge logic is pure
    Rust. No external service is required to attach a domain manually.
 
-5. The work is staged (RFC-0009 phases A-F) so each step is additive and
+5. The work is staged (RFC-0011 phases A-F) so each step is additive and
    non-regressive. Unknown custom hostnames fail closed at the edge; only
    pre-existing legacy default routes fall open.
 

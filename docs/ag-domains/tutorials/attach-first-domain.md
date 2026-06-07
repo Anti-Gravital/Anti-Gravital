@@ -58,5 +58,5 @@ remove the records from your provider.
 ## What comes next
 
 Native HTTPS serving (live edge listeners + certificate issuance wired end to
-end) is a later phase (RFC-0009 phase B). Today this tutorial covers attachment,
+end) is a later phase (RFC-0011 phase B). Today this tutorial covers attachment,
 instructions, ownership proof and status.

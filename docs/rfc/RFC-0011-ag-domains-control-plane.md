@@ -1,4 +1,4 @@
-# RFC-0009: ag-domains — domain attachment and serving control plane
+# RFC-0011: ag-domains — domain attachment and serving control plane
 
 - Status: accepted
 - Author: Angel Nereira (BDFL), Gravital Labs
@@ -7,7 +7,7 @@
 - Modules or crates affected: `ag-domains` (extended), `ag-edge` (new),
   `ag-cli` (new subcommands), `ag-cloud` (future consumer)
 - Predecessor RFC: RFC-0007 (ag-domains scope, library form)
-- Governing ADR: ADR-0007 (ag-mail/ag-domains), ADR-0010 (this expansion)
+- Governing ADR: ADR-0007 (ag-mail/ag-domains), ADR-0012 (this expansion)
 - Comment period: waived by BDFL decision. This RFC records an explicit
   scope expansion authorized by the project owner.
 
@@ -121,9 +121,10 @@ Phase C (DONE): REST API behind the `api` feature in ag-domains
   (/v1/domains/attachments ...), backed by any AttachmentStore. Covered by
   real-HTTP integration tests. OpenAPI updated to the implemented contract.
 
-Phase D (later): SQL-backed store (Postgres) behind a `sql-store` feature.
-  Real tests require a database (testcontainers / DATABASE_URL), per the
-  repo's existing `#[ignore]` convention for service-backed tests.
+Phase D (DONE): SQL-backed store (Postgres) behind the `sql-store` feature
+  (`SqlAttachmentStore`), with an embedded schema/migration. The native
+  in-memory/JSON store stays the default. Integration tests are `#[ignore]`
+  and require `DATABASE_URL`, per the repo convention for service-backed tests.
 
 Phase E (later): provider automation (Domain Connect, additional adapters).
   DNS-01 issuance already exists in `ag-domains::acme` (used for wildcards).
@@ -167,14 +168,14 @@ library consumers. No migration is destructive (in-memory/JSON store).
 - Date: 2026-06-04
 - Result: accepted (explicit scope expansion over RFC-0007)
 - Justification: recorded per CLAUDE.md rules 22 and 28 (RFC required before
-  new crates, new CLI commands, and module-boundary changes). ADR-0010 records
+  new crates, new CLI commands, and module-boundary changes). ADR-0012 records
   the architectural decision and consequences.
 
 ## 10. References
 
 - RFC-0007 — ag-domains library scope (predecessor).
 - ADR-0007 — ag-mail / ag-domains decision.
-- ADR-0010 — control-plane expansion decision.
+- ADR-0012 — control-plane expansion decision.
 - ADR-0009 — native-first / real-state governance.
 - ADR-0008 — language policy (English canonical for technical docs).
 - RFC 8555 (ACME), RFC 6066 (TLS SNI).

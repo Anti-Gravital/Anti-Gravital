@@ -1,15 +1,16 @@
 //! Integration tests for the control-plane REST API over real HTTP.
 #![cfg(feature = "api")]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use ag_domains::api::{build_router, ApiState};
+use ag_domains::events::InMemoryEventSink;
 use ag_domains::instructions::EdgeTargets;
 use ag_domains::store::{AttachmentStore, InMemoryStore};
 use serde_json::Value;
 
 async fn start() -> String {
-    let store: Arc<Mutex<dyn AttachmentStore + Send>> = Arc::new(Mutex::new(InMemoryStore::new()));
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
     let edge = EdgeTargets::new("edge.example-cloud.net");
     let state = ApiState::new(store, edge);
     let app = build_router(state);
@@ -117,6 +118,44 @@ async fn invalid_hostname_is_400() {
         .await
         .unwrap();
     assert_eq!(resp.status(), 400);
+}
+
+#[tokio::test]
+async fn emits_lifecycle_events() {
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+    let sink = Arc::new(InMemoryEventSink::new());
+    let state =
+        ApiState::new(store, EdgeTargets::new("edge.example-cloud.net")).with_events(sink.clone());
+    let app = build_router(state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, app).await;
+    });
+    let base = format!("http://{addr}");
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({"hostname": "ev.example.com", "project_id": "site"}))
+        .send()
+        .await
+        .unwrap();
+    let id = resp.json::<Value>().await.unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    client
+        .post(format!("{base}/v1/domains/attachments/{id}/detach"))
+        .send()
+        .await
+        .unwrap();
+
+    let events = sink.events();
+    assert_eq!(events.len(), 2, "events: {events:?}");
+    assert_eq!(events[0].event_type(), "domain.attachment.created");
+    assert_eq!(events[1].event_type(), "domain.detached");
 }
 
 #[tokio::test]

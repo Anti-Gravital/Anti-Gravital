@@ -3,7 +3,7 @@
 Anti-Gravital edge data plane.
 
 `ag-edge` is the request-time layer below the `ag-domains` control plane
-(ADR-0010 / RFC-0009). Given an incoming hostname it produces a routing
+(ADR-0012 / RFC-0011). Given an incoming hostname it produces a routing
 decision, selects a TLS certificate by SNI, and applies canonical host /
 redirect policy.
 
@@ -22,7 +22,7 @@ Pure logic (always available), unit-tested:
 - `challenge::Http01ChallengeStore` — ACME HTTP-01 responder state with
   path-traversal-safe token extraction.
 
-Runnable listeners (RFC-0009 phases B), implemented and integration-tested:
+Runnable listeners (RFC-0011 phases B), implemented and integration-tested:
 
 - `server` feature: `server::serve_http` (axum) serves the ACME HTTP-01
   challenge, applies redirects and routes by `Host`/`:authority`. Real TCP

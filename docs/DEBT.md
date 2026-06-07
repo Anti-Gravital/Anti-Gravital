@@ -244,22 +244,21 @@ findings were fixed in-branch and are not listed here.
 - Expected removal: a PSL-backed implementation behind a dependency RFC
   (candidate crate: `psl` or `publicsuffix`); gate it so the native default
   keeps working offline.
-- Status: open. Severity: Medium. Source: RFC-0009 §7.
+- Status: open. Severity: Medium. Source: RFC-0011 §7.
 
-### DEBT-025 — ag-domains control plane deferred phases (RFC-0009 D-F)
-- Reason: phases A, B and C are implemented. A = control-plane library + manual
-  CLI flow. B = live edge listeners (`ag-edge` `server`/`tls` features): HTTP-01
+### DEBT-025 — ag-domains control plane deferred phases (RFC-0011 E-F)
+- Reason: phases A, B, C and D are implemented. A = control-plane library +
+  manual CLI flow. B = live edge listeners (`ag-edge` `server`/`tls`): HTTP-01
   responder, Host/:authority routing, canonical redirects and HTTPS with SNI
-  certificate selection (real TCP/TLS integration tests). C = REST API
-  (`ag-domains` `api` feature) with real-HTTP integration tests. Remaining:
-  SQL-backed store (phase D); Domain Connect and additional provider
-  adapters (phase E, partially implemented because Cloudflare sync and BIND export
-  already exist); and the `ag-registrars` module (phase F).
-- Impact: phase D and the remaining phase E adapters require external services
-  (Postgres or provider credentials) for end-to-end verification. Phase F has no
-  implementation yet. The native attach -> instructions -> ownership -> edge flow
-  is implemented and covered by HTTP/TLS integration tests.
-- Expected removal: implement phase D, complete the missing phase E integrations,
-  and design/implement phase F per RFC-0009. Keep each addition feature-gated with
-  a native default; service-backed tests use the repository's `#[ignore]` convention.
-- Status: open. Severity: Medium. Source: RFC-0009 §5.
+  certificate selection (real TCP/TLS tests). C = REST API (`ag-domains` `api`)
+  with real-HTTP tests. D = SQL-backed store (`ag-domains` `sql-store`,
+  Postgres) with `#[ignore]` integration tests. Remaining: provider automation /
+  Domain Connect / additional adapters (phase E; Cloudflare sync and BIND export
+  already exist), and the `ag-registrars` module (phase F).
+- Impact: E/F require external services (provider credentials) to exercise end
+  to end; the native default flow (attach -> instructions -> ownership -> serve
+  HTTPS via edge) and the optional SQL store are complete and tested.
+- Expected removal: implement phases E-F per RFC-0011, each additive and
+  feature-gated with a native default; service-backed tests use the repo's
+  `#[ignore]` convention.
+- Status: open. Severity: Medium. Source: RFC-0011 §5.

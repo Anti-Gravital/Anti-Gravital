@@ -3,7 +3,7 @@
 //! An attachment is the canonical binding between a hostname and an
 //! Anti-Gravital target (project + environment + service). It tracks four
 //! independent readiness dimensions (ownership, DNS, TLS, routing) plus a
-//! derived lifecycle state, following RFC-0009 section 4 and the blueprint
+//! derived lifecycle state, following RFC-0011 section 4 and the blueprint
 //! state machine. A single boolean `verified` is deliberately avoided.
 
 use serde::{Deserialize, Serialize};
@@ -181,7 +181,7 @@ pub struct DomainAttachment {
 }
 
 impl DomainAttachment {
-    /// Activation rule (RFC-0009 section 6.3): a domain is active only when all
+    /// Activation rule (RFC-0011 section 6.3): a domain is active only when all
     /// four readiness dimensions are satisfied.
     pub fn is_active(&self) -> bool {
         self.ownership_status == OwnershipStatus::Verified

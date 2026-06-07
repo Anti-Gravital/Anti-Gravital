@@ -1,13 +1,13 @@
 # ag-domains documentation
 
 Documentation for the `ag-domains` control plane and the `ag-edge` data plane
-(ADR-0010 / RFC-0009). Organized Diataxis-style.
+(ADR-0012 / RFC-0011). Organized Diataxis-style.
 
 This documents the implemented control plane and data plane: the control-plane
 library, the data-plane library, the manual CLI flow (phase A), the live edge
-listeners (HTTP-01 + routing + HTTPS/SNI, phase B) and the REST API (phase C).
-The SQL store and provider automation are later phases (see `docs/DEBT.md`,
-DEBT-018).
+listeners (HTTP-01 + routing + HTTPS/SNI, phase B), the REST API (phase C) and
+the optional Postgres store (phase D). Provider automation and the registrar
+module are later phases (see `docs/DEBT.md`, DEBT-025).
 
 ## Structure
 
@@ -22,7 +22,7 @@ DEBT-018).
 - Tutorial: `tutorials/attach-first-domain.md`
 - How-to: `how-to/serve-and-api.md` (run the edge listeners + REST API)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
-  `reference/dns-record-matrix.md`
+  `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
 - Backlog: `BACKLOG.md` (blueprint gap analysis: done / partial / todo)
@@ -31,4 +31,4 @@ DEBT-018).
 
 `ag-domains` attaches, verifies, diagnoses, secures and routes domains. It does
 not purchase, transfer or renew them (a future `ag-registrars`), and it is not a
-hosting panel (RFC-0009 §3.2).
+hosting panel (RFC-0011 §3.2).

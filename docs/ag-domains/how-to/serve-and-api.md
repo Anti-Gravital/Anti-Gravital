@@ -1,6 +1,6 @@
 # How-to — serve HTTPS for an attached domain and run the REST API
 
-This covers RFC-0009 phases B and C: running the edge listeners (`ag-edge`) and
+This covers RFC-0011 phases B and C: running the edge listeners (`ag-edge`) and
 the control-plane REST API (`ag-domains`). Both default to native operation; no
 external service is required.
 

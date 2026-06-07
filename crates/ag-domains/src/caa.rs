@@ -4,7 +4,7 @@
 //! restrict which CAs may issue certificates. Before ordering a certificate,
 //! `ag-domains` queries CAA records and reports whether the configured CA is
 //! authorized, producing an actionable error instead of a late ACME failure
-//! (RFC-0009 section 5; blueprint section 13.5).
+//! (RFC-0011 section 5; blueprint section 13.5).
 //!
 //! The decision logic is pure and unit-tested. The live DNS query is gated
 //! behind the `propagation` feature. Preflight is advisory: when records cannot

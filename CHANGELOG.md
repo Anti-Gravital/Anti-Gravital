@@ -7,7 +7,41 @@ primera version etiquetada.
 
 ## [Unreleased]
 
-### ag-domains/ag-edge: edge en vivo + API REST (RFC-0009, fases B y C)
+### ag-domains: event log de dominio + metricas de control-plane
+
+Anadido:
+
+- `crates/ag-domains/src/events.rs`: `DomainEvent` (vocabulario blueprint
+  §16.2: `domain.attachment.created`, `domain.ownership.verified`,
+  `domain.detached`) y trait `EventSink` con `NullEventSink` (defecto),
+  `InMemoryEventSink` (nativo/tests) y `TracingEventSink`. Sin broker externo
+  (ADR-0009). La API REST emite eventos en create/detach (`ApiState::with_events`).
+- `crates/ag-domains/src/metrics.rs`: contadores `ag_domains_attachments_total`,
+  `ag_domains_detached_total`, `ag_domains_verification_failures_total`.
+- Tests: unitarios del event log + test de integracion que captura los eventos
+  emitidos por la API real.
+
+### ag-domains: store SQL Postgres (RFC-0011, fase D)
+
+Anadido:
+
+- `crates/ag-domains` feature `sql-store`: `SqlAttachmentStore` (Postgres via
+  sqlx) que implementa `AttachmentStore`. Almacena el attachment como JSONB con
+  columnas indexadas (id, hostname, lifecycle) y tabla de tombstones; esquema
+  embebido + `migrations/0001_ag_domains_attachments.sql`. Mapea violacion de
+  unicidad a `AlreadyExists` y respeta tombstones en `create`. El store nativo
+  (memoria/JSON) sigue siendo el predeterminado (ADR-0009). Tests de integracion
+  `#[ignore]` que requieren `DATABASE_URL`.
+
+Cambios internos (no rompen la API publica del crate):
+
+- El trait `AttachmentStore` pasa a asincrono y `&self` (mutabilidad interior),
+  para poder compartir un store como `Arc<dyn AttachmentStore>` entre tareas y
+  permitir backends async. `InMemoryStore`/`JsonFileStore` adaptados; la API REST
+  ya no envuelve el store en un `Mutex` externo; la CLI ejecuta los comandos de
+  dominios sobre el runtime tokio.
+
+### ag-domains/ag-edge: edge en vivo + API REST (RFC-0011, fases B y C)
 
 Anadido:
 
@@ -31,7 +65,7 @@ Cambios de workspace:
 - `hyper-util`: features `server-auto` y `service` anadidas (para el listener
   HTTPS del edge).
 
-### ag-domains plano de control + ag-edge (ADR-0010 / RFC-0009, fase A)
+### ag-domains plano de control + ag-edge (ADR-0012 / RFC-0011, fase A)
 
 Anadido:
 
@@ -53,8 +87,8 @@ Anadido:
 - `crates/ag-cli`: subcomandos `ag domains attach`, `instructions`, `export-zone`,
   `status`, `list`, `verify`, `detach`. Flujo manual sin credenciales de proveedor.
 
-- Gobernanza: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
-  `docs/adr/0010-ag-domains-control-plane.md`. Documentacion en
+- Gobernanza: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
+  `docs/adr/0012-ag-domains-control-plane.md`. Documentacion en
   `docs/ag-domains/` y esqueleto OpenAPI en `openapi/ag-domains.v1.yaml`.
 
 Estado real tras las fases A-C: los listeners HTTP/HTTPS, el responder HTTP-01

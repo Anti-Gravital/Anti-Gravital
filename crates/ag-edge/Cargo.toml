@@ -28,7 +28,7 @@ tls = ["server", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pki-types", "dep:
 [dependencies]
 # Reuses the control-plane hostname normalization without pulling ACME or
 # provider HTTP clients (default-features disabled). Edge is downstream of the
-# ag-domains control plane (ADR-0010 architecture).
+# ag-domains control plane (ADR-0012 architecture).
 ag-domains = { path = "../ag-domains", version = "0.0.0", default-features = false }
 serde = { workspace = true }
 

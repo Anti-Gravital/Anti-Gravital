@@ -35,3 +35,4 @@ Consecuencias, Alternativas, Estado.
 | 0009 | Gobernanza correctiva pre-Fase 5 | aceptado | `0009-gobernanza-correctiva.md` |
 | 0010 | ag-mail native outbound MTA pivot | aceptado | `0010-ag-mail-native-mta-pivot.md` |
 | 0011 | Politica de marcas comerciales de terceros | aceptado | `0011-politica-marcas-comerciales.md` |
+| 0012 | ag-domains plano de control de attachment y serving | aceptado | `0012-ag-domains-control-plane.md` |

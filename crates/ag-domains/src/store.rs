@@ -2,17 +2,22 @@
 //!
 //! The store keeps domain attachments and tombstones. Per ADR-0009 the default
 //! is native and self-hostable: an in-memory store and a local JSON-file store.
-//! A SQL-backed store is a later, feature-gated phase and is never required to
-//! attach a domain.
+//! A SQL-backed store (`sql-store` feature) is an optional, multi-node option
+//! and is never required to attach a domain.
 //!
-//! Tombstones (RFC-0009 section 7; blueprint section 15.2) prevent another
-//! party from immediately re-claiming a detached hostname (subdomain-takeover
-//! prevention): re-attaching a tombstoned hostname requires fresh ownership.
+//! The trait is async and uses interior mutability (`&self`), so a single store
+//! handle can be shared across async tasks behind an `Arc` without an external
+//! mutex. The native stores keep their state behind a `std::sync::Mutex` held
+//! only for the duration of a synchronous critical section (never across an
+//! await). Tombstones (RFC-0011 section 7) prevent another party from
+//! immediately re-claiming a detached hostname (subdomain-takeover prevention).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::attachment::{AttachmentLifecycle, DomainAttachment, RoutingStatus, TlsStatus};
@@ -61,50 +66,53 @@ pub enum StoreError {
     /// Filesystem error (JSON-file store).
     #[error("store I/O error: {0}")]
     Io(String),
-    /// (De)serialization error (JSON-file store).
+    /// (De)serialization error.
     #[error("store serialization error: {0}")]
     Serde(String),
+    /// Backend error (SQL store).
+    #[error("store backend error: {0}")]
+    Backend(String),
 }
 
 /// Attachment persistence contract.
 ///
-/// Synchronous by design: the native stores are local. A future SQL adapter
-/// may wrap this behind its own async API without changing callers that use
-/// the native default.
-pub trait AttachmentStore {
+/// Async and `&self` (interior mutability): a store can be shared as
+/// `Arc<dyn AttachmentStore>` across tasks. The native stores execute
+/// synchronously; the SQL store awaits its pool.
+#[async_trait]
+pub trait AttachmentStore: Send + Sync {
     /// Creates a new attachment. Fails if an active attachment exists or the
     /// hostname is tombstoned.
-    fn create(&mut self, attachment: DomainAttachment) -> Result<(), StoreError>;
+    async fn create(&self, attachment: DomainAttachment) -> Result<(), StoreError>;
     /// Fetches an attachment by canonical hostname.
-    fn get(&self, hostname_ascii: &str) -> Option<DomainAttachment>;
+    async fn get(&self, hostname_ascii: &str) -> Result<Option<DomainAttachment>, StoreError>;
     /// Fetches an attachment by id.
-    fn get_by_id(&self, id: &str) -> Option<DomainAttachment>;
+    async fn get_by_id(&self, id: &str) -> Result<Option<DomainAttachment>, StoreError>;
     /// Replaces an existing attachment (matched by hostname).
-    fn update(&mut self, attachment: DomainAttachment) -> Result<(), StoreError>;
+    async fn update(&self, attachment: DomainAttachment) -> Result<(), StoreError>;
     /// Lists all attachments.
-    fn list(&self) -> Vec<DomainAttachment>;
+    async fn list(&self) -> Result<Vec<DomainAttachment>, StoreError>;
     /// Detaches a hostname: marks it detached, stops routing/TLS, and writes a
     /// tombstone valid for `tombstone_secs`.
-    fn detach(&mut self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError>;
+    async fn detach(&self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError>;
     /// Whether a hostname is currently tombstoned.
-    fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> bool;
+    async fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> Result<bool, StoreError>;
 }
 
-/// In-memory attachment store (native default; non-persistent).
-#[derive(Debug, Default)]
-pub struct InMemoryStore {
+/// Serializable snapshot of attachments and tombstones.
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct Snapshot {
+    attachments: Vec<DomainAttachment>,
+    tombstones: Vec<Tombstone>,
+}
+
+#[derive(Default)]
+struct State {
     attachments: HashMap<String, DomainAttachment>,
     tombstones: HashMap<String, Tombstone>,
 }
 
-impl InMemoryStore {
-    /// Creates an empty store.
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl AttachmentStore for InMemoryStore {
+impl State {
     fn create(&mut self, attachment: DomainAttachment) -> Result<(), StoreError> {
         let key = attachment.hostname.ascii().to_owned();
         if self.attachments.contains_key(&key) {
@@ -122,14 +130,6 @@ impl AttachmentStore for InMemoryStore {
         Ok(())
     }
 
-    fn get(&self, hostname_ascii: &str) -> Option<DomainAttachment> {
-        self.attachments.get(hostname_ascii).cloned()
-    }
-
-    fn get_by_id(&self, id: &str) -> Option<DomainAttachment> {
-        self.attachments.values().find(|a| a.id == id).cloned()
-    }
-
     fn update(&mut self, attachment: DomainAttachment) -> Result<(), StoreError> {
         let key = attachment.hostname.ascii().to_owned();
         if !self.attachments.contains_key(&key) {
@@ -137,12 +137,6 @@ impl AttachmentStore for InMemoryStore {
         }
         self.attachments.insert(key, attachment);
         Ok(())
-    }
-
-    fn list(&self) -> Vec<DomainAttachment> {
-        let mut v: Vec<_> = self.attachments.values().cloned().collect();
-        v.sort_by(|a, b| a.hostname.ascii().cmp(b.hostname.ascii()));
-        v
     }
 
     fn detach(&mut self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError> {
@@ -169,26 +163,95 @@ impl AttachmentStore for InMemoryStore {
         Ok(())
     }
 
-    fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> bool {
-        self.tombstones
-            .get(hostname_ascii)
-            .map(|t| t.tombstone_until > now)
-            .unwrap_or(false)
+    fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            attachments: self.attachments.values().cloned().collect(),
+            tombstones: self.tombstones.values().cloned().collect(),
+        }
     }
 }
 
-/// Serializable snapshot persisted by [`JsonFileStore`].
-#[derive(Debug, Default, Serialize, Deserialize)]
-struct Snapshot {
-    attachments: Vec<DomainAttachment>,
-    tombstones: Vec<Tombstone>,
+/// In-memory attachment store (native default; non-persistent).
+#[derive(Default)]
+pub struct InMemoryStore {
+    state: Mutex<State>,
+}
+
+impl std::fmt::Debug for InMemoryStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InMemoryStore").finish_non_exhaustive()
+    }
+}
+
+impl InMemoryStore {
+    /// Creates an empty store.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, State> {
+        self.state.expect_lock()
+    }
+}
+
+// Small helper trait to keep lock-poison handling in one place.
+trait ExpectLock<T> {
+    fn expect_lock(&self) -> std::sync::MutexGuard<'_, T>;
+}
+impl<T> ExpectLock<T> for Mutex<T> {
+    fn expect_lock(&self) -> std::sync::MutexGuard<'_, T> {
+        self.lock().expect("attachment store lock poisoned")
+    }
+}
+
+#[async_trait]
+impl AttachmentStore for InMemoryStore {
+    async fn create(&self, attachment: DomainAttachment) -> Result<(), StoreError> {
+        self.lock().create(attachment)
+    }
+
+    async fn get(&self, hostname_ascii: &str) -> Result<Option<DomainAttachment>, StoreError> {
+        Ok(self.lock().attachments.get(hostname_ascii).cloned())
+    }
+
+    async fn get_by_id(&self, id: &str) -> Result<Option<DomainAttachment>, StoreError> {
+        Ok(self
+            .lock()
+            .attachments
+            .values()
+            .find(|a| a.id == id)
+            .cloned())
+    }
+
+    async fn update(&self, attachment: DomainAttachment) -> Result<(), StoreError> {
+        self.lock().update(attachment)
+    }
+
+    async fn list(&self) -> Result<Vec<DomainAttachment>, StoreError> {
+        let mut v: Vec<_> = self.lock().attachments.values().cloned().collect();
+        v.sort_by(|a, b| a.hostname.ascii().cmp(b.hostname.ascii()));
+        Ok(v)
+    }
+
+    async fn detach(&self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError> {
+        self.lock().detach(hostname_ascii, tombstone_secs)
+    }
+
+    async fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> Result<bool, StoreError> {
+        Ok(self
+            .lock()
+            .tombstones
+            .get(hostname_ascii)
+            .map(|t| t.tombstone_until > now)
+            .unwrap_or(false))
+    }
 }
 
 /// JSON-file backed store (native, self-hostable, persistent).
 ///
 /// Loads on construction and writes the whole snapshot after each mutation.
-/// Suitable for single-node operation and the CLI; a SQL store is the
-/// multi-node, later-phase option.
+/// Suitable for single-node operation and the CLI; the SQL store is the
+/// multi-node option.
 #[derive(Debug)]
 pub struct JsonFileStore {
     path: PathBuf,
@@ -199,26 +262,24 @@ impl JsonFileStore {
     /// Opens (or initializes) a JSON-file store at `path`.
     pub fn open(path: impl AsRef<Path>) -> Result<Self, StoreError> {
         let path = path.as_ref().to_path_buf();
-        let mut inner = InMemoryStore::new();
+        let inner = InMemoryStore::new();
         if path.exists() {
             let bytes = std::fs::read(&path).map_err(|e| StoreError::Io(e.to_string()))?;
             let snapshot: Snapshot =
                 serde_json::from_slice(&bytes).map_err(|e| StoreError::Serde(e.to_string()))?;
+            let mut state = inner.lock();
             for a in snapshot.attachments {
-                inner.attachments.insert(a.hostname.ascii().to_owned(), a);
+                state.attachments.insert(a.hostname.ascii().to_owned(), a);
             }
             for t in snapshot.tombstones {
-                inner.tombstones.insert(t.hostname_ascii.clone(), t);
+                state.tombstones.insert(t.hostname_ascii.clone(), t);
             }
         }
         Ok(Self { path, inner })
     }
 
     fn persist(&self) -> Result<(), StoreError> {
-        let snapshot = Snapshot {
-            attachments: self.inner.attachments.values().cloned().collect(),
-            tombstones: self.inner.tombstones.values().cloned().collect(),
-        };
+        let snapshot = self.inner.lock().snapshot();
         let bytes =
             serde_json::to_vec_pretty(&snapshot).map_err(|e| StoreError::Serde(e.to_string()))?;
         if let Some(parent) = self.path.parent() {
@@ -230,36 +291,37 @@ impl JsonFileStore {
     }
 }
 
+#[async_trait]
 impl AttachmentStore for JsonFileStore {
-    fn create(&mut self, attachment: DomainAttachment) -> Result<(), StoreError> {
-        self.inner.create(attachment)?;
+    async fn create(&self, attachment: DomainAttachment) -> Result<(), StoreError> {
+        self.inner.create(attachment).await?;
         self.persist()
     }
 
-    fn get(&self, hostname_ascii: &str) -> Option<DomainAttachment> {
-        self.inner.get(hostname_ascii)
+    async fn get(&self, hostname_ascii: &str) -> Result<Option<DomainAttachment>, StoreError> {
+        self.inner.get(hostname_ascii).await
     }
 
-    fn get_by_id(&self, id: &str) -> Option<DomainAttachment> {
-        self.inner.get_by_id(id)
+    async fn get_by_id(&self, id: &str) -> Result<Option<DomainAttachment>, StoreError> {
+        self.inner.get_by_id(id).await
     }
 
-    fn update(&mut self, attachment: DomainAttachment) -> Result<(), StoreError> {
-        self.inner.update(attachment)?;
+    async fn update(&self, attachment: DomainAttachment) -> Result<(), StoreError> {
+        self.inner.update(attachment).await?;
         self.persist()
     }
 
-    fn list(&self) -> Vec<DomainAttachment> {
-        self.inner.list()
+    async fn list(&self) -> Result<Vec<DomainAttachment>, StoreError> {
+        self.inner.list().await
     }
 
-    fn detach(&mut self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError> {
-        self.inner.detach(hostname_ascii, tombstone_secs)?;
+    async fn detach(&self, hostname_ascii: &str, tombstone_secs: u64) -> Result<(), StoreError> {
+        self.inner.detach(hostname_ascii, tombstone_secs).await?;
         self.persist()
     }
 
-    fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> bool {
-        self.inner.is_tombstoned(hostname_ascii, now)
+    async fn is_tombstoned(&self, hostname_ascii: &str, now: u64) -> Result<bool, StoreError> {
+        self.inner.is_tombstoned(hostname_ascii, now).await
     }
 }
 
@@ -293,42 +355,47 @@ mod tests {
         }
     }
 
-    #[test]
-    fn create_and_get() {
-        let mut s = InMemoryStore::new();
-        s.create(attachment("api.example.com")).unwrap();
-        assert!(s.get("api.example.com").is_some());
-        assert!(s.get_by_id("dom_api.example.com").is_some());
+    #[tokio::test]
+    async fn create_and_get() {
+        let s = InMemoryStore::new();
+        s.create(attachment("api.example.com")).await.unwrap();
+        assert!(s.get("api.example.com").await.unwrap().is_some());
+        assert!(s.get_by_id("dom_api.example.com").await.unwrap().is_some());
     }
 
-    #[test]
-    fn duplicate_hostname_rejected() {
-        let mut s = InMemoryStore::new();
-        s.create(attachment("api.example.com")).unwrap();
-        let err = s.create(attachment("api.example.com")).unwrap_err();
+    #[tokio::test]
+    async fn duplicate_hostname_rejected() {
+        let s = InMemoryStore::new();
+        s.create(attachment("api.example.com")).await.unwrap();
+        let err = s.create(attachment("api.example.com")).await.unwrap_err();
         assert!(matches!(err, StoreError::AlreadyExists(_)));
     }
 
-    #[test]
-    fn detach_creates_tombstone_and_blocks_reclaim() {
-        let mut s = InMemoryStore::new();
-        s.create(attachment("api.example.com")).unwrap();
-        s.detach("api.example.com", DEFAULT_TOMBSTONE_SECS).unwrap();
-        assert!(s.is_tombstoned("api.example.com", now_unix()));
-        let err = s.create(attachment("api.example.com")).unwrap_err();
+    #[tokio::test]
+    async fn detach_creates_tombstone_and_blocks_reclaim() {
+        let s = InMemoryStore::new();
+        s.create(attachment("api.example.com")).await.unwrap();
+        s.detach("api.example.com", DEFAULT_TOMBSTONE_SECS)
+            .await
+            .unwrap();
+        assert!(s
+            .is_tombstoned("api.example.com", now_unix())
+            .await
+            .unwrap());
+        let err = s.create(attachment("api.example.com")).await.unwrap_err();
         assert!(matches!(err, StoreError::Tombstoned { .. }));
     }
 
-    #[test]
-    fn json_store_roundtrip() {
+    #[tokio::test]
+    async fn json_store_roundtrip() {
         let dir = std::env::temp_dir().join(format!("ag-domains-test-{}", uuid::Uuid::new_v4()));
         let path = dir.join("attachments.json");
         {
-            let mut s = JsonFileStore::open(&path).unwrap();
-            s.create(attachment("api.example.com")).unwrap();
+            let s = JsonFileStore::open(&path).unwrap();
+            s.create(attachment("api.example.com")).await.unwrap();
         }
         let s2 = JsonFileStore::open(&path).unwrap();
-        assert!(s2.get("api.example.com").is_some());
+        assert!(s2.get("api.example.com").await.unwrap().is_some());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

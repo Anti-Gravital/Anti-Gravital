@@ -2,7 +2,7 @@
 //!
 //! Diagnostics compare the records `ag-domains` expects (from the instruction
 //! engine) against what is actually observed in DNS, and emit actionable
-//! findings (RFC-0009 section 5.4; blueprint section 16.3). The comparison
+//! findings (RFC-0011 section 5.4; blueprint section 16.3). The comparison
 //! logic is pure; callers supply observed records from a resolver or adapter.
 
 use crate::instructions::DnsInstructions;

@@ -3,7 +3,7 @@
 //! `ag-edge` holds the request-time logic that turns an incoming hostname into
 //! a routing decision, selects a TLS certificate by SNI, serves ACME HTTP-01
 //! challenges, and applies canonical host / redirect policy. It is the data
-//! plane sitting below the `ag-domains` control plane (ADR-0010 / RFC-0009).
+//! plane sitting below the `ag-domains` control plane (ADR-0012 / RFC-0011).
 //!
 //! # Status
 //!

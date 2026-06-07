@@ -34,6 +34,40 @@ rigida en todos los targets (septima regla de dependencias en
 - `cloudflare`: adapter Cloudflare (DnsProvider). Otros adapters se añaden
   en iteraciones futuras detras de su propia feature.
 
+## Control plane (ADR-0010 / RFC-0009, phase A)
+
+In addition to the declarative library above, `ag-domains` provides a native
+domain attachment and serving control plane:
+
+- `hostname` — normalization, IDN/Punycode identity, apex/subdomain/wildcard
+  classification and validation.
+- `attachment` — the attachment state machine (ownership/DNS/TLS/routing
+  readiness dimensions + derived lifecycle).
+- `store` — `AttachmentStore` trait with native `InMemoryStore` and
+  `JsonFileStore` (a SQL store is a later, feature-gated phase).
+- `ownership` — TXT ownership token generation and verification.
+- `instructions` — the DNS instruction engine (apex/subdomain/wildcard) and
+  BIND zone-file export.
+- `caa` — CAA preflight before ACME issuance.
+- `diagnostics` — expected vs observed record comparison.
+
+This is additive: the declarative DNS+TLS library is unchanged. It remains not a
+registrar, not a Terraform replacement, and not an arbitrary multi-tenant DNS
+hosting panel (RFC-0009 §3.2). Deferred phases (live edge, REST API, SQL store,
+provider automation, registrar module) are tracked in `docs/DEBT.md` (DEBT-018).
+
+The data-plane logic (hostname routing, SNI certificate selection,
+canonical/redirect policy) and the runnable HTTP/HTTPS edge listeners live in
+the `ag-edge` crate.
+
+### `api` feature (RFC-0009 phase C)
+
+Enables `ag_domains::api`, an `axum` router (`build_router` / `serve`) exposing
+`/v1/domains/attachments` (create/list/get/instructions/status/detach) backed by
+any `AttachmentStore`. The native store keeps it self-hostable; no database is
+required. Covered by `tests/api_rest.rs` (real HTTP). See
+`openapi/ag-domains.v1.yaml`.
+
 ## Tech Debt
 
 - `notAfter` parsing for date-based certificate renewal (currently renews every

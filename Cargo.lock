@@ -126,8 +126,10 @@ version = "0.0.0"
 dependencies = [
  "ag-core",
  "async-trait",
+ "axum 0.7.9",
  "chrono",
  "hickory-resolver",
+ "idna",
  "instant-acme",
  "metrics",
  "rcgen",
@@ -137,6 +139,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+ "uuid",
  "wiremock",
  "x509-parser",
 ]
@@ -149,6 +152,28 @@ dependencies = [
  "logos",
  "serde_json",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "ag-edge"
+version = "0.0.0"
+dependencies = [
+ "ag-domains",
+ "axum 0.7.9",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "rcgen",
+ "reqwest",
+ "rustls",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-rustls",
+ "tower 0.5.3",
+ "tracing",
 ]
 
 [[package]]

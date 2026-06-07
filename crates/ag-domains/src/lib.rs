@@ -8,17 +8,24 @@
 //!
 //! # Status
 //!
-//! Phase 4.5 — implemented. `DnsProvider` trait with a Cloudflare adapter, the
-//! declarative A/AAAA/CNAME/TXT/MX record model, SPF/DKIM/DMARC generation for
-//! `ag-mail`, an ACME client (Let's Encrypt) for issuance/renewal, and DNS
-//! propagation checks against public resolvers. Outstanding tech debt
-//! (`notAfter` parsing for scheduled renewal, extra DNS adapters) is tracked in
-//! `docs/DEBT.md`. Governing decision: `ADR-0007`; technical plan: `RFC-0007`.
+//! Phase 4.5 library — implemented: `DnsProvider` trait with a Cloudflare
+//! adapter, the declarative A/AAAA/CNAME/TXT/MX record model, SPF/DKIM/DMARC
+//! generation for `ag-mail`, an ACME client (Let's Encrypt) for
+//! issuance/renewal, and DNS propagation checks against public resolvers.
+//!
+//! Control plane (ADR-0010 / RFC-0009, phase A) — implemented: hostname
+//! normalization/classification ([`hostname`]), the attachment state machine
+//! ([`attachment`]), native persistence ([`store`]), TXT ownership proof
+//! ([`ownership`]), the DNS instruction engine with BIND export
+//! ([`instructions`]), CAA preflight ([`caa`]) and diagnostics
+//! ([`diagnostics`]). Later phases (live edge listeners, REST API, SQL store,
+//! provider automation) are tracked in `RFC-0009` and `docs/DEBT.md`.
 //!
 //! # Scope
 //!
-//! It is not a domain registrar. It does not replace Terraform/Pulumi. It only
-//! orchestrates domains declared in `schema.ag`. See
+//! It is not a domain registrar. It does not replace Terraform/Pulumi, and it
+//! is not an arbitrary multi-tenant DNS hosting panel. It manages domains
+//! declared in `schema.ag` and domains attached to a project. See
 //! `docs/architecture/08-modulos-batteries-included.md` section 8.9 and
 //! section 10.6 (integration with `ag-cloud`).
 
@@ -37,4 +44,21 @@ pub mod propagation;
 pub mod mail_records;
 pub mod metrics;
 
+// Control-plane layer (ADR-0010 / RFC-0009). Additive: the declarative DNS+TLS
+// library above is unchanged. These modules add domain attachment lifecycle,
+// ownership proof, DNS instruction generation, CAA preflight, diagnostics and
+// native persistence.
+pub mod attachment;
+pub mod caa;
+pub mod diagnostics;
+pub mod hostname;
+pub mod instructions;
+pub mod ownership;
+pub mod store;
+
+#[cfg(feature = "api")]
+pub mod api;
+
+pub use attachment::DomainAttachment;
 pub use error::AgDomainsError;
+pub use hostname::{Hostname, HostnameKind};

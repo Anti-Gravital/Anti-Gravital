@@ -19,6 +19,7 @@ members = [
     "crates/ag-lsp",
     "crates/ag-mail",
     "crates/ag-domains",
+    "crates/ag-edge",
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
@@ -67,7 +68,7 @@ rustls-pki-types = { version = "1.10", features = ["std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
 http-body-util = "0.1"
 hyper = { version = "1.4", features = ["http1", "http2"] }
-hyper-util = { version = "0.1", features = ["tokio", "server", "server-graceful", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["tokio", "server", "server-auto", "server-graceful", "service", "http1", "http2"] }
 pin-project-lite = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -98,6 +99,9 @@ sha2                     = "0.10"
 p256                     = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac                     = "0.12"
 url                      = "2"
+# IDN / Punycode normalization for hostname identity (RFC-0009, ag-domains
+# control plane). Ubiquitous, well-maintained, already present transitively.
+idna                     = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }

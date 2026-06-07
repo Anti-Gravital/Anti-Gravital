@@ -160,6 +160,7 @@ name = "ag-edge"
 version = "0.0.0"
 dependencies = [
  "ag-domains",
+ "async-trait",
  "axum 0.7.9",
  "http-body-util",
  "hyper",

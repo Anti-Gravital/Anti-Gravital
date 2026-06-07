@@ -29,7 +29,7 @@ Governing docs: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
 | 11 | Unknown domains cannot route to another tenant | DONE | Fail-closed; tested. |
 | 12 | Detached domains enter tombstone/quarantine | DONE | `store.rs` tombstones. |
 | 13 | CAA check before issuance | DONE | `caa.rs`. |
-| 14 | Certificate renewal queue | PARTIAL | `spawn_renewal_task` exists; issuance queue + SAN dedup + ARI scheduling pending. |
+| 14 | Certificate renewal queue | PARTIAL | `spawn_renewal_task` + `issuance` dedup-by-SAN and per-domain rate limits DONE; ARI-aware scheduling pending. |
 | 15 | CLI docs updated | DONE | `docs/ag-domains/reference/cli.md`. |
 | 16 | OpenAPI docs updated | DONE | `openapi/ag-domains.v1.yaml` (implemented contract). |
 | 17 | Provider docs for first providers | PARTIAL | Cloudflare adapter exists; per-provider how-to guides pending. |
@@ -41,7 +41,7 @@ Governing docs: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
 |-------|-------|--------|-----------|
 | 0 | Audit + scaffolding | DONE | — |
 | 1 | Manual attachment (CLI/API, TXT, instructions, diagnostics, shadow) | DONE | — |
-| 2 | Managed TLS for exact hostnames | PARTIAL | issuance queue, dedup, ARI-aware renewal, `#[ignore]` staging E2E. |
+| 2 | Managed TLS for exact hostnames | PARTIAL | issuance dedup-by-SAN + per-registered-domain rate limits + issuer seam DONE (`issuance` module; ACME path is the injected issuer); remaining: ARI-aware renewal scheduling and a live `#[ignore]` staging E2E. |
 | 3 | Active routing + canonical policies | DONE | http->https upgrade at listener (only canonical redirects today). |
 | D | SQL-backed store (`sql-store`, Postgres) | DONE | `SqlAttachmentStore` (JSONB + indexed columns) + migration; `#[ignore]` integration tests requiring `DATABASE_URL`. Native store stays default. |
 | 4 | Provider automation | PARTIAL | Domain Connect; Route 53 / Google / Azure / Namecheap adapters; richer adapter SDK (discover/read/diff/apply/rollback/verify). BIND export DONE; Cloudflare DONE. |

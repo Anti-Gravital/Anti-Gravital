@@ -1,4 +1,4 @@
-//! REST API surface for the control plane (RFC-0009 phase C).
+//! REST API surface for the control plane (RFC-0011 phase C).
 //!
 //! An `axum` router backed by any [`crate::store::AttachmentStore`]. The native
 //! store keeps this self-hostable; no external database is required. The router

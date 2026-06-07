@@ -1,7 +1,7 @@
 # ag-domains documentation
 
 Documentation for the `ag-domains` control plane and the `ag-edge` data plane
-(ADR-0010 / RFC-0009). Organized Diataxis-style.
+(ADR-0012 / RFC-0011). Organized Diataxis-style.
 
 This documents the implemented control plane and data plane: the control-plane
 library, the data-plane library, the manual CLI flow (phase A), the live edge
@@ -31,4 +31,4 @@ module are later phases (see `docs/DEBT.md`, DEBT-025).
 
 `ag-domains` attaches, verifies, diagnoses, secures and routes domains. It does
 not purchase, transfer or renew them (a future `ag-registrars`), and it is not a
-hosting panel (RFC-0009 §3.2).
+hosting panel (RFC-0011 §3.2).

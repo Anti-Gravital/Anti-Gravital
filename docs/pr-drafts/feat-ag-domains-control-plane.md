@@ -1,10 +1,10 @@
-# ag-domains control plane + ag-edge data plane (ADR-0010 / RFC-0009, phases A-D)
+# ag-domains control plane + ag-edge data plane (ADR-0012 / RFC-0011, phases A-D)
 
 ## Summary
 
 Extends `ag-domains` from a declarative DNS+TLS library into a native domain
 attachment and serving control plane, and adds the `ag-edge` data-plane crate,
-per ADR-0010 / RFC-0009 (phases A, B, C and D). Additive and non-regressive: the
+per ADR-0012 / RFC-0011 (phases A, B, C and D). Additive and non-regressive: the
 existing declarative library and routing are unchanged.
 
 Phase B adds runnable edge listeners in `ag-edge`: an HTTP listener (ACME
@@ -39,12 +39,12 @@ Changes:
   commands on the tokio runtime.
 - `crates/ag-cli/src/main.rs`: `ag domains attach|instructions|export-zone|status|list|verify|detach`.
 - Workspace `Cargo.toml`: `hyper-util` gains `server-auto` + `service` features.
-- Governance/docs: `RFC-0009`, `ADR-0010`, `docs/ag-domains/**`,
+- Governance/docs: `RFC-0011`, `ADR-0012`, `docs/ag-domains/**`,
   `openapi/ag-domains.v1.yaml` (implemented contract), README/CHANGELOG/DEBT updates.
 
 ## Phase affected
 
-Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
+Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0011 phase A.
 
 ## Type of change
 
@@ -54,8 +54,8 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 
 ## Related documents
 
-- `docs/rfc/RFC-0009-ag-domains-control-plane.md`
-- `docs/adr/0010-ag-domains-control-plane.md`
+- `docs/rfc/RFC-0011-ag-domains-control-plane.md`
+- `docs/adr/0012-ag-domains-control-plane.md`
 - `docs/DEBT.md` — DEBT-017 (eTLD+1/PSL), DEBT-018 (deferred phases E-F)
 - `docs/ag-domains/BACKLOG.md` — blueprint gap analysis
 
@@ -72,7 +72,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 
 ## Exit criteria advanced
 
-- RFC-0009 phases A, B, C and D delivered: control-plane library + manual CLI
+- RFC-0011 phases A, B, C and D delivered: control-plane library + manual CLI
   flow, live edge listeners (HTTP-01 + routing + HTTPS/SNI), the REST API, and
   the optional Postgres store.
 - Deferred phases E-F (provider automation, registrar) tracked in DEBT-018.
@@ -80,7 +80,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0009 phase A.
 ## Final checklist
 
 - [x] Belongs to correct phase
-- [x] Respects documentation (RFC-0009 + ADR-0010 authorize the scope)
+- [x] Respects documentation (RFC-0011 + ADR-0012 authorize the scope)
 - [x] Does not break architecture (additive; existing API/CLI unchanged)
 - [x] No unnecessary complexity added
 - [x] No circular dependencies (ag-edge depends on ag-domains only)

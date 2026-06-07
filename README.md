@@ -134,7 +134,7 @@ signed webhooks (feature `api`). Third-party commercial brand names were removed
 from the codebase per `ADR-0011`. Pending (need infrastructure to test): the
 REST API routes + data model, a durable queue spool, and the live-delivery test
 (`docs/DEBT.md`).
-**ag-domains control plane (ADR-0010 / RFC-0009, phase A):** `ag-domains`
+**ag-domains control plane (ADR-0012 / RFC-0011, phase A):** `ag-domains`
 extends from a declarative DNS+TLS library into a native domain attachment and
 serving control plane: hostname normalization/classification, an attachment
 state machine, a native attachment store (in-memory + JSON file), TXT ownership
@@ -152,7 +152,7 @@ certificates by SNI from a rustls store (with a PEM bridge from ACME issuance);
 native store. Phase D adds an optional Postgres store (`sql-store` feature,
 `SqlAttachmentStore` + migration) while the native store stays the default. All
 covered by real TCP/TLS/HTTP integration tests (SQL via `#[ignore]` tests
-requiring `DATABASE_URL`). Remaining (RFC-0009 E-F): provider automation and the
+requiring `DATABASE_URL`). Remaining (RFC-0011 E-F): provider automation and the
 registrar module.
 
 Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
@@ -400,7 +400,7 @@ intake asincrono DSN/ARF (feature `mta`), y webhooks firmados HMAC-SHA256 (featu
 `api`). Se retiraron los nombres de marcas comerciales de terceros del codigo segun
 `ADR-0011`. Pendiente (requiere infraestructura para probar): rutas REST + modelo de
 datos, spool durable de la cola y el test de entrega en vivo (`docs/DEBT.md`).
-**Plano de control de ag-domains (ADR-0010 / RFC-0009, fase A):** `ag-domains`
+**Plano de control de ag-domains (ADR-0012 / RFC-0011, fase A):** `ag-domains`
 pasa de libreria declarativa DNS+TLS a plano de control nativo para adjuntar y
 servir dominios: normalizacion/clasificacion de hostnames, maquina de estados de
 attachment, almacen nativo (en memoria + archivo JSON), prueba de propiedad TXT,
@@ -420,7 +420,7 @@ PEM desde la emision ACME); `ag-domains` (feature `api`) expone la API REST
 Postgres opcional (feature `sql-store`, `SqlAttachmentStore` + migracion)
 manteniendo el nativo como predeterminado. Todo con tests de integracion reales
 sobre TCP/TLS/HTTP (SQL via tests `#[ignore]` que requieren `DATABASE_URL`).
-Pendiente (RFC-0009 E-F): automatizacion de proveedores y el modulo registrador.
+Pendiente (RFC-0011 E-F): automatizacion de proveedores y el modulo registrador.
 
 El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 

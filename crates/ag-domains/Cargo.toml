@@ -24,10 +24,10 @@ acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:chrono"]
 propagation = ["dep:hickory-resolver"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
-# REST API surface for the control plane (RFC-0009 phase C), backed by the
+# REST API surface for the control plane (RFC-0011 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]
-# SQL-backed attachment store (RFC-0009 phase D, Postgres). Optional accelerator
+# SQL-backed attachment store (RFC-0011 phase D, Postgres). Optional accelerator
 # for multi-node operation; the native in-memory/JSON store remains the default.
 sql-store = ["dep:sqlx"]
 
@@ -40,7 +40,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-# Control plane (RFC-0009): hostname IDN normalization and attachment ids/tokens.
+# Control plane (RFC-0011): hostname IDN normalization and attachment ids/tokens.
 idna = { workspace = true }
 uuid = { workspace = true }
 

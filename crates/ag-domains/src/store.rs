@@ -9,7 +9,7 @@
 //! handle can be shared across async tasks behind an `Arc` without an external
 //! mutex. The native stores keep their state behind a `std::sync::Mutex` held
 //! only for the duration of a synchronous critical section (never across an
-//! await). Tombstones (RFC-0009 section 7) prevent another party from
+//! await). Tombstones (RFC-0011 section 7) prevent another party from
 //! immediately re-claiming a detached hostname (subdomain-takeover prevention).
 
 use std::collections::HashMap;

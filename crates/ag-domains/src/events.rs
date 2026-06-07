@@ -1,7 +1,7 @@
 //! Domain lifecycle events.
 //!
 //! Control-plane operations emit [`DomainEvent`]s to an [`EventSink`]
-//! (RFC-0009 / blueprint section 16.2). The default sink is a no-op so events
+//! (RFC-0011 / blueprint section 16.2). The default sink is a no-op so events
 //! are opt-in; a native [`InMemoryEventSink`] is provided for tests and
 //! single-node use, and [`TracingEventSink`] forwards to `tracing`. No external
 //! broker is required (ADR-0009 native-first).

@@ -903,7 +903,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 }
 
 // ============================================================
-// ag domains control-plane commands (RFC-0009, phase A)
+// ag domains control-plane commands (RFC-0011, phase A)
 // ============================================================
 
 use std::net::{Ipv4Addr, Ipv6Addr};

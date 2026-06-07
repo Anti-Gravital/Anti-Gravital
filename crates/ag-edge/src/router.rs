@@ -1,6 +1,6 @@
 //! Hostname-to-target routing with safe fallback.
 //!
-//! Resolution precedence (RFC-0009 section 14.2; blueprint section 14.2):
+//! Resolution precedence (RFC-0011 section 14.2; blueprint section 14.2):
 //!
 //! 1. exact custom hostname binding
 //! 2. wildcard custom hostname binding

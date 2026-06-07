@@ -2,7 +2,7 @@
 //!
 //! Supports www<->apex canonicalization and forcing a canonical hostname,
 //! preserving path and query, with a configurable permanent redirect status
-//! (RFC-0009 section 14.4; blueprint section 14.4). HTTP->HTTPS upgrade is a
+//! (RFC-0011 section 14.4; blueprint section 14.4). HTTP->HTTPS upgrade is a
 //! listener concern handled in a later phase.
 
 use serde::{Deserialize, Serialize};

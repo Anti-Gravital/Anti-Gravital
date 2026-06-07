@@ -244,9 +244,9 @@ findings were fixed in-branch and are not listed here.
 - Expected removal: a PSL-backed implementation behind a dependency RFC
   (candidate crate: `psl` or `publicsuffix`); gate it so the native default
   keeps working offline.
-- Status: open. Severity: Medium. Source: RFC-0009 §7.
+- Status: open. Severity: Medium. Source: RFC-0011 §7.
 
-### DEBT-025 — ag-domains control plane deferred phases (RFC-0009 E-F)
+### DEBT-025 — ag-domains control plane deferred phases (RFC-0011 E-F)
 - Reason: phases A, B, C and D are implemented. A = control-plane library +
   manual CLI flow. B = live edge listeners (`ag-edge` `server`/`tls`): HTTP-01
   responder, Host/:authority routing, canonical redirects and HTTPS with SNI
@@ -258,7 +258,7 @@ findings were fixed in-branch and are not listed here.
 - Impact: E/F require external services (provider credentials) to exercise end
   to end; the native default flow (attach -> instructions -> ownership -> serve
   HTTPS via edge) and the optional SQL store are complete and tested.
-- Expected removal: implement phases E-F per RFC-0009, each additive and
+- Expected removal: implement phases E-F per RFC-0011, each additive and
   feature-gated with a native default; service-backed tests use the repo's
   `#[ignore]` convention.
-- Status: open. Severity: Medium. Source: RFC-0009 §5.
+- Status: open. Severity: Medium. Source: RFC-0011 §5.

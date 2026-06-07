@@ -2,7 +2,7 @@
 //!
 //! Generates the exact, copy-paste DNS records an operator must publish at
 //! their provider to route a hostname to the Anti-Gravital edge and to prove
-//! ownership (RFC-0009 section 5; blueprint section 10). The engine is
+//! ownership (RFC-0011 section 5; blueprint section 10). The engine is
 //! provider-agnostic; provider-specific automation is a later, feature-gated
 //! phase. A BIND zone-file fragment export is provided for portability.
 

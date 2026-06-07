@@ -8,8 +8,8 @@ blueprint and the current state of the code, so the remaining work is explicit
 - PARTIAL — core exists; listed gap remains.
 - TODO — not started (deliberately not stubbed).
 
-Governing docs: `docs/rfc/RFC-0009-ag-domains-control-plane.md`,
-`docs/adr/0010-ag-domains-control-plane.md`. Cross-refs: `docs/DEBT.md`
+Governing docs: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
+`docs/adr/0012-ag-domains-control-plane.md`. Cross-refs: `docs/DEBT.md`
 (DEBT-024, DEBT-025).
 
 ## 1. Blueprint acceptance checklist (§21)

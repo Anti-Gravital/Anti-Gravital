@@ -1,4 +1,4 @@
-//! SQL-backed attachment store (Postgres), RFC-0009 phase D.
+//! SQL-backed attachment store (Postgres), RFC-0011 phase D.
 //!
 //! Optional, behind the `sql-store` feature. The native in-memory / JSON store
 //! remains the default (ADR-0009): this is a multi-node accelerator, never a

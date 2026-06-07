@@ -1,4 +1,4 @@
--- ag-domains control-plane store (RFC-0009 phase D).
+-- ag-domains control-plane store (RFC-0011 phase D).
 -- Applied at runtime by SqlAttachmentStore::migrate; kept here for reference
 -- and for use with external migration tooling.
 

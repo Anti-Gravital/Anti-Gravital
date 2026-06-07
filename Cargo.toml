@@ -99,7 +99,7 @@ sha2                     = "0.10"
 p256                     = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac                     = "0.12"
 url                      = "2"
-# IDN / Punycode normalization for hostname identity (RFC-0009, ag-domains
+# IDN / Punycode normalization for hostname identity (RFC-0011, ag-domains
 # control plane). Ubiquitous, well-maintained, already present transitively.
 idna                     = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }

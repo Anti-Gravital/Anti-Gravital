@@ -2,7 +2,7 @@
 //!
 //! Before an attachment may serve traffic, the operator must prove control of
 //! the domain by publishing a TXT record at `_ag-domain.<registered-domain>`
-//! containing a per-attachment verification token (RFC-0009 section 5.3,
+//! containing a per-attachment verification token (RFC-0011 section 5.3,
 //! CLAUDE.md security rule 16: prove control, never trust dashboard input).
 
 use crate::hostname::Hostname;

@@ -57,7 +57,7 @@ pub fn record_propagation_latency(domain: &str, seconds: f64) {
     .record(seconds);
 }
 
-/// Counts a created domain attachment (control plane, RFC-0009).
+/// Counts a created domain attachment (control plane, RFC-0011).
 pub fn record_attachment_created() {
     counter!("ag_domains_attachments_total").increment(1);
 }

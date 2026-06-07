@@ -22,4 +22,4 @@ possible alternatives but TXT is the safe default.
   hostname; re-attaching requires a fresh ownership proof.
 
 These mitigations follow the OWASP Subdomain Takeover Prevention guidance and
-RFC-0009 §15-equivalent security requirements.
+RFC-0011 §15-equivalent security requirements.

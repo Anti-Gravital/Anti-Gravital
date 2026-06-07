@@ -31,11 +31,20 @@ un cambio de superficie en `ag-mail` (sin releases; `ag-auth` es trait-based).
 - **CI**: `cargo doc` y cobertura tarpaulin (>=80%) verdes; modulos opt-in
   excluidos del gate de cobertura por defecto (se prueban en `mail-mta`).
 
-## Pendiente (deuda con infraestructura requerida)
+## Pendiente (deuda tecnica, marcada en `docs/DEBT.md`)
+
+Trabajo no implementado todavia, no bloqueado por el entorno. PostgreSQL,
+NATS/JetStream auto-alojado y un sink SMTP local son levantables como servicios
+efimeros aqui y en CI; el unico limite real es la entrega a un MX publico por el
+puerto 25 (bloqueado en sandbox/CI, queda como gate manual).
 
 - **DEBT-021** (resto): rutas REST + modelo de datos PostgreSQL + marketing.
-- **DEBT-022**: test de entrega en vivo (puerto 25 + DNS).
-- **DEBT-023**: spool durable del queue (JetStream/PostgreSQL).
+  Probable contra un PostgreSQL local/efimero.
+- **DEBT-022**: test de entrega en vivo. El camino de protocolo
+  (ESMTP/STARTTLS/DKIM) es probable contra un sink SMTP local; la entrega real a
+  un MX externo por puerto 25 queda como gate manual.
+- **DEBT-023**: spool durable del queue (JetStream/PostgreSQL). Probable contra
+  PostgreSQL local o un NATS/JetStream auto-alojado.
 
 ## Politica de marcas (ADR-0011)
 

@@ -80,7 +80,11 @@ CLAUDE.md section 29.
 - Impact: a crash/restart loses scheduled (not-yet-delivered) MTA jobs.
 - Expected removal: a `Spool` backend behind an opt-in feature
   (`queue-jetstream` and/or a PostgreSQL mirror), keeping the in-memory spool as
-  the native default (`ADR-0009`). Needs a NATS/PostgreSQL test environment.
+  the native default (`ADR-0009`).
+- Environment: testable here and in CI. A local PostgreSQL (16 is present in the
+  dev image) and a self-hosted NATS/JetStream binary both run as ephemeral
+  services / CI service containers; neither requires a third party. The debt is
+  the unimplemented backend, not a missing environment.
 - Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
 
 ### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
@@ -94,16 +98,28 @@ CLAUDE.md section 29.
   and replay-window checks (constant-time verify). The HTTP routes, the
   PostgreSQL data model, idempotency, and the marketing objects remain.
 - Expected removal: Phases 4.6-C/D per RFC-0009 section 4.5/4.6 (behind the
-  `api` feature; the REST routes need a PostgreSQL test environment).
+  `api` feature).
+- Environment: testable here and in CI. The PostgreSQL data model and the REST
+  routes run against a local/ephemeral PostgreSQL (16 is present in the dev
+  image) or a CI service container; no third party is involved. The debt is the
+  unimplemented surface, not a missing environment.
 - Owning plan: RFC-0009. Target: Phase 4.6-C/D.
 
 ### DEBT-022 — Native MTA: live-delivery integration test
 - Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)
-  is only covered by `#[ignore]` tests; live delivery needs outbound DNS and
-  port 25, unavailable in the sandbox/CI.
+  is only covered by `#[ignore]` tests; the ESMTP/STARTTLS/DKIM protocol path is
+  not yet exercised by an automated end-to-end test.
 - Impact: the network path is exercised manually, not in automated CI.
+- Environment: the *protocol path* is testable here and in CI against a local
+  SMTP sink (e.g. `aiosmtpd` or a Rust sink container) plus a fixture resolver;
+  outbound 443 is open so the sink/resolver are installable. What is genuinely
+  unavailable is real delivery to an external public MX: outbound port 25 to the
+  internet is blocked in this sandbox and on hosted CI (verified). That last mile
+  stays a manual/staging gate; the in-CI test must target the local sink, not a
+  real mailbox.
 - Expected removal: add a CI service container acting as a sink MTA and a
-  fixture resolver, then de-`ignore` the delivery test.
+  fixture resolver, then de-`ignore` the protocol-path delivery test. Real
+  external-MX delivery remains a manual gate on a host with port 25 egress.
 - Status: open. Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache

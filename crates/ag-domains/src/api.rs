@@ -232,7 +232,16 @@ pub fn build_router(state: ApiState) -> Router {
             "/v1/domains/attachments/:id/detach",
             post(detach_attachment),
         )
+        .route(
+            "/v1/domains/provider-capabilities",
+            get(get_provider_capabilities),
+        )
         .with_state(state)
+}
+
+async fn get_provider_capabilities(
+) -> Json<Vec<crate::provider::capabilities::ProviderCapabilities>> {
+    Json(crate::provider::capabilities::known_provider_capabilities())
 }
 
 /// Serves the API on the given listener until it errors.

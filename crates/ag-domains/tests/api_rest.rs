@@ -159,6 +159,24 @@ async fn emits_lifecycle_events() {
 }
 
 #[tokio::test]
+async fn lists_provider_capabilities() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{base}/v1/domains/provider-capabilities"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    let caps: Value = resp.json().await.unwrap();
+    let arr = caps.as_array().unwrap();
+    assert!(arr.iter().any(|c| c["provider"] == "manual"));
+    let cf = arr.iter().find(|c| c["provider"] == "cloudflare").unwrap();
+    assert_eq!(cf["adapter"], "read_apply");
+    assert_eq!(cf["dns01_automation"], true);
+}
+
+#[tokio::test]
 async fn unknown_id_is_404() {
     let base = start().await;
     let client = reqwest::Client::new();

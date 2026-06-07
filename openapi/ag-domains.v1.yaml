@@ -119,6 +119,18 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /provider-capabilities:
+    get:
+      tags: [domains]
+      summary: List known DNS provider capabilities.
+      responses:
+        '200':
+          description: Provider capability registry.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProviderCapabilities' }
 components:
   schemas:
     AttachRequest:
@@ -171,6 +183,16 @@ components:
         notes:
           type: array
           items: { type: string }
+    ProviderCapabilities:
+      type: object
+      properties:
+        provider: { type: string, example: cloudflare }
+        adapter: { type: string, enum: [manual, read_apply] }
+        apex_alias: { type: boolean }
+        cname_flattening: { type: boolean }
+        dns01_automation: { type: boolean }
+        zone_export: { type: boolean }
+        domain_purchase: { type: boolean }
     Error:
       type: object
       properties:

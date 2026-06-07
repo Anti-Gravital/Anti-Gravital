@@ -12,6 +12,8 @@ use crate::{
     record::{DnsRecord, DnsRecordSpec},
 };
 
+pub mod capabilities;
+
 #[cfg(feature = "cloudflare")]
 pub mod cloudflare;
 

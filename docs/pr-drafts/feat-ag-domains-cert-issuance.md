@@ -1,12 +1,17 @@
-# ag-domains certificate issuance: dedup + per-domain rate limits (RFC-0011 phase 2)
+# ag-domains hardening: issuance limits, provider capabilities, diagnose (RFC-0011)
 
 ## Summary
 
-Adds the certificate-issuance rate-limit protections from the blueprint section
-13.4 as native, tested logic in `ag-domains`, plus an end-to-end test proving
-the issuance output serves through the `ag-edge` certificate store by SNI.
-Additive: no existing behavior changes; the real ACME order is the injected
-issuer.
+Completes several blueprint items for `ag-domains`, executed together with their
+documentation (no doc references to unimplemented features). Additive; native
+defaults preserved.
+
+- Issuance rate-limit protections (blueprint 13.4): SAN-set dedup +
+  per-registered-domain counters + injected ACME issuer seam.
+- Provider capability registry + matrix + `GET /v1/domains/provider-capabilities`.
+- `ag domains diagnose`: expected-vs-observed DNS comparison wired to live
+  resolver lookups (closes the doc/command gap).
+- Provider how-to guides, troubleshooting, capability matrix, OpenAPI update.
 
 Changes:
 
@@ -19,7 +24,14 @@ Changes:
   (rcgen issuer), load the PEM into `ag_edge::cert::CertStore`, select by SNI,
   build a rustls server config.
 - `crates/ag-edge/Cargo.toml`: `async-trait` dev-dependency for the test issuer.
-- Docs: CHANGELOG, `docs/ag-domains/BACKLOG.md` (phase 2 / checklist 14).
+- `crates/ag-domains/src/provider/capabilities.rs`: provider capability registry
+  (`ProviderCapabilities`, `known_provider_capabilities`, `capabilities_for`).
+- `crates/ag-domains/src/api.rs`: `GET /v1/domains/provider-capabilities`.
+- `crates/ag-domains/src/propagation.rs`: `lookup_observed` (A/AAAA/CNAME/TXT).
+- `crates/ag-cli/src/main.rs`: `ag domains diagnose` command.
+- Docs: CHANGELOG, BACKLOG; `reference/provider-capability-matrix.md`,
+  `reference/cli.md` (diagnose); how-to `connect-providers`, `domain-connect`,
+  `configure-wildcard`, `troubleshoot`; OpenAPI `/provider-capabilities`.
 
 ## Phase affected
 

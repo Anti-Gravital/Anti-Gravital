@@ -25,12 +25,13 @@ use std::time::Duration;
 use hickory_resolver::{
     config::{NameServerConfig, ResolverConfig, ResolverOpts},
     net::runtime::TokioRuntimeProvider,
-    proto::rr::RData,
+    proto::rr::{RData, RecordType as HickoryRecordType},
     TokioResolver,
 };
 use tracing::{debug, info};
 
 use crate::error::AgDomainsError;
+use crate::record::RecordType;
 
 /// Public resolvers used by default: Google and Cloudflare.
 pub const DEFAULT_RESOLVERS: &[SocketAddr] = &[
@@ -216,6 +217,73 @@ fn ensure_fqdn(name: &str) -> String {
         name.to_owned()
     } else {
         format!("{name}.")
+    }
+}
+
+/// Looks up the observed values of one record `name`/`record_type` at a single
+/// resolver. Used by `ag domains diagnose` to compare expected vs observed DNS
+/// (blueprint section 16.3). Returns an empty vector on lookup failure (the
+/// caller renders that as "missing").
+pub async fn lookup_observed(
+    resolver_addr: SocketAddr,
+    name: &str,
+    record_type: RecordType,
+) -> Vec<String> {
+    let resolver = build_resolver(resolver_addr);
+    let fqdn = ensure_fqdn(name);
+
+    match record_type {
+        RecordType::A | RecordType::Aaaa => {
+            let want_v4 = record_type == RecordType::A;
+            resolver
+                .lookup_ip(fqdn.as_str())
+                .await
+                .map(|lookup| {
+                    lookup
+                        .iter()
+                        .filter(|ip| ip.is_ipv4() == want_v4)
+                        .map(|ip| ip.to_string())
+                        .collect()
+                })
+                .unwrap_or_default()
+        }
+        RecordType::Cname => resolver
+            .lookup(fqdn.as_str(), HickoryRecordType::CNAME)
+            .await
+            .map(|lookup| {
+                lookup
+                    .answers()
+                    .iter()
+                    .filter_map(|record| match &record.data {
+                        RData::CNAME(_) => {
+                            Some(record.data.to_string().trim_end_matches('.').to_owned())
+                        }
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        RecordType::Txt => resolver
+            .txt_lookup(fqdn.as_str())
+            .await
+            .map(|lookup| {
+                lookup
+                    .answers()
+                    .iter()
+                    .filter_map(|record| match &record.data {
+                        RData::TXT(txt) => Some(
+                            txt.txt_data
+                                .iter()
+                                .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
+                                .collect::<Vec<_>>(),
+                        ),
+                        _ => None,
+                    })
+                    .flatten()
+                    .collect()
+            })
+            .unwrap_or_default(),
+        RecordType::Mx => Vec::new(),
     }
 }
 

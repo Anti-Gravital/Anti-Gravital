@@ -32,7 +32,7 @@ Governing docs: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
 | 14 | Certificate renewal queue | PARTIAL | `spawn_renewal_task` + `issuance` dedup-by-SAN and per-domain rate limits DONE; ARI-aware scheduling pending. |
 | 15 | CLI docs updated | DONE | `docs/ag-domains/reference/cli.md`. |
 | 16 | OpenAPI docs updated | DONE | `openapi/ag-domains.v1.yaml` (implemented contract). |
-| 17 | Provider docs for first providers | PARTIAL | Cloudflare adapter exists; per-provider how-to guides pending. |
+| 17 | Provider docs for first providers | DONE | `how-to/connect-providers.md` (Namecheap/Hostinger/Squarespace/Cloudflare/Route53/Google/Azure), `reference/provider-capability-matrix.md` backed by `provider::capabilities` + `GET /v1/domains/provider-capabilities`. |
 | + | Release/migration notes | DONE | CHANGELOG + DEBT + RFC. |
 
 ## 2. Phased roadmap (§20)
@@ -44,22 +44,20 @@ Governing docs: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
 | 2 | Managed TLS for exact hostnames | PARTIAL | issuance dedup-by-SAN + per-registered-domain rate limits + issuer seam DONE (`issuance` module; ACME path is the injected issuer); remaining: ARI-aware renewal scheduling and a live `#[ignore]` staging E2E. |
 | 3 | Active routing + canonical policies | DONE | http->https upgrade at listener (only canonical redirects today). |
 | D | SQL-backed store (`sql-store`, Postgres) | DONE | `SqlAttachmentStore` (JSONB + indexed columns) + migration; `#[ignore]` integration tests requiring `DATABASE_URL`. Native store stays default. |
-| 4 | Provider automation | PARTIAL | Domain Connect; Route 53 / Google / Azure / Namecheap adapters; richer adapter SDK (discover/read/diff/apply/rollback/verify). BIND export DONE; Cloudflare DONE. |
+| 4 | Provider automation | PARTIAL | Capability registry + matrix + provider how-to guides DONE; BIND export DONE; Cloudflare adapter DONE. Remaining: Domain Connect, Route 53 / Google / Azure / Namecheap adapters, richer adapter SDK (discover/read/diff/apply/rollback/verify). |
 | 5 | Wildcards + DNS-01 | PARTIAL | classification/routing/cert selection DONE; end-to-end wildcard issuance orchestration + stricter wildcard policy pending. |
 | 6 | ag-registrars module | TODO | Design proposal only (out of v1 by ADR-0007). |
 
 ## 3. Documentation gaps (Diataxis, §17)
 
-DONE: tutorial (attach first domain), how-to (serve + API), reference (CLI, state
-machine, DNS matrix), explanation (apex vs subdomain, why TXT ownership).
+DONE: tutorial (attach first domain); how-to (serve + API, connect-providers,
+domain-connect, configure-wildcard, troubleshoot); reference (CLI, state machine,
+DNS matrix, events-and-metrics, provider-capability-matrix); explanation (apex vs
+subdomain, why TXT ownership).
 
 TODO:
 - Tutorials: dedicated subdomain and apex tutorials (currently combined).
-- How-to provider guides: Namecheap, Hostinger, Squarespace, Cloudflare,
-  Route 53, Google Cloud DNS, Azure DNS, Domain Connect, wildcard config.
-- How-to troubleshooting: DNS propagation, certificate issuance.
-- Reference: provider capability matrix, TLS lifecycle reference, security model,
-  migration/compatibility notes.
+- Reference: TLS lifecycle reference, security model, migration/compatibility notes.
 - Explanation: why wildcards need stricter validation, how HTTP-01/DNS-01 work,
   how routing by Host/SNI works, why purchase and attachment are separate.
 
@@ -67,6 +65,8 @@ TODO:
 
 | Item | Status | Note |
 |------|--------|------|
+| Provider capability registry + matrix | DONE | `provider::capabilities` (data) + `reference/provider-capability-matrix.md` + REST endpoint. |
+| DNS diagnostics command (expected vs observed) | DONE | `ag domains diagnose` wires `diagnostics::diagnose` to live resolver lookups (`propagation::lookup_observed`). |
 | Provider adapter SDK (discover/read/diff/apply/rollback/verify) | TODO | Only `DnsProvider` (list/upsert/delete) exists today. |
 | On-demand TLS (restricted) | PARTIAL | `ag-edge::tls::allow_on_demand` logic + unit tests; not wired to a live issuance trigger. |
 | Domain event log (`domain.*` events) | DONE | `events` module: `DomainEvent` + `EventSink` (`NullEventSink`/`InMemoryEventSink`/`TracingEventSink`); REST API emits `attachment.created` and `detached`. Native, no broker. |
@@ -78,9 +78,10 @@ TODO:
 
 ## 5. Suggested next order
 
-1. Phase 2 hardening: attachment->issue->edge glue + issuance queue + `#[ignore]` staging E2E.
-2. Provider how-to guides + capability matrix (docs, no code risk).
-3. Domain event log + control-plane metrics.
-4. Phase E provider adapters (each behind a feature, native default preserved).
-5. DEBT-024 PSL (needs a dependency RFC).
-6. Phase F `ag-registrars` design RFC.
+1. Phase E provider adapters (each behind a feature, native default preserved),
+   starting with a Domain Connect discovery + the adapter SDK seam.
+2. ARI-aware renewal scheduling + a live `#[ignore]` ACME staging E2E.
+3. Remaining control-plane metrics (active gauge, tls/dns counters, edge cache
+   hit-ratio, route-resolution latency) + dangling-DNS detection worker.
+4. DEBT-024 PSL (needs a dependency RFC) — also fixes the per-domain counter key.
+5. Phase F `ag-registrars` design RFC.

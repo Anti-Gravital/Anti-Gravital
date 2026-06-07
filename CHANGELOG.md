@@ -7,6 +7,24 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains: capacidades de proveedor + comando diagnose
+
+Anadido:
+
+- `crates/ag-domains/src/provider/capabilities.rs`: registro de capacidades por
+  proveedor (`ProviderCapabilities`, `known_provider_capabilities`,
+  `capabilities_for`) — eje adaptador (manual/read_apply) vs features del
+  proveedor (apex alias, CNAME flattening, DNS-01 auto). Lista conservadora.
+- `crates/ag-domains/src/api.rs`: endpoint `GET /v1/domains/provider-capabilities`
+  (feature `api`) + test de integracion.
+- `crates/ag-cli`: comando `ag domains diagnose` — compara registros esperados vs
+  observados en resolvers publicos y reporta hallazgos accionables; usa
+  `propagation::lookup_observed` (nuevo, lookup A/AAAA/CNAME/TXT) + `diagnostics`.
+- Docs: `reference/provider-capability-matrix.md`, `how-to/connect-providers.md`,
+  `how-to/domain-connect.md`, `how-to/configure-wildcard.md`,
+  `how-to/troubleshoot.md`; `reference/cli.md` documenta `diagnose`; OpenAPI con
+  `/provider-capabilities`.
+
 ### ag-domains: orquestacion de emision de certificados (RFC-0011, fase 2)
 
 Anadido:

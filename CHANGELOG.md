@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains: orquestacion de emision de certificados (RFC-0011, fase 2)
+
+Anadido:
+
+- `crates/ag-domains/src/issuance.rs`: proteccion de rate-limit del blueprint
+  §13.4. `CertIssuer` trait (el emisor ACME real se inyecta), `IssuedCertificate`,
+  `san_key` (clave de deduplicacion canonica por conjunto SAN), `IssuanceLimiter`
+  (dedup de ordenes en vuelo + contadores por dominio registrable) y
+  `issue_certificate` (reserva, emite, cuenta exitos, libera). Logica nativa sin
+  dependencias externas; tests con issuer mock.
+- `crates/ag-edge/tests/issuance_to_edge.rs`: test E2E que emite via la
+  orquestacion (issuer rcgen), carga el PEM en el `CertStore` del edge y lo
+  selecciona por SNI; verifica la cadena emision -> serving completa.
+
 ### ag-domains: event log de dominio + metricas de control-plane
 
 Anadido:

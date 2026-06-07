@@ -55,3 +55,4 @@ rcgen = { workspace = true }
 rustls = { workspace = true }
 rustls-pki-types = { workspace = true }
 tokio-rustls = { workspace = true }
+async-trait = { workspace = true }

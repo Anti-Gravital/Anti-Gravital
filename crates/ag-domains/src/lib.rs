@@ -54,6 +54,7 @@ pub mod diagnostics;
 pub mod events;
 pub mod hostname;
 pub mod instructions;
+pub mod issuance;
 pub mod ownership;
 pub mod store;
 

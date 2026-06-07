@@ -22,7 +22,7 @@ module are later phases (see `docs/DEBT.md`, DEBT-025).
 - Tutorial: `tutorials/attach-first-domain.md`
 - How-to: `how-to/serve-and-api.md` (run the edge listeners + REST API)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
-  `reference/dns-record-matrix.md`
+  `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
 - Backlog: `BACKLOG.md` (blueprint gap analysis: done / partial / todo)

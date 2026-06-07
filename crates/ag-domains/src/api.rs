@@ -26,23 +26,37 @@ use crate::attachment::{
     AttachmentLifecycle, DnsMode, DnsStatus, DomainAttachment, OwnershipMethod, OwnershipStatus,
     RoutingStatus, TargetKind, TlsMode, TlsStatus,
 };
+use crate::events::{DomainEvent, EventSink, NullEventSink};
 use crate::hostname::{Hostname, HostnameKind};
 use crate::instructions::{generate_instructions, EdgeTargets};
+use crate::metrics;
 use crate::ownership::{generate_attachment_id, generate_token, ownership_record_name};
 use crate::store::{now_unix, AttachmentStore, StoreError, DEFAULT_TOMBSTONE_SECS};
 
-/// Shared API state: a store behind a mutex plus the edge targets used to
-/// generate DNS instructions.
+/// Shared API state: a store plus the edge targets used to generate DNS
+/// instructions and an event sink for control-plane events.
 #[derive(Clone)]
 pub struct ApiState {
     store: Arc<dyn AttachmentStore>,
     edge: EdgeTargets,
+    events: Arc<dyn EventSink>,
 }
 
 impl ApiState {
-    /// Builds API state from a shared store and edge targets.
+    /// Builds API state from a shared store and edge targets. Events are
+    /// discarded by default; use [`ApiState::with_events`] to capture them.
     pub fn new(store: Arc<dyn AttachmentStore>, edge: EdgeTargets) -> Self {
-        Self { store, edge }
+        Self {
+            store,
+            edge,
+            events: Arc::new(NullEventSink),
+        }
+    }
+
+    /// Sets the event sink that receives control-plane events.
+    pub fn with_events(mut self, events: Arc<dyn EventSink>) -> Self {
+        self.events = events;
+        self
     }
 }
 
@@ -281,6 +295,14 @@ async fn create_attachment(
 
     let dto = AttachmentDto::from(&attachment);
     state.store.create(attachment).await?;
+    metrics::record_attachment_created();
+    state
+        .events
+        .emit(DomainEvent::AttachmentCreated {
+            id: dto.id.clone(),
+            hostname: dto.hostname_ascii.clone(),
+        })
+        .await;
     Ok((StatusCode::CREATED, Json(dto)))
 }
 
@@ -347,6 +369,14 @@ async fn detach_attachment(
         .store
         .detach(attachment.hostname.ascii(), DEFAULT_TOMBSTONE_SECS)
         .await?;
+    metrics::record_attachment_detached();
+    state
+        .events
+        .emit(DomainEvent::Detached {
+            id: attachment.id.clone(),
+            hostname: attachment.hostname.ascii().to_owned(),
+        })
+        .await;
     Ok(StatusCode::NO_CONTENT)
 }
 

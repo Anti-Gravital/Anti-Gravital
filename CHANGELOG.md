@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-domains: event log de dominio + metricas de control-plane
+
+Anadido:
+
+- `crates/ag-domains/src/events.rs`: `DomainEvent` (vocabulario blueprint
+  §16.2: `domain.attachment.created`, `domain.ownership.verified`,
+  `domain.detached`) y trait `EventSink` con `NullEventSink` (defecto),
+  `InMemoryEventSink` (nativo/tests) y `TracingEventSink`. Sin broker externo
+  (ADR-0009). La API REST emite eventos en create/detach (`ApiState::with_events`).
+- `crates/ag-domains/src/metrics.rs`: contadores `ag_domains_attachments_total`,
+  `ag_domains_detached_total`, `ag_domains_verification_failures_total`.
+- Tests: unitarios del event log + test de integracion que captura los eventos
+  emitidos por la API real.
+
 ### ag-domains: store SQL Postgres (RFC-0009, fase D)
 
 Anadido:

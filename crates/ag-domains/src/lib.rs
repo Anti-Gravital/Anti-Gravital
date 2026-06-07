@@ -51,6 +51,7 @@ pub mod metrics;
 pub mod attachment;
 pub mod caa;
 pub mod diagnostics;
+pub mod events;
 pub mod hostname;
 pub mod instructions;
 pub mod ownership;

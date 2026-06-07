@@ -57,6 +57,21 @@ pub fn record_propagation_latency(domain: &str, seconds: f64) {
     .record(seconds);
 }
 
+/// Counts a created domain attachment (control plane, RFC-0009).
+pub fn record_attachment_created() {
+    counter!("ag_domains_attachments_total").increment(1);
+}
+
+/// Counts a detached domain attachment.
+pub fn record_attachment_detached() {
+    counter!("ag_domains_detached_total").increment(1);
+}
+
+/// Counts an ownership verification failure.
+pub fn record_verification_failure() {
+    counter!("ag_domains_verification_failures_total").increment(1);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -68,5 +83,8 @@ mod tests {
         record_dns_upsert("cloudflare", "A", false);
         record_acme_renewal("ejemplo.com", true);
         record_propagation_latency("ejemplo.com", 12.5);
+        record_attachment_created();
+        record_attachment_detached();
+        record_verification_failure();
     }
 }

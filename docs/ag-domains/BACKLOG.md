@@ -69,8 +69,8 @@ TODO:
 |------|--------|------|
 | Provider adapter SDK (discover/read/diff/apply/rollback/verify) | TODO | Only `DnsProvider` (list/upsert/delete) exists today. |
 | On-demand TLS (restricted) | PARTIAL | `ag-edge::tls::allow_on_demand` logic + unit tests; not wired to a live issuance trigger. |
-| Domain event log (`domain.*` events) | TODO | No event emission/persistence yet. |
-| Control-plane metrics (`dag_domains_*`) | PARTIAL | `ag-domains::metrics` exists; full §16.1 metric set not wired. |
+| Domain event log (`domain.*` events) | DONE | `events` module: `DomainEvent` + `EventSink` (`NullEventSink`/`InMemoryEventSink`/`TracingEventSink`); REST API emits `attachment.created` and `detached`. Native, no broker. |
+| Control-plane metrics (`ag_domains_*`) | PARTIAL | Added `attachments_total`, `detached_total`, `verification_failures_total`; full §16.1 set (active gauge, tls/dns, cache hit-ratio, route latency) not all wired. |
 | Dangling-DNS detection worker | TODO | Background scan for hosts pointing at edge but unattached. |
 | Abuse controls (per-tenant limits, global ACME queue, rate limits) | TODO | — |
 | eTLD+1 via Public Suffix List | TODO | DEBT-024; current two-label heuristic. |

@@ -693,16 +693,82 @@ Prohibido:
 - hacks silenciosos,
 - codigo temporal permanente.
 
-Formato:
+Formato del marcador en el codigo:
 
 ```rust
-// TECH-DEBT:
+// TECH-DEBT (issue #123):
 // motivo:
 // impacto:
 // eliminacion esperada:
 ```
 
-Toda deuda debe tener issue, prioridad y fecha objetivo.
+### Seguimiento en GitHub Issues (no en archivos del repositorio)
+
+La deuda tecnica, los bugs, los fallos y la documentacion de problemas se
+registran como **GitHub Issues**, NO como archivos Markdown dentro del
+repositorio. El objetivo es no llenar el repo de archivos que documentan
+errores/deuda y mantener ese seguimiento organizado y buscable en Issues.
+
+Reglas:
+
+- Toda deuda nueva se abre como Issue con la etiqueta `tech-debt` (y `bug`,
+  `security`, etc. segun corresponda), con motivo, impacto, plan de
+  eliminacion y prioridad/fecha objetivo en el cuerpo del Issue.
+- Un Issue = un problema. Se descompone el trabajo en Issues pequenos y
+  enfocados (accionables y cerrables de forma independiente); esta PROHIBIDO
+  condensar muchos problemas distintos en un unico Issue gigante. Cuando varios
+  Issues forman un area, se permite un Issue "padre"/seguimiento que solo enlaza
+  a los hijos (checklist o sub-issues), sin volver a describir cada problema.
+- Los marcadores `// TECH-DEBT` en el codigo referencian el numero/URL del
+  Issue; no describen la deuda por extenso ni la duplican en archivos.
+- Esta PROHIBIDO crear nuevos archivos cuyo proposito sea documentar deuda,
+  fallos, auditorias de problemas o "pendientes" (p. ej. `*-DEBT.md`,
+  `BACKLOG.md`, `TODO.md`, notas de problemas). Esa informacion va a Issues.
+- `docs/DEBT.md` queda CONGELADO como registro historico: no se anaden
+  entradas nuevas; las existentes se migran a Issues al tocarlas y se
+  reemplazan por su referencia. No se borra de golpe para no perder
+  trazabilidad.
+- La documentacion tecnica que SI permanece en el repo es la que describe el
+  sistema tal como es (arquitectura, modulos, RFC/ADR aprobados, referencia,
+  guias), no la que enumera lo que falta o esta roto.
+
+Excepcion: una RFC/ADR puede enumerar fases o limitaciones como parte de una
+decision de diseno; eso es contrato arquitectonico, no un registro de deuda.
+
+### Ciclo de vida del Issue: verificacion obligatoria antes de cerrar
+
+Los Issues son el tablero unico, confiable y honesto del estado real del
+proyecto (que falla, que falta, que esta en curso). Para que sea fiable, el
+cierre de un Issue esta gobernado por estas reglas:
+
+1. **Criterios de aceptacion verificables.** Todo Issue incluye, en su cuerpo,
+   una seccion de criterios de aceptacion ("Done when") y unos pasos de
+   verificacion concretos y reproducibles (que test ejecutar, que comando, que
+   comportamiento observar). Sin criterios verificables, el Issue esta
+   incompleto.
+2. **No se cierra hasta estar 100% verificado.** Esta PROHIBIDO marcar un Issue
+   como resuelto/cerrado sin evidencia de que realmente se resolvio (soluciones
+   fantasma). La evidencia es: tests automatizados que lo demuestran (o, si
+   depende de un servicio externo, un test `#[ignore]` + verificacion manual
+   documentada), `fmt`/`clippy`/`build` en verde, y comportamiento reproducible.
+   El cierre referencia el PR/commit que aporta esa evidencia.
+3. **Al verificar, cerrar de inmediato.** En cuanto la resolucion esta verificada
+   y fusionada, el Issue se cierra (`state: closed`, `reason: completed`) y, si
+   pertenece a un Issue padre, se marca su casilla. Esta PROHIBIDO dejar un Issue
+   resuelto-pero-abierto (el tablero mentiria diciendo que algo sigue roto) o
+   cerrado-sin-verificar.
+4. **Etiquetado obligatorio.** Cada Issue lleva, como minimo: tipo
+   (`bug` | `tech-debt` | `enhancement` | `documentation`), area (`ag-domains`,
+   `ag-edge`, `ag-mail`, ...), prioridad (`p1` | `p2` | `p3`) y, cuando aplique,
+   `blocked` (dependencia/servicio externo) o `good first issue`.
+5. **Apto para terceros.** El Issue se redacta con suficiente detalle (contexto,
+   archivos/modulos afectados, plan, criterios de aceptacion y verificacion) para
+   que un contribuidor externo pueda tomarlo y resolverlo sin conocimiento
+   tribal. Debe existir al menos un `good first issue` accesible para nuevos
+   colaboradores.
+6. **En cada iteracion.** Antes de terminar una sesion de trabajo, se concilian
+   los Issues afectados: lo verificado se cierra, lo nuevo se abre, lo bloqueado
+   se etiqueta. El tablero refleja la realidad del codigo, no la intencion.
 
 ---
 

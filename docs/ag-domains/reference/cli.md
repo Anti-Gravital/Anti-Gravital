@@ -64,6 +64,19 @@ ag domains detach <DOMAIN> [--tombstone-days <N>] [--state <PATH>]
 
 Re-attaching a tombstoned hostname is blocked until the tombstone expires.
 
+## ag domains diagnose
+
+Compare the records the attachment expects against what public resolvers
+observe, and report findings (missing, wrong value, CNAME/A conflict).
+Read-only; no credentials.
+
+```
+ag domains diagnose <DOMAIN> --edge-host <HOST> [--ip <IP>]... [--state <PATH>]
+```
+
+Each finding is tagged `[ok]` or `[error]` with a suggested action; a healthy
+domain prints "No action required."
+
 ## Pre-existing commands (Phase 4.5)
 
 - `ag domains check` — TXT propagation check.

@@ -1,12 +1,17 @@
-# ag-domains certificate issuance: dedup + per-domain rate limits (RFC-0011 phase 2)
+# ag-domains hardening: issuance limits, provider capabilities, diagnose (RFC-0011)
 
 ## Summary
 
-Adds the certificate-issuance rate-limit protections from the blueprint section
-13.4 as native, tested logic in `ag-domains`, plus an end-to-end test proving
-the issuance output serves through the `ag-edge` certificate store by SNI.
-Additive: no existing behavior changes; the real ACME order is the injected
-issuer.
+Completes several blueprint items for `ag-domains`, executed together with their
+documentation (no doc references to unimplemented features). Additive; native
+defaults preserved.
+
+- Issuance rate-limit protections (blueprint 13.4): SAN-set dedup +
+  per-registered-domain counters + injected ACME issuer seam.
+- Provider capability registry + matrix + `GET /v1/domains/provider-capabilities`.
+- `ag domains diagnose`: expected-vs-observed DNS comparison wired to live
+  resolver lookups (closes the doc/command gap).
+- Provider how-to guides, troubleshooting, capability matrix, OpenAPI update.
 
 Changes:
 
@@ -19,7 +24,18 @@ Changes:
   (rcgen issuer), load the PEM into `ag_edge::cert::CertStore`, select by SNI,
   build a rustls server config.
 - `crates/ag-edge/Cargo.toml`: `async-trait` dev-dependency for the test issuer.
-- Docs: CHANGELOG, `docs/ag-domains/BACKLOG.md` (phase 2 / checklist 14).
+- `crates/ag-domains/src/provider/capabilities.rs`: provider capability registry
+  (`ProviderCapabilities`, `known_provider_capabilities`, `capabilities_for`).
+- `crates/ag-domains/src/api.rs`: `GET /v1/domains/provider-capabilities`.
+- `crates/ag-domains/src/propagation.rs`: `lookup_observed` (A/AAAA/CNAME/TXT).
+- `crates/ag-cli/src/main.rs`: `ag domains diagnose` command.
+- Docs: CHANGELOG; `reference/provider-capability-matrix.md`,
+  `reference/cli.md` (diagnose); how-to `connect-providers`, `domain-connect`,
+  `configure-wildcard`, `troubleshoot`; OpenAPI `/provider-capabilities`.
+- Governance: CLAUDE.md rule 29 updated (tech debt -> GitHub Issues, not files);
+  removed `docs/ag-domains/BACKLOG.md`, migrated to issue #76.
+- `crates/ag-domains/src/api.rs`: `POST /v1/domains/attachments/{id}/verify`
+  with an injectable `OwnershipVerifier` (emits `domain.ownership.verified`).
 
 ## Phase affected
 
@@ -33,7 +49,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0011 phase 2 hardening.
 ## Related documents
 
 - `docs/rfc/RFC-0011-ag-domains-control-plane.md`
-- `docs/ag-domains/BACKLOG.md` (phase 2; blueprint section 13.4)
+- Issue #76 — ag-domains remaining work / tech debt
 - `docs/DEBT.md` — DEBT-024 (eTLD+1 heuristic shared by the per-domain counter)
 
 ## Test plan
@@ -48,7 +64,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0011 phase 2 hardening.
 
 - Blueprint section 13.4: SAN-set deduplication and per-registered-domain rate
   limits implemented and tested. Remaining: ARI-aware renewal scheduling and a
-  live `#[ignore]` staging E2E (tracked in BACKLOG / DEBT-025).
+  live `#[ignore]` staging E2E (tracked in issue #76).
 
 ## Final checklist
 

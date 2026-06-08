@@ -263,6 +263,23 @@ enum DomainsCommands {
         #[arg(long, default_value = ".ag/domains.json")]
         state: PathBuf,
     },
+    /// Compares expected vs observed DNS records and reports findings.
+    ///
+    /// Queries public resolvers for the records this attachment expects and
+    /// reports what is missing, wrong, or conflicting. Read-only; no credentials.
+    Diagnose {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
 }
 
 /// Sub-commands of `ag mail`.
@@ -365,6 +382,12 @@ fn main() {
                     tombstone_days,
                     state,
                 } => rt.block_on(cmd_domains_detach(&domain, tombstone_days, &state)),
+                DomainsCommands::Diagnose {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => rt.block_on(cmd_domains_diagnose(&domain, &edge_host, &ips, &state)),
             }
         }
         Commands::Mail { command } => {
@@ -1167,6 +1190,57 @@ async fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> 
     println!(
         "Tombstoned for {tombstone_days} day(s) to prevent takeover. Remove the DNS records at your provider."
     );
+    Ok(())
+}
+
+async fn cmd_domains_diagnose(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    use ag_domains::diagnostics::{diagnose, ObservedRecord, Severity};
+    use ag_domains::propagation::{lookup_observed, DEFAULT_RESOLVERS};
+
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    let instructions = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+
+    // Observe each expected record at a public resolver.
+    let resolver = DEFAULT_RESOLVERS[0];
+    let mut observed = Vec::new();
+    for rec in instructions.all() {
+        for value in lookup_observed(resolver, &rec.name, rec.record_type.clone()).await {
+            observed.push(ObservedRecord {
+                record_type: rec.record_type.clone(),
+                name: rec.name.clone(),
+                value,
+            });
+        }
+    }
+
+    let result = diagnose(&instructions, &observed);
+    println!("Diagnostics for {}\n", hostname.ascii());
+    for finding in &result.findings {
+        let tag = match finding.severity {
+            Severity::Ok => "[ok]",
+            Severity::Error => "[error]",
+        };
+        println!("{tag} {}", finding.message);
+        if !finding.action.is_empty() {
+            println!("       action: {}", finding.action);
+        }
+    }
+    if result.is_healthy() {
+        println!("\nNo action required.");
+    }
     Ok(())
 }
 

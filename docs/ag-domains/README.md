@@ -20,12 +20,19 @@ module are later phases (see `docs/DEBT.md`, DEBT-025).
 ## Start here
 
 - Tutorial: `tutorials/attach-first-domain.md`
-- How-to: `how-to/serve-and-api.md` (run the edge listeners + REST API)
+- How-to:
+  - `how-to/connect-providers.md` (per-provider DNS record locations)
+  - `how-to/serve-and-api.md` (run the edge listeners + REST API)
+  - `how-to/configure-wildcard.md`, `how-to/domain-connect.md`
+  - `how-to/troubleshoot.md` (DNS + certificate issuance)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
-  `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`
+  `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
+  `reference/provider-capability-matrix.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
-- Backlog: `BACKLOG.md` (blueprint gap analysis: done / partial / todo)
+
+Remaining work and technical debt are tracked in GitHub Issues (CLAUDE.md rule
+29), not in repo files: see issue #76 (ag-domains remaining work / tech debt).
 
 ## Scope boundary
 

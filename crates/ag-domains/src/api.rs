@@ -11,10 +11,13 @@
 //! - `GET    /attachments/{id}`         fetch one
 //! - `GET    /attachments/{id}/instructions` DNS instructions
 //! - `GET    /attachments/{id}/status`  readiness status
+//! - `POST   /attachments/{id}/verify`  verify ownership
 //! - `POST   /attachments/{id}/detach`  detach + tombstone
+//! - `GET    /provider-capabilities`    DNS provider capability registry
 
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -33,24 +36,58 @@ use crate::metrics;
 use crate::ownership::{generate_attachment_id, generate_token, ownership_record_name};
 use crate::store::{now_unix, AttachmentStore, StoreError, DEFAULT_TOMBSTONE_SECS};
 
+/// Verifies that an attachment's ownership TXT record is published.
+///
+/// Injected so the endpoint is deterministically testable; production wires a
+/// resolver-backed verifier (see [`ApiState::with_propagation_verifier`] under
+/// the `propagation` feature).
+#[async_trait]
+pub trait OwnershipVerifier: Send + Sync {
+    /// Returns `true` when the expected ownership token is observed in DNS.
+    async fn verify(&self, attachment: &DomainAttachment) -> bool;
+}
+
+/// Default verifier: never confirms (so ownership is not granted without a real
+/// check being wired in).
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NullVerifier;
+
+#[async_trait]
+impl OwnershipVerifier for NullVerifier {
+    async fn verify(&self, _attachment: &DomainAttachment) -> bool {
+        false
+    }
+}
+
 /// Shared API state: a store plus the edge targets used to generate DNS
-/// instructions and an event sink for control-plane events.
+/// instructions, an event sink for control-plane events, and an ownership
+/// verifier for the verify endpoint.
 #[derive(Clone)]
 pub struct ApiState {
     store: Arc<dyn AttachmentStore>,
     edge: EdgeTargets,
     events: Arc<dyn EventSink>,
+    verifier: Arc<dyn OwnershipVerifier>,
 }
 
 impl ApiState {
     /// Builds API state from a shared store and edge targets. Events are
     /// discarded by default; use [`ApiState::with_events`] to capture them.
+    /// Ownership verification defaults to [`NullVerifier`]; wire a real one with
+    /// [`ApiState::with_verifier`] (or `with_propagation_verifier`).
     pub fn new(store: Arc<dyn AttachmentStore>, edge: EdgeTargets) -> Self {
         Self {
             store,
             edge,
             events: Arc::new(NullEventSink),
+            verifier: Arc::new(NullVerifier),
         }
+    }
+
+    /// Sets the ownership verifier used by the verify endpoint.
+    pub fn with_verifier(mut self, verifier: Arc<dyn OwnershipVerifier>) -> Self {
+        self.verifier = verifier;
+        self
     }
 
     /// Sets the event sink that receives control-plane events.
@@ -232,7 +269,20 @@ pub fn build_router(state: ApiState) -> Router {
             "/v1/domains/attachments/:id/detach",
             post(detach_attachment),
         )
+        .route(
+            "/v1/domains/attachments/:id/verify",
+            post(verify_attachment),
+        )
+        .route(
+            "/v1/domains/provider-capabilities",
+            get(get_provider_capabilities),
+        )
         .with_state(state)
+}
+
+async fn get_provider_capabilities(
+) -> Json<Vec<crate::provider::capabilities::ProviderCapabilities>> {
+    Json(crate::provider::capabilities::known_provider_capabilities())
 }
 
 /// Serves the API on the given listener until it errors.
@@ -378,6 +428,69 @@ async fn detach_attachment(
         })
         .await;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn verify_attachment(
+    State(state): State<ApiState>,
+    Path(id): Path<String>,
+) -> Result<Json<AttachmentDto>, ApiError> {
+    let mut attachment = state
+        .store
+        .get_by_id(&id)
+        .await?
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, format!("no attachment {id}")))?;
+
+    if state.verifier.verify(&attachment).await {
+        attachment.ownership_status = OwnershipStatus::Verified;
+        attachment.recompute_lifecycle();
+        state.store.update(attachment.clone()).await?;
+        state
+            .events
+            .emit(DomainEvent::OwnershipVerified {
+                id: attachment.id.clone(),
+                hostname: attachment.hostname.ascii().to_owned(),
+            })
+            .await;
+    } else {
+        metrics::record_verification_failure();
+    }
+    Ok(Json(AttachmentDto::from(&attachment)))
+}
+
+/// Resolver-backed ownership verifier (requires the `propagation` feature).
+#[cfg(feature = "propagation")]
+pub struct PropagationOwnershipVerifier {
+    min_confirmed: usize,
+}
+
+#[cfg(feature = "propagation")]
+impl PropagationOwnershipVerifier {
+    /// Creates a verifier requiring `min_confirmed` resolvers to confirm.
+    pub fn new(min_confirmed: usize) -> Self {
+        Self { min_confirmed }
+    }
+}
+
+#[cfg(feature = "propagation")]
+#[async_trait]
+impl OwnershipVerifier for PropagationOwnershipVerifier {
+    async fn verify(&self, attachment: &DomainAttachment) -> bool {
+        use crate::ownership::verify_ownership;
+        use crate::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
+
+        let checker = PropagationChecker::new(DEFAULT_RESOLVERS, self.min_confirmed);
+        let probe =
+            verify_ownership(&checker, &attachment.hostname, &attachment.ownership_value).await;
+        probe.confirmed >= self.min_confirmed
+    }
+}
+
+#[cfg(feature = "propagation")]
+impl ApiState {
+    /// Wires a resolver-backed ownership verifier (requires `propagation`).
+    pub fn with_propagation_verifier(self, min_confirmed: usize) -> Self {
+        self.with_verifier(Arc::new(PropagationOwnershipVerifier::new(min_confirmed)))
+    }
 }
 
 #[cfg(test)]

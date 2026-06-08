@@ -7,6 +7,40 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Gobernanza: deuda tecnica en GitHub Issues (CLAUDE.md regla 29)
+
+Cambiado:
+
+- CLAUDE.md regla 29: la deuda tecnica, bugs, fallos y documentacion de
+  problemas se registran como GitHub Issues con etiqueta `tech-debt`, no como
+  archivos del repositorio. `docs/DEBT.md` queda congelado (historico); se
+  prohiben nuevos archivos tipo `BACKLOG.md`/`TODO.md`/`*-DEBT.md`.
+- Eliminado `docs/ag-domains/BACKLOG.md`; su contenido vive en el issue #76.
+
+### ag-domains: endpoint verify + capacidades de proveedor + comando diagnose
+
+Anadido:
+
+- `crates/ag-domains/src/api.rs`: `POST /v1/domains/attachments/{id}/verify` con
+  `OwnershipVerifier` inyectable (`NullVerifier` por defecto;
+  `PropagationOwnershipVerifier` tras feature `propagation`). Emite
+  `domain.ownership.verified` y registra fallos de verificacion. Cierra el
+  hueco de que el evento estuviera modelado pero nunca emitido.
+
+- `crates/ag-domains/src/provider/capabilities.rs`: registro de capacidades por
+  proveedor (`ProviderCapabilities`, `known_provider_capabilities`,
+  `capabilities_for`) — eje adaptador (manual/read_apply) vs features del
+  proveedor (apex alias, CNAME flattening, DNS-01 auto). Lista conservadora.
+- `crates/ag-domains/src/api.rs`: endpoint `GET /v1/domains/provider-capabilities`
+  (feature `api`) + test de integracion.
+- `crates/ag-cli`: comando `ag domains diagnose` — compara registros esperados vs
+  observados en resolvers publicos y reporta hallazgos accionables; usa
+  `propagation::lookup_observed` (nuevo, lookup A/AAAA/CNAME/TXT) + `diagnostics`.
+- Docs: `reference/provider-capability-matrix.md`, `how-to/connect-providers.md`,
+  `how-to/domain-connect.md`, `how-to/configure-wildcard.md`,
+  `how-to/troubleshoot.md`; `reference/cli.md` documenta `diagnose`; OpenAPI con
+  `/provider-capabilities`.
+
 ### ag-domains: orquestacion de emision de certificados (RFC-0011, fase 2)
 
 Anadido:

@@ -714,6 +714,11 @@ Reglas:
 - Toda deuda nueva se abre como Issue con la etiqueta `tech-debt` (y `bug`,
   `security`, etc. segun corresponda), con motivo, impacto, plan de
   eliminacion y prioridad/fecha objetivo en el cuerpo del Issue.
+- Un Issue = un problema. Se descompone el trabajo en Issues pequenos y
+  enfocados (accionables y cerrables de forma independiente); esta PROHIBIDO
+  condensar muchos problemas distintos en un unico Issue gigante. Cuando varios
+  Issues forman un area, se permite un Issue "padre"/seguimiento que solo enlaza
+  a los hijos (checklist o sub-issues), sin volver a describir cada problema.
 - Los marcadores `// TECH-DEBT` en el codigo referencian el numero/URL del
   Issue; no describen la deuda por extenso ni la duplican en archivos.
 - Esta PROHIBIDO crear nuevos archivos cuyo proposito sea documentar deuda,

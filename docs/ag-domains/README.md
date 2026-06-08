@@ -30,7 +30,9 @@ module are later phases (see `docs/DEBT.md`, DEBT-025).
   `reference/provider-capability-matrix.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
-- Backlog: `BACKLOG.md` (blueprint gap analysis: done / partial / todo)
+
+Remaining work and technical debt are tracked in GitHub Issues (CLAUDE.md rule
+29), not in repo files: see issue #76 (ag-domains remaining work / tech debt).
 
 ## Scope boundary
 

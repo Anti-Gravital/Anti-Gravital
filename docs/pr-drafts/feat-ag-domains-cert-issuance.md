@@ -29,9 +29,13 @@ Changes:
 - `crates/ag-domains/src/api.rs`: `GET /v1/domains/provider-capabilities`.
 - `crates/ag-domains/src/propagation.rs`: `lookup_observed` (A/AAAA/CNAME/TXT).
 - `crates/ag-cli/src/main.rs`: `ag domains diagnose` command.
-- Docs: CHANGELOG, BACKLOG; `reference/provider-capability-matrix.md`,
+- Docs: CHANGELOG; `reference/provider-capability-matrix.md`,
   `reference/cli.md` (diagnose); how-to `connect-providers`, `domain-connect`,
   `configure-wildcard`, `troubleshoot`; OpenAPI `/provider-capabilities`.
+- Governance: CLAUDE.md rule 29 updated (tech debt -> GitHub Issues, not files);
+  removed `docs/ag-domains/BACKLOG.md`, migrated to issue #76.
+- `crates/ag-domains/src/api.rs`: `POST /v1/domains/attachments/{id}/verify`
+  with an injectable `OwnershipVerifier` (emits `domain.ownership.verified`).
 
 ## Phase affected
 
@@ -45,7 +49,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0011 phase 2 hardening.
 ## Related documents
 
 - `docs/rfc/RFC-0011-ag-domains-control-plane.md`
-- `docs/ag-domains/BACKLOG.md` (phase 2; blueprint section 13.4)
+- Issue #76 — ag-domains remaining work / tech debt
 - `docs/DEBT.md` — DEBT-024 (eTLD+1 heuristic shared by the per-domain counter)
 
 ## Test plan
@@ -60,7 +64,7 @@ Phase 5 (extends Phase 4.5 `ag-domains`). RFC-0011 phase 2 hardening.
 
 - Blueprint section 13.4: SAN-set deduplication and per-registered-domain rate
   limits implemented and tested. Remaining: ARI-aware renewal scheduling and a
-  live `#[ignore]` staging E2E (tracked in BACKLOG / DEBT-025).
+  live `#[ignore]` staging E2E (tracked in issue #76).
 
 ## Final checklist
 

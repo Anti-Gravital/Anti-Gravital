@@ -119,6 +119,23 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /attachments/{id}/verify:
+    post:
+      tags: [domains]
+      summary: Verify the ownership TXT record; on success mark ownership verified.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Attachment (ownership_status reflects the result).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /provider-capabilities:
     get:
       tags: [domains]

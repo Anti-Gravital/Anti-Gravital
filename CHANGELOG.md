@@ -7,9 +7,25 @@ primera version etiquetada.
 
 ## [Unreleased]
 
-### ag-domains: capacidades de proveedor + comando diagnose
+### Gobernanza: deuda tecnica en GitHub Issues (CLAUDE.md regla 29)
+
+Cambiado:
+
+- CLAUDE.md regla 29: la deuda tecnica, bugs, fallos y documentacion de
+  problemas se registran como GitHub Issues con etiqueta `tech-debt`, no como
+  archivos del repositorio. `docs/DEBT.md` queda congelado (historico); se
+  prohiben nuevos archivos tipo `BACKLOG.md`/`TODO.md`/`*-DEBT.md`.
+- Eliminado `docs/ag-domains/BACKLOG.md`; su contenido vive en el issue #76.
+
+### ag-domains: endpoint verify + capacidades de proveedor + comando diagnose
 
 Anadido:
+
+- `crates/ag-domains/src/api.rs`: `POST /v1/domains/attachments/{id}/verify` con
+  `OwnershipVerifier` inyectable (`NullVerifier` por defecto;
+  `PropagationOwnershipVerifier` tras feature `propagation`). Emite
+  `domain.ownership.verified` y registra fallos de verificacion. Cierra el
+  hueco de que el evento estuviera modelado pero nunca emitido.
 
 - `crates/ag-domains/src/provider/capabilities.rs`: registro de capacidades por
   proveedor (`ProviderCapabilities`, `known_provider_capabilities`,

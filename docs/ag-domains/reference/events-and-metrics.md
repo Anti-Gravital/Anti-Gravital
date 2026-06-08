@@ -9,7 +9,7 @@ discards events (`NullEventSink`); use `InMemoryEventSink` (native, ordered) or
 | Event type | Variant | Emitted by |
 |---|---|---|
 | `domain.attachment.created` | `AttachmentCreated { id, hostname }` | REST API create |
-| `domain.ownership.verified` | `OwnershipVerified { id, hostname }` | reserved (verification flow) |
+| `domain.ownership.verified` | `OwnershipVerified { id, hostname }` | REST verify endpoint (`POST /attachments/{id}/verify`) |
 | `domain.detached` | `Detached { id, hostname }` | REST API detach |
 
 Wire a sink into the REST API with `ApiState::new(store, edge).with_events(sink)`.

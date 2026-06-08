@@ -693,16 +693,42 @@ Prohibido:
 - hacks silenciosos,
 - codigo temporal permanente.
 
-Formato:
+Formato del marcador en el codigo:
 
 ```rust
-// TECH-DEBT:
+// TECH-DEBT (issue #123):
 // motivo:
 // impacto:
 // eliminacion esperada:
 ```
 
-Toda deuda debe tener issue, prioridad y fecha objetivo.
+### Seguimiento en GitHub Issues (no en archivos del repositorio)
+
+La deuda tecnica, los bugs, los fallos y la documentacion de problemas se
+registran como **GitHub Issues**, NO como archivos Markdown dentro del
+repositorio. El objetivo es no llenar el repo de archivos que documentan
+errores/deuda y mantener ese seguimiento organizado y buscable en Issues.
+
+Reglas:
+
+- Toda deuda nueva se abre como Issue con la etiqueta `tech-debt` (y `bug`,
+  `security`, etc. segun corresponda), con motivo, impacto, plan de
+  eliminacion y prioridad/fecha objetivo en el cuerpo del Issue.
+- Los marcadores `// TECH-DEBT` en el codigo referencian el numero/URL del
+  Issue; no describen la deuda por extenso ni la duplican en archivos.
+- Esta PROHIBIDO crear nuevos archivos cuyo proposito sea documentar deuda,
+  fallos, auditorias de problemas o "pendientes" (p. ej. `*-DEBT.md`,
+  `BACKLOG.md`, `TODO.md`, notas de problemas). Esa informacion va a Issues.
+- `docs/DEBT.md` queda CONGELADO como registro historico: no se anaden
+  entradas nuevas; las existentes se migran a Issues al tocarlas y se
+  reemplazan por su referencia. No se borra de golpe para no perder
+  trazabilidad.
+- La documentacion tecnica que SI permanece en el repo es la que describe el
+  sistema tal como es (arquitectura, modulos, RFC/ADR aprobados, referencia,
+  guias), no la que enumera lo que falta o esta roto.
+
+Excepcion: una RFC/ADR puede enumerar fases o limitaciones como parte de una
+decision de diseno; eso es contrato arquitectonico, no un registro de deuda.
 
 ---
 

@@ -735,6 +735,41 @@ Reglas:
 Excepcion: una RFC/ADR puede enumerar fases o limitaciones como parte de una
 decision de diseno; eso es contrato arquitectonico, no un registro de deuda.
 
+### Ciclo de vida del Issue: verificacion obligatoria antes de cerrar
+
+Los Issues son el tablero unico, confiable y honesto del estado real del
+proyecto (que falla, que falta, que esta en curso). Para que sea fiable, el
+cierre de un Issue esta gobernado por estas reglas:
+
+1. **Criterios de aceptacion verificables.** Todo Issue incluye, en su cuerpo,
+   una seccion de criterios de aceptacion ("Done when") y unos pasos de
+   verificacion concretos y reproducibles (que test ejecutar, que comando, que
+   comportamiento observar). Sin criterios verificables, el Issue esta
+   incompleto.
+2. **No se cierra hasta estar 100% verificado.** Esta PROHIBIDO marcar un Issue
+   como resuelto/cerrado sin evidencia de que realmente se resolvio (soluciones
+   fantasma). La evidencia es: tests automatizados que lo demuestran (o, si
+   depende de un servicio externo, un test `#[ignore]` + verificacion manual
+   documentada), `fmt`/`clippy`/`build` en verde, y comportamiento reproducible.
+   El cierre referencia el PR/commit que aporta esa evidencia.
+3. **Al verificar, cerrar de inmediato.** En cuanto la resolucion esta verificada
+   y fusionada, el Issue se cierra (`state: closed`, `reason: completed`) y, si
+   pertenece a un Issue padre, se marca su casilla. Esta PROHIBIDO dejar un Issue
+   resuelto-pero-abierto (el tablero mentiria diciendo que algo sigue roto) o
+   cerrado-sin-verificar.
+4. **Etiquetado obligatorio.** Cada Issue lleva, como minimo: tipo
+   (`bug` | `tech-debt` | `enhancement` | `documentation`), area (`ag-domains`,
+   `ag-edge`, `ag-mail`, ...), prioridad (`p1` | `p2` | `p3`) y, cuando aplique,
+   `blocked` (dependencia/servicio externo) o `good first issue`.
+5. **Apto para terceros.** El Issue se redacta con suficiente detalle (contexto,
+   archivos/modulos afectados, plan, criterios de aceptacion y verificacion) para
+   que un contribuidor externo pueda tomarlo y resolverlo sin conocimiento
+   tribal. Debe existir al menos un `good first issue` accesible para nuevos
+   colaboradores.
+6. **En cada iteracion.** Antes de terminar una sesion de trabajo, se concilian
+   los Issues afectados: lo verificado se cierra, lo nuevo se abre, lo bloqueado
+   se etiqueta. El tablero refleja la realidad del codigo, no la intencion.
+
 ---
 
 ## 30. Regla de eliminacion de codigo

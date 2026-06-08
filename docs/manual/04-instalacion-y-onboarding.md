@@ -111,6 +111,24 @@ ag domains check --domain example.com
 ag domains sync --schema schema.ag
 ```
 
+## Operate an attached domain
+
+The local attachment workflow does not require provider credentials:
+
+```bash
+ag domains attach example.com --project my-api --edge-host edge.example.net
+ag domains instructions example.com --edge-host edge.example.net
+ag domains export-zone example.com --edge-host edge.example.net
+ag domains status example.com
+ag domains list
+ag domains verify example.com
+ag domains detach example.com
+```
+
+State is stored in `.ag/domains.json` by default. Use `--state` to select
+another file. Run `ag domains COMMAND --help` for required apex IPs, edge
+targets and lifecycle options.
+
 ## Troubleshooting
 
 | Problem | Likely cause | Fix |
@@ -179,6 +197,12 @@ Si el terminal es interactivo, se te pedira elegir una plantilla
 cd mi-api
 ag dev
 ```
+
+## Operar dominios adjuntos
+
+Los comandos implementados son `attach`, `instructions`, `export-zone`,
+`status`, `list`, `verify` y `detach`. Consulta `ag domains --help` y
+`ag domains COMANDO --help` para los argumentos vigentes.
 
 ## Configurar correo (opcional)
 

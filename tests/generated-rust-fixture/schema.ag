@@ -1,0 +1,21 @@
+model User {
+    id UUID @primary @auto
+    email String @unique
+}
+
+request UpdateUser {
+    email String @email
+}
+
+response UserResponse {
+    id UUID
+    email String
+}
+
+endpoint UpdateUser {
+    method PATCH
+    path /users/{id}
+    auth required
+    body UpdateUser
+    response UserResponse
+}

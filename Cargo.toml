@@ -25,6 +25,7 @@ members = [
     "examples/ai-backend",
     "examples/auth-mail-demo",
     "tests/integration",
+    "tests/generated-rust-fixture",
 ]
 
 [workspace.package]

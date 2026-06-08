@@ -7,6 +7,16 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-edge: listener de upgrade HTTP->HTTPS (cierra issue #91)
+
+Anadido:
+
+- `crates/ag-edge` feature `server`: `serve_http_redirect` / `http_redirect_router`
+  - un listener de puerto 80 que sirve el challenge ACME HTTP-01 sobre HTTP plano
+  (no se redirige, o se rompe la emision) y redirige todo lo demas a
+  `https://<host><path>?<query>` con el status indicado (308/301). Tests de
+  integracion sobre TCP real.
+
 ### Gobernanza: deuda tecnica en GitHub Issues (CLAUDE.md regla 29)
 
 Cambiado:

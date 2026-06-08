@@ -179,6 +179,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ag-generated-rust-fixture"
+version = "0.0.0"
+dependencies = [
+ "ag-core",
+ "axum 0.7.9",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "ag-integration-tests"
 version = "0.0.0"
 dependencies = [

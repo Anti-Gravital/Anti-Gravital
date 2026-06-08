@@ -194,19 +194,27 @@ CLAUDE.md section 29.
 Non-blocking items found by the pre-Phase 5 audit (see `docs/audits/`). Blocking
 findings were fixed in-branch and are not listed here.
 
-### DEBT-012 — ag-realtime event-persistence does synchronous, per-event file I/O
-- Reason: `EventBuffer::append` (feature `event-persistence`) opens and writes the
-  file on every call; if used on an async hot path it blocks the runtime.
+### DEBT-012 - ag-realtime event-persistence does synchronous, per-event file I/O
+- Reason: `EventBuffer::append` (feature `event-persistence`) opened and wrote the
+  file on every call; if used on an async hot path it blocked the runtime.
 - Impact: throughput degradation under high event rates when the feature is on.
-- Expected removal: async I/O or `spawn_blocking` + a persistent file handle.
-- Status: open. Severity: Medium. Source: `pre-fase5-concurrency.md` S7-1.
+- Expected removal: async I/O or `spawn_blocking` plus a persistent file handle.
+- Status: closed (`audit/fases-0-4-5-consolidation`). `EventBuffer` now keeps a
+  persistent append handle and exposes `append_async` via `spawn_blocking`.
+  Verified with `cargo test -p ag-realtime --features event-persistence`
+  (33 passed, 1 ignored scalability gate, 1 doc-test). Source:
+  `pre-fase5-concurrency.md` S7-1.
 
-### DEBT-013 — native cache server has no connection cap
-- Reason: the RESP2 server spawns one task per connection without a limit.
-- Impact: a connection flood can spawn many tasks (DoS surface). The Stage 4 fix
+### DEBT-013 - native cache server has no connection cap
+- Reason: the RESP2 server spawned one task per connection without a limit.
+- Impact: a connection flood could spawn many tasks (DoS surface). The Stage 4 fix
   already bounds per-command allocation.
 - Expected removal: a connection-limit semaphore in the accept loop.
-- Status: open. Severity: Low. Source: `pre-fase5-concurrency.md` S7-2.
+- Status: closed (`audit/fases-0-4-5-consolidation`). `NativeCacheServer::bind`
+  now uses `DEFAULT_MAX_CONNECTIONS`; tests cover explicit limits and zero-limit
+  rejection. Verified with `cargo test -p ag-cache --features native-server`
+  (29 unit passed, 1 ignored benchmark, 13 RESP2 integration passed, 2 doc-tests).
+  Source: `pre-fase5-concurrency.md` S7-2.
 
 ### DEBT-014 — broaden fuzz and property coverage
 - Reason: Stage 4 added targets for RESP2/storage-key/signed-URL; Stage 5 added

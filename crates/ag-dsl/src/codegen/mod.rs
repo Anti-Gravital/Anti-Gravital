@@ -48,6 +48,11 @@ impl GeneratedFiles {
 pub fn generate(schema: &Schema) -> GeneratedFiles {
     let mut files = GeneratedFiles::default();
 
+    files.insert(
+        PathBuf::from("src/mod.rs"),
+        rust_gen::generate_module(schema),
+    );
+
     // v0.1: DB models
     files.insert(
         PathBuf::from("src/models.rs"),
@@ -141,7 +146,7 @@ response UserResponse { id UUID }
     }
 
     #[test]
-    fn generates_five_files() {
+    fn generates_six_files() {
         let schema = schema_from(
             r#"
 model User {
@@ -152,7 +157,8 @@ model User {
 "#,
         );
         let files = generate(&schema);
-        assert_eq!(files.len(), 5);
+        assert_eq!(files.len(), 6);
+        assert!(files.files.contains_key(&PathBuf::from("src/mod.rs")));
         assert!(files.files.contains_key(&PathBuf::from("src/models.rs")));
         assert!(files
             .files

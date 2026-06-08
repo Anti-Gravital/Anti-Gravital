@@ -4,7 +4,7 @@
 # workspace in release mode, and installs the `ag` binary.
 #
 # Security (ADR-0009 rule 4): when fetching a remote copy, verify the
-# published SHA-256 hash listed in docs/INSTALL.md before running.
+# SHA-256 checksum published with the release artifact before running.
 #
 # Usage: .\install.ps1
 

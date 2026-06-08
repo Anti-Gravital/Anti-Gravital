@@ -44,7 +44,7 @@ const FULLSTACK_MIGRATION: &str =
 #[command(
     name = "ag",
     version = VERSION,
-    about = "Anti-Gravital CLI - crea y gestiona proyectos AG",
+    about = "Anti-Gravital CLI - create and manage AG projects",
     long_about = None,
 )]
 struct Cli {
@@ -280,7 +280,7 @@ enum MailCommands {
         #[arg(long, env = "AG_MAIL_FROM", default_value = "test@localhost")]
         from: String,
         /// Subject of the test email.
-        #[arg(long, default_value = "ag mail test — Anti-Gravital")]
+        #[arg(long, default_value = "ag mail test: Anti-Gravital")]
         subject: String,
         /// SMTP host.
         #[arg(long, env = "AG_SMTP_HOST", default_value = "localhost")]
@@ -312,7 +312,7 @@ fn main() {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .expect("no se pudo crear el runtime tokio");
+                .expect("failed to create the Tokio runtime");
             match command {
                 DomainsCommands::Check {
                     domain,
@@ -371,7 +371,7 @@ fn main() {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .expect("no se pudo crear el runtime tokio");
+                .expect("failed to create the Tokio runtime");
             match command {
                 MailCommands::Test {
                     to,
@@ -443,7 +443,7 @@ fn resolve_template_interactive() -> String {
 }
 
 fn cmd_dev(bind: &str) -> Result<(), String> {
-    println!("Iniciando servidor en modo desarrollo (bind: {bind})...");
+    println!("Starting development server (bind: {bind})...");
 
     let watch_available = process::Command::new("cargo")
         .args(["watch", "--version"])
@@ -454,24 +454,24 @@ fn cmd_dev(bind: &str) -> Result<(), String> {
         .unwrap_or(false);
 
     let status = if watch_available {
-        println!("Usando cargo-watch para hot reload.");
+        println!("Using cargo-watch for hot reload.");
         process::Command::new("cargo")
             .env("BIND", bind)
             .args(["watch", "-x", "run"])
             .status()
-            .map_err(|e| format!("no se pudo ejecutar cargo watch: {e}"))?
+            .map_err(|e| format!("failed to run cargo watch: {e}"))?
     } else {
-        println!("cargo-watch no encontrado. Ejecutando sin hot reload.");
-        println!("Para habilitar hot reload: cargo install cargo-watch");
+        println!("cargo-watch not found. Running without hot reload.");
+        println!("To enable hot reload: cargo install cargo-watch");
         process::Command::new("cargo")
             .env("BIND", bind)
             .arg("run")
             .status()
-            .map_err(|e| format!("no se pudo ejecutar cargo run: {e}"))?
+            .map_err(|e| format!("failed to run cargo run: {e}"))?
     };
 
     if !status.success() {
-        return Err("el servidor termino con error".into());
+        return Err("the server exited with an error".into());
     }
     Ok(())
 }
@@ -483,29 +483,29 @@ fn cmd_build(target: Option<&str>) -> Result<(), String> {
         args.push(t);
     }
 
-    println!("Compilando en modo release...");
+    println!("Building in release mode...");
     let status = process::Command::new("cargo")
         .args(&args)
         .status()
-        .map_err(|e| format!("no se pudo ejecutar cargo build: {e}"))?;
+        .map_err(|e| format!("failed to run cargo build: {e}"))?;
 
     if !status.success() {
-        return Err("la compilacion fallo".into());
+        return Err("the build failed".into());
     }
-    println!("Compilacion exitosa.");
+    println!("Build completed successfully.");
     Ok(())
 }
 
 fn validate_project_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
-        return Err("el nombre del proyecto no puede estar vacio".into());
+        return Err("project name cannot be empty".into());
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     {
         return Err(format!(
-            "nombre de proyecto invalido '{name}': solo se permiten letras, numeros, guion y guion_bajo"
+            "invalid project name '{name}': only letters, numbers, hyphens, and underscores are allowed"
         ));
     }
     Ok(())
@@ -518,9 +518,9 @@ fn apply_template(template: &str, name: &str) -> String {
 fn write_file(path: &Path, content: &str) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| format!("no se pudo crear directorio '{}': {e}", parent.display()))?;
+            .map_err(|e| format!("failed to create directory '{}': {e}", parent.display()))?;
     }
-    fs::write(path, content).map_err(|e| format!("no se pudo escribir '{}': {e}", path.display()))
+    fs::write(path, content).map_err(|e| format!("failed to write '{}': {e}", path.display()))
 }
 
 fn scaffold_rest(name: &str, dir: &Path) -> Result<(), String> {
@@ -582,7 +582,7 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
 
     let schema = ag_dsl::compile(&source).map_err(|diags| {
         let mut msg = format!(
-            "{} error(es) en '{}':\n",
+            "{} error(s) in '{}':\n",
             diags.iter().filter(|d| d.is_error()).count(),
             schema_path.display()
         );
@@ -595,7 +595,7 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
     let files = ag_dsl::generate(&schema);
 
     println!(
-        "Generando {} artefactos desde '{}'...",
+        "Generating {} artifacts from '{}'...",
         files.len(),
         schema_path.display()
     );
@@ -606,7 +606,7 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
         println!("  {}", full_path.display());
     }
 
-    println!("Generacion completada en '{}'.", output_dir.display());
+    println!("Generation completed in '{}'.", output_dir.display());
     Ok(())
 }
 
@@ -615,7 +615,7 @@ fn cmd_schema_lint(schema_path: &Path) -> Result<(), String> {
     let diags = ag_dsl::lint(&source);
 
     if diags.is_empty() {
-        println!("'{}': sin problemas encontrados.", schema_path.display());
+        println!("'{}': no issues found.", schema_path.display());
         return Ok(());
     }
 
@@ -631,7 +631,7 @@ fn cmd_schema_lint(schema_path: &Path) -> Result<(), String> {
 
     if !errors.is_empty() {
         return Err(format!(
-            "{} error(es) en '{}'",
+            "{} error(s) in '{}'",
             errors.len(),
             schema_path.display()
         ));
@@ -645,7 +645,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     let current = ag_dsl::compile(&current_source).map_err(|diags| {
         format!(
-            "errores en schema actual: {}",
+            "errors in current schema: {}",
             diags
                 .iter()
                 .filter(|d| d.is_error())
@@ -657,7 +657,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     let reference = ag_dsl::compile(&ref_source).map_err(|diags| {
         format!(
-            "errores en schema de referencia: {}",
+            "errors in reference schema: {}",
             diags
                 .iter()
                 .filter(|d| d.is_error())
@@ -671,7 +671,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     if changes.is_empty() {
         println!(
-            "Sin cambios entre '{}' y '{}'.",
+            "No changes between '{}' y '{}'.",
             reference_path.display(),
             schema_path.display()
         );
@@ -679,7 +679,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
     }
 
     println!(
-        "Cambios entre '{}' y '{}':",
+        "Changes between '{}' y '{}':",
         reference_path.display(),
         schema_path.display()
     );
@@ -713,14 +713,14 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
     // Removed models (breaking)
     for name in old_models.keys() {
         if !new_models.contains_key(name) {
-            changes.push(format!("[BREAKING]  modelo '{name}' eliminado"));
+            changes.push(format!("[BREAKING]  model '{name}' removed"));
         }
     }
 
     // Added models (non-breaking)
     for name in new_models.keys() {
         if !old_models.contains_key(name) {
-            changes.push(format!("[additive]  modelo '{name}' añadido"));
+            changes.push(format!("[additive]  model '{name}' added"));
         }
     }
 
@@ -740,30 +740,30 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
 
             for fname in old_fields.keys() {
                 if !new_fields.contains_key(fname) {
-                    changes.push(format!("[BREAKING]  '{name}.{fname}' eliminado"));
+                    changes.push(format!("[BREAKING]  '{name}.{fname}' removed"));
                 }
             }
             for fname in new_fields.keys() {
                 if !old_fields.contains_key(fname) {
-                    changes.push(format!("[additive]  '{name}.{fname}' añadido"));
+                    changes.push(format!("[additive]  '{name}.{fname}' added"));
                 }
             }
             for (fname, old_field) in &old_fields {
                 if let Some(new_field) = new_fields.get(fname) {
                     if old_field.ty.value != new_field.ty.value {
                         changes.push(format!(
-                            "[BREAKING]  '{name}.{fname}' tipo cambiado: {:?} -> {:?}",
+                            "[BREAKING]  '{name}.{fname}' type changed: {:?} -> {:?}",
                             old_field.ty.value, new_field.ty.value
                         ));
                     }
                     if old_field.optional && !new_field.optional {
                         changes.push(format!(
-                            "[BREAKING]  '{name}.{fname}' cambio de nullable a NOT NULL"
+                            "[BREAKING]  '{name}.{fname}' changed from nullable to NOT NULL"
                         ));
                     }
                     if !old_field.optional && new_field.optional {
                         changes.push(format!(
-                            "[additive]  '{name}.{fname}' cambio de NOT NULL a nullable"
+                            "[additive]  '{name}.{fname}' changed from NOT NULL to nullable"
                         ));
                     }
                 }
@@ -776,12 +776,9 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
 
 fn read_schema(path: &Path) -> Result<String, String> {
     if !path.exists() {
-        return Err(format!(
-            "archivo schema no encontrado: '{}'",
-            path.display()
-        ));
+        return Err(format!("schema file not found: '{}'", path.display()));
     }
-    fs::read_to_string(path).map_err(|e| format!("no se pudo leer '{}': {e}", path.display()))
+    fs::read_to_string(path).map_err(|e| format!("failed to read '{}': {e}", path.display()))
 }
 
 // ============================================================
@@ -795,7 +792,7 @@ async fn cmd_domains_check(
 ) -> Result<(), String> {
     use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
 
-    println!("Verificando propagacion DNS para '{domain}'...");
+    println!("Checking DNS propagation for '{domain}'...");
 
     let checker = PropagationChecker::new(DEFAULT_RESOLVERS, min_confirmed);
 
@@ -804,22 +801,22 @@ async fn cmd_domains_check(
             let result = checker.check_txt(domain, value).await;
             if result.is_fully_propagated() {
                 println!(
-                    "OK — registro TXT propagado ({}/{} resolvers)",
+                    "OK: TXT record propagated ({}/{} resolvers)",
                     result.confirmed, result.total
                 );
             } else {
                 println!(
-                    "PENDIENTE — {}/{} resolvers confirman el valor '{value}'",
+                    "PENDING: {}/{} resolvers confirm the value '{value}'",
                     result.confirmed, result.total
                 );
-                println!("Espera unos minutos y vuelve a ejecutar el comando.");
+                println!("Wait a few minutes and run the command again.");
             }
         }
         None => {
             // No expected value: verifies that at least one resolver responds.
             let result = checker.check_txt(domain, "").await;
             println!(
-                "Consulta completada — {}/{} resolvers respondieron",
+                "Query completed: {}/{} resolvers responded",
                 result.total, result.total
             );
         }
@@ -838,7 +835,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 
     let schema = ag_dsl::compile(&source).map_err(|diags| {
         let mut msg = format!(
-            "{} error(es) en '{}':\n",
+            "{} error(s) in '{}':\n",
             diags.iter().filter(|d| d.is_error()).count(),
             schema_path.display()
         );
@@ -849,7 +846,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
     })?;
 
     if schema.domains.is_empty() {
-        println!("No hay bloques 'domain' en el schema. Nada que sincronizar.");
+        println!("No domain blocks were found in the schema. Nothing to synchronize.");
         return Ok(());
     }
 
@@ -862,7 +859,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
             .unwrap_or(domain_block.name.value.as_str());
 
         println!(
-            "Sincronizando registros de correo para '{}' (zone {zone_id})...",
+            "Synchronizing mail records for '{}' (zone {zone_id})...",
             domain_name
         );
 
@@ -890,15 +887,15 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 
         let result = apply_mail_records(&req, &provider, zone_id)
             .await
-            .map_err(|e| format!("error al sincronizar '{domain_name}': {e}"))?;
+            .map_err(|e| format!("failed to synchronize '{domain_name}': {e}"))?;
 
         println!(
-            "  creados: {}, actualizados: {}, sin cambios: {}",
+            "  created: {}, updated: {}, unchanged: {}",
             result.created, result.updated, result.unchanged
         );
     }
 
-    println!("Sincronizacion completada.");
+    println!("Synchronization completed.");
     Ok(())
 }
 
@@ -1142,12 +1139,12 @@ async fn cmd_domains_verify(
             .await
             .map_err(|e| format!("could not update store: {e}"))?;
         println!(
-            "OK — ownership verified ({}/{} resolvers).",
+            "OK: ownership verified ({}/{} resolvers).",
             probe.confirmed, probe.total
         );
     } else {
         println!(
-            "PENDING — {}/{} resolvers confirm the token. Wait for DNS propagation and retry.",
+            "PENDING: {}/{} resolvers confirm the token. Wait for DNS propagation and retry.",
             probe.confirmed, probe.total
         );
     }
@@ -1171,7 +1168,7 @@ async fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> 
 }
 
 // ============================================================
-// Comandos ag mail (Fase 4.5)
+// ag mail commands (Phase 4.5)
 // ============================================================
 
 #[allow(clippy::too_many_arguments)]
@@ -1192,7 +1189,7 @@ async fn cmd_mail_test(
         },
     };
 
-    println!("Enviando correo de prueba a '{to}'...");
+    println!("Sending test email to '{to}'...");
     println!("  SMTP: {smtp_host}:{smtp_port}");
 
     let config = match (smtp_user, smtp_pass) {
@@ -1200,31 +1197,31 @@ async fn cmd_mail_test(
         _ => SmtpConfig::new_unauthenticated(smtp_host, smtp_port),
     };
 
-    let sender = SmtpSender::new(config).map_err(|e| format!("config SMTP invalida: {e}"))?;
+    let sender = SmtpSender::new(config).map_err(|e| format!("invalid SMTP configuration: {e}"))?;
 
     let email = EmailBuilder::new()
         .from(Address::new(from))
         .to(Address::new(to))
         .subject(subject)
         .html_body(format!(
-            "<p>Correo de prueba enviado por <code>ag mail test</code>.</p>\
-             <p>Si ves este mensaje, la configuracion SMTP es correcta.</p>\
+            "<p>Test email sent by <code>ag mail test</code>.</p>\
+             <p>If you can read this message, the SMTP configuration is correct.</p>\
              <p>Host: <strong>{smtp_host}:{smtp_port}</strong></p>"
         ))
         .text_body(format!(
-            "Correo de prueba de ag mail test.\nHost: {smtp_host}:{smtp_port}"
+            "Test email from ag mail test.\nHost: {smtp_host}:{smtp_port}"
         ))
         .build()
-        .map_err(|e| format!("email invalido: {e}"))?;
+        .map_err(|e| format!("invalid email address: {e}"))?;
 
     let result = sender
         .send(&email)
         .await
-        .map_err(|e| format!("fallo de envio: {e}"))?;
+        .map_err(|e| format!("send failed: {e}"))?;
 
     match result.message_id {
-        Some(id) => println!("OK — correo enviado. Message-ID: {id}"),
-        None => println!("OK — correo enviado."),
+        Some(id) => println!("OK: email sent. Message-ID: {id}"),
+        None => println!("OK: email sent."),
     }
 
     Ok(())
@@ -1248,7 +1245,7 @@ mod tests {
 
     #[test]
     fn validate_name_rejects_spaces() {
-        assert!(validate_project_name("mi proyecto").is_err());
+        assert!(validate_project_name("my project").is_err());
     }
 
     #[test]
@@ -1260,9 +1257,9 @@ mod tests {
 
     #[test]
     fn apply_template_replaces_all_occurrences() {
-        let tmpl = "{{name}} y {{name}}";
-        let result = apply_template(tmpl, "alfa");
-        assert_eq!(result, "alfa y alfa");
+        let tmpl = "{{name}} and {{name}}";
+        let result = apply_template(tmpl, "alpha");
+        assert_eq!(result, "alpha and alpha");
     }
 
     #[test]
@@ -1271,7 +1268,7 @@ mod tests {
         let diags = ag_dsl::lint(src);
         assert!(
             !diags.is_empty(),
-            "debe haber warnings para modelo sin @primary"
+            "a model without @primary must produce warnings"
         );
     }
 }

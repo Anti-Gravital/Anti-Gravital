@@ -6,7 +6,7 @@
 #
 # Security (ADR-0009 rule 4): this script does not pipe untrusted content into
 # a shell without verification. When fetching a remote copy, verify the
-# published SHA-256 hash listed in docs/INSTALL.md before running.
+# SHA-256 checksum published with the release artifact before running.
 #
 # Usage: bash install.sh
 
@@ -16,6 +16,21 @@ REQUIRED_RUST="1.79.0"
 
 log() { printf '[ag-install] %s\n' "$1"; }
 
+version_at_least() {
+    local current=$1 required=$2
+    local current_major current_minor current_patch
+    local required_major required_minor required_patch
+
+    IFS=. read -r current_major current_minor current_patch <<< "$current"
+    IFS=. read -r required_major required_minor required_patch <<< "$required"
+    current_patch=${current_patch%%-*}
+    required_patch=${required_patch%%-*}
+
+    (( current_major > required_major )) ||
+        (( current_major == required_major && current_minor > required_minor )) ||
+        (( current_major == required_major && current_minor == required_minor && current_patch >= required_patch ))
+}
+
 if ! command -v cargo >/dev/null 2>&1; then
     log "Rust toolchain not found."
     log "Install rustup from https://rustup.rs and re-run this script."
@@ -24,6 +39,11 @@ fi
 
 INSTALLED_RUST="$(rustc --version | awk '{print $2}')"
 log "Detected Rust ${INSTALLED_RUST} (minimum required: ${REQUIRED_RUST})."
+
+if ! version_at_least "$INSTALLED_RUST" "$REQUIRED_RUST"; then
+    log "Rust version too old. Run 'rustup update stable' and retry."
+    exit 1
+fi
 
 log "Building the workspace in release mode..."
 cargo build --workspace --release

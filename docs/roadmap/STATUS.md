@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-05-26, Fase 4.5 implementacion tecnica completa. Trabajo correctivo pre-Fase 5 en curso: ver `docs/DEBT.md` y `docs/superpowers/plans/2026-05-26-corrective-before-fase5-MASTER.md`.
+Ultima actualizacion: 2026-06-08. Auditoria y consolidacion de fases 0-4.5 en curso. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y docs/DEBT.md.
 
 ---
 
@@ -112,7 +112,7 @@ externas de Fase 0. El diseno de Shield esta fijado en
 
 ## Fase 2 - The Core MVP
 
-Estado: Implementacion tecnica completa. Benchmarks medidos en hardware
+Estado: funcionalidad principal disponible. Benchmarks medidos en hardware
 real (Ryzen 5 2500U). Los criterios de throughput y latencia no se
 alcanzan en este hardware con PostgreSQL estandar; requieren hardware
 mas potente o pgbouncer. Criterios externos de comunidad pendientes.
@@ -192,10 +192,7 @@ mas potente o pgbouncer. Criterios externos de comunidad pendientes.
 
 ## Fase 3 - Anti-DSL alpha
 
-Estado: Implementacion tecnica completa. DSL v0.1–v0.4, ag-lsp, plugin VS Code,
-cargo-fuzz y benchmark Neon 2h completados. Criterios externos de comunidad pendientes.
-RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.20 (LSP).
-
+Estado: funcionalidad principal disponible; consolidacion abierta. El generador Rust, el fuzzing manual de 24 horas y la comparativa de rendimiento aun tienen criterios pendientes. RFC-0003 aceptada.
 ### Criterios de entrada (3.1)
 
 - [/] Fase 2 completada. (Excepcion RFC-0001: implementacion tecnica completa;
@@ -211,7 +208,7 @@ RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.
 - [x] DSL version 0.3: validaciones (@min, @max, @email, @regex, @length). Commit 47ae623.
 - [x] DSL version 0.4: relaciones entre modelos (1:1, 1:N, N:M). @references/@relation,
   SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TypeScript tipos opcionales, OpenAPI $ref. Commit 9a541cd..HEAD.
-- [x] Generador Rust: structs con serde (v0.1), types.rs + handlers.rs + router.rs (v0.2).
+- [/] Generador Rust: structs con serde, types.rs, handlers.rs, router.rs y modulo raiz. Imports/estado y validaciones numericas fueron corregidos en la auditoria; el fixture tests/generated-rust-fixture prueba compilacion end-to-end del modulo generado; falta cerrar validacion Rust ejecutable para @regex (issue #70).
 - [x] Generador SQL: migraciones idempotentes (v0.1).
 - [x] Generador TypeScript: tipos y cliente HTTP (v0.1+v0.2).
 - [x] Generador OpenAPI 3.1: schemas (v0.1) + paths (v0.2).
@@ -237,8 +234,7 @@ RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.
 
 ### Criterios de salida (3.3)
 
-- [x] Proyecto completo definible en schema.ag, generado y ejecutable con CLI.
-  `ag schema lint` y `ag generate` verificados en examples/ecommerce-api. 8 artefactos generados.
+- [/] Proyecto definible en schema.ag y generable con CLI. `ag schema lint` y `ag generate` estan verificados; el fixture tests/generated-rust-fixture compila el modulo generado completo; @regex sigue documentado como limitacion pendiente en issue #70.
 - [x] Example ecommerce-api reescrito con DSL. Modelos User, Category, Product, Order, OrderItem
   con relaciones 1:N y N:M. SQL FOREIGN KEY, Rust Option<M>/Vec<M>, TS y OpenAPI $ref generados.
 - [/] CRUD generado por DSL no es mas lento que CRUD a mano. Benchmark
@@ -254,8 +250,7 @@ RFC-0003 aceptada. Stack: logos 0.14 (lexer), chumsky 0.9 (parser), tower-lsp 0.
 
 ## Fase 4 - Modulos estandar
 
-Estado: Implementacion tecnica completa (rama `fase-4`, 2026-05-23).
-Criterios externos (publicacion en crates.io, comunidad) pendientes.
+Estado: modulos principales disponibles. La puerta de produccion sigue abierta por evidencia manual de escala/rendimiento y deuda documentada; no se declara la fase cerrada.
 
 ### Criterios de entrada (4.1)
 
@@ -280,7 +275,7 @@ Criterios externos (publicacion en crates.io, comunidad) pendientes.
 - [x] Example `realtime-chat` en `examples/`: chat SSE in-memory, EventBus, puerto 3000.
 - [x] Example `ai-backend` en `examples/`: AiProvider trait, ClaudeProvider+GeminiProvider+OpenAiProvider (streaming SSE real), router Axum puerto 3001.
 - [x] Tests de integracion cross-module: crate `tests/integration` con 7 tests (6 unitarios por modulo + 1 E2E 15 pasos).
-- [/] RFC-0005 ag-cache L2 nativo RESP2: propuesto en `docs/rfc/RFC-0005-ag-cache-native-l2.md`. Pendiente de aprobacion para implementar.
+- [x] RFC-0005 ag-cache L2 nativo RESP2: implementado y mergeado. El servidor incluye limites de protocolo y, desde esta auditoria, limite concurrente de conexiones.
 
 ### Criterios de salida (4.3)
 
@@ -294,13 +289,10 @@ Criterios externos (publicacion en crates.io, comunidad) pendientes.
 
 ## Fase 4.5 - ag-mail y ag-domains
 
-Estado: Implementacion tecnica completa. Mergeada a main en PR #42 (implementacion)
-y PR #43 (ag-lsp v0.7 + ACME renewal fix + manual cap. 3).
-Vease `docs/roadmap/fase-04-5-ag-mail-y-ag-domains.md` y `docs/adr/0007-ag-mail-ag-domains.md`.
-
+Estado: capacidades de correo y dominios disponibles, con consolidacion abierta. ag-domains tiene trabajo activo separado; esta auditoria no modifica su implementacion. La fase no se declara cerrada mientras el gate pre-Fase 5 permanezca abierto.
 ### Criterios de entrada (4.5.1)
 
-- [x] Fase 4 completada con todos sus criterios de salida marcados.
+- [/] Fase 4 tiene los entregables principales implementados, pero conserva criterios de salida y gate de produccion pendientes.
 - [x] ag-auth expone hooks/eventos para verificacion de correo, recuperacion de contrasena y magic links. AuthMailer implementado con los tres flujos.
 - [x] ag-observe registra metricas y trazas de jobs asincronos.
 - [x] RFC aprobado para el alcance inicial de ag-mail. Vease RFC-0006.
@@ -334,7 +326,7 @@ Vease `docs/roadmap/fase-04-5-ag-mail-y-ag-domains.md` y `docs/adr/0007-ag-mail-
 - [x] ag domains check, ag domains sync y ag mail test compilan y pasan CI.
 - [x] 14 tests E2E cross-module en tests/integration (7 Fase 4 + 7 Fase 4.5).
 - [x] Cero dependencias circulares (CI verde).
-- [x] cargo fmt, cargo clippy -D warnings, cargo test, cargo audit y cargo deny check verdes.
+- [/] Los gates historicos estuvieron verdes; deben reejecutarse sobre el commit final de consolidacion antes de cerrar la fase.
 
 ## Fase 5 - ag-cloud
 

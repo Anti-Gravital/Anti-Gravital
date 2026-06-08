@@ -171,6 +171,76 @@ pub async fn serve_http(
     axum::serve(listener, app).await
 }
 
+/// State for the HTTP-to-HTTPS upgrade listener.
+#[derive(Clone)]
+pub struct RedirectState {
+    challenges: Http01ChallengeStore,
+    status: u16,
+}
+
+/// Builds a router for a plain-HTTP listener that upgrades everything to HTTPS.
+///
+/// ACME HTTP-01 challenge requests (`/.well-known/acme-challenge/<token>`) are
+/// served over plain HTTP — they must not be redirected, or issuance breaks.
+/// Every other request is redirected to `https://<host><path>?<query>` with
+/// `status` (use 308 to preserve method, or 301).
+pub fn http_redirect_router(challenges: Http01ChallengeStore, status: u16) -> Router {
+    Router::new()
+        .fallback(http_redirect_handler)
+        .with_state(RedirectState { challenges, status })
+}
+
+async fn http_redirect_handler(State(state): State<RedirectState>, req: Request<Body>) -> Response {
+    let path = req.uri().path().to_owned();
+
+    // ACME HTTP-01 challenge stays on plain HTTP.
+    if let Some(token) = acme_challenge_token(&path) {
+        if let Some(key_auth) = state.challenges.get(token) {
+            return Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "text/plain")
+                .body(Body::from(key_auth))
+                .expect("valid response");
+        }
+        return not_found("unknown acme challenge token");
+    }
+
+    let host = match host_of(&req) {
+        Some(h) => h,
+        None => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::from("missing host"))
+                .expect("valid response");
+        }
+    };
+
+    let mut location = format!("https://{host}{path}");
+    if let Some(query) = req.uri().query() {
+        if !query.is_empty() {
+            location.push('?');
+            location.push_str(query);
+        }
+    }
+
+    let status = StatusCode::from_u16(state.status).unwrap_or(StatusCode::PERMANENT_REDIRECT);
+    let mut resp = Response::builder().status(status);
+    if let Ok(value) = HeaderValue::from_str(&location) {
+        resp = resp.header(header::LOCATION, value);
+    }
+    resp.body(Body::empty()).expect("valid response")
+}
+
+/// Serves an HTTP-to-HTTPS upgrade listener: ACME HTTP-01 challenges over plain
+/// HTTP, everything else redirected to HTTPS with `status` (e.g. 308).
+pub async fn serve_http_redirect(
+    listener: tokio::net::TcpListener,
+    challenges: Http01ChallengeStore,
+    status: u16,
+) -> std::io::Result<()> {
+    axum::serve(listener, http_redirect_router(challenges, status)).await
+}
+
 #[cfg(feature = "tls")]
 mod tls_serve {
     use super::*;

@@ -4,7 +4,7 @@
 use ag_edge::challenge::Http01ChallengeStore;
 use ag_edge::redirect::CanonicalPolicy;
 use ag_edge::router::{BindingCache, RouteBinding};
-use ag_edge::server::{serve_http, EdgeState};
+use ag_edge::server::{serve_http, serve_http_redirect, EdgeState};
 
 fn binding(host: &str, target: &str) -> RouteBinding {
     RouteBinding {
@@ -112,4 +112,46 @@ async fn apex_redirects_to_canonical() {
         resp.headers().get("location").unwrap().to_str().unwrap(),
         "https://www.example.com/products"
     );
+}
+
+async fn start_redirect() -> (String, Http01ChallengeStore) {
+    let challenges = Http01ChallengeStore::new();
+    challenges.set("rtok", "rtok.keyauth");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let ch = challenges.clone();
+    tokio::spawn(async move {
+        let _ = serve_http_redirect(listener, ch, 308).await;
+    });
+    (format!("http://{addr}"), challenges)
+}
+
+#[tokio::test]
+async fn redirect_upgrades_http_to_https_preserving_path_and_query() {
+    let (base, _ch) = start_redirect().await;
+    let resp = client()
+        .get(format!("{base}/products?page=2"))
+        .header("host", "example.com")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 308);
+    assert_eq!(
+        resp.headers().get("location").unwrap().to_str().unwrap(),
+        "https://example.com/products?page=2"
+    );
+}
+
+#[tokio::test]
+async fn redirect_serves_acme_challenge_over_http() {
+    // ACME HTTP-01 must NOT be redirected, or issuance breaks.
+    let (base, _ch) = start_redirect().await;
+    let resp = client()
+        .get(format!("{base}/.well-known/acme-challenge/rtok"))
+        .header("host", "example.com")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.text().await.unwrap(), "rtok.keyauth");
 }

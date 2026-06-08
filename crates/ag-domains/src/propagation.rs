@@ -220,6 +220,28 @@ fn ensure_fqdn(name: &str) -> String {
     }
 }
 
+/// Extracts the observed value of a DNS record for the expected `record_type`.
+///
+/// Pure (no I/O), so the per-type parsing is unit-tested deterministically;
+/// [`lookup_observed`] feeds it the records returned by a resolver.
+fn rdata_value(record_type: RecordType, rdata: &RData) -> Option<String> {
+    match (record_type, rdata) {
+        (RecordType::A, RData::A(a)) => Some(a.0.to_string()),
+        (RecordType::Aaaa, RData::AAAA(a)) => Some(a.0.to_string()),
+        (RecordType::Cname, RData::CNAME(_)) => {
+            Some(rdata.to_string().trim_end_matches('.').to_owned())
+        }
+        (RecordType::Txt, RData::TXT(txt)) => Some(
+            txt.txt_data
+                .iter()
+                .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
+                .collect::<Vec<_>>()
+                .join(""),
+        ),
+        _ => None,
+    }
+}
+
 /// Looks up the observed values of one record `name`/`record_type` at a single
 /// resolver. Used by `ag domains diagnose` to compare expected vs observed DNS
 /// (blueprint section 16.3). Returns an empty vector on lookup failure (the
@@ -229,67 +251,73 @@ pub async fn lookup_observed(
     name: &str,
     record_type: RecordType,
 ) -> Vec<String> {
+    let hickory_type = match record_type {
+        RecordType::A => HickoryRecordType::A,
+        RecordType::Aaaa => HickoryRecordType::AAAA,
+        RecordType::Cname => HickoryRecordType::CNAME,
+        RecordType::Txt => HickoryRecordType::TXT,
+        // MX is not used by diagnose; avoid a network call.
+        RecordType::Mx => return Vec::new(),
+    };
+
     let resolver = build_resolver(resolver_addr);
     let fqdn = ensure_fqdn(name);
 
-    match record_type {
-        RecordType::A | RecordType::Aaaa => {
-            let want_v4 = record_type == RecordType::A;
-            resolver
-                .lookup_ip(fqdn.as_str())
-                .await
-                .map(|lookup| {
-                    lookup
-                        .iter()
-                        .filter(|ip| ip.is_ipv4() == want_v4)
-                        .map(|ip| ip.to_string())
-                        .collect()
-                })
-                .unwrap_or_default()
-        }
-        RecordType::Cname => resolver
-            .lookup(fqdn.as_str(), HickoryRecordType::CNAME)
-            .await
-            .map(|lookup| {
-                lookup
-                    .answers()
-                    .iter()
-                    .filter_map(|record| match &record.data {
-                        RData::CNAME(_) => {
-                            Some(record.data.to_string().trim_end_matches('.').to_owned())
-                        }
-                        _ => None,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
-        RecordType::Txt => resolver
-            .txt_lookup(fqdn.as_str())
-            .await
-            .map(|lookup| {
-                lookup
-                    .answers()
-                    .iter()
-                    .filter_map(|record| match &record.data {
-                        RData::TXT(txt) => Some(
-                            txt.txt_data
-                                .iter()
-                                .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
-                                .collect::<Vec<_>>(),
-                        ),
-                        _ => None,
-                    })
-                    .flatten()
-                    .collect()
-            })
-            .unwrap_or_default(),
-        RecordType::Mx => Vec::new(),
+    match resolver.lookup(fqdn.as_str(), hickory_type).await {
+        Ok(lookup) => lookup
+            .answers()
+            .iter()
+            .filter_map(|record| rdata_value(record_type.clone(), &record.data))
+            .collect(),
+        Err(_) => Vec::new(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rdata_value_parses_each_type() {
+        use hickory_resolver::proto::rr::rdata::{CNAME, TXT};
+        use hickory_resolver::proto::rr::Name;
+        use std::net::{Ipv4Addr, Ipv6Addr};
+
+        let a = RData::A(Ipv4Addr::new(203, 0, 113, 10).into());
+        assert_eq!(
+            rdata_value(RecordType::A, &a).as_deref(),
+            Some("203.0.113.10")
+        );
+        // Type mismatch yields None.
+        assert_eq!(rdata_value(RecordType::Aaaa, &a), None);
+
+        let aaaa = RData::AAAA("2001:db8::10".parse::<Ipv6Addr>().unwrap().into());
+        assert_eq!(
+            rdata_value(RecordType::Aaaa, &aaaa).as_deref(),
+            Some("2001:db8::10")
+        );
+
+        let cname = RData::CNAME(CNAME(Name::from_ascii("edge.example-cloud.net.").unwrap()));
+        assert_eq!(
+            rdata_value(RecordType::Cname, &cname).as_deref(),
+            Some("edge.example-cloud.net")
+        );
+
+        let txt = RData::TXT(TXT::new(vec!["ag-verification=tok".to_owned()]));
+        assert_eq!(
+            rdata_value(RecordType::Txt, &txt).as_deref(),
+            Some("ag-verification=tok")
+        );
+    }
+
+    #[tokio::test]
+    async fn lookup_observed_mx_returns_empty_without_network() {
+        // MX is not modelled by diagnose; the function returns early, no lookup.
+        let addr = "127.0.0.1:53".parse().unwrap();
+        assert!(lookup_observed(addr, "example.com", RecordType::Mx)
+            .await
+            .is_empty());
+    }
 
     #[test]
     fn ensure_fqdn_adds_dot() {

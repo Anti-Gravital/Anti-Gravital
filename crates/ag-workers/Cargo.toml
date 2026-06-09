@@ -56,3 +56,5 @@ sqlx = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["test-util"] }
 serde = { workspace = true, features = ["derive"] }
 proptest = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }

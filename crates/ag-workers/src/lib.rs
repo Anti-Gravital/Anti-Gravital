@@ -53,6 +53,9 @@
 //!     .unwrap();
 //! ```
 
+pub mod admission;
+pub mod backoff;
+pub mod config;
 pub mod context;
 pub mod error;
 pub mod handler;
@@ -60,8 +63,16 @@ pub mod ids;
 pub mod job;
 pub mod outcome;
 pub mod payload;
+pub mod queue;
 pub mod registry;
+pub mod runtime;
+pub mod shutdown;
+pub mod supervisor;
+pub mod telemetry;
 
+pub use admission::AdmissionOutcome;
+pub use backoff::RetryPolicy;
+pub use config::RuntimeConfig;
 pub use context::JobContext;
 pub use error::{WorkerError, WorkerErrorKind};
 pub use handler::JobHandler;
@@ -69,4 +80,10 @@ pub use ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 pub use job::{JobEnvelope, JobPriority, JobStatus, NewJob, DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT};
 pub use outcome::{DeadLetterReason, JobOutcome, RetryDelay};
 pub use payload::{decode, decode_versioned, encode, JobPayload, PayloadBytes, PayloadError};
+pub use queue::dlq::DeadLetter;
+pub use queue::memory::MemoryQueue;
+pub use queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 pub use registry::{RegistryError, WorkerRegistry, WorkerRegistryBuilder};
+pub use runtime::{execute_leased_job, ExecResult};
+pub use shutdown::Shutdown;
+pub use supervisor::WorkerPool;

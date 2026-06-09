@@ -73,13 +73,18 @@ impl EventBuffer {
         lock_writer(&self.writer)?.flush()?;
         let file = File::open(&self.path)?;
         let mut out = Vec::new();
-        for line in BufReader::new(file).lines() {
+        for (index, line) in BufReader::new(file).lines().enumerate() {
+            let line_number = index + 1;
             let line = line?;
             if line.trim().is_empty() {
                 continue;
             }
-            let event: PersistedEvent = serde_json::from_str(&line)
-                .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+            let event: PersistedEvent = serde_json::from_str(&line).map_err(|error| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("invalid persisted event at line {line_number}: {error}"),
+                )
+            })?;
             out.push((event.subject, event.payload));
         }
         Ok(out)
@@ -99,10 +104,37 @@ fn lock_writer(writer: &Arc<Mutex<File>>) -> std::io::Result<MutexGuard<'_, File
         .map_err(|_| std::io::Error::other("event buffer writer lock poisoned"))
 }
 
+trait ReplayPublisher {
+    fn publish(&self, subject: String, payload: Vec<u8>) -> Result<(), crate::BusError>;
+}
+
+impl ReplayPublisher for crate::EventBus {
+    fn publish(&self, subject: String, payload: Vec<u8>) -> Result<(), crate::BusError> {
+        crate::EventBus::publish(self, subject, payload)
+    }
+}
+
 /// Replays all buffered events into the given bus, in order. Call once on startup.
+///
+/// Invalid persisted records return InvalidData. A bus publication failure
+/// stops replay and returns BrokenPipe.
 pub fn replay_into_bus(buffer: &EventBuffer, bus: &crate::EventBus) -> std::io::Result<()> {
+    replay_into_publisher(buffer, bus)
+}
+
+fn replay_into_publisher(
+    buffer: &EventBuffer,
+    publisher: &impl ReplayPublisher,
+) -> std::io::Result<()> {
     for (subject, payload) in buffer.replay()? {
-        let _ = bus.publish(subject, payload);
+        publisher
+            .publish(subject.clone(), payload)
+            .map_err(|error| {
+                std::io::Error::new(
+                    std::io::ErrorKind::BrokenPipe,
+                    format!("failed to replay event '{subject}': {error}"),
+                )
+            })?;
     }
     Ok(())
 }
@@ -157,14 +189,57 @@ mod tests {
     }
 
     #[test]
-    fn malformed_record_is_rejected() {
+    fn malformed_record_is_rejected_with_line_context() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("events.ndjson");
-        std::fs::write(&path, b"{not-json}\n").unwrap();
+        std::fs::write(
+            &path,
+            b"{\"subject\":\"valid\",\"payload\":[1]}\n{not-json}\n",
+        )
+        .unwrap();
 
         let buf = EventBuffer::open(&path).unwrap();
         let error = buf.replay().unwrap_err();
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("line 2"));
+    }
+
+    #[test]
+    fn record_with_missing_or_wrong_fields_is_rejected() {
+        for record in [
+            r#"{"payload":[1,2,3]}"#,
+            r#"{"subject":"user.created","payload":"not-bytes"}"#,
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("events.ndjson");
+            std::fs::write(&path, format!("{record}\n")).unwrap();
+
+            let buf = EventBuffer::open(&path).unwrap();
+            let error = buf.replay().unwrap_err();
+            assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+            assert!(error.to_string().contains("line 1"));
+        }
+    }
+
+    struct ClosedPublisher;
+
+    impl ReplayPublisher for ClosedPublisher {
+        fn publish(&self, _subject: String, _payload: Vec<u8>) -> Result<(), crate::BusError> {
+            Err(crate::BusError::Closed)
+        }
+    }
+
+    #[test]
+    fn replay_propagates_publish_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("events.ndjson");
+        let buf = EventBuffer::open(&path).unwrap();
+        buf.append("user.created", b"alice").unwrap();
+
+        let error = replay_into_publisher(&buf, &ClosedPublisher).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::BrokenPipe);
+        assert!(error.to_string().contains("user.created"));
+        assert!(error.to_string().contains("bus closed"));
     }
 
     #[tokio::test]

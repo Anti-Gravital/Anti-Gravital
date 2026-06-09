@@ -33,8 +33,14 @@ Implemented so far (S1-S3):
   transactional `enqueue_in_tx`, and a persistent dead-letter table. Integration tests
   are `#[ignore]` and require `DATABASE_URL`.
 
-Scheduling, dynamic/CPU-bound pools, the DSL `worker` declaration, the CLI, producer
-mode and the `ag-mail` migration land in the following stages (S4-S7).
+- S4 scheduling + pools: delayed and fixed-interval scheduling with a distributed
+  singleton claim (`MemoryScheduleStore`; `PostgresScheduleStore` via `FOR UPDATE SKIP
+  LOCKED` on `ag_worker_schedules`); a bounded dynamic worker pool (`DynamicPool`,
+  scaling between `min`/`max` from queue depth); and a bounded CPU-bound pool (`CpuPool`,
+  `spawn_blocking` + semaphore, not rayon).
+
+The DSL `worker` declaration, the CLI, producer mode and the `ag-mail` migration land in
+the following stages (S5-S7).
 
 ## Features
 

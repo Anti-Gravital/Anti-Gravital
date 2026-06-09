@@ -63,9 +63,12 @@ pub mod ids;
 pub mod job;
 pub mod outcome;
 pub mod payload;
+pub mod pool;
 pub mod queue;
 pub mod registry;
 pub mod runtime;
+pub mod scaling;
+pub mod scheduler;
 pub mod shutdown;
 pub mod supervisor;
 pub mod telemetry;
@@ -80,6 +83,7 @@ pub use ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 pub use job::{JobEnvelope, JobPriority, JobStatus, NewJob, DEFAULT_MAX_ATTEMPTS, DEFAULT_TIMEOUT};
 pub use outcome::{DeadLetterReason, JobOutcome, RetryDelay};
 pub use payload::{decode, decode_versioned, encode, JobPayload, PayloadBytes, PayloadError};
+pub use pool::CpuPool;
 pub use queue::dlq::DeadLetter;
 pub use queue::memory::MemoryQueue;
 #[cfg(feature = "postgres")]
@@ -87,5 +91,11 @@ pub use queue::postgres::PostgresQueue;
 pub use queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 pub use registry::{RegistryError, WorkerRegistry, WorkerRegistryBuilder};
 pub use runtime::{execute_leased_job, ExecResult};
+pub use scaling::ScaleConfig;
+#[cfg(feature = "postgres")]
+pub use scheduler::PostgresScheduleStore;
+pub use scheduler::{
+    run_scheduler, MemoryScheduleStore, MisfirePolicy, Schedule, ScheduleStore, ScheduleTick,
+};
 pub use shutdown::Shutdown;
-pub use supervisor::WorkerPool;
+pub use supervisor::{DynamicPool, WorkerPool};

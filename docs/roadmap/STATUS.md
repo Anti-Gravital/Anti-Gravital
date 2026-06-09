@@ -328,6 +328,56 @@ Estado: capacidades de correo y dominios disponibles, con consolidacion abierta.
 - [x] Cero dependencias circulares (CI verde).
 - [/] Los gates historicos estuvieron verdes; deben reejecutarse sobre el commit final de consolidacion antes de cerrar la fase.
 
+## Fase 4.6-D - ag-workers
+
+Estado: En curso. Fase aditiva de extraccion/endurecimiento pre-Fase 5, hermana de
+las sub-fases 4.6-A (`mta`) y 4.6-C (`api`) de `ag-mail`. Autorizada por el BDFL con
+el gate pre-Fase 5 abierto (ADR-0013); no se hace ninguna afirmacion de produccion/GA
+hasta que el gate cierre. Decision en `docs/rfc/RFC-0012-ag-workers.md` y
+`docs/adr/0013-ag-workers-execution-model.md`. El alcance esta fijo; la entrega se
+secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
+
+### Criterios de entrada (4.6-D.1)
+
+- [x] RFC aprobado para `ag-workers`. Vease RFC-0012.
+- [x] ADR que fija el modelo de ejecucion y la autorizacion. Vease ADR-0013.
+- [x] `ag-mail` ya implementa el patron cola+reintentos+persistencia a extraer
+  (`crates/ag-mail/src/queue/`).
+- [x] `ag-data` expone pool y migraciones embebidas; `ag-observe` expone metricas/trazas.
+
+### Entregables (4.6-D.2)
+
+- [ ] S1 Fundaciones: crate `ag-workers`; `ids`, `job` (envelope + maquina de estados
+  + prioridad), `payload` (rmp + versionado + migrate), `error`/`outcome`, `handler`,
+  `registry`, `context` (CancellationToken). Sin runtime.
+- [ ] S2 Runtime en memoria: `MemoryQueue`, workers estaticos, loop de dispatch,
+  retry/backoff, timeout, DLQ en memoria, poison guard, shutdown gracioso, telemetria.
+- [ ] S3 Persistencia: `PostgresQueue` via `ag-data`, migraciones, leasing
+  `FOR UPDATE SKIP LOCKED`, heartbeat + reaper, `enqueue_in_tx`, DLQ persistente,
+  admision/backpressure (feature `postgres`).
+- [ ] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
+  acotados; pool CPU-bound (`spawn_blocking` + semaforo).
+- [ ] S5 Superficies: declaracion `worker` en el Anti-DSL + generadores; CLI
+  `ag workers ...` (feature-gated); ejemplos.
+- [ ] S6 Modo producer + edge: feature `producer`; enqueue-only para `ag-edge`/serverless.
+- [ ] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+
+### Criterios de salida (4.6-D.3)
+
+- [ ] Jobs tipados se ejecutan sobre el backend en memoria (`ag dev`) con retry,
+  backoff y DLQ.
+- [ ] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
+  `enqueue_in_tx` commitea job + escrituras del llamador de forma atomica (test de rollback).
+- [ ] El poison guard convierte un job en crash-loop en una entrada acotada del DLQ.
+- [ ] Los jobs por intervalo disparan una sola vez entre N procesos (test singleton).
+- [ ] La declaracion `worker` del DSL compila y genera payloads + stubs de handler.
+- [ ] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated).
+- [ ] Cobertura >= 80%; targets de fuzz para la gramatica `worker` y el decoder de payload.
+- [ ] Cero dependencias circulares (CI verde).
+- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
+  `cargo deny check` verdes.
+- [ ] Sin afirmacion de produccion/GA antes de que el gate pre-Fase 5 lo permita.
+
 ## Fase 5 - ag-cloud
 
 Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`.

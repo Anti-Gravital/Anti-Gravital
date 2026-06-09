@@ -329,6 +329,25 @@ name = "ag-wasm-host"
 version = "0.0.0"
 
 [[package]]
+name = "ag-workers"
+version = "0.0.0"
+dependencies = [
+ "ag-data",
+ "async-trait",
+ "chrono",
+ "metrics",
+ "proptest",
+ "rmp-serde",
+ "serde",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"

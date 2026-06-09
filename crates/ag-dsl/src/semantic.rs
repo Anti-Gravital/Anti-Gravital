@@ -576,6 +576,18 @@ fn check_validation_annotations(
                         ));
                     }
                 }
+                if let Annotation::Regex(pattern) = &ann.value {
+                    if let Err(error) = regex::Regex::new(pattern) {
+                        diags.push(Diagnostic::semantic_error_with_hint(
+                            ann.span.clone(),
+                            format!(
+                                "@regex en '{}.{}': patron invalido: {error}",
+                                parent_name, field_name
+                            ),
+                            "corrige el patron para que sea una expresion regular valida",
+                        ));
+                    }
+                }
             }
             Annotation::Min(n) => {
                 if !string_and_numeric.contains(field_ty) {
@@ -1141,6 +1153,20 @@ model Bad {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("@regex")));
+    }
+
+    #[test]
+    fn v03_invalid_regex_pattern_is_error() {
+        let src = r#"
+model Bad {
+    id   UUID   @primary @auto
+    name String @regex("[")
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags.iter().any(|d| {
+            d.is_error() && d.message.contains("patron invalido") && d.message.contains("Bad.name")
+        }));
     }
 
     #[test]

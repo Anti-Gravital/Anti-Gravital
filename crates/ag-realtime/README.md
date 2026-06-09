@@ -87,10 +87,19 @@ let app = Router::new()
 | `NATS_KEY_PATH` | `""` | Ruta a la clave cliente (mtls) |
 | `NATS_JETSTREAM` | `false` | Activar JetStream |
 
+## Persistencia opcional de eventos
+
+La feature `event-persistence` habilita un buffer NDJSON append-only para
+eventos criticos. `EventBuffer::append_async` mantiene el I/O de archivos
+fuera de los workers de Tokio. Durante replay, registros truncados, campos
+ausentes o tipos invalidos detienen el proceso con `InvalidData` y numero de
+linea; un fallo de publicacion se propaga como `BrokenPipe`.
+
 ## Features
 
 - `nats-external` -- cliente NATS externo via `async-nats 0.48`.
   Habilitado por defecto. Requerir `NATS_MODE=external` en runtime.
+- `event-persistence` -- buffer NDJSON local para eventos criticos.
 
 ## Referencias
 

@@ -18,6 +18,7 @@ members = [
     "crates/ag-wasm-host",
     "crates/ag-lsp",
     "crates/ag-mail",
+    "crates/ag-workers",
     "crates/ag-domains",
     "crates/ag-edge",
     "examples/todo-api",
@@ -52,6 +53,7 @@ publish = false
 ag-core = { path = "crates/ag-core", version = "0.0.0" }
 ag-data = { path = "crates/ag-data", version = "0.0.0" }
 ag-dsl = { path = "crates/ag-dsl", version = "0.0.0" }
+ag-workers = { path = "crates/ag-workers", version = "0.0.0" }
 axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query", "ws"] }
 async-nats = "0.48"
 rmp-serde  = "1"
@@ -75,6 +77,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
+# Cooperative cancellation (CancellationToken) for ag-workers job handlers.
+# Justified by RFC-0012 / ADR-0013; minimal, first-party, no extra features needed.
+tokio-util = { version = "0.7", default-features = false }
 toml = "0.8"
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "request-id", "util", "cors"] }

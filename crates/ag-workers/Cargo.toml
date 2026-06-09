@@ -1,0 +1,58 @@
+[package]
+name = "ag-workers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Rust-native background execution engine for Anti-Gravital: typed jobs, retries, dead-letter queue, scheduling and worker pools (in-memory default; PostgreSQL durable backend opt-in)"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+# In-memory backend + observability are the defaults; PostgreSQL is opt-in.
+# Native by default (ADR-0009): no external service is required to use the crate.
+default = ["memory", "metrics"]
+# In-memory queue backend (development, tests, single-process apps).
+memory = []
+# Emit ag_workers_* metrics through the `metrics` crate (ag-observe).
+metrics = ["dep:metrics"]
+# Durable PostgreSQL backend through ag-data (pool + embedded migrations).
+postgres = ["dep:ag-data", "dep:sqlx"]
+# Enqueue-only mode for edge/serverless targets that cannot host workers.
+producer = []
+# Delayed and fixed-interval scheduling with distributed-singleton claim.
+scheduler = []
+# NullBackend, deterministic clock and fixtures for downstream crate tests.
+test-utils = []
+
+[dependencies]
+async-trait = { workspace = true }
+serde = { workspace = true }
+rmp-serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# Optional: observability counters/histograms/gauges.
+metrics = { workspace = true, optional = true }
+
+# Optional: durable PostgreSQL backend (feature `postgres`).
+ag-data = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+serde = { workspace = true, features = ["derive"] }
+proptest = { workspace = true }

@@ -7,6 +7,30 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-workers: RFC-0012 + ADR-0013 (fundacion documental, Fase 4.6-D)
+
+Anadido:
+
+- `docs/rfc/RFC-0012-ag-workers.md`: motor de ejecucion en segundo plano nativo
+  (jobs tipados, reintentos, DLQ, scheduling, worker pools). Estandar diferido,
+  precedente `ag-mail` (`ADR-0007`). Alcance fijo; entrega secuenciada S1-S7.
+- `docs/adr/0013-ag-workers-execution-model.md`: modelo de ejecucion (maquina de
+  estados, dos backends, poison guard bajo `panic = "abort"`, scheduling singleton,
+  semantica at-least-once) y autorizacion del BDFL para implementar con el gate
+  pre-Fase 5 abierto, sin afirmacion de produccion/GA hasta que cierre.
+- `docs/modules/ag-workers/README.md`: documentacion del modulo.
+- `docs/architecture/05-ecosistema-modulos.md`: fila `ag-workers` (estandar diferido)
+  y nota de conteo del ecosistema.
+- `docs/architecture/08-modulos-batteries-included.md`: seccion 8.10.
+- `docs/roadmap/STATUS.md`: Fase 4.6-D con criterios de entrada/entregables/salida.
+- `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`: fila 4.6 en el calendario y nota de fase.
+
+Decisiones fijadas (RFC-0012 seccion 9, ADR-0013): documentacion primero y codigo en
+etapas S1-S7; nueva dependencia de workspace `tokio-util` para `CancellationToken`;
+`enqueue_in_tx` acepta `&mut sqlx::Transaction` tras la feature `postgres` (sin `AgTx`
+en `ag-data`; brecha rastreada como Issue `tech-debt`, regla 29). No se anaden
+entradas a `docs/DEBT.md` (congelado).
+
 ### ag-edge: listener de upgrade HTTP->HTTPS (cierra issue #91)
 
 Anadido:

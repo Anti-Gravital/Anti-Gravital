@@ -157,6 +157,52 @@ resolvers públicos antes de marcar una operación como exitosa, bloqueando
 
 Detalle completo en `docs/modules/ag-domains/`.
 
+### 8.10 `ag-workers` — Ejecución en segundo plano (estándar diferido)
+
+`ag-workers` es el motor de ejecución en segundo plano del ecosistema. Su trabajo es
+sacar el trabajo que no pertenece al ciclo de request fuera de los handlers HTTP —
+jobs en background, reintentos, dead-letter, tareas programadas y worker pools —
+preservando las propiedades del framework: ejecución nativa en Rust sin runtime
+externo obligatorio, contratos schema-first, fronteras de crate acíclicas,
+observabilidad nativa y simplicidad operacional (un solo binario por defecto).
+
+La decisión arquitectónica central es **extraer un patrón ya probado, no inventar uno
+nuevo**. `ag-mail` ya implementa cola con reintentos, backoff exponencial, backend
+persistente sobre `ag-data` y ejecución de workers (`crates/ag-mail/src/queue/`).
+`ag-workers` generaliza ese patrón a un crate compartido para que cada futuro
+consumidor (entrega de webhooks, renovación ACME, post-procesado de subidas,
+notificaciones, reportes) construya sobre un único substrato aburrido, durable y
+observable, en lugar de reimplementar su propia cola.
+
+El modelo mental es **el job**: una unidad tipada de trabajo diferido con identidad,
+cola, payload versionado (`rmp-serde`) y política de reintentos. El runtime lo ejecuta
+vía estrategias distintas (async sobre Tokio; CPU-bound sobre `spawn_blocking` acotado
+por semáforo, nunca `rayon`) pero el contrato es uniforme. Hay dos backends de primera
+clase: en memoria (por defecto, nativo) y PostgreSQL (durable, vía `ag-data`, feature
+`postgres`, con `FOR UPDATE SKIP LOCKED` para leasing concurrente). El **enqueue
+transaccional** (`enqueue_in_tx`) inserta el job dentro de la misma transacción que las
+escrituras del llamador, dando la propiedad de transactional-outbox sin tabla de outbox
+separada.
+
+Dos propiedades son críticas. Primera: el perfil de release usa `panic = "abort"`, así
+que el motor **no** promete aislamiento total de pánico; un job que entra en pánico
+aborta el proceso, y el backend durable más la expiración de lease lo hacen recuperable.
+Segunda, derivada de la anterior: un **circuit breaker de poison-job** incrementa el
+contador de intentos en el momento del lease y enruta directamente al DLQ cualquier job
+que supere `panic_guard_attempts`, convirtiendo un crash-loop infinito en una entrada
+acotada y observable del DLQ. El scheduling de intervalos usa un claim singleton
+(`FOR UPDATE SKIP LOCKED` sobre `ag_worker_schedules`) para disparar una sola vez bajo
+escalado horizontal. Las etiquetas de métricas están acotadas; `tenant_id` nunca es una
+etiqueta.
+
+`ag-workers` se declara en el schema con el bloque `worker` (paralelo a `event`,
+v0.6), que genera payloads tipados, stubs de `JobHandler`, el registro cerrado y, con la
+feature `postgres`, migraciones SQL. Es **estándar diferido** (precedente `ag-mail`,
+`ADR-0007`): producción-grade pero no instalado por defecto en los templates oficiales;
+se incorpora cuando el `schema.ag` declara un `worker` o una feature lo habilita.
+
+Decisión en `RFC-0012` y `ADR-0013`. Detalle completo en `docs/modules/ag-workers/`.
+
 
 ---
 

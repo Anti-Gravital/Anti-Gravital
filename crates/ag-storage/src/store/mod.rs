@@ -10,7 +10,12 @@ pub mod server;
 
 use crate::{StorageBackend, StorageConfig, StorageError};
 use bytes::Bytes;
+use cap_fs_ext::{FollowSymlinks, OpenOptionsFollowExt};
+use cap_std::ambient_authority;
+use cap_std::fs::{Dir, OpenOptions};
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
 // NativeStore: implementation over local filesystem
@@ -22,6 +27,7 @@ use std::path::{Component, Path, PathBuf};
 /// Every operation passes through [`validate_key`] and [`resolve_path`] before I/O.
 pub struct NativeStore {
     pub(crate) root: PathBuf,
+    dir: Arc<Dir>,
     max_object_size: usize,
 }
 
@@ -41,57 +47,103 @@ impl NativeStore {
                 limit: self.max_object_size,
             });
         }
-        let dest = resolve_path(&self.root, key)?;
-        if let Some(parent) = dest.parent() {
-            tokio::fs::create_dir_all(parent).await?;
-        }
-        // atomic write-then-rename: avoids reads of partially written files
+        validate_key(key)?;
+        let dir = Arc::clone(&self.dir);
+        let key = PathBuf::from(key);
         let mut nonce = [0u8; 8];
         getrandom::getrandom(&mut nonce).unwrap_or_default();
-        let tmp = dest.with_file_name(format!(".tmp.{:016x}", u64::from_le_bytes(nonce)));
-        tokio::fs::write(&tmp, &data).await?;
-        tokio::fs::rename(&tmp, &dest).await?;
-        Ok(())
+
+        blocking_io(move || {
+            let (parent, name) = open_parent_dir(&dir, &key, true)?;
+            let tmp = format!(".tmp.{:016x}", u64::from_le_bytes(nonce));
+            let mut options = OpenOptions::new();
+            options
+                .write(true)
+                .create_new(true)
+                .follow(FollowSymlinks::No);
+            let result = (|| {
+                let mut file = parent.open_with(&tmp, &options)?;
+                file.write_all(&data)?;
+                file.sync_all()?;
+                parent.rename(&tmp, &parent, &name)
+            })();
+            if result.is_err() {
+                let _ = parent.remove_file(&tmp);
+            }
+            result
+        })
+        .await
     }
 
     /// Retrieves the content of the object with key `key`.
     pub async fn get(&self, key: &str) -> Result<Bytes, StorageError> {
-        let path = resolve_path(&self.root, key)?;
-        match tokio::fs::read(&path).await {
+        validate_key(key)?;
+        let dir = Arc::clone(&self.dir);
+        let key_owned = key.to_owned();
+        match blocking_io(move || {
+            let (parent, name) = open_parent_dir(&dir, Path::new(&key_owned), false)?;
+            let mut options = OpenOptions::new();
+            options.read(true).follow(FollowSymlinks::No);
+            let mut file = parent.open_with(name, &options)?;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut file, &mut data)?;
+            Ok(data)
+        })
+        .await
+        {
             Ok(data) => Ok(Bytes::from(data)),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Err(StorageError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
                 Err(StorageError::NotFound(key.to_owned()))
             }
-            Err(e) => Err(StorageError::Io(e)),
+            Err(error) => Err(error),
         }
     }
 
     /// Deletes the object with key `key`.
     pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
-        let path = resolve_path(&self.root, key)?;
-        match tokio::fs::remove_file(&path).await {
+        validate_key(key)?;
+        let dir = Arc::clone(&self.dir);
+        let key_owned = key.to_owned();
+        match blocking_io(move || {
+            let (parent, name) = open_parent_dir(&dir, Path::new(&key_owned), false)?;
+            parent.remove_file(name)
+        })
+        .await
+        {
             Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Err(StorageError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
                 Err(StorageError::NotFound(key.to_owned()))
             }
-            Err(e) => Err(StorageError::Io(e)),
+            Err(error) => Err(error),
         }
     }
 
     /// Returns `true` if an object with key `key` exists.
     pub async fn exists(&self, key: &str) -> Result<bool, StorageError> {
-        let path = resolve_path(&self.root, key)?;
-        Ok(tokio::fs::try_exists(&path).await.unwrap_or(false))
+        validate_key(key)?;
+        let dir = Arc::clone(&self.dir);
+        let key = key.to_owned();
+        blocking_io(move || {
+            let (parent, name) = match open_parent_dir(&dir, Path::new(&key), false) {
+                Ok(value) => value,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+                Err(error) => return Err(error),
+            };
+            match parent.symlink_metadata(name) {
+                Ok(metadata) => Ok(metadata.is_file()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+                Err(error) => Err(error),
+            }
+        })
+        .await
     }
 
     /// Lists object keys under `prefix`.
     pub async fn list(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError> {
-        let root = self.root.clone();
+        let dir = Arc::clone(&self.dir);
         let prefix_str = prefix.map(|p| p.trim_end_matches('/').to_owned());
 
-        let keys = tokio::task::spawn_blocking(move || collect_keys(&root, &root))
-            .await
-            .map_err(|e| StorageError::Io(std::io::Error::other(e.to_string())))??;
+        let keys = blocking_io(move || collect_keys(&dir, Path::new(""))).await?;
 
         Ok(match prefix_str {
             Some(p) => keys
@@ -129,8 +181,11 @@ impl AgStore {
             StorageBackend::Native => {
                 std::fs::create_dir_all(&config.root_path).map_err(StorageError::Io)?;
                 let root = config.root_path.canonicalize().map_err(StorageError::Io)?;
+                let dir =
+                    Dir::open_ambient_dir(&root, ambient_authority()).map_err(StorageError::Io)?;
                 Ok(AgStore::Native(NativeStore {
                     root,
+                    dir: Arc::new(dir),
                     max_object_size: config.max_object_size_mb as usize * 1024 * 1024,
                 }))
             }
@@ -265,30 +320,72 @@ fn normalize_path(path: &Path) -> PathBuf {
     out
 }
 
-/// Recursively walks `dir` and returns paths relative to `root`.
-/// Ignores temporary files with the `.tmp.` prefix.
-fn collect_keys(
-    dir: &std::path::Path,
-    root: &std::path::Path,
-) -> Result<Vec<String>, StorageError> {
-    let mut keys = Vec::new();
-    if !dir.exists() {
-        return Ok(keys);
+fn open_parent_dir(
+    root: &Dir,
+    key: &Path,
+    create: bool,
+) -> std::io::Result<(Dir, std::ffi::OsString)> {
+    let name = key
+        .file_name()
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "missing file name"))?
+        .to_owned();
+    let mut current = root.try_clone()?;
+    if let Some(parent) = key.parent() {
+        for component in parent.components() {
+            let Component::Normal(segment) = component else {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "invalid path component",
+                ));
+            };
+            match current.symlink_metadata(segment) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        "symbolic link path component rejected",
+                    ));
+                }
+                Ok(_) => {}
+                Err(error) if create && error.kind() == std::io::ErrorKind::NotFound => {
+                    current.create_dir(segment)?;
+                }
+                Err(error) => return Err(error),
+            }
+            current = current.open_dir(segment)?;
+        }
     }
-    for entry in std::fs::read_dir(dir).map_err(StorageError::Io)? {
-        let entry = entry.map_err(StorageError::Io)?;
-        let path = entry.path();
-        if path.is_dir() {
-            let mut sub = collect_keys(&path, root)?;
+    Ok((current, name))
+}
+
+async fn blocking_io<T, F>(operation: F) -> Result<T, StorageError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> std::io::Result<T> + Send + 'static,
+{
+    tokio::task::spawn_blocking(operation)
+        .await
+        .map_err(|error| StorageError::Io(std::io::Error::other(error.to_string())))?
+        .map_err(StorageError::Io)
+}
+
+/// Recursively walks a capability directory and returns relative object keys.
+/// Ignores temporary files with the `.tmp.` prefix and symbolic links.
+fn collect_keys(dir: &Dir, prefix: &Path) -> std::io::Result<Vec<String>> {
+    let mut keys = Vec::new();
+    for entry in dir.entries()? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let path = prefix.join(&name);
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            let child = entry.open_dir()?;
+            let mut sub = collect_keys(&child, &path)?;
             keys.append(&mut sub);
-        } else if path.is_file() {
-            let name = path.file_name().unwrap_or_default().to_string_lossy();
-            if name.starts_with(".tmp.") {
+        } else if file_type.is_file() {
+            if name.to_string_lossy().starts_with(".tmp.") {
                 continue;
             }
-            if let Ok(rel) = path.strip_prefix(root) {
-                keys.push(rel.to_string_lossy().replace('\\', "/"));
-            }
+            keys.push(path.to_string_lossy().replace('\\', "/"));
         }
     }
     Ok(keys)
@@ -302,17 +399,17 @@ pub fn resolve_path(root: &Path, key: &str) -> Result<PathBuf, StorageError> {
     validate_key(key)?;
     let canonical_root = root.canonicalize().map_err(StorageError::Io)?;
     let candidate = canonical_root.join(key);
-    let resolved = if candidate.exists() {
-        candidate.canonicalize().map_err(StorageError::Io)?
-    } else {
-        // Safe because validate_key (called above) already rejected all
-        // '.' and '..' segments. normalize_path is just additional defense.
-        normalize_path(&candidate)
-    };
-    if !resolved.starts_with(&canonical_root) {
+    let mut existing = candidate.as_path();
+    while !existing.exists() {
+        existing = existing
+            .parent()
+            .ok_or_else(|| StorageError::PathEscape(key.to_owned()))?;
+    }
+    let canonical_existing = existing.canonicalize().map_err(StorageError::Io)?;
+    if !canonical_existing.starts_with(&canonical_root) {
         return Err(StorageError::PathEscape(key.to_owned()));
     }
-    Ok(resolved)
+    Ok(normalize_path(&candidate))
 }
 
 // ---------------------------------------------------------------------------
@@ -386,6 +483,34 @@ mod tests {
             result,
             Err(StorageError::PathEscape(_)) | Err(StorageError::Io(_))
         ));
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn put_cannot_follow_parent_symlink_outside_root() {
+        let root = tempdir();
+        let outside = tempdir();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("escape")).unwrap();
+
+        let store = AgStore::new(&test_config(root.path())).unwrap();
+        let result = store.put("escape/new.txt", Bytes::from("secret")).await;
+
+        assert!(result.is_err());
+        assert!(!outside.path().join("new.txt").exists());
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn get_cannot_follow_parent_symlink_outside_root() {
+        let root = tempdir();
+        let outside = tempdir();
+        std::fs::write(outside.path().join("secret.txt"), b"secret").unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("escape")).unwrap();
+
+        let store = AgStore::new(&test_config(root.path())).unwrap();
+        let result = store.get("escape/secret.txt").await;
+
+        assert!(result.is_err());
     }
 
     // --- Functional tests ---

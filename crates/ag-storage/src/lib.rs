@@ -75,6 +75,7 @@ impl AgStorage {
     /// Creates a new instance. If `config.server_mode` is `true`, starts
     /// the HTTP server in the background via `tokio::spawn`.
     pub async fn new(config: StorageConfig) -> Result<Self, StorageError> {
+        config.validate_server_security()?;
         let store = std::sync::Arc::new(AgStore::new(&config)?);
         if config.server_mode {
             let srv_store = std::sync::Arc::clone(&store);
@@ -124,8 +125,8 @@ impl AgStorage {
     pub fn object_url(&self, key: &str) -> Result<String, StorageError> {
         if self.config.server_mode {
             Ok(format!(
-                "http://localhost:{}/v1/objects/{}",
-                self.config.server_port, key
+                "http://{}:{}/v1/objects/{}",
+                self.config.server_bind, self.config.server_port, key
             ))
         } else {
             let path = self.config.root_path.join(key);

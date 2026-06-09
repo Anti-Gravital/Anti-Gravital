@@ -3,16 +3,20 @@
 
 #![allow(unused_variables, clippy::unused_async)]
 
-use axum::{extract::{Path, State}, Json};
+use axum::extract::State;
+use axum::extract::Path;
+use axum::Json;
+use super::AppState;
+use super::types::*;
 
-/// GET /users — ListUsers
+/// GET /users - ListUsers
 pub async fn list_users(
     State(state): State<AppState>
 ) -> Result<Json<UserResponse>, axum::http::StatusCode> {
     todo!()
 }
 
-/// GET /users/{id} — GetUser
+/// GET /users/{id} - GetUser
 pub async fn get_user(
     State(state): State<AppState>,
     Path(id): Path<String>
@@ -20,7 +24,7 @@ pub async fn get_user(
     todo!()
 }
 
-/// POST /users — CreateUser
+/// POST /users - CreateUser
 pub async fn create_user(
     State(state): State<AppState>,
     Json(body): Json<CreateUserRequest>
@@ -28,14 +32,14 @@ pub async fn create_user(
     todo!()
 }
 
-/// GET /products — ListProducts
+/// GET /products - ListProducts
 pub async fn list_products(
     State(state): State<AppState>
 ) -> Result<Json<ProductResponse>, axum::http::StatusCode> {
     todo!()
 }
 
-/// GET /products/{id} — GetProduct
+/// GET /products/{id} - GetProduct
 pub async fn get_product(
     State(state): State<AppState>,
     Path(id): Path<String>
@@ -43,7 +47,7 @@ pub async fn get_product(
     todo!()
 }
 
-/// POST /products — CreateProduct
+/// POST /products - CreateProduct
 pub async fn create_product(
     State(state): State<AppState>,
     Json(body): Json<CreateProductRequest>
@@ -51,7 +55,7 @@ pub async fn create_product(
     todo!()
 }
 
-/// POST /orders — CreateOrder
+/// POST /orders - CreateOrder
 pub async fn create_order(
     State(state): State<AppState>,
     Json(body): Json<CreateOrderRequest>
@@ -59,7 +63,7 @@ pub async fn create_order(
     todo!()
 }
 
-/// GET /orders/{id} — GetOrder
+/// GET /orders/{id} - GetOrder
 pub async fn get_order(
     State(state): State<AppState>,
     Path(id): Path<String>

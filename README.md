@@ -99,7 +99,7 @@ ag schema lint --schema schema.ag
 ag generate --schema schema.ag --output generated
 ```
 
-The generator writes a Rust module, SQL migration, TypeScript types/client, OpenAPI and optional AsyncAPI artifacts. Generated handler bodies are deliberate stubs and must be implemented by the application. Rust-side `@regex` request validation is not yet emitted as executable code; track this under issue #70.
+The generator writes a Rust module, SQL migration, TypeScript types/client, OpenAPI and optional AsyncAPI artifacts. Generated handler bodies are deliberate stubs and must be implemented by the application. Rust-side `@regex` request validation is executable and caches each compiled pattern. Generated projects using it must declare `regex = "1"`.
 
 ### Evidence-based roadmap
 
@@ -247,7 +247,7 @@ Version 1.0 estable estimada: final de Fase 10, alrededor del mes 30. Consulta
 - El fuzzing manual de 24 horas sigue pendiente.
 - Falta evidencia final de rendimiento sobre codigo estabilizado.
 - Los handlers Rust generados son stubs intencionales.
-- La validacion Rust ejecutable para `@regex` sigue pendiente en el issue #70.
+- La validacion Rust para `@regex` es ejecutable y cachea cada patron compilado; los proyectos generados que la usen deben declarar `regex = "1"`.
 - `ag-domains` tiene trabajo activo y esta auditoria no modifica su implementacion.
 
 ## License / Licencia

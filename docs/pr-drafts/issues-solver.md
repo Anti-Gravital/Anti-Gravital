@@ -1,18 +1,18 @@
-# fix(ag-storage): close critical storage security issues
+# fix(ag-dsl): make generated Rust validation executable
 
 ## Summary
 
-Resolves three security issues in the native storage backend and embedded HTTP
-server: parent-symlink path escape, unauthenticated public binding, and inline
-rendering of uploaded active content.
+Completes the generated-Rust blocker by emitting executable, cached `@regex`
+validation, rejecting malformed patterns during semantic analysis, and compiling
+a representative generated project in CI.
 
 ## Phase affected
 
-Phase 4 production hardening for `ag-storage`.
+Phase 3 generated-project exit criterion, preserving Phase 4 DSL extensions.
 
 ## Type of change
 
-- [x] Security fix
+- [ ] Security fix
 - [x] Bug fix
 - [x] Tests
 - [x] Documentation
@@ -21,52 +21,50 @@ Phase 4 production hardening for `ag-storage`.
 
 ## Changes
 
-- Native filesystem operations walk parent directories through directory
-  capabilities, reject symlink components, disable final symlink following,
-  and keep temporary writes plus rename inside the opened parent capability.
-- Server mode binds to `127.0.0.1` by default. A non-loopback bind without a
-  token fails during construction unless
-  `STORAGE_ALLOW_INSECURE_PUBLIC=true` is explicitly configured.
-- Uploaded HTML, HTM, and SVG retain their media type but are always returned
-  with `Content-Disposition: attachment`.
+- Validate `@regex` patterns during semantic analysis so malformed schemas fail
+  before code generation.
+- Emit one `OnceLock<regex::Regex>` per annotated field and execute it from the
+  generated `validate()` method.
+- Add an explicit `regex = "1"` dependency contract, justified by RFC-0014.
+- Regenerate the representative Rust fixture and exercise accepted and rejected
+  values in an integration test.
+- Document executable validation and the generated-project dependency contract.
 
 ## Related documents
 
-- `CLAUDE.md` sections 15, 16, 18, 19, 28, and 36
-- `docs/rfc/RFC-0013-capability-filesystem-confinement.md`
-- `docs/modules/ag-storage/README.md`
-- Issues #62, #63, and #64
+- `CLAUDE.md` sections 20, 26, 31, and 36
+- `docs/rfc/RFC-0014-regex-runtime-validation.md`
+- `docs/dsl/referencia-v01-v04.md`
+- Issues #70, #59, and #60
 
 ## Test plan
 
-- [x] `cargo test -p ag-storage`
-- [x] `cargo clippy -p ag-storage --all-targets -- -D warnings`
-- [x] `cargo fmt --all -- --check`
+- [x] `cargo test -p ag-dsl`
+- [x] `cargo test -p ag-generated-rust-fixture`
+- [x] `cargo clippy -p ag-dsl -p ag-generated-rust-fixture --all-targets -- -D warnings`
+- [x] `cargo fmt --all`
 - [x] `git diff --check`
-
-Verified result: 72 unit/property/integration tests and 2 doctests pass.
 
 ## Exit criteria advanced
 
-- [x] Parent symlinks cannot read or write outside the native storage root.
-- [x] Native filesystem validation and I/O are no longer a separable
-  canonicalize/open sequence.
-- [x] Public unauthenticated server configuration fails with an actionable
-  error unless an explicit unsafe override is present.
-- [x] Loopback development without authentication remains supported.
-- [x] HTML, HTM, and SVG responses include safe attachment headers.
+- [x] Generated modules use coherent ownership and imports.
+- [x] Authenticated handlers import the existing `Claims` extractor.
+- [x] A representative generated Rust project compiles and runs validation tests.
+- [x] `@regex` validation is executable and its dependency is explicit.
+- [x] Patterns are compiled once per field instead of once per request.
+- [x] Malformed patterns fail semantic analysis.
+- [x] Handler bodies remain developer-owned stubs.
+- [x] Generated comments remain in English.
 
 ## Final checklist
 
-- [x] Belongs to the approved Phase 4 storage scope.
-- [x] Security behavior and limitations are documented.
-- [x] Architecture boundaries remain unchanged.
-- [x] New dependencies are justified by RFC-0013.
-- [x] Tests cover the reported regressions.
+- [x] Belongs to the approved Phase 3 scope.
+- [x] New dependency is justified by RFC-0014.
+- [x] Tests cover malformed, matching, and non-matching patterns.
 - [x] Clippy passes with warnings denied.
 - [x] No unrelated changes are included.
 - [x] PR descriptor is present.
 
-Closes #62
-Closes #63
-Closes #64
+Closes #70
+Closes #59
+Closes #60

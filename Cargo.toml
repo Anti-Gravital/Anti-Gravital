@@ -63,6 +63,7 @@ clap = { version = "4", features = ["derive", "env"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros", "uuid", "json", "chrono"] }
 chumsky = "0.9"
 logos = "0.14"
+regex = "1"
 governor = "0.7"
 http = "1"
 jsonwebtoken = { version = "10", default-features = false, features = ["use_pem", "rust_crypto"] }

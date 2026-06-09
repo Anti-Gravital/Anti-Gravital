@@ -131,7 +131,7 @@ Reglas semanticas:
 | `@max(N)`       | String, Int, Float, Decimal | `char_length(col) <= N` o `col <= N` | `len() > N` o valor > N               |
 | `@length(N)`    | String                 | `char_length(col) = N`                    | `len() != N`                           |
 | `@email`        | String                 | `col ~ '^[^@]+@[^@]+\.[^@]+$'`           | Verifica presencia de `@` y `.`        |
-| `@regex("pat")` | String                 | `col ~ 'pat'` (regex POSIX PostgreSQL)    | Comentario con patron (requiere crate `regex`) |
+| `@regex("pat")` | String                 | `col ~ 'pat'` (regex POSIX PostgreSQL)    | Validacion ejecutable cacheada (requiere crate `regex`) |
 
 Restricciones semanticas:
 - `@min` > `@max` es error (se detecta en el mismo campo).
@@ -362,7 +362,7 @@ impl CreateAccountRequest {
 }
 ```
 
-Los campos con `@regex` emiten un comentario con el patron; requieren anadir la crate `regex` al proyecto para compilar la validacion.
+Los campos con `@regex` emiten validacion Rust ejecutable y cachean el patron compilado con `OnceLock`. El proyecto generado debe declarar `regex = "1"`.
 
 ---
 
@@ -613,7 +613,7 @@ ag dev
 
 ## Limitaciones conocidas de v0.1–v0.4
 
-- Los campos `@regex` generan un comentario en el metodo `validate()` de Rust pero no generan codigo ejecutable; se requiere anadir la crate `regex` manualmente.
+- Los campos `@regex` generan codigo ejecutable en `validate()`; cada patron se compila una vez con `OnceLock` y requiere declarar la crate `regex` en el proyecto generado.
 - `ag schema diff` clasifica cambios pero no genera SQL de migracion incremental; eso pertenece a DSL v0.9.
 - Los handler stubs generados contienen `todo!()` y deben implementarse manualmente.
 - Los campos virtuales en structs Rust se incluyen como `Option<M>` / `Vec<M>` pero los query builders para cargarlos no se generan aun; se implementaran en Fase 4 (`ag-data`).

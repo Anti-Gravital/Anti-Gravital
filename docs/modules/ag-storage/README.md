@@ -75,6 +75,8 @@ prevents parent symlinks and check/open races from escaping the configured root.
 - Confinamiento: `canonicalize()` + `starts_with(root)` tras resolucion de symlinks.
 - Escritura atomica: write-then-rename con nonce aleatorio.
 
+Uploaded HTML, HTM, and SVG retain their media type but are always returned with `Content-Disposition: attachment` to prevent active content from executing on the storage origin.
+
 ### Procesamiento de imagen (ImageProcessor)
 
 - `resize(width, height)`, `thumbnail(size)`, `to_webp(quality)`.

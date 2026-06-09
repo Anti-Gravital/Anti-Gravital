@@ -118,6 +118,8 @@ their final rename remain inside that same capability.
 - Rate limiting: 100 req/s por defecto, configurable.
 - Content-Type: lista positiva, extensiones desconocidas forzadas a `attachment`.
 
+Uploaded HTML, HTM, and SVG retain their media type but are always returned with `Content-Disposition: attachment` to prevent active content from executing on the storage origin.
+
 ## Referencias
 
 - Spec de diseno: `docs/superpowers/specs/2026-05-22-ag-storage-design.md`

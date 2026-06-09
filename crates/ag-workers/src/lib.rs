@@ -82,6 +82,8 @@ pub use outcome::{DeadLetterReason, JobOutcome, RetryDelay};
 pub use payload::{decode, decode_versioned, encode, JobPayload, PayloadBytes, PayloadError};
 pub use queue::dlq::DeadLetter;
 pub use queue::memory::MemoryQueue;
+#[cfg(feature = "postgres")]
+pub use queue::postgres::PostgresQueue;
 pub use queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 pub use registry::{RegistryError, WorkerRegistry, WorkerRegistryBuilder};
 pub use runtime::{execute_leased_job, ExecResult};

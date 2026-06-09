@@ -16,20 +16,25 @@ tracked as GitHub Issues (label `tech-debt`, CLAUDE.md rule 29). No production-r
 or GA claim is made until the pre-Phase-5 release gate
 (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) closes.
 
-Implemented so far (S1 — foundations):
+Implemented so far (S1-S3):
 
-- Job identity and value types (`JobId`, `WorkerId`, `QueueName`, `JobKind`,
-  `TenantId`).
-- Job model: `JobEnvelope`, `NewJob`, `JobStatus` with a normative transition table,
-  and `JobPriority`.
-- Versioned payload encoding (`rmp-serde`) with a `migrate` hook; decode/version
-  failures are reported as `InvalidPayload` (never panic, never silently drop).
-- Handler contract: `JobHandler`, `JobContext` (cooperative cancellation via
-  `tokio_util::sync::CancellationToken`), `JobOutcome`, `WorkerError` taxonomy.
-- Closed handler registry with type-erased dispatch and kind resolution.
+- S1 foundations: job identity types; `JobEnvelope`/`NewJob`/`JobStatus` with a
+  normative transition table and `JobPriority`; versioned `rmp-serde` payload encoding
+  with a `migrate` hook (decode/version failures become `InvalidPayload`, never a panic
+  or silent drop); the `JobHandler`/`JobContext` contract with cooperative cancellation;
+  the `WorkerError` taxonomy and `JobOutcome`; the closed type-erased registry.
+- S2 memory runtime: `QueueBackend` trait + in-memory backend (bounded depth, payload
+  limit, priority leasing, expired-lease reclaim); the dispatch core with the poison-job
+  circuit breaker correct under `panic = "abort"`; exponential backoff with
+  `max_delay`/`max_age`; a durable-never-drop DLQ; admission outcomes; graceful
+  shutdown; the static worker pool; feature-gated `ag_workers_*` telemetry.
+- S3 persistence (`postgres` feature): `PostgresQueue` over `ag-data` with embedded
+  migrations, `FOR UPDATE SKIP LOCKED` leasing, heartbeat, a reaper for expired leases,
+  transactional `enqueue_in_tx`, and a persistent dead-letter table. Integration tests
+  are `#[ignore]` and require `DATABASE_URL`.
 
-The runtime (queue backends, dispatch loop, poison guard, scheduling, CLI, DSL) lands
-in the following stages.
+Scheduling, dynamic/CPU-bound pools, the DSL `worker` declaration, the CLI, producer
+mode and the `ag-mail` migration land in the following stages (S4-S7).
 
 ## Features
 

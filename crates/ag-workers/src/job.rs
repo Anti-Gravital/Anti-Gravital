@@ -37,6 +37,29 @@ pub enum JobPriority {
     Critical,
 }
 
+impl JobPriority {
+    /// Returns the integer used to store and order priorities in the database
+    /// (`Critical` is highest, so `ORDER BY priority DESC` leases it first).
+    pub fn as_i16(self) -> i16 {
+        match self {
+            JobPriority::Low => 0,
+            JobPriority::Normal => 1,
+            JobPriority::High => 2,
+            JobPriority::Critical => 3,
+        }
+    }
+
+    /// Parses a stored priority integer, defaulting to `Normal` for unknown values.
+    pub fn from_i16(value: i16) -> Self {
+        match value {
+            0 => JobPriority::Low,
+            2 => JobPriority::High,
+            3 => JobPriority::Critical,
+            _ => JobPriority::Normal,
+        }
+    }
+}
+
 /// Lifecycle state of a job.
 ///
 /// The allowed transitions are normative: [`JobStatus::can_transition_to`] encodes the
@@ -80,6 +103,23 @@ impl JobStatus {
             JobStatus::Cancelled => "cancelled",
             JobStatus::Expired => "expired",
         }
+    }
+
+    /// Parses a status stored in the database column. Returns `None` for unknown text.
+    pub fn from_db_str(value: &str) -> Option<Self> {
+        Some(match value {
+            "scheduled" => JobStatus::Scheduled,
+            "queued" => JobStatus::Queued,
+            "leased" => JobStatus::Leased,
+            "running" => JobStatus::Running,
+            "succeeded" => JobStatus::Succeeded,
+            "retry_scheduled" => JobStatus::RetryScheduled,
+            "failed" => JobStatus::Failed,
+            "dead_lettered" => JobStatus::DeadLettered,
+            "cancelled" => JobStatus::Cancelled,
+            "expired" => JobStatus::Expired,
+            _ => return None,
+        })
     }
 
     /// Returns `true` if this is a terminal state (no further transitions allowed).

@@ -58,3 +58,5 @@ serde = { workspace = true, features = ["derive"] }
 proptest = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
+# For the #[ignore] PostgreSQL integration tests (require DATABASE_URL).
+sqlx = { workspace = true }

@@ -8,6 +8,8 @@
 
 pub mod dlq;
 pub mod memory;
+#[cfg(feature = "postgres")]
+pub mod postgres;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

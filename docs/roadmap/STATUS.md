@@ -362,7 +362,11 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
   `ag workers list` operativa (compila el schema y lista los workers; sin
   infraestructura). Pendientes: `ag workers run/dlq/enqueue` (requieren backend en vivo)
   y ejemplos `examples/workers-*`.
-- [ ] S6 Modo producer + edge: feature `producer`; enqueue-only para `ag-edge`/serverless.
+- [/] S6 Modo producer + edge: el patron enqueue-only esta documentado (un proceso
+  construye el backend y llama `enqueue`/`enqueue_in_tx` sin arrancar un `WorkerPool`;
+  ver `examples/workers-basic/README.md` y RFC-0012 seccion 17.4). Ejemplo
+  `examples/workers-basic` operativo (backend en memoria, pool estatico, shutdown).
+  Pendiente: wiring dedicado del feature `producer` con `ag-edge`.
 - [ ] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
 
 ### Criterios de salida (4.6-D.3)

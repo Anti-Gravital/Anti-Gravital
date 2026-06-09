@@ -1,0 +1,21 @@
+[package]
+name = "workers-basic"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Example: background jobs with ag-workers on the in-memory backend"
+
+[[bin]]
+name = "workers-basic"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-workers = { path = "../../crates/ag-workers", version = "0.0.0" }
+async-trait = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }

@@ -6757,6 +6757,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "workers-basic"
+version = "0.0.0"
+dependencies = [
+ "ag-workers",
+ "async-trait",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "writeable"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

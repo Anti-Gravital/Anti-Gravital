@@ -65,6 +65,9 @@ constante via fold XOR. Variable de entorno: `STORAGE_SIGN_SECRET`.
 
 ### Seguridad de path
 
+Native filesystem operations use an opened root-directory capability. This
+prevents parent symlinks and check/open races from escaping the configured root.
+
 - Validacion: rechaza `..`, bytes nulos, caracteres de control.
 - Confinamiento: `canonicalize()` + `starts_with(root)` tras resolucion de symlinks.
 - Escritura atomica: write-then-rename con nonce aleatorio.

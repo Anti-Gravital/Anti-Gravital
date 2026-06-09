@@ -100,6 +100,10 @@ Variable de entorno: `STORAGE_SIGN_SECRET` (string arbitrario).
 
 ## Seguridad
 
+Native filesystem operations are relative to an opened directory capability.
+Parent symlinks cannot escape the configured root, and temporary writes plus
+their final rename remain inside that same capability.
+
 - Validacion de clave: rechaza path traversal (`..`), bytes nulos, caracteres de control.
 - Confinamiento de path: canonicalizacion + verificacion `starts_with(root)` impide escape del directorio raiz.
 - Proteccion contra symlinks: `canonicalize()` resuelve symlinks antes del check.

@@ -38,7 +38,6 @@ The main rule is: **a phase is not considered concluded until all of its exit cr
 | 3     | Anti-DSL alpha (v0.1–v0.4)                 | 3 months           | Technical implementation complete |
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Technical implementation complete |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Technical implementation complete |
-| 4.6   | Native MTA expansion (`ag-mail`) and `ag-workers` background execution | 2 months | In progress |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -64,20 +63,7 @@ Phase 5 (`ag-cloud`) is next.
 `ADR-0007` after closing Phase 4. It does not modify the scope nor the
 deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA milestone, which
 remains at the end of Phase 5. The ecosystem count goes from 15 to 17
-crates with the incorporation of `ag-mail` and `ag-domains`, and has since grown
-additively with `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`).
-
-**Note on Phase 4.6-D (`ag-workers`).** Phase 4.6 is an **additive**,
-pre-Phase-5 extraction/hardening phase: the native MTA expansion of `ag-mail`
-(sub-phases 4.6-A `mta`, 4.6-C `api`, per `RFC-0009`) and `ag-workers`, the shared
-background execution engine (sub-phase 4.6-D, per `RFC-0012`/`ADR-0013`).
-`ag-workers` extracts the proven queue+retry+persistence pattern already in `ag-mail`
-into a first-class `estándar diferido` crate so future consumers stop re-implementing
-it. It is owner-authorized to proceed with the pre-Phase-5 gate open, additive and
-feature-gated, with **no production/GA claim** until the gate closes. The scope is
-fixed; delivery is sequenced in stages S1-S7. It does not advance the v0.5 BETA
-milestone, which remains at the end of Phase 5. (Spanish mirror pending; English is
-canonical per `ADR-0008`.)
+crates with the incorporation of `ag-mail` and `ag-domains`.
 
 > Phases 0-4.5 are technically implemented. Outstanding tech debt that must be
 > closed before Phase 5 is tracked in `docs/DEBT.md` (persistent mail queue,

@@ -1,7 +1,7 @@
 //! Static worker pools.
 //!
 //! A [`WorkerPool`] runs a fixed number of long-lived workers that lease from one queue
-//! and dispatch jobs through [`execute_leased_job`](crate::runtime::execute_leased_job).
+//! and dispatch jobs through [`execute_leased_job`].
 //! Workers stop leasing as soon as shutdown is triggered and exit once their in-flight
 //! job finishes (graceful shutdown never loses a leased durable job: it becomes
 //! leasable again after its lease expires).

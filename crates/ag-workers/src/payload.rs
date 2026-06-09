@@ -63,15 +63,6 @@ pub enum PayloadError {
         /// Version recorded on the stored job.
         found: u16,
     },
-
-    /// The payload exceeds the configured maximum size.
-    #[error("payload too large: {actual} bytes exceeds limit of {limit} bytes")]
-    TooLarge {
-        /// Encoded size that was rejected.
-        actual: usize,
-        /// Configured maximum.
-        limit: usize,
-    },
 }
 
 /// Encodes a typed payload into [`PayloadBytes`].

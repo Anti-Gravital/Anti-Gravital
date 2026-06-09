@@ -38,11 +38,12 @@ use tower::ServiceBuilder;
 
 /// Starts the HTTP server and blocks until the process ends.
 pub async fn run_server(store: Arc<AgStore>, config: &StorageConfig) -> Result<(), StorageError> {
-    let addr = format!("0.0.0.0:{}", config.server_port);
-    let listener = tokio::net::TcpListener::bind(&addr)
+    config.validate_server_security()?;
+    let addr = std::net::SocketAddr::new(config.server_bind, config.server_port);
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(StorageError::Io)?;
-    tracing::info!(port = config.server_port, "ag-storage server escuchando");
+    tracing::info!(%addr, authenticated = !config.store_token.is_empty(), "ag-storage server listening");
     let app = build_router(store, config);
     axum::serve(listener, app)
         .await

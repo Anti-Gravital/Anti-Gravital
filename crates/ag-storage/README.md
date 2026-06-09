@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Modo servidor HTTP
 
 ```bash
-STORAGE_SERVER=true STORAGE_PORT=4280 cargo run
+STORAGE_SERVER=true STORAGE_BIND=127.0.0.1 STORAGE_PORT=4280 cargo run
 ```
 
 ```
@@ -82,8 +82,10 @@ Variable de entorno: `STORAGE_SIGN_SECRET` (string arbitrario).
 | `STORAGE_BACKEND` | `native` | `native`, `s3` (feature) |
 | `STORAGE_ROOT` | `./ag-store-data` | Directorio raiz (native) |
 | `STORAGE_SERVER` | `false` | Levantar servidor HTTP |
+| `STORAGE_BIND` | `127.0.0.1` | Direccion de escucha; loopback por defecto |
 | `STORAGE_PORT` | `4280` | Puerto del servidor |
-| `STORE_TOKEN` | `""` | Bearer token (vacio = sin auth) |
+| `STORE_TOKEN` | `""` | Bearer token; vacio solo se permite en loopback |
+| `STORAGE_ALLOW_INSECURE_PUBLIC` | `false` | Permite explicitamente bind publico sin token |
 | `STORAGE_MAX_OBJECT_SIZE_MB` | `100` | Tamano maximo de objeto |
 | `STORAGE_RATE_LIMIT_RPS` | `100` | Requests/segundo del servidor |
 | `STORAGE_SIGN_SECRET` | `""` | Secreto para URLs firmadas |
@@ -99,6 +101,11 @@ Variable de entorno: `STORAGE_SIGN_SECRET` (string arbitrario).
 - `s3` -- Adaptadores AWS S3 y MinIO via `object_store 0.11`.
 
 ## Seguridad
+
+A non-loopback `STORAGE_BIND` requires `STORE_TOKEN`. Starting with a
+public bind and an empty token returns a configuration error before the server
+task starts. `STORAGE_ALLOW_INSECURE_PUBLIC=true` is an explicit unsafe escape
+hatch for controlled environments.
 
 Native filesystem operations are relative to an opened directory capability.
 Parent symlinks cannot escape the configured root, and temporary writes plus

@@ -55,7 +55,10 @@ POST   /v1/copy?from=&to=
 GET    /v1/health
 ```
 
-Bearer token configurable via `STORE_TOKEN`. Rate limiting 100 req/s.
+The server binds to `127.0.0.1` by default. A non-loopback `STORAGE_BIND`
+requires a non-empty `STORE_TOKEN`; otherwise construction fails before the
+background server starts. `STORAGE_ALLOW_INSECURE_PUBLIC=true` is the explicit
+unsafe override. Rate limiting defaults to 100 req/s.
 
 ### URLs firmadas
 

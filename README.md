@@ -89,6 +89,7 @@ Available templates: `rest`, `realtime`, `fullstack`.
 | `ag domains check --domain HOST` | Check DNS propagation |
 | `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
 | `ag domains attach|instructions|export-zone|status|list|verify|detach` | Operate the implemented local domain attachment workflow |
+| `ag workers list` | List the background workers declared in a schema (ag-workers, RFC-0012) |
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.
 

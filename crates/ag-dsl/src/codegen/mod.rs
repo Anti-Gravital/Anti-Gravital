@@ -9,6 +9,7 @@ pub mod openapi_gen;
 pub mod rust_gen;
 pub mod sql_gen;
 pub mod ts_gen;
+pub mod worker_gen;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -109,6 +110,11 @@ pub fn generate(schema: &Schema) -> GeneratedFiles {
 
     // AsyncAPI 2.6 — only when there are declared events (v0.6)
     if let Some((path, content)) = async_api_gen::generate(schema) {
+        files.insert(path, content);
+    }
+
+    // Worker payloads + handler stubs — only when there are declared workers (v0.8)
+    if let Some((path, content)) = worker_gen::generate(schema) {
         files.insert(path, content);
     }
 

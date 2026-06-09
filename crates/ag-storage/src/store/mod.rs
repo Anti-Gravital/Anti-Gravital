@@ -10,6 +10,9 @@ pub mod server;
 
 use crate::{StorageBackend, StorageConfig, StorageError};
 use bytes::Bytes;
+use cap_std::ambient_authority;
+use cap_std::fs::{Dir, OpenOptions};
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 
 // ---------------------------------------------------------------------------
@@ -22,6 +25,7 @@ use std::path::{Component, Path, PathBuf};
 /// Every operation passes through [`validate_key`] and [`resolve_path`] before I/O.
 pub struct NativeStore {
     pub(crate) root: PathBuf,
+    dir: Arc<Dir>,
     max_object_size: usize,
 }
 

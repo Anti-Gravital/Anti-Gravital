@@ -49,6 +49,51 @@ pub struct Schema {
     pub mails: Vec<MailBlock>,
     /// DNS domain blocks (v0.7): `domain name { ... }`.
     pub domains: Vec<DomainBlock>,
+    /// Background worker declarations (v0.8): `worker Name { ... }`.
+    pub workers: Vec<WorkerDef>,
+}
+
+/// Background worker declaration (v0.8): `worker Name { queue ... input { ... } }`.
+///
+/// Generates a typed job payload and a `JobHandler` stub for the `ag-workers`
+/// background execution engine (RFC-0012).
+#[derive(Debug, Clone)]
+pub struct WorkerDef {
+    /// Worker name (becomes the job kind and the generated type/handler name).
+    pub name: Spanned<String>,
+    /// Queue the worker leases from.
+    pub queue: Option<String>,
+    /// Execution mode: `static` or `dynamic`.
+    pub mode: Option<String>,
+    /// Fixed/maximum concurrency (worker count).
+    pub concurrency: Option<u32>,
+    /// Per-job timeout, as a human duration string (e.g. `"30s"`).
+    pub timeout: Option<String>,
+    /// Retry policy, if a `retry { ... }` sub-block is present.
+    pub retry: Option<WorkerRetry>,
+    /// Typed payload fields, from the `input { ... }` sub-block.
+    pub input: Vec<FieldDef>,
+    /// Events emitted on success.
+    pub emits: Vec<String>,
+    /// Failure handling hint: `dlq`, `retry`, or `discard`.
+    pub on_failure: Option<String>,
+    /// Span of the full block.
+    pub span: Span,
+}
+
+/// Retry policy sub-block of a [`WorkerDef`].
+#[derive(Debug, Clone, Default)]
+pub struct WorkerRetry {
+    /// Maximum number of attempts.
+    pub max_attempts: Option<u32>,
+    /// Backoff strategy: `exponential` or `fixed`.
+    pub backoff: Option<String>,
+    /// Initial delay, as a duration string.
+    pub initial_delay: Option<String>,
+    /// Maximum delay, as a duration string.
+    pub max_delay: Option<String>,
+    /// Whether to apply jitter.
+    pub jitter: Option<bool>,
 }
 
 /// `config { ... }` block.

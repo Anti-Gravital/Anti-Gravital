@@ -357,8 +357,11 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
   admision/backpressure (feature `postgres`).
 - [ ] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
   acotados; pool CPU-bound (`spawn_blocking` + semaforo).
-- [ ] S5 Superficies: declaracion `worker` en el Anti-DSL + generadores; CLI
-  `ag workers ...` (feature-gated); ejemplos.
+- [/] S5 Superficies: declaracion `worker` en el Anti-DSL (v0.8) + generador
+  `worker_gen` (payloads tipados, stubs `JobHandler`, `register_workers`). CLI
+  `ag workers list` operativa (compila el schema y lista los workers; sin
+  infraestructura). Pendientes: `ag workers run/dlq/enqueue` (requieren backend en vivo)
+  y ejemplos `examples/workers-*`.
 - [ ] S6 Modo producer + edge: feature `producer`; enqueue-only para `ag-edge`/serverless.
 - [ ] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
 

@@ -1,9 +1,9 @@
-# fix(ag-realtime): reject corrupt replay records
+# fix(ag-realtime): bound persistent event appends
 
 ## Summary
 
-Makes persisted event replay fail explicitly on corrupt records and publication
-errors instead of creating empty events or hiding replay loss.
+Bounds async event-persistence work, preserves the persistent NDJSON handle, and
+adds an explicit flush barrier for graceful shutdown.
 
 ## Phase affected
 
@@ -20,17 +20,20 @@ Phase 4 production hardening for ag-realtime event persistence.
 
 ## Changes
 
-- Deserialize each NDJSON record into the strict PersistedEvent type with line
-  context on InvalidData failures.
-- Propagate replay publication failures as BrokenPipe with the affected subject.
-- Test malformed JSON, missing fields, wrong field types, and a closed publisher.
-- Document replay failure behavior for the event-persistence feature.
+- Keep EventBuffer::open source-compatible with a conservative default of 64
+  pending async appends.
+- Add open_with_max_pending_appends for explicit backpressure configuration.
+- Acquire a semaphore permit before submitting blocking filesystem work.
+- Add flush_async as a barrier for submitted writes during shutdown.
+- Document replay, backpressure, flush, and handle-drop behavior.
+- Test cap enforcement, permit reuse, concurrent integrity, and flushing.
 
 ## Related documents
 
 - CLAUDE.md sections 11, 13, 18, and 36
-- crates/ag-realtime/README.md
-- Issue #65
+- docs/DEBT.md DEBT-012
+- docs/modules/ag-realtime/README.md
+- Issue #73
 
 ## Test plan
 
@@ -41,19 +44,21 @@ Phase 4 production hardening for ag-realtime event persistence.
 
 ## Exit criteria advanced
 
-- [x] Invalid persisted fields return InvalidData with line context.
-- [x] Replay no longer synthesizes empty events from corrupt records.
-- [x] Publication errors stop replay and are returned to the caller.
-- [x] Tests cover malformed records and a closed publisher.
+- [x] Async appends do not block Tokio worker threads.
+- [x] Repeated appends reuse the persistent file handle.
+- [x] Pending blocking work is bounded and applies explicit backpressure.
+- [x] Concurrent append integrity is tested.
+- [x] Malformed and truncated replay behavior is documented and tested.
+- [x] Flush and shutdown behavior is documented and tested.
 
 ## Final checklist
 
 - [x] Belongs to the approved Phase 4 scope.
 - [x] No new dependencies are introduced.
-- [x] Public success-path behavior remains source-compatible.
-- [x] Tests cover the reported regressions.
+- [x] Existing EventBuffer::open and append_async callers remain compatible.
+- [x] Tests cover the reported concurrency regressions.
 - [x] Clippy passes with warnings denied.
 - [x] No unrelated changes are included.
 - [x] PR descriptor is present.
 
-Closes #65
+Closes #73

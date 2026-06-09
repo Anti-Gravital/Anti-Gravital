@@ -199,11 +199,13 @@ findings were fixed in-branch and are not listed here.
   file on every call; if used on an async hot path it blocked the runtime.
 - Impact: throughput degradation under high event rates when the feature is on.
 - Expected removal: async I/O or `spawn_blocking` plus a persistent file handle.
-- Status: closed (`audit/fases-0-4-5-consolidation`). `EventBuffer` now keeps a
-  persistent append handle and exposes `append_async` via `spawn_blocking`.
-  Verified with `cargo test -p ag-realtime --features event-persistence`
-  (33 passed, 1 ignored scalability gate, 1 doc-test). Source:
-  `pre-fase5-concurrency.md` S7-1.
+- Status: closed. `EventBuffer` keeps a persistent append handle;
+  `append_async` uses `spawn_blocking` behind a configurable semaphore
+  (default 64 pending appends), and `flush_async` is the shutdown barrier.
+  Tests cover bounded backpressure, permit reuse, concurrent integrity, replay
+  policy, and flush behavior. Verified with
+  `cargo test -p ag-realtime --features event-persistence` and Clippy.
+  Source: `pre-fase5-concurrency.md` S7-1; issue #73.
 
 ### DEBT-013 - native cache server has no connection cap
 - Reason: the RESP2 server spawned one task per connection without a limit.

@@ -10,7 +10,12 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use tokio::sync::Semaphore;
+
 use serde::{Deserialize, Serialize};
+
+/// Default maximum number of async appends that may be pending at once.
+pub const DEFAULT_MAX_PENDING_APPENDS: usize = 64;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct PersistedEvent {
@@ -23,11 +28,31 @@ struct PersistedEvent {
 pub struct EventBuffer {
     path: PathBuf,
     writer: Arc<Mutex<File>>,
+    pending_appends: Arc<Semaphore>,
+    max_pending_appends: usize,
 }
 
 impl EventBuffer {
     /// Opens (or creates) the buffer at path.
     pub fn open(path: impl AsRef<Path>) -> std::io::Result<Self> {
+        Self::open_with_max_pending_appends(path, DEFAULT_MAX_PENDING_APPENDS)
+    }
+
+    /// Opens the buffer with an explicit bound for pending async appends.
+    ///
+    /// When the bound is reached, append_async waits for capacity instead of
+    /// submitting more blocking filesystem work.
+    pub fn open_with_max_pending_appends(
+        path: impl AsRef<Path>,
+        max_pending_appends: usize,
+    ) -> std::io::Result<Self> {
+        if max_pending_appends == 0 || u32::try_from(max_pending_appends).is_err() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "max pending event appends must be between 1 and u32::MAX",
+            ));
+        }
+
         let path = path.as_ref().to_path_buf();
         if let Some(parent) = path
             .parent()
@@ -39,7 +64,14 @@ impl EventBuffer {
         Ok(Self {
             path,
             writer: Arc::new(Mutex::new(writer)),
+            pending_appends: Arc::new(Semaphore::new(max_pending_appends)),
+            max_pending_appends,
         })
+    }
+
+    /// Returns the maximum number of async appends that may be pending.
+    pub fn max_pending_appends(&self) -> usize {
+        self.max_pending_appends
     }
 
     /// Appends one event as a JSON line. Call before publishing a critical event.
@@ -57,15 +89,47 @@ impl EventBuffer {
     }
 
     /// Appends one event on Tokio's blocking pool.
+    ///
+    /// Pending work is bounded by max_pending_appends. When the limit is full,
+    /// this future waits and provides backpressure without blocking a Tokio
+    /// worker thread.
     pub async fn append_async(&self, subject: &str, payload: &[u8]) -> std::io::Result<()> {
+        let permit = Arc::clone(&self.pending_appends)
+            .acquire_owned()
+            .await
+            .map_err(|_| std::io::Error::other("event append limiter closed"))?;
         let writer = Arc::clone(&self.writer);
         let event = PersistedEvent {
             subject: subject.to_owned(),
             payload: payload.to_vec(),
         };
-        tokio::task::spawn_blocking(move || append_event(&writer, &event))
+        tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            append_event(&writer, &event)
+        })
+        .await
+        .map_err(|error| std::io::Error::other(format!("event writer task failed: {error}")))?
+    }
+
+    /// Flushes every append submitted before this call without blocking Tokio.
+    ///
+    /// This is the shutdown barrier for async callers: stop submitting work,
+    /// await flush_async, then drop all EventBuffer clones. No background writer
+    /// task remains after append futures complete.
+    pub async fn flush_async(&self) -> std::io::Result<()> {
+        let permit_count = u32::try_from(self.max_pending_appends)
+            .map_err(|_| std::io::Error::other("invalid event append limit"))?;
+        let permits = Arc::clone(&self.pending_appends)
+            .acquire_many_owned(permit_count)
             .await
-            .map_err(|error| std::io::Error::other(format!("event writer task failed: {error}")))?
+            .map_err(|_| std::io::Error::other("event append limiter closed"))?;
+        let writer = Arc::clone(&self.writer);
+        tokio::task::spawn_blocking(move || {
+            let _permits = permits;
+            lock_writer(&writer)?.flush()
+        })
+        .await
+        .map_err(|error| std::io::Error::other(format!("event flush task failed: {error}")))?
     }
 
     /// Reads all buffered events for replay on startup.
@@ -159,10 +223,112 @@ mod tests {
     }
 
     #[test]
+    fn open_uses_default_pending_append_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let buf = EventBuffer::open(dir.path().join("events.ndjson")).unwrap();
+        assert_eq!(buf.max_pending_appends(), DEFAULT_MAX_PENDING_APPENDS);
+    }
+
+    #[test]
+    fn explicit_pending_append_limit_is_validated() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("events.ndjson");
+        let error = EventBuffer::open_with_max_pending_appends(&path, 0).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+
+        let buf = EventBuffer::open_with_max_pending_appends(path, 3).unwrap();
+        assert_eq!(buf.max_pending_appends(), 3);
+    }
+
+    #[test]
     fn replay_new_file_is_empty() {
         let dir = tempfile::tempdir().unwrap();
         let buf = EventBuffer::open(dir.path().join("none.ndjson")).unwrap();
         assert!(buf.replay().unwrap().is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn async_append_limit_applies_backpressure_and_reuses_capacity() {
+        let dir = tempfile::tempdir().unwrap();
+        let buf = EventBuffer::open_with_max_pending_appends(dir.path().join("events.ndjson"), 1)
+            .unwrap();
+        let writer = Arc::clone(&buf.writer);
+        let (locked_tx, locked_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let blocker = std::thread::spawn(move || {
+            let writer_guard = lock_writer(&writer).unwrap();
+            locked_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+            drop(writer_guard);
+        });
+        locked_rx.recv().unwrap();
+
+        let first_buf = buf.clone();
+        let first = tokio::spawn(async move {
+            first_buf.append_async("first", b"1").await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+
+        let second_buf = buf.clone();
+        let mut second = tokio::spawn(async move {
+            second_buf.append_async("second", b"2").await.unwrap();
+        });
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(50), &mut second)
+                .await
+                .is_err(),
+            "second append must wait while the only permit is occupied"
+        );
+
+        release_tx.send(()).unwrap();
+        first.await.unwrap();
+        second.await.unwrap();
+        blocker.join().unwrap();
+
+        buf.append_async("third", b"3").await.unwrap();
+        buf.flush_async().await.unwrap();
+        assert_eq!(buf.replay().unwrap().len(), 3);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flush_async_waits_for_prior_appends() {
+        let dir = tempfile::tempdir().unwrap();
+        let buf = EventBuffer::open_with_max_pending_appends(dir.path().join("events.ndjson"), 1)
+            .unwrap();
+
+        let writer = Arc::clone(&buf.writer);
+        let (locked_tx, locked_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let blocker = std::thread::spawn(move || {
+            let writer_guard = lock_writer(&writer).unwrap();
+            locked_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+            drop(writer_guard);
+        });
+        locked_rx.recv().unwrap();
+
+        let append_buf = buf.clone();
+        let append = tokio::spawn(async move {
+            append_buf.append_async("flush", b"pending").await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+
+        let flush_buf = buf.clone();
+        let mut flush = tokio::spawn(async move {
+            flush_buf.flush_async().await.unwrap();
+        });
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(50), &mut flush)
+                .await
+                .is_err(),
+            "flush must wait for the prior append permit"
+        );
+
+        release_tx.send(()).unwrap();
+        append.await.unwrap();
+        flush.await.unwrap();
+        blocker.join().unwrap();
+        assert_eq!(buf.replay().unwrap().len(), 1);
     }
 
     #[tokio::test]
@@ -195,6 +361,22 @@ mod tests {
         std::fs::write(
             &path,
             b"{\"subject\":\"valid\",\"payload\":[1]}\n{not-json}\n",
+        )
+        .unwrap();
+
+        let buf = EventBuffer::open(&path).unwrap();
+        let error = buf.replay().unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("line 2"));
+    }
+
+    #[test]
+    fn truncated_final_record_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("events.ndjson");
+        std::fs::write(
+            &path,
+            b"{\"subject\":\"valid\",\"payload\":[1]}\n{\"subject\":",
         )
         .unwrap();
 

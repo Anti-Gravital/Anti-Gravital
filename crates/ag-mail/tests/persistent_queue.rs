@@ -2,6 +2,9 @@
 //! instance via TEST_DATABASE_URL. Ignored by default so CI without a DB stays green.
 
 #![cfg(feature = "queue-persistent")]
+// PersistentQueue is deprecated in favor of the `workers` feature (RFC-0012 S7/M4);
+// this legacy parity test keeps exercising it until it is removed.
+#![allow(deprecated)]
 
 use std::sync::Arc;
 

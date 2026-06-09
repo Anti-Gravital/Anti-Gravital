@@ -367,7 +367,18 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
   ver `examples/workers-basic/README.md` y RFC-0012 seccion 17.4). Ejemplo
   `examples/workers-basic` operativo (backend en memoria, pool estatico, shutdown).
   Pendiente: wiring dedicado del feature `producer` con `ag-edge`.
-- [ ] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+- [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+  M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
+  M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
+  clasificacion retriable/permanente) + `WorkersMailQueue` (impl `MailQueue`
+  enrutando la entrega a `ag-workers`); la logica de correo permanece en `ag-mail`;
+  43 tests verdes. M3: tests de paridad Postgres (`tests/workers_postgres.rs`,
+  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) que prueban
+  persistencia como `kind=mail.delivery`, entrega y supervivencia a reinicio.
+  M4: la cola generica duplicada (`queue::store::PersistentQueue`,
+  `queue-persistent`) queda marcada `#[deprecated]` hacia el feature `workers`; su
+  eliminacion se difiere hasta verificar la paridad contra una base de datos viva
+  (seguimiento en GitHub Issue #103, no en `docs/DEBT.md`).
 
 ### Criterios de salida (4.6-D.3)
 

@@ -21,6 +21,9 @@ Phase 4.6-D (additive pre-Phase-5 extraction/hardening, sibling of 4.6-A `mta` a
 - [x] DSL change (additive `worker` declaration in `ag-dsl`)
 - [x] CLI change (additive `ag workers` subcommands, feature-gated)
 - [x] Test (unit, integration via testcontainers, property, fuzz targets)
+- [x] Cross-crate migration (S7): additive `workers`/`workers-postgres` features in
+  `ag-mail` routing generic mail delivery through `ag-workers`; the duplicated
+  `queue-persistent` generic queue is deprecated (not yet removed)
 
 ## Related documents
 
@@ -41,6 +44,11 @@ Phase 4.6-D (additive pre-Phase-5 extraction/hardening, sibling of 4.6-A `mta` a
   lease-expiry + reaper, retry across restart, DLQ persistence, `enqueue_in_tx` rollback,
   scheduler singleton across N processes)
 - [ ] `cargo test -p ag-dsl worker` (parse + semantic + generated stubs compile)
+- [ ] `cargo test -p ag-mail --features workers` (S7/M2: Email payload roundtrip,
+  retriable/permanent classification, enqueue-through-adapter delivered by a pool)
+- [ ] `cargo test -p ag-mail --features workers-postgres -- --ignored` (S7/M3 parity:
+  mail job persists as `kind=mail.delivery`, delivered, survives restart; needs
+  `TEST_DATABASE_URL`)
 - [ ] `cargo test --workspace --all-features` (no circular deps; cross-crate green)
 - [ ] `cargo audit` and `cargo deny check`
 

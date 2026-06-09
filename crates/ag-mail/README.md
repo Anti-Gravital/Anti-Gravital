@@ -66,8 +66,19 @@ esta documentada como sexta regla de dependencias en
   (`template::jinja::MinijinjaTemplate`, loops/conditionals/filters) via the
   `MailTemplate` trait. Pulls `minijinja`; StringTemplate stays the default.
 - `metrics` (default): metricas hacia ag-observe.
-- `queue-persistent`: PostgreSQL-backed persistent queue via ag-data (`PersistentQueue`,
-  migration in `migrations/0001_mail_queue.sql`).
+- `queue-persistent` (deprecated): PostgreSQL-backed persistent queue via ag-data
+  (`PersistentQueue`, migration in `migrations/0001_mail_queue.sql`). Superseded by
+  the shared `ag-workers` queue; use `workers` instead. Kept until parity is verified
+  against a live database, then removed (RFC-0012 S7/M4).
+- `workers` (opt-in): routes generic delivery scheduling through the shared
+  `ag-workers` background engine instead of `ag-mail`'s own queue. Adds
+  `workers::WorkersMailQueue` (impl `MailQueue`) and `workers::MailDeliveryHandler`
+  (a `JobHandler` delegating to the `MailSender`); mail-specific transport stays in
+  `ag-mail`. In-memory backend by default. See RFC-0012 S7/M2.
+- `workers-postgres` (opt-in): durable mail delivery over `ag-workers`' PostgreSQL
+  backend (mail jobs become `kind=mail.delivery` in `ag_worker_jobs`). Implies
+  `workers` + `ag-workers/postgres`. Parity tests in `tests/workers_postgres.rs`
+  (`#[ignore]` + `TEST_DATABASE_URL`). See RFC-0012 S7/M3.
 - `mta` (opt-in): native outbound MTA (MX resolution, ESMTP+STARTTLS delivery,
   Ed25519/RSA DKIM, egress pools, traffic shaping, two-tier queue, suppression,
   DSN/ARF intake, metrics). Pulls `mail-send`, `mail-auth`, `mail-parser`,

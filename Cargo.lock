@@ -6786,6 +6786,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "workers-mail-integration"
+version = "0.0.0"
+dependencies = [
+ "ag-mail",
+ "ag-workers",
+ "async-trait",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "workers-postgres"
+version = "0.0.0"
+dependencies = [
+ "ag-workers",
+ "async-trait",
+ "serde",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "workers-producer-edge"
+version = "0.0.0"
+dependencies = [
+ "ag-workers",
+ "async-trait",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "workers-scheduled"
+version = "0.0.0"
+dependencies = [
+ "ag-workers",
+ "async-trait",
+ "chrono",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "writeable"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

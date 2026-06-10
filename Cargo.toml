@@ -26,6 +26,10 @@ members = [
     "examples/ai-backend",
     "examples/auth-mail-demo",
     "examples/workers-basic",
+    "examples/workers-scheduled",
+    "examples/workers-producer-edge",
+    "examples/workers-mail-integration",
+    "examples/workers-postgres",
     "tests/integration",
     "tests/generated-rust-fixture",
 ]

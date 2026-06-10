@@ -1,0 +1,22 @@
+[package]
+name = "workers-mail-integration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Example: routing ag-mail delivery through ag-workers (RFC-0012 S7/M2 adapter)"
+
+[[bin]]
+name = "workers-mail-integration"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-workers = { path = "../../crates/ag-workers", version = "0.0.0" }
+ag-mail = { path = "../../crates/ag-mail", version = "0.0.0", features = ["workers"] }
+async-trait = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }

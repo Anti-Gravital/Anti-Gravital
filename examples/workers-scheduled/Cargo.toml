@@ -1,0 +1,22 @@
+[package]
+name = "workers-scheduled"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Example: interval (scheduled) jobs with ag-workers and the singleton scheduler"
+
+[[bin]]
+name = "workers-scheduled"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-workers = { path = "../../crates/ag-workers", version = "0.0.0" }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }

@@ -1,0 +1,22 @@
+[package]
+name = "workers-postgres"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Example: durable ag-workers backend with transactional enqueue (enqueue_in_tx)"
+
+[[bin]]
+name = "workers-postgres"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ag-workers = { path = "../../crates/ag-workers", version = "0.0.0", features = ["postgres"] }
+async-trait = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }

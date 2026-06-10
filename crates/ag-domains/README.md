@@ -53,8 +53,8 @@ domain attachment and serving control plane:
 
 This is additive: the declarative DNS+TLS library is unchanged. It remains not a
 registrar, not a Terraform replacement, and not an arbitrary multi-tenant DNS
-hosting panel (RFC-0011 §3.2). Deferred phases (live edge, REST API, SQL store,
-provider automation, registrar module) are tracked in `docs/DEBT.md` (DEBT-025).
+hosting panel (RFC-0011 §3.2). Deferred phases (provider automation, registrar
+module) are tracked as GitHub Issues (label `tech-debt`; historical DEBT-025).
 
 The data-plane logic (hostname routing, SNI certificate selection,
 canonical/redirect policy) and the runnable HTTP/HTTPS edge listeners live in
@@ -78,6 +78,6 @@ for multi-node operation; the native in-memory/JSON store stays the default
 ## Tech Debt
 
 - `notAfter` parsing for date-based certificate renewal (currently renews every
-  cycle). Tracked in `docs/DEBT.md`.
-- Additional DNS provider adapters (Namecheap, Route 53, Google Domains) — optional,
-  not required. Tracked in `docs/DEBT.md`.
+  cycle). Tracked as a GitHub Issue (label `tech-debt`).
+- Additional DNS provider adapters — optional, not required. Tracked as a GitHub
+  Issue (label `tech-debt`).

@@ -1,10 +1,12 @@
 # ag-cli
 
-> Status: Phases 2-4.5 — implemented. The `ag` binary exposes project, DSL,
+> Status: Phases 2-4.6 — implemented. The `ag` binary exposes project, DSL,
 > transactional-mail, DNS, local domain-attachment, and worker workflows documented
-> below. `deploy`, `migrate`, and `plugin` are not available; they require their
-> future roadmap phases and approved RFCs.
-> Criticidad: Nucleo.
+> below (the `workers` operational group `run`/`enqueue`/`queues`/`dlq`/`doctor`
+> sits behind the default `workers-runtime` feature). `deploy`, `migrate`, and
+> `plugin` are not available; they require their future roadmap phases and approved
+> RFCs.
+> Criticality: Core.
 > Architecture chapter: docs/architecture/05-ecosistema-modulos.md
 
 ## Subcommands
@@ -92,6 +94,22 @@ more `--ip ADDRESS` values for commands that generate or diagnose records.
 See the [domain CLI reference](../../docs/ag-domains/reference/cli.md) for the
 full lifecycle and flags.
 
+### `ag workers run|enqueue|queues|dlq|doctor` (feature `workers-runtime`)
+
+Operational surface over the durable `ag-workers` backend (RFC-0012 §27),
+beyond the always-available `ag workers list` documented above:
+
+- `run` — run a standalone worker process against the configured backend.
+- `enqueue KIND --payload FILE` — enqueue a job.
+- `queues` — show queue depths.
+- `dlq list|inspect|retry|purge` — inspect and manage the dead-letter queue.
+- `doctor` — check workers configuration and backend connectivity.
+
+These subcommands are compiled behind the `workers-runtime` Cargo feature of
+`ag-cli` (enabled by default; disable with `--no-default-features` for a
+lighter binary), and the ones that touch the durable backend require
+`DATABASE_URL`.
+
 ### `ag mail test --to dest@example.com [options]`
 
 Sends a test email to verify the SMTP configuration.
@@ -113,6 +131,7 @@ ag mail test --to me@example.com --smtp-host mail.example.com --smtp-port 587
 | `AG_SMTP_USER`        | `ag mail test`           | —             | SMTP username (optional)           |
 | `AG_SMTP_PASS`        | `ag mail test`           | —             | SMTP password (optional)           |
 | `AG_MAIL_FROM`        | `ag mail test`           | `test@localhost` | Sender address                  |
+| `DATABASE_URL`        | `ag workers` runtime cmds | —            | PostgreSQL URL for the durable backend |
 
 `ag dev --bind ADDRESS` passes `BIND` to the child application. Users select
 the address with the flag; `BIND` is not read as CLI configuration.

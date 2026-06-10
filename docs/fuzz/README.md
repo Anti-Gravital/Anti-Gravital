@@ -1,4 +1,4 @@
-# Fuzzing del compilador Anti-DSL
+# Fuzzing del repositorio
 
 ## Smoke test continuo (CI)
 
@@ -27,9 +27,13 @@ Registrar el resultado en `docs/fuzz/results/YYYY-MM-DD.md` con:
 
 | Target | Invariante verificado |
 |--------|----------------------|
-| fuzz_lexer | El lexer termina sin panic en cualquier UTF-8 |
-| fuzz_parser | El parser termina sin panic o retorna Err controlado |
+| fuzz_lexer | El lexer del Anti-DSL termina sin panic en cualquier UTF-8 |
+| fuzz_parser | El parser del Anti-DSL termina sin panic o retorna Err controlado |
 | fuzz_compile | El pipeline completo (lint + compile + generate) no panics |
+| fuzz_resp | El parser RESP2 del servidor nativo de `ag-cache` no panics ni aloca sin limite |
+| fuzz_signed_url | La verificacion de URLs firmadas de `ag-storage` no panics ni acepta falsos positivos |
+| fuzz_storage_key | `validate_key` de `ag-storage` (frontera anti path-traversal) no panics y rechaza claves inseguras |
+| fuzz_workers_payload | La frontera de decode de payloads de `ag-workers` (`decode`/`decode_versioned`) nunca panics: el fallo se vuelve `InvalidPayload` (dead-letter) |
 
 ## Reproducir un crash
 

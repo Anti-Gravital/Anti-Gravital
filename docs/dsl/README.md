@@ -16,5 +16,10 @@ arquitectura, dedicadas al Anti-DSL.
 | Filosofia del lenguaje | vease `docs/architecture/07-anti-dsl.md` |
 | Anotaciones, tipos y diagnostics | vease `docs/architecture/07-anti-dsl.md` |
 
+Las declaraciones aditivas posteriores a v0.4 estan especificadas en
+sus RFC y fichas de modulo: `event` (v0.6), `mail` y `domain` (v0.7,
+`docs/modules/ag-mail/README.md` y `docs/modules/ag-domains/README.md`)
+y `worker` (v0.8, `RFC-0012` y `docs/modules/ag-workers/README.md`).
+
 Para el contenido completo y verbatim, lea siempre el capitulo 7 del
 maestro y su archivo derivado.

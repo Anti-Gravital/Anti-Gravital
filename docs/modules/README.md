@@ -3,14 +3,17 @@
 > Fuente verbatim: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`,
 > seccion 5.
 
-Esta carpeta describe los 17 crates del workspace. Cada subcarpeta
+Esta carpeta describe los crates del workspace. Cada subcarpeta
 contiene un README con el dominio del crate, su criticidad, sus
 dependencias internas permitidas, la fase en la que se implementa y
 un puntero al capitulo correspondiente de la arquitectura tecnica.
 
 El conteo paso de 15 a 17 crates con la introduccion de la Fase 4.5
 (`ag-mail` estandar diferido, `ag-domains` opcional infra), oficializada
-en `docs/adr/0007-ag-mail-ag-domains.md`.
+en `docs/adr/0007-ag-mail-ag-domains.md`, y ha crecido de forma aditiva
+con `ag-lsp` (Fase 3), `ag-edge` (`ADR-0012`/`RFC-0011`) y `ag-workers`
+(`RFC-0012`/`ADR-0013`, Fase 4.6-D). El roster canonico vive en
+`docs/architecture/05-ecosistema-modulos.md`.
 
 ## Mapa del ecosistema
 
@@ -27,12 +30,19 @@ en `docs/adr/0007-ag-mail-ag-domains.md`.
 | `ag-storage` | Estandar | 8 | Fase 4 |
 | `ag-observe` | Estandar | 14 | Fase 4 |
 | `ag-mail` | Estandar diferido | 8.8 | Fase 4.5 |
+| `ag-workers` | Estandar diferido | 8.10 | Fase 4.6-D |
+| `ag-lsp` | Nucleo | 7 | Fase 3 |
 | `ag-ui` | Opcional | 5 | Fase 4 o posterior |
 | `ag-cloud` | Opcional | 10 | Fase 5 |
 | `ag-domains` | Opcional infra | 8.9 / 10.6 | Fase 4.5 |
 | `ag-ai` | Opcional | 11 | Fase 6 |
 | `ag-mobile` | Opcional | 13 | Fase 8 |
 | `ag-migrate` | Opcional | 12 | Fase 7 |
+
+`ag-edge` (data plane de routing/TLS bajo el control plane de
+`ag-domains`, `ADR-0012`/`RFC-0011`) no tiene todavia ficha de modulo en
+esta carpeta; sus referencias son `crates/ag-edge/README.md` y
+`docs/ag-domains/README.md`.
 
 ## Reglas
 

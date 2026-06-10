@@ -1,59 +1,57 @@
 # ag-core
 
-> Estado: Fase 1 en curso. Bootstrap del Shield publicado.
-> Criticidad: Nucleo.
-> Capitulo de arquitectura: docs/architecture/06-nucleo-shield-y-core.md
-> RFC vigente: docs/rfc/RFC-0002-diseno-shield-mvp.md
+> Status: Phases 1-2 — implemented (Shield pipeline and Core runtime). Phase
+> exit gates (reference performance, coverage certification, external
+> adoption) remain open; see `docs/roadmap/STATUS.md`.
+> Criticality: Core.
+> Architecture chapter: docs/architecture/06-nucleo-shield-y-core.md
+> Governing RFC: docs/rfc/RFC-0002-diseno-shield-mvp.md
 
-## Dominio
+## Domain
 
-Runtime HTTP de alto rendimiento. Combina la capa Shield (pipeline
-Tower de middleware) con la capa Core (router Axum con extractores
-tipados, sistema de errores y estado compartido). Es la unica
-dependencia obligatoria del ecosistema Anti-Gravital.
+High-performance HTTP runtime. Combines the Shield layer (a Tower middleware
+pipeline) with the Core layer (an Axum router with typed extractors, the error
+system and shared state). It is the only mandatory dependency of the
+Anti-Gravital ecosystem.
 
-## Estado del bootstrap
+## Implemented
 
-Lo que ya esta:
+Shield pipeline (`src/shield/`), each layer with unit tests plus E2E tests
+against a real server (`tests/shield_*.rs`, `tests/shield_full_pipeline.rs`):
 
-- Crate compilando con dependencias declaradas (axum, tokio, tower,
-  tower-http, tracing, serde, thiserror).
-- Modulos `error`, `config`, `runtime`, `shield`, `core` con esqueleto
-  estable.
-- Capa Shield con logging estructurado (primera capa de la pipeline).
-- Soporte HTTP/1.1 y HTTP/2 via Axum + Tokio (sin TLS).
-- Tipos `AgError` y `AgResult` con mapeo automatico a respuestas HTTP.
-- `ShieldConfig` deserializable desde TOML.
-- Tests unitarios por modulo y tests E2E con servidor real.
+- Structured logging (first layer of the pipeline).
+- Payload validation layer.
+- CORS layer.
+- CSRF layer.
+- Rate limiting (`governor`, behind the `rate-limit` feature).
+- JWT authentication layer.
+- TLS 1.3 (`rustls`, behind the `tls` feature).
+- `ShieldConfig` deserializable from TOML.
 
-Lo que falta de Fase 1 (en PRs posteriores):
+Core layer (`src/core/`, `src/runtime/`, `src/error.rs`, `src/config/`):
 
-- Capa de validacion de payload.
-- Capa CORS.
-- Capa CSRF.
-- Capa de rate limiting con governor.
-- Capa de autenticacion JWT Ed25519.
-- Capa TLS 1.3 con rustls.
-- Configuracion TOML completa.
-- Benchmark Hello World con criterion.
-- Documentacion publicada en docs.rs.
+- HTTP/1.1 and HTTP/2 via Axum + Tokio.
+- `AgError` / `AgResult` with automatic mapping to HTTP responses.
+- Router and typed extractors consumed by generated projects (Phase 2).
 
-Lo que llega en Fase 2:
+## Pending (phase gates, not code)
 
-- Router Core con extractores tipados.
-- Sistema de respuestas JSON, plaintext, streams.
-- Integracion con `ag-data`.
+- Reference performance evidence on recorded hardware (Phase 2 targets).
+- Coverage certification and external-adoption exit criteria.
 
-## Referencias
+Tracking lives in `docs/roadmap/STATUS.md` and GitHub Issues; this README does
+not list debt (CLAUDE.md rule 29).
 
-- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` seccion 6.
+## References
+
+- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` section 6.
 - `docs/architecture/06-nucleo-shield-y-core.md`.
-- `docs/roadmap/fase-01-shield-mvp.md`.
+- `docs/roadmap/fase-01-shield-mvp.md`, `docs/roadmap/fase-02-core-mvp.md`.
 - `docs/rfc/RFC-0002-diseno-shield-mvp.md`.
 
-## Reglas aplicables
+## Applicable rules
 
-- Cumple reglas 14 y 15 de `CLAUDE.md` (crates y dependencias).
-- `ag-core` no depende de ningun crate Anti-Gravital.
-- Versionado semantico independiente del resto del workspace.
-- Sin `unsafe`. Vease `unsafe_code = "deny"` en `Cargo.toml` raiz.
+- Complies with CLAUDE.md rules 14 and 15 (crates and dependencies).
+- `ag-core` depends on no other Anti-Gravital crate.
+- Independent semantic versioning.
+- No `unsafe`; see `unsafe_code = "deny"` in the root `Cargo.toml`.

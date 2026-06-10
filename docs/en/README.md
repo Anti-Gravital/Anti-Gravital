@@ -1,25 +1,33 @@
 # Documentation in English
 
-The default language of the project documentation is Spanish. This
-folder hosts English translations as they become available.
+English is the canonical language of the code and of the deep technical
+documentation (ADR-0008, which supersedes the Spanish-default rule of
+ADR-0002). Pre-existing Spanish technical documents migrate to English
+gradually as they are touched.
 
 ## Shortcuts
 
 - General index: `docs/INDEX.md`.
-- Masters: `docs/master/`.
-- Architecture (Spanish): `docs/architecture/`.
-- Roadmap (Spanish): `docs/roadmap/`.
-- Modules (Spanish): `docs/modules/`.
+- Masters (bilingual EN+ES, English canonical): `docs/master/`.
+- Architecture: `docs/architecture/`.
+- Roadmap: `docs/roadmap/`.
+- Modules: `docs/modules/`.
 
-## Translation policy
+## Language policy (ADR-0008)
 
-The master documents under `docs/master/` are the source of truth and
-live in Spanish. English translations are derivatives. If a
-translation diverges from the master, the master wins, and the
-translation is regenerated.
+- Code comments and identifiers: English, no exceptions for new code.
+- Deep technical documentation (`docs/architecture/`, `docs/modules/`,
+  `docs/dsl/`, `docs/rfc/`, `docs/adr/`, `docs/benchmarks/`,
+  `docs/security/`, `docs/governance/`): English canonical; legacy
+  Spanish content migrates when touched.
+- Showcase documents (root `README.md`, the three masters in
+  `docs/master/`, the chapters of `docs/manual/`): bilingual EN+ES in
+  the same file, English section first and canonical.
+- If the English and Spanish sections diverge, English wins and the
+  Spanish section is marked as pending an update.
 
 ## Status
 
-Phase 0: this folder contains only this README. Chapter-by-chapter
-translations of the architecture and roadmap masters are scheduled to
-land during Phase 1 onwards as community contributions arrive.
+This folder predates ADR-0008 and is kept as a navigation shortcut; no
+separate English translation tree is needed now that English is the
+canonical language in place.

@@ -41,6 +41,8 @@ Thumbs.db
 *.pem
 *.key
 
-# Artefactos de cobertura (LLVM profraw/profdata)
+# Artefactos de cobertura (LLVM profraw/profdata, reportes tarpaulin)
 *.profraw
 *.profdata
+cobertura.xml
+tarpaulin-report.html

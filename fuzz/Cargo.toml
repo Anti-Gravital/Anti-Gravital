@@ -43,11 +43,19 @@ path = "fuzz_targets/fuzz_signed_url.rs"
 test = false
 doc = false
 
+[[bin]]
+name = "fuzz_workers_payload"
+path = "fuzz_targets/fuzz_workers_payload.rs"
+test = false
+doc = false
+
 [dependencies]
 libfuzzer-sys = "0.4"
 ag-dsl = { path = "../crates/ag-dsl" }
 ag-cache = { path = "../crates/ag-cache", features = ["native-server"] }
 ag-storage = { path = "../crates/ag-storage" }
+ag-workers = { path = "../crates/ag-workers" }
+serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt", "io-util"] }
 
 [workspace]

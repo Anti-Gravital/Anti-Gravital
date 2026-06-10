@@ -110,6 +110,9 @@ jobs:
       - name: fuzz fuzz_compile 60s
         working-directory: fuzz
         run: cargo fuzz run fuzz_compile -- -max_total_time=60
+      - name: fuzz fuzz_workers_payload 60s
+        working-directory: fuzz
+        run: cargo fuzz run fuzz_workers_payload -- -max_total_time=60
       - name: upload crash artifacts
         if: failure()
         uses: actions/upload-artifact@v4

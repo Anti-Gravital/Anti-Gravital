@@ -17,6 +17,8 @@ Phase 4.5 closure -> pre-Phase 5 release gate. Does not start Phase 5.
 
 ## Issues addressed in this branch
 
+Fixes #57, fixes #58, fixes #61.
+
 - #57 `ag-observe`: `/metrics` now renders the real Prometheus snapshot from a
   stored `PrometheusHandle`; uninitialized exporter state returns an explicit
   service-unavailable response instead of an empty body.

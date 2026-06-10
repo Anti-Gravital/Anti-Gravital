@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-06-08. Auditoria y consolidacion de fases 0-4.5 en curso. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y docs/DEBT.md.
+Ultima actualizacion: 2026-06-10. Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
 
 ---
 
@@ -377,7 +377,8 @@ ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
   workers) existe y el patron esta documentado y ejemplificado
   (`examples/workers-producer-edge`, RFC-0012 seccion 17.4). Pendiente: wiring
   dedicado del feature `producer` desde `ag-edge` (consumidor enqueue-only segun
-  seccion 7); seguimiento en Issue (area `ag-edge`/`ag-workers`).
+  seccion 7); seguimiento en el Issue #112 (diferido hasta que exista un
+  consumidor concreto).
 - [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
   M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
   M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
@@ -409,9 +410,10 @@ ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
   (`ag-dsl` v0.8, `codegen/worker_gen.rs`).
 - [x] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated
   `workers-runtime`).
-- [/] Cobertura >= 80% (82.28% en `quality`); la gramatica `worker` se fuzzea via los
-  targets unificados del DSL (`fuzz_parser`/`fuzz_compile`); el target de fuzz del
-  decoder de payload de `ag-workers` (`fuzz_workers_payload`) se anade en esta fase.
+- [x] Cobertura >= 80% (82.28% en `quality`); la gramatica `worker` se fuzzea via los
+  targets unificados del DSL (`fuzz_parser`/`fuzz_compile`) y el decoder de payload
+  via `fuzz_workers_payload` (`fuzz/fuzz_targets/`), integrado en el job de
+  fuzz-smoke (60s) del workflow `quality` con CI verde.
 - [x] Cero dependencias circulares (CI verde).
 - [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
   `cargo deny check` verdes.

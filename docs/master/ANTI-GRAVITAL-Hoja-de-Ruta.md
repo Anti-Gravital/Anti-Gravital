@@ -63,7 +63,9 @@ Phase 5 (`ag-cloud`) is next.
 `ADR-0007` after closing Phase 4. It does not modify the scope nor the
 deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA milestone, which
 remains at the end of Phase 5. The ecosystem count goes from 15 to 17
-crates with the incorporation of `ag-mail` and `ag-domains`.
+crates with the incorporation of `ag-mail` and `ag-domains`, and grows
+additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
+(`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard).
 
 > Phases 0-4.5 are technically implemented. Outstanding tech debt that must be
 > closed before Phase 5 is tracked in `docs/DEBT.md` (persistent mail queue,
@@ -706,7 +708,9 @@ La Fase 5 (`ag-cloud`) es la próxima.
 `ADR-0007` después de cerrar la Fase 4. No modifica el alcance ni los
 entregables de la Fase 4 ya completada. No adelanta el hito v0.5 BETA, que
 permanece al final de la Fase 5. La cuenta del ecosistema pasa de 15 a 17
-crates con la incorporación de `ag-mail` y `ag-domains`.
+crates con la incorporación de `ag-mail` y `ag-domains`, y crece de forma
+aditiva a 20 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
+(`ADR-0012`) y `ag-workers` (`ADR-0013`, el segundo estándar diferido).
 
 ---
 

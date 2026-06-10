@@ -1,9 +1,11 @@
 # ag-dsl
 
-> Status: Phase 3 — implemented (alpha v0.1..v0.7). Functional compiler: logos lexer,
-> chumsky parser, type/semantic checks, readable diagnostics, and codegen to Rust,
-> SQL, OpenAPI and TypeScript. Syntax may change between v0.x releases. See `docs/DEBT.md`.
-> Criticidad: Nucleo.
+> Status: Phase 3 — implemented (alpha v0.1..v0.8, including the `worker`
+> declaration of RFC-0012). Functional compiler: logos lexer, chumsky parser,
+> type/semantic checks, readable diagnostics, and codegen to Rust, SQL, OpenAPI
+> and TypeScript. Syntax may change between v0.x releases. Remaining gaps are
+> tracked as GitHub Issues (label `tech-debt`).
+> Criticality: Core.
 > Capitulo de arquitectura: docs/architecture/07-anti-dsl.md
 
 ## Dominio

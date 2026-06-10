@@ -30,6 +30,12 @@ pendientes) se mantiene en `STATUS.md`.
 Duracion total estimada: 25 a 30 meses desde el inicio (la Fase 4.5 es
 aditiva, introducida por ADR-0007).
 
+Las sub-fases aditivas 4.6 (A/B/C: MTA nativo y API de `ag-mail`,
+`ADR-0010`/`RFC-0009`; D: motor `ag-workers`, `RFC-0012`/`ADR-0013`)
+no tienen archivo de fase propio en el maestro: su alcance vive en sus
+RFC/ADR y su estado vivo en las secciones correspondientes de
+`STATUS.md`.
+
 ## Estado vivo
 
 `STATUS.md` resume el estado por fase y enumera las casillas marcadas

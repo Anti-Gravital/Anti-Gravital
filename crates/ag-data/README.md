@@ -3,8 +3,8 @@
 > Status: Phase 2 — implemented (base layer). PostgreSQL connection pool via sqlx
 > (`DataConfig`, pool, URL sanitization) and embedded migrations (`sqlx::migrate!`).
 > Pending: DSL-generated typed ORM (Phase 3), row-level security and multi-tenancy
-> (later phases). See `docs/DEBT.md`.
-> Criticidad: Estandar.
+> (later phases). Tracked as GitHub Issues (label `tech-debt`).
+> Criticality: Standard.
 > Capitulo de arquitectura: docs/architecture/08-modulos-batteries-included.md
 
 ## Dominio

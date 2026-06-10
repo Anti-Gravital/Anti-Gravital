@@ -16,7 +16,8 @@ Anti-Gravital es:
 - Un **runtime backend Rust** de alto rendimiento para servicios HTTP, WebSocket y SSE.
 - Un **lenguaje de definición de dominio** (Anti-DSL, archivos `.ag`) y su compilador.
 - Una **CLI unificada** (`ag`) para creación, generación, desarrollo, build, despliegue y administración.
-- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe, mail —estándar diferido—).
+- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe; mail y workers —estándar diferido—).
+- Un **motor de ejecución en segundo plano** (`ag-workers`, estándar diferido): jobs tipados, reintentos, DLQ, scheduling y worker pools; backend en memoria por defecto, PostgreSQL durable opt-in.
 - Una **capa de gestión de dominios y TLS** (`ag-domains`, opcional infra) que integra DNS vía adapters, ACME para certificados, y SPF/DKIM/DMARC para correo transaccional.
 - Un **sistema de plugins WASI** para extensibilidad multilenguaje aislada.
 - Una **capa de orquestación de despliegue** simplificada al estilo Railway/Fly.io para casos comunes (no un reemplazo de Kubernetes).

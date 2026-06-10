@@ -6,7 +6,9 @@
 > Roadmap phase: Phase 4.6-D (pre-Phase-5 extraction/hardening).
 > Crate README: `crates/ag-workers/README.md`.
 > Criticality: Estándar diferido (deferred standard, ADR-0007 precedent).
-> Implementation status: in progress (staged S1-S7). No GA claim until the pre-Phase-5
+> Implementation status: S1-S5 implemented and CI-verified; S6 partial (#112);
+> S7 M0-M2 done, M3/M4 blocked on a live PostgreSQL database (#109/#103, with #108
+> for the `#[ignore]` integration tests). No GA claim until the pre-Phase-5
 > release gate (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) closes.
 
 ## Domain
@@ -44,7 +46,7 @@ replaces per-module queues, extracted from the proven pattern already in `ag-mai
 - No exactly-once promise; no false panic-isolation claim under `panic = "abort"`.
 - No control plane (`scale`/`pause`/`resume`/`drain`) in v1.
 
-## Planned technical stack
+## Technical stack
 
 | Component | Library | Notes |
 |---|---|---|
@@ -60,7 +62,7 @@ replaces per-module queues, extracted from the proven pattern already in `ag-mai
 The only genuinely new workspace dependency is `tokio-util`; everything else reuses
 existing workspace deps. Per CLAUDE.md rule 15.
 
-## Planned public API
+## Public API (shape)
 
 ```rust
 #[async_trait::async_trait]
@@ -146,18 +148,29 @@ additive (parallel to the `event` declaration, DSL v0.6).
 
 ## Exit criteria (Phase 4.6-D gate)
 
-- [ ] Typed jobs execute on the memory backend (`ag dev`) with retry, backoff and DLQ.
-- [ ] PostgreSQL backend leases with `FOR UPDATE SKIP LOCKED`, survives restart, and
-      `enqueue_in_tx` commits job + caller writes atomically (rollback test).
-- [ ] Poison guard converts a crash-looping job into a bounded DLQ entry.
-- [ ] Interval jobs fire once across N processes (distributed-singleton test).
-- [ ] `worker` DSL declaration compiles and generates payloads + handler stubs.
-- [ ] `ag workers ...` CLI compiles and passes CI (feature-gated).
-- [ ] Coverage >= 80%; fuzz targets for the DSL grammar and payload decoder.
-- [ ] No circular dependencies (CI green).
-- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
+Live tracking: `docs/roadmap/STATUS.md`, Phase 4.6-D. Summary of the current state:
+
+- [x] Typed jobs execute on the memory backend (`ag dev`) with retry, backoff and DLQ
+      (`tests/runtime_outcomes.rs`, `tests/retry_policy.rs`).
+- [/] PostgreSQL backend leases with `FOR UPDATE SKIP LOCKED`, survives restart, and
+      `enqueue_in_tx` commits job + caller writes atomically. Code and tests exist
+      (`tests/postgres_queue.rs`) but are `#[ignore]` and need a live `DATABASE_URL`;
+      running them is tracked in Issue #108.
+- [x] Poison guard converts a crash-looping job into a bounded DLQ entry
+      (`tests/poison_guard.rs`).
+- [x] Interval jobs fire once via the singleton claim on the memory backend
+      (`tests/scheduler_dynamic.rs`); the cross-process PostgreSQL verification is
+      part of Issue #108.
+- [x] `worker` DSL declaration compiles and generates payloads + handler stubs
+      (DSL v0.8, `codegen/worker_gen.rs`).
+- [x] `ag workers ...` CLI compiles and passes CI (feature-gated `workers-runtime`).
+- [x] Coverage >= 80% on the `quality` gate; the `worker` grammar is fuzzed through
+      the unified DSL targets and the payload decoder through `fuzz_workers_payload`
+      (CI fuzz-smoke job).
+- [x] No circular dependencies (CI green).
+- [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
       `cargo deny check` green.
-- [ ] No production-readiness/GA claim before the pre-Phase-5 release gate allows it.
+- [x] No production-readiness/GA claim before the pre-Phase-5 release gate allows it.
 
 ## Watched risks
 

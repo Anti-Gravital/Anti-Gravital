@@ -7,7 +7,8 @@ This documents the implemented control plane and data plane: the control-plane
 library, the data-plane library, the manual CLI flow (phase A), the live edge
 listeners (HTTP-01 + routing + HTTPS/SNI, phase B), the REST API (phase C) and
 the optional Postgres store (phase D). Provider automation and the registrar
-module are later phases (see `docs/DEBT.md`, DEBT-025).
+module are later phases, tracked as GitHub Issues (label `tech-debt`;
+historical DEBT-025).
 
 ## Structure
 

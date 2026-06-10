@@ -75,3 +75,6 @@ como `superseded`.
 | 0009 | ag-mail native outbound MTA: alcance, stack y plan por fases (Fase 4.6) | aceptada | `RFC-0009-ag-mail-native-mta.md` |
 | 0010 | ag-mail superficie de envio sin marcas comerciales | aceptada | `RFC-0010-ag-mail-superficie-sin-marcas.md` |
 | 0011 | ag-domains control plane: attachment y serving (extiende RFC-0007) | aceptada | `RFC-0011-ag-domains-control-plane.md` |
+| 0012 | ag-workers: motor de ejecucion en segundo plano (Fase 4.6-D) | aceptada | `RFC-0012-ag-workers.md` |
+| 0013 | Confinamiento de filesystem por capabilities en ag-storage | aprobada | `RFC-0013-capability-filesystem-confinement.md` |
+| 0014 | Validacion @regex ejecutable en Rust (generador DSL) | aceptada | `RFC-0014-regex-runtime-validation.md` |

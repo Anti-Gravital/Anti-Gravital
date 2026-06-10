@@ -4,9 +4,10 @@ Rust-native, modular backend framework for building secure, high-performance
 backend services with a schema-first workflow. The repository is a Cargo
 workspace of `ag-*` crates plus the `ag` developer CLI.
 
-English is the canonical project language. A concise Spanish version follows.
+[English](#english) | [Espanol](#espanol) — English is the canonical project
+language. A concise Spanish version follows.
 
-> Current status (verified 2026-06-08): capabilities through Phase 4.5 are available, but the pre-Phase 5 release gate is still OPEN. Do not interpret implemented modules as a production-readiness certification.
+> Current status (verified 2026-06-10): capabilities through Phase 4.5 plus the additive Phase 4.6 work (native outbound MTA in `ag-mail`; the `ag-workers` background execution engine, stages S1-S5) are available, but the pre-Phase 5 release gate is still OPEN. Do not interpret implemented modules as a production-readiness certification.
 
 Anti-Gravital gives Rust backend teams a coherent framework experience without
 hiding the underlying Rust ecosystem. It combines:
@@ -18,7 +19,9 @@ hiding the underlying Rust ecosystem. It combines:
 - A unified CLI for scaffolding, development, builds, schema workflows, mail
   checks and domain operations.
 - Modular crates for auth, cache, realtime, storage, observability, mail,
-  domains, UI integration, AI, mobile, migration tooling and WASI plugins.
+  domains, background jobs and edge routing. UI integration, AI, mobile,
+  migration tooling, cloud deploy and WASI plugins are reserved placeholder
+  crates for later phases.
 
 It does not replace PostgreSQL, Redis, NATS, object storage, Docker, Kubernetes,
 Terraform, Flutter or frontend frameworks. `ag-mail` handles transactional
@@ -27,12 +30,17 @@ it is not a registrar. Generated Rust handlers are application-owned stubs.
 
 ### Architecture map
 
-| Layer | Main crates | Role |
+Tiers follow the canonical crate classification in `CLAUDE.md` §14 and
+chapter 5 of the architecture master. `*` marks a placeholder crate whose
+implementation begins in a later phase.
+
+| Tier | Crates | Role |
 | --- | --- | --- |
-| Core | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, DSL compiler and developer workflows |
-| Standard | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, events, files/images and telemetry |
-| Extended | `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`, `ag-lsp` | UI, AI, mobile, importers, plugins and editor support |
-| Phase 4.5 / edge | `ag-mail`, `ag-domains`, `ag-edge` | Mail, DNS/domain/TLS, host routing and TLS serving |
+| Core | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, DSL compiler, developer CLI, editor LSP, WASI plugin host |
+| Standard | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, PostgreSQL data layer, events, cache, files/images and telemetry |
+| Deferred standard | `ag-mail`, `ag-workers` | Transactional mail and native MTA; background-job execution engine |
+| Optional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, cloud deploy, AI/knowledge-graph, mobile bridge and importers |
+| Optional infra | `ag-domains`, `ag-edge` | DNS/domain/TLS control plane and the request-time edge data plane |
 
 ## English
 
@@ -42,8 +50,12 @@ it is not a registrar. Generated Rust handlers are application-owned stubs.
 - PostgreSQL pools and migrations through `ag-data`.
 - DSL parsing, diagnostics, SQL/Rust/TypeScript/OpenAPI/AsyncAPI generation through `ag-dsl`.
 - Project scaffolding and development commands through `ag-cli`.
-- Auth, cache, realtime, storage, observability, UI, AI, mobile and WASM-host modules from Phase 4.
+- Auth, cache, realtime, storage and observability modules from Phase 4.
+  (`ag-ui`, `ag-ai`, `ag-mobile`, `ag-cloud`, `ag-migrate` and `ag-wasm-host`
+  are placeholder crates whose implementation starts in later phases.)
 - Transactional mail and the implemented domain-management surface from Phase 4.5.
+- The opt-in native outbound MTA and signed webhooks in `ag-mail` (Phase 4.6-A/B/C features `mta`/`api`).
+- Background jobs through `ag-workers` (Phase 4.6-D): typed jobs, retries, DLQ, scheduling and worker pools on the in-memory backend by default, durable PostgreSQL backend opt-in. Live-database parity verification is tracked in GitHub Issues #108/#109/#103.
 
 Every crate remains independently selectable. Later roadmap phases are additive and are not required to use the capabilities above.
 
@@ -91,6 +103,7 @@ Available templates: `rest`, `realtime`, `fullstack`.
 | `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
 | `ag domains attach|instructions|export-zone|status|list|verify|detach|diagnose` | Operate the implemented local domain attachment workflow |
 | `ag workers list` | List the background workers declared in a schema (ag-workers, RFC-0012) |
+| `ag workers run` | Run a standalone worker process against the configured backend |
 | `ag workers enqueue KIND --payload FILE` | Enqueue a job onto the durable backend (needs `DATABASE_URL`) |
 | `ag workers queues` | Show queue depths on the durable backend |
 | `ag workers dlq list\|inspect\|retry\|purge` | Inspect and manage the dead-letter queue |
@@ -113,10 +126,11 @@ The generator writes a Rust module, SQL migration, TypeScript types/client, Open
 
 ### Evidence-based roadmap
 
-The roadmap has 10 main phases plus the additive Phase 4.5 introduced by
-ADR-0007. Later phases expand the ecosystem but are not required to use the
-implemented Phase 0-4.5 capabilities. Durations are planning estimates, not
-release promises.
+The roadmap has 10 main phases plus the additive Phase 4.5 (ADR-0007) and the
+additive pre-Phase-5 extraction/hardening Phase 4.6 (ADR-0010 for the `ag-mail`
+native MTA sub-phases A/B/C; RFC-0012/ADR-0013 for the `ag-workers` sub-phase D).
+Later phases expand the ecosystem but are not required to use the implemented
+capabilities. Durations are planning estimates, not release promises.
 
 | Phase | Delivered repository capability | Current evidence state | Remaining gate work |
 | --- | --- | --- | --- |
@@ -124,8 +138,9 @@ release promises.
 | 1 | Shield HTTP/TLS/auth/rate-limit/validation pipeline | Implementation and tests available | Reference performance, coverage certification and external adoption criteria remain |
 | 2 | Core extractors/responses, PostgreSQL data layer, scaffolds and CRUD example | Implementation available; measured benchmarks published | Published 40K req/s and p99 targets were not met on recorded hardware |
 | 3 | DSL v0.1-v0.4, generators, LSP and VS Code extension | Broad parser/generator coverage; consolidation issue #70 open | 24-hour fuzz gate, direct generated-vs-manual benchmark and generator completeness |
-| 4 | Standard auth/cache/realtime/storage/observe/UI/AI/mobile/WASM modules | Modules and tests available; realtime/cache hardening included in this audit | Manual scale/performance evidence and remaining documented debt |
+| 4 | Standard auth/cache/realtime/storage/observe modules | Modules and tests available; realtime/cache hardening included in this audit. UI/AI/mobile/WASM crates remain placeholders for Phases 4+/6/8/9 | Manual scale/performance evidence and remaining documented debt |
 | 4.5 | Transactional mail plus implemented DNS/TLS/domain management surface | Code and cross-module tests exist; `ag-domains` is under active development | Reconcile active domain work, release evidence and documentation before claiming completion |
+| 4.6 | Additive pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C) and the `ag-workers` background engine (D) | S1-S5 of `ag-workers` implemented and CI-verified (DSL `worker`, CLI, 5 examples, benchmarks, fuzz target, coverage gate green); MTA implemented behind `mta`/`api` features | Live-PostgreSQL parity and integration runs (Issues #108/#109/#103), `ag-edge` producer wiring (#112), MTA durable spool and live-delivery evidence |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains and TLS | Pending; not required for Phase 0-4.5 usage | Pre-Phase 5 gate; public beta v0.5 milestone |
 | 6 | `ag-ai` and Knowledge Graph: providers/models, retrieval and graph-assisted backend workflows | Pending roadmap phase; existing crate work is not phase completion | Phase 5 completion and beta feedback |
 | 7 | `ag-migrate`: importers and assisted migration from existing backend frameworks | Pending roadmap phase | Phase 6 completion and importer acceptance tests |
@@ -133,7 +148,7 @@ release promises.
 | 9 | WASI plugins: sandboxed extensions, lifecycle hooks, permissions and registry | Pending roadmap phase | Phase 8 completion and security review |
 | 10 | Hardening and 1.0: stable API/DSL, security audit, performance, docs, LTS and ecosystem readiness | Pending; stable 1.0 milestone | Phase 9 completion and 1.0 release gates |
 
-The formal status is maintained in [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md). The release decision is maintained in [docs/audits/PRE_FASE5_RELEASE_GATE.md](docs/audits/PRE_FASE5_RELEASE_GATE.md). Open technical debt is maintained in [docs/DEBT.md](docs/DEBT.md).
+The formal status is maintained in [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md). The release decision is maintained in [docs/audits/PRE_FASE5_RELEASE_GATE.md](docs/audits/PRE_FASE5_RELEASE_GATE.md). Open technical debt is tracked as GitHub Issues (label `tech-debt`, CLAUDE.md rule 29); [docs/DEBT.md](docs/DEBT.md) is a frozen historical record.
 
 Estimated public beta: end of Phase 5, around month 15 of the original plan.
 Estimated stable 1.0: end of Phase 10, around month 30. See the
@@ -162,7 +177,9 @@ El objetivo es ofrecer una experiencia de framework completo sin ocultar el
 ecosistema Rust. Combina un runtime HTTP seguro, el Anti-DSL (`.ag`),
 generacion de Rust/SQL/TypeScript/OpenAPI/AsyncAPI, una CLI unificada y crates
 modulares para auth, cache, realtime, storage, observabilidad, correo,
-dominios, UI, IA, mobile, migraciones y plugins WASI.
+dominios, jobs en segundo plano y edge routing. UI, IA, mobile, migraciones,
+cloud deploy y plugins WASI son crates placeholder reservados para fases
+posteriores.
 
 No reemplaza PostgreSQL, Redis, NATS, object storage, Docker, Kubernetes,
 Terraform, Flutter ni frameworks frontend. `ag-mail` envia correo
@@ -172,14 +189,19 @@ cada aplicacion.
 
 ### Mapa de arquitectura
 
-| Capa | Crates principales | Rol |
-| --- | --- | --- |
-| Nucleo | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, compilador DSL y workflows |
-| Estandar | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, eventos, archivos/imagenes y telemetria |
-| Extendida | `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`, `ag-lsp` | UI, IA, mobile, importadores, plugins y editor |
-| Fase 4.5 / edge | `ag-mail`, `ag-domains`, `ag-edge` | Correo, DNS/dominios/TLS, routing y serving TLS |
+Los niveles siguen la clasificacion canonica de crates de `CLAUDE.md` §14 y
+el capitulo 5 del maestro de arquitectura. `*` marca un crate placeholder
+cuya implementacion comienza en una fase posterior.
 
-> Estado actual (verificado 2026-06-08): las capacidades hasta la Fase 4.5 estan disponibles, pero la puerta formal pre-Fase 5 sigue ABIERTA. Modulo implementado no significa certificacion de produccion.
+| Nivel | Crates | Rol |
+| --- | --- | --- |
+| Nucleo | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, compilador DSL, CLI, LSP de editor y host de plugins WASI |
+| Estandar | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, capa de datos PostgreSQL, eventos, cache, archivos/imagenes y telemetria |
+| Estandar diferido | `ag-mail`, `ag-workers` | Correo transaccional y MTA nativo; motor de ejecucion de jobs en segundo plano |
+| Opcional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, deploy cloud, IA/knowledge-graph, bridge mobile e importadores |
+| Opcional infra | `ag-domains`, `ag-edge` | Plano de control DNS/dominios/TLS y plano de datos edge en tiempo de request |
+
+> Estado actual (verificado 2026-06-10): las capacidades hasta la Fase 4.5 mas el trabajo aditivo de la Fase 4.6 (MTA outbound nativo en `ag-mail`; motor de ejecucion en segundo plano `ag-workers`, etapas S1-S5) estan disponibles, pero la puerta formal pre-Fase 5 sigue ABIERTA. Modulo implementado no significa certificacion de produccion.
 
 ### Disponible hoy
 
@@ -189,6 +211,8 @@ cada aplicacion.
 - Scaffolding, desarrollo y build con `ag-cli`.
 - Modulos estandar de autenticacion, cache, realtime, storage y observabilidad.
 - Correo transaccional y la superficie de dominios ya implementada en Fase 4.5.
+- MTA outbound nativo y webhooks firmados de `ag-mail` (features `mta`/`api`, Fase 4.6-A/B/C).
+- Jobs en segundo plano con `ag-workers` (Fase 4.6-D): jobs tipados, reintentos, DLQ, scheduling y pools sobre el backend en memoria por defecto; backend PostgreSQL durable opt-in. La verificacion contra base de datos viva se rastrea en los Issues #108/#109/#103.
 
 Las fases posteriores son aditivas: no son requisito para usar lo anterior.
 
@@ -232,9 +256,11 @@ futuros `ag deploy`, `ag migrate` y `ag plugin` no estan disponibles.
 
 ### Roadmap y calendario completo
 
-La hoja de ruta tiene 10 fases principales mas la Fase 4.5 aditiva. Las fases
-posteriores amplian el ecosistema, pero no son requisito para usar lo ya
-implementado. Las duraciones son estimaciones, no promesas de fecha.
+La hoja de ruta tiene 10 fases principales mas las fases aditivas 4.5 (ADR-0007)
+y 4.6 (ADR-0010 para el MTA nativo de `ag-mail`, sub-fases A/B/C;
+RFC-0012/ADR-0013 para `ag-workers`, sub-fase D). Las fases posteriores amplian
+el ecosistema, pero no son requisito para usar lo ya implementado. Las
+duraciones son estimaciones, no promesas de fecha.
 
 | Fase | Objetivo | Duracion | Estado actual |
 | --- | --- | --- | --- |
@@ -242,8 +268,9 @@ implementado. Las duraciones son estimaciones, no promesas de fecha.
 | 1 | Shield MVP: HTTP/TLS, JWT, limites, CORS, CSRF, validacion y logging | 2 meses | Implementacion disponible; faltan gates finales |
 | 2 | Core MVP: HTTP tipado, PostgreSQL, migraciones, scaffolds y CRUD | 2 meses | Implementacion disponible; targets publicados siguen como gate |
 | 3 | Anti-DSL v0.1-v0.4, generadores, LSP y VS Code | 3 meses | Implementacion amplia; faltan fuzzing/adopcion y gaps del generador |
-| 4 | Modulos auth, cache, realtime, storage, observabilidad, UI, IA, mobile y WASM | 3 meses | Modulos disponibles; quedan escala y deuda documentada |
+| 4 | Modulos estandar auth, cache, realtime, storage y observabilidad | 3 meses | Modulos disponibles; UI/IA/mobile/WASM siguen como placeholders de fases posteriores; quedan escala y deuda documentada |
 | 4.5 | Correo transaccional, DNS, dominios, TLS/ACME y attachments | Aditiva | Capacidades disponibles; `ag-domains` tiene trabajo activo |
+| 4.6 | Endurecimiento aditivo pre-Fase 5: MTA nativo + webhooks en `ag-mail` (A/B/C) y motor `ag-workers` (D) | Aditiva | S1-S5 de `ag-workers` implementadas y verificadas en CI; paridad PostgreSQL viva en Issues #108/#109/#103 |
 | 5 | `ag-cloud`: deploy, secretos, logs, rollback, dominios y TLS simplificados | 3 meses | Pendiente; hito beta publica v0.5 |
 | 6 | `ag-ai` y Knowledge Graph: providers, retrieval y flujos asistidos | 3 meses | Pendiente; el crate existente no implica cierre de fase |
 | 7 | `ag-migrate`: importadores y migracion asistida desde otros frameworks | 2 meses | Pendiente |
@@ -254,8 +281,9 @@ implementado. Las duraciones son estimaciones, no promesas de fecha.
 Beta publica estimada: final de Fase 5, alrededor del mes 15 del plan original.
 Version 1.0 estable estimada: final de Fase 10, alrededor del mes 30. Consulta
 `docs/roadmap/README.md`, `docs/roadmap/calendar.md`,
-`docs/roadmap/STATUS.md`, `docs/audits/PRE_FASE5_RELEASE_GATE.md` y
-`docs/DEBT.md`.
+`docs/roadmap/STATUS.md` y `docs/audits/PRE_FASE5_RELEASE_GATE.md`. La deuda
+tecnica abierta vive en GitHub Issues (etiqueta `tech-debt`); `docs/DEBT.md`
+queda congelado como registro historico.
 
 ### Limitaciones que no se ocultan
 

@@ -44,9 +44,9 @@ jobs:
           # queda en v4.0 como deuda explicita pendiente de re-export a v4.1;
           # los maestros markdown gobiernan (VERSION.md politica #4).
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
-          expected_blueprint_md="a6a1479c3586ea0bb7afeff3f801d13aebcea0f046216130358f0b897e351bc6"
-          expected_arch="34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6"
-          expected_road="02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424"
+          expected_blueprint_md="be7c175f133580a007864d5740ebebe8da762468c5b564650a6f0bd33f355cbb"
+          expected_arch="e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5"
+          expected_road="32b36442ec47f304a1bdf43ef1fee2b02df6886307d93a101d20d37f96157ba0"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"

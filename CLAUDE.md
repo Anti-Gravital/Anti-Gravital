@@ -286,15 +286,18 @@ Se favorece:
 
 ## 14. Regla de crates
 
-La separacion es estricta. El ecosistema tiene 17 crates clasificados en
-cuatro niveles. La clasificacion "estandar diferido" fue introducida por
-`ADR-0007` (Fase 4.5):
+La separacion es estricta. El ecosistema arranco en 17 crates clasificados en
+cuatro niveles y ha crecido de forma aditiva a 20 con `ag-lsp` (tooling DSL de
+la Fase 3), `ag-edge` (`ADR-0012`/`RFC-0011`) y `ag-workers`
+(`RFC-0012`/`ADR-0013`). La clasificacion "estandar diferido" fue introducida
+por `ADR-0007` (Fase 4.5):
 
 Nucleo:
 
 - `ag-core`
 - `ag-dsl`
 - `ag-cli`
+- `ag-lsp`
 - `ag-wasm-host`
 
 Estandar:
@@ -313,6 +316,11 @@ templates oficiales; se incorpora cuando el proyecto lo necesita):
   outbound en v1. NO es un MTA. Consumido por `ag-auth` para
   verificacion, recuperacion y magic links. `ag-mail` NO depende de
   `ag-auth` (sexta regla de dependencias).
+- `ag-workers` — motor de ejecucion en segundo plano: jobs tipados,
+  reintentos, DLQ, scheduling y worker pools. Backend en memoria por
+  defecto; PostgreSQL durable opt-in via `ag-data`. NO es un orquestador
+  de workflows/sagas. Consumido opcionalmente por `ag-mail` y `ag-cli`
+  detras de features; nunca al reves (`RFC-0012`/`ADR-0013`, Fase 4.6-D).
 
 Opcionales:
 
@@ -329,6 +337,9 @@ Opcionales de infraestructura:
   SPF/DKIM/DMARC. NO es registrador. NO reemplaza Terraform. Consumido
   opcionalmente por `ag-cloud` durante `ag deploy` (septima regla de
   dependencias).
+- `ag-edge` — plano de datos edge en tiempo de request bajo el plano de
+  control de `ag-domains`: routing por hostname, seleccion de certificado
+  por SNI y politica canonica/redirect (`ADR-0012`/`RFC-0011`).
 
 ---
 

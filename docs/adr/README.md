@@ -36,3 +36,4 @@ Consecuencias, Alternativas, Estado.
 | 0010 | ag-mail native outbound MTA pivot | aceptado | `0010-ag-mail-native-mta-pivot.md` |
 | 0011 | Politica de marcas comerciales de terceros | aceptado | `0011-politica-marcas-comerciales.md` |
 | 0012 | ag-domains plano de control de attachment y serving | aceptado | `0012-ag-domains-control-plane.md` |
+| 0013 | ag-workers: modelo de ejecucion y autorizacion (Fase 4.6-D) | aceptado | `0013-ag-workers-execution-model.md` |

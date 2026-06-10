@@ -58,8 +58,10 @@ In scope:
 - A unified CLI (`ag`).
 - Batteries-included standard modules: `ag-auth`, `ag-data`,
   `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`.
-- Deferred-standard modules: `ag-mail` (transactional outbound email).
-- Optional infrastructure modules: `ag-domains` (DNS, ACME, SPF/DKIM/DMARC).
+- Deferred-standard modules: `ag-mail` (transactional outbound email) and
+  `ag-workers` (background job execution engine).
+- Optional infrastructure modules: `ag-domains` (DNS, ACME, SPF/DKIM/DMARC)
+  and `ag-edge` (request-time edge data plane).
 - Optional modules planned for later phases: `ag-ui`, `ag-cloud`, `ag-ai`,
   `ag-mobile`, `ag-migrate`.
 - A WASI plugin system.
@@ -73,17 +75,19 @@ Explicitly out of scope:
 
 ### 4. Ecosystem at a glance
 
-The ecosystem comprises 17 crates in four tiers:
+The ecosystem started at 17 crates in four tiers and has grown additively to
+20 with `ag-lsp`, `ag-edge` and `ag-workers`:
 
-- **Core:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-wasm-host`.
+- **Core:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`.
 - **Standard:** `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`,
   `ag-storage`, `ag-observe`.
-- **Deferred standard:** `ag-mail` (standard maturity, not installed by
-  default in official templates; added when a project needs it). `ag-mail`
-  does not depend on `ag-auth`.
+- **Deferred standard:** `ag-mail` and `ag-workers` (standard maturity, not
+  installed by default in official templates; added when a project needs
+  them). `ag-mail` does not depend on `ag-auth`; `ag-workers` is consumed by
+  `ag-mail`/`ag-cli` behind features, never the reverse.
 - **Optional:** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
-  and the optional-infrastructure crate `ag-domains` (consumed optionally
-  by `ag-cloud` during `ag deploy`).
+  and the optional-infrastructure crates `ag-domains` (consumed optionally
+  by `ag-cloud` during `ag deploy`) and `ag-edge` (request-time data plane).
 
 Dependency rules: `ag-core` depends on no Anti-Gravital crate; no circular
 dependencies; `ag-auth -> ag-mail` (not the reverse); `ag-cloud ->
@@ -169,9 +173,10 @@ Dentro del alcance:
 - Una CLI unificada (`ag`).
 - Modulos estandar batteries-included: `ag-auth`, `ag-data`,
   `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`.
-- Modulos estandar diferidos: `ag-mail` (correo transaccional outbound).
+- Modulos estandar diferidos: `ag-mail` (correo transaccional outbound) y
+  `ag-workers` (motor de ejecucion de jobs en segundo plano).
 - Modulos opcionales de infraestructura: `ag-domains` (DNS, ACME,
-  SPF/DKIM/DMARC).
+  SPF/DKIM/DMARC) y `ag-edge` (plano de datos edge en tiempo de request).
 - Modulos opcionales planeados para fases posteriores: `ag-ui`,
   `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`.
 - Un sistema de plugins WASI.
@@ -185,17 +190,20 @@ Explicitamente fuera del alcance:
 
 ### 4. El ecosistema de un vistazo
 
-El ecosistema lo componen 17 crates en cuatro niveles:
+El ecosistema arranco en 17 crates en cuatro niveles y ha crecido de forma
+aditiva a 20 con `ag-lsp`, `ag-edge` y `ag-workers`:
 
-- **Nucleo:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-wasm-host`.
+- **Nucleo:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`.
 - **Estandar:** `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`,
   `ag-storage`, `ag-observe`.
-- **Estandar diferido:** `ag-mail` (madurez de estandar, no instalado por
-  defecto en los templates oficiales; se incorpora cuando el proyecto lo
-  necesita). `ag-mail` no depende de `ag-auth`.
+- **Estandar diferido:** `ag-mail` y `ag-workers` (madurez de estandar, no
+  instalados por defecto en los templates oficiales; se incorporan cuando el
+  proyecto los necesita). `ag-mail` no depende de `ag-auth`; `ag-workers` lo
+  consumen `ag-mail`/`ag-cli` detras de features, nunca al reves.
 - **Opcionales:** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
-  y el crate opcional de infraestructura `ag-domains` (consumido
-  opcionalmente por `ag-cloud` durante `ag deploy`).
+  y los crates opcionales de infraestructura `ag-domains` (consumido
+  opcionalmente por `ag-cloud` durante `ag deploy`) y `ag-edge` (plano de
+  datos en tiempo de request).
 
 Reglas de dependencia: `ag-core` no depende de ningun crate Anti-Gravital;
 sin dependencias circulares; `ag-auth -> ag-mail` (no al reves);

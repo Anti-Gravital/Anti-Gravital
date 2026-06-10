@@ -342,6 +342,7 @@ dependencies = [
  "ag-data",
  "async-trait",
  "chrono",
+ "criterion",
  "metrics",
  "proptest",
  "rmp-serde",

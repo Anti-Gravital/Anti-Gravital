@@ -8,9 +8,12 @@ custom SMTP headers, string templating (and the optional `minijinja` engine)
 and `ag-observe` metrics are functional. The `mta` feature (off by default)
 adds the native outbound MTA: MX resolution, ESMTP+STARTTLS direct delivery,
 Ed25519/RSA DKIM, egress pools, traffic shaping, a two-tier queue, suppression
-and DSN/ARF intake; the `api` feature adds signed webhooks. Remaining tech debt
-(native MTA durable queue spool, REST API routes + marketing, live-delivery
-test) is tracked in `docs/DEBT.md`. Decisions:
+and DSN/ARF intake; the `api` feature adds signed webhooks. The opt-in
+`workers`/`workers-postgres` features (Phase 4.6-D, RFC-0012 S7) route generic
+delivery through the shared `ag-workers` engine, including a durable PostgreSQL
+path. Remaining tech debt (REST API routes + marketing, live-delivery test,
+live-database parity for the workers path) is tracked as GitHub Issues
+(label `tech-debt`; `docs/DEBT.md` is frozen as a historical record). Decisions:
 `docs/adr/0007-ag-mail-ag-domains.md`, `docs/adr/0010-ag-mail-native-mta-pivot.md`.
 Technical plans: `docs/rfc/RFC-0006-ag-mail-alcance.md`,
 `docs/rfc/RFC-0009-ag-mail-native-mta.md`. Module sheet:
@@ -19,9 +22,9 @@ Technical plans: `docs/rfc/RFC-0006-ag-mail-alcance.md`,
 ## Alcance v1
 
 - Relay SMTP nativo (lettre + rustls) y MTA outbound nativo (opt-in).
-- HTML/plaintext templates via the built-in `StringTemplate` engine. Compile-time
-  validation against `schema.ag` and external engines (askama/minijinja) are tracked
-  as tech debt in `docs/DEBT.md`.
+- HTML/plaintext templates via the built-in `StringTemplate` engine; the external
+  `minijinja` engine is available behind its feature. Compile-time validation against
+  `schema.ag` is tracked as a GitHub Issue (`tech-debt`).
 - Cola asincrona con reintentos y backoff exponencial.
 - Metricas hacia ag-observe.
 

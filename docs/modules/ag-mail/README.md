@@ -46,8 +46,8 @@ This is what the crate ships today. The status here must match the code
 - CLI: `ag mail test`.
 
 The persistent queue, custom SMTP headers and external template engines
-(`minijinja`) for this baseline are implemented; remaining debt is tracked in
-`docs/DEBT.md`.
+(`minijinja`) for this baseline are implemented; remaining debt is tracked as
+GitHub Issues (label `tech-debt`; `docs/DEBT.md` is frozen).
 
 ## Native outbound MTA (ADR-0010 / RFC-0009)
 
@@ -95,9 +95,12 @@ An external template engine is also available via the `MailTemplate` trait:
 `template::jinja::MinijinjaTemplate` (feature `minijinja`) for
 loops/conditionals/filters; the built-in `StringTemplate` stays the default.
 
-Remaining (tracked in `docs/DEBT.md`): durable queue spool over
-JetStream/PostgreSQL (DEBT-023), the REST API routes + data model + marketing
-objects (DEBT-021), and the live-delivery test (DEBT-022).
+Remaining (tracked as GitHub Issues, label `tech-debt`): the REST API routes +
+data model + marketing objects (historical DEBT-021) and the live-delivery test
+(historical DEBT-022). The durable-spool need (historical DEBT-023) is now
+served by the opt-in `workers-postgres` feature, which routes delivery through
+the shared `ag-workers` PostgreSQL backend (RFC-0012 S7); its live-database
+parity verification is tracked in Issue #109.
 
 ### Planned — later phases
 

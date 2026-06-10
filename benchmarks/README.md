@@ -23,4 +23,14 @@ sobre hardware de referencia documentado.
 
 ## Estado
 
-Fase 0: vacio. El primer benchmark llega con la Fase 1 (Shield MVP).
+Esta carpeta (suite de escenarios cross-crate) sigue vacia. Los
+benchmarks existentes son de nivel crate, con criterion, en
+`crates/*/benches/`:
+
+- `crates/ag-core/benches/shield_hello_world.rs` — pipeline Shield
+  hello-world (Fase 1).
+- `crates/ag-workers/benches/queue_throughput.rs` — encode/decode de
+  payloads, enqueue y lease en lote sobre el backend en memoria
+  (Fase 4.6-D; metodologia en `crates/ag-workers/benches/README.md`).
+
+Las cifras publicadas y su contexto viven en `docs/benchmarks/`.

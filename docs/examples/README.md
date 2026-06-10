@@ -14,6 +14,11 @@ entrega.
 | 4 | `realtime-chat` | Entregado |
 | 4 | `ai-backend` | Entregado |
 | 4 | `auth-mail-demo` | Entregado |
+| 4.6-D | `workers-basic` | Entregado |
+| 4.6-D | `workers-scheduled` | Entregado |
+| 4.6-D | `workers-producer-edge` | Entregado |
+| 4.6-D | `workers-mail-integration` | Entregado |
+| 4.6-D | `workers-postgres` | Entregado (requiere `DATABASE_URL` para el camino durable) |
 | 8 | `flutter-fullstack` | Pendiente |
 
 ## Reglas
@@ -27,7 +32,9 @@ entrega.
 
 ## Estado
 
-Cinco ejemplos entregados (cuatro binarios + el ejemplo DSL
-`ecommerce-api`). Pendiente: `flutter-fullstack` (Fase 8). Los example
-README de `examples/` estan en espanol; su migracion a ingles
-(ADR-0008) se hara de forma gradual.
+Diez ejemplos entregados (nueve binarios + el ejemplo DSL
+`ecommerce-api`), incluidos los cinco ejemplos de `ag-workers` de la
+Fase 4.6-D (RFC-0012 seccion 38). Pendiente: `flutter-fullstack`
+(Fase 8). Los README de ejemplo se migran a ingles al tocarse
+(ADR-0008); los de `workers-*` y el indice `examples/README.md` ya
+estan en ingles.

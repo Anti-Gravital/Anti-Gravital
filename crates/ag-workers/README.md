@@ -10,13 +10,16 @@ Classification: estándar diferido (deferred standard). Decision: `RFC-0012` /
 
 ## Status
 
-In progress. Delivered in sequenced stages S1-S7 (RFC-0012 §5). This README and the
-crate's `//!` headers state the real status of what is implemented; outstanding work is
-tracked as GitHub Issues (label `tech-debt`, CLAUDE.md rule 29). No production-readiness
-or GA claim is made until the pre-Phase-5 release gate
-(`docs/audits/PRE_FASE5_RELEASE_GATE.md`) closes.
+Delivered in sequenced stages S1-S7 (RFC-0012 §5). S1-S5 are implemented and verified
+by CI; S6 is partial and S7 has milestones M0-M2 done — the remainder needs a live
+PostgreSQL database and is tracked as GitHub Issues (label `tech-debt`, CLAUDE.md
+rule 29): #108 (run the `#[ignore]` Postgres integration tests), #109 (S7/M3 mail-job
+parity), #103 (S7/M4 removal of the deprecated `ag-mail` queue), #112 (dedicated
+`ag-edge` producer wiring). This README and the crate's `//!` headers state the real
+status of what is implemented. No production-readiness or GA claim is made until the
+pre-Phase-5 release gate (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) closes.
 
-Implemented so far (S1-S3):
+Implemented (S1-S5):
 
 - S1 foundations: job identity types; `JobEnvelope`/`NewJob`/`JobStatus` with a
   normative transition table and `JobPriority`; versioned `rmp-serde` payload encoding
@@ -38,9 +41,28 @@ Implemented so far (S1-S3):
   LOCKED` on `ag_worker_schedules`); a bounded dynamic worker pool (`DynamicPool`,
   scaling between `min`/`max` from queue depth); and a bounded CPU-bound pool (`CpuPool`,
   `spawn_blocking` + semaphore, not rayon).
+- S5 surfaces: the Anti-DSL `worker` declaration (DSL v0.8) with the `worker_gen`
+  generator (typed payloads, `JobHandler` stubs, `register_workers` wiring); the
+  operational `ag workers` CLI behind the `workers-runtime` feature of `ag-cli`
+  (`list`, `run`, `enqueue`, `queues`, `dlq list|inspect|retry|purge`, `doctor`;
+  durable-backend subcommands require `DATABASE_URL`); and the five runnable examples
+  listed below.
 
-The DSL `worker` declaration, the CLI, producer mode and the `ag-mail` migration land in
-the following stages (S5-S7).
+Partial / tracked in Issues:
+
+- S6 producer + edge: the `producer` feature (enqueue-only, no worker runtime) exists
+  and is exemplified by `examples/workers-producer-edge` (RFC-0012 §17.4). The
+  dedicated `ag-edge` wiring is deferred until a concrete consumer exists (#112).
+- S7 `ag-mail` migration: M0-M2 done (`workers`/`workers-postgres` features in
+  `ag-mail`, `MailDeliveryHandler`, `WorkersMailQueue`; the duplicated
+  `queue-persistent` queue is `#[deprecated]`). M3 parity verification needs a live
+  database (#109); M4 removal follows it (#103).
+
+Verification: unit, integration, property and runtime tests on the memory backend run
+in CI; PostgreSQL integration tests exist but are `#[ignore]` and need `DATABASE_URL`
+(#108). Criterion benchmarks live in `benches/` (see `benches/README.md`) and the
+`fuzz_workers_payload` target fuzzes the payload-decode boundary in the CI fuzz-smoke
+job. The workspace coverage gate is green at >= 80%.
 
 ## Features
 

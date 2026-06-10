@@ -15,6 +15,20 @@ Phase 4.5 closure -> pre-Phase 5 release gate. Does not start Phase 5.
 - Tests / fuzz / property tests / benchmarks (no public API changes intended).
 - Bug fixes, panic removal, error hardening, CI hardening where required.
 
+## Issues addressed in this branch
+
+Fixes #57, fixes #58, fixes #61.
+
+- #57 `ag-observe`: `/metrics` now renders the real Prometheus snapshot from a
+  stored `PrometheusHandle`; uninitialized exporter state returns an explicit
+  service-unavailable response instead of an empty body.
+- #58 `ag-observe`: `OTEL_EXPORTER_OTLP_ENDPOINT` now returns
+  `ObserveError::OtlpSetup` until a real OTLP exporter exists, avoiding silent
+  trace drops.
+- #61 MSRV/toolchain: workspace MSRV is aligned to Rust 1.95.0 in Cargo,
+  clippy config, contributor docs, onboarding docs and CI with a dedicated
+  `cargo check --workspace --all-targets` job.
+
 ## Related documents
 
 - Master audit plan (external PDF).
@@ -33,6 +47,14 @@ Per stage (recorded with command + date + commit in the matching
 - Stage 3: `cargo audit`, `cargo deny check`.
 - Stage 4: fuzz smoke (300s) + new targets; long fuzz documented.
 - Stage 6: criterion benches + HTTP benchmarks (honest hardware caveats).
+
+Commands run for the issue fixes:
+
+- `cargo fmt --package ag-observe`
+- `cargo test -p ag-observe`
+- `cargo clippy -p ag-observe --all-targets -- -D warnings`
+- `cargo check --workspace --all-targets`
+- `git diff --check`
 
 ## Exit criteria advanced
 

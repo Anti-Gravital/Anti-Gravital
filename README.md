@@ -49,7 +49,7 @@ Every crate remains independently selectable. Later roadmap phases are additive 
 
 ### Install
 
-Prerequisites: Git and Rust 1.79.0 or newer.
+Prerequisites: Git and Rust 1.95.0 or newer.
 
 Linux or macOS, from a blank working directory:
 
@@ -185,7 +185,7 @@ Las fases posteriores son aditivas: no son requisito para usar lo anterior.
 
 ### Instalar
 
-Requisitos: Git y Rust 1.79.0 o superior.
+Requisitos: Git y Rust 1.95.0 o superior.
 
 Linux o macOS:
 

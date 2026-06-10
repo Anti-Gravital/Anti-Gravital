@@ -28,7 +28,8 @@ historical DEBT-025).
   - `how-to/troubleshoot.md` (DNS + certificate issuance)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
   `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
-  `reference/provider-capability-matrix.md`
+  `reference/provider-capability-matrix.md`,
+  `reference/provider-adapter-sdk.md` (plan/diff/apply/verify/rollback)
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
 

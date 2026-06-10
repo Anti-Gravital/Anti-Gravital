@@ -67,3 +67,7 @@ pub mod sql_store;
 pub use attachment::DomainAttachment;
 pub use error::AgDomainsError;
 pub use hostname::{Hostname, HostnameKind};
+pub use provider::sdk::{
+    diff as zone_diff, ChangeRef, ProviderAdapter, VerifyOutcome, ZoneAdapter, ZoneChange,
+    ZonePlan, ZoneRef,
+};

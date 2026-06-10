@@ -154,4 +154,40 @@ mod tests {
         let err = WorkerError::permanent("boom");
         assert_eq!(err.to_string(), "permanent error: boom");
     }
+
+    #[test]
+    fn kind_strings_are_stable() {
+        assert_eq!(WorkerErrorKind::Retriable.as_str(), "retriable");
+        assert_eq!(WorkerErrorKind::Permanent.as_str(), "permanent");
+        assert_eq!(WorkerErrorKind::Cancelled.as_str(), "cancelled");
+        assert_eq!(WorkerErrorKind::TimedOut.as_str(), "timed_out");
+        assert_eq!(WorkerErrorKind::InvalidPayload.as_str(), "invalid_payload");
+        assert_eq!(
+            WorkerErrorKind::DependencyUnavailable.as_str(),
+            "dependency_unavailable"
+        );
+    }
+
+    #[test]
+    fn constructors_set_kind_and_message() {
+        let cases = [
+            (WorkerError::retriable("a"), WorkerErrorKind::Retriable),
+            (WorkerError::permanent("b"), WorkerErrorKind::Permanent),
+            (WorkerError::cancelled("c"), WorkerErrorKind::Cancelled),
+            (WorkerError::timed_out("d"), WorkerErrorKind::TimedOut),
+            (
+                WorkerError::invalid_payload("e"),
+                WorkerErrorKind::InvalidPayload,
+            ),
+            (
+                WorkerError::dependency_unavailable("f"),
+                WorkerErrorKind::DependencyUnavailable,
+            ),
+        ];
+        for (err, kind) in cases {
+            assert_eq!(err.kind(), kind);
+            assert_eq!(err.kind().is_retriable(), err.is_retriable());
+            assert!(!err.message().is_empty());
+        }
+    }
 }

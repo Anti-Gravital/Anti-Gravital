@@ -221,4 +221,17 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn payload_bytes_accessors() {
+        let empty = PayloadBytes::from_vec(vec![]);
+        assert!(empty.is_empty());
+        assert_eq!(empty.len(), 0);
+
+        let bytes = PayloadBytes::from_vec(vec![1, 2, 3]);
+        assert!(!bytes.is_empty());
+        assert_eq!(bytes.len(), 3);
+        assert_eq!(bytes.as_slice(), &[1, 2, 3]);
+        assert_eq!(bytes.into_vec(), vec![1, 2, 3]);
+    }
 }

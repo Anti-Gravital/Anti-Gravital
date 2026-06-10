@@ -78,4 +78,27 @@ mod tests {
         let nf: Result<(), QueueError> = Err(QueueError::NotFound(JobId::new()));
         assert!(!AdmissionOutcome::from_result(&nf).is_accepted());
     }
+
+    #[test]
+    fn outcome_strings_are_stable() {
+        assert_eq!(AdmissionOutcome::Accepted.as_str(), "accepted");
+        assert_eq!(
+            AdmissionOutcome::RejectedQueueFull.as_str(),
+            "rejected_queue_full"
+        );
+        assert_eq!(
+            AdmissionOutcome::RejectedPayloadTooLarge.as_str(),
+            "rejected_payload_too_large"
+        );
+        assert_eq!(
+            AdmissionOutcome::RejectedRateLimited.as_str(),
+            "rejected_rate_limited"
+        );
+        assert_eq!(
+            AdmissionOutcome::RejectedInvalidPayload.as_str(),
+            "rejected_invalid_payload"
+        );
+        assert!(AdmissionOutcome::Accepted.is_accepted());
+        assert!(!AdmissionOutcome::RejectedRateLimited.is_accepted());
+    }
 }

@@ -500,4 +500,35 @@ mod tests {
         std::env::remove_var("AG_WORKERS_MAX_PAYLOAD_BYTES");
         std::env::remove_var("AG_WORKERS_QUEUE_MAIL_MAX");
     }
+
+    #[test]
+    fn worker_mode_from_str_all_variants() {
+        assert_eq!("embedded".parse::<WorkerMode>().unwrap(), WorkerMode::Embedded);
+        assert_eq!(
+            "  Standalone ".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Standalone
+        );
+        assert_eq!(
+            "DISTRIBUTED".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Distributed
+        );
+        assert_eq!("producer".parse::<WorkerMode>().unwrap(), WorkerMode::Producer);
+        assert!("galactic".parse::<WorkerMode>().is_err());
+    }
+
+    #[test]
+    fn backend_kind_from_str_all_variants() {
+        assert_eq!("memory".parse::<BackendKind>().unwrap(), BackendKind::Memory);
+        for pg in ["postgres", "postgresql", "PG"] {
+            assert_eq!(pg.parse::<BackendKind>().unwrap(), BackendKind::Postgres);
+        }
+        assert!("sqlite".parse::<BackendKind>().is_err());
+    }
+
+    #[test]
+    fn parse_duration_days_and_weeks() {
+        assert_eq!(parse_duration("2d").unwrap(), Duration::from_secs(2 * 86_400));
+        assert_eq!(parse_duration("1w").unwrap(), Duration::from_secs(604_800));
+        assert!(parse_duration("5x").is_err());
+    }
 }

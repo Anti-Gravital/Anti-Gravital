@@ -327,4 +327,28 @@ mod tests {
         assert_eq!(s.advance(far), 1);
         assert!(s.next_run_at > far, "skipped to the next future tick");
     }
+
+    #[test]
+    fn run_once_policy_catches_up_once() {
+        let now = Utc::now();
+        let mut s = schedule(now);
+        s.misfire = MisfirePolicy::RunOnce;
+        let far = now + chrono::Duration::seconds(5);
+        assert_eq!(s.advance(far), 1);
+        assert!(s.next_run_at > far, "rescheduled past the catch-up point");
+    }
+
+    #[tokio::test]
+    async fn schedule_tick_builds_new_job() {
+        let now = Utc::now();
+        let store = MemoryScheduleStore::new();
+        store.register(schedule(now));
+        let ticks = store
+            .claim_due(now + chrono::Duration::milliseconds(15))
+            .await
+            .unwrap();
+        let job = ticks.into_iter().next().unwrap().into_new_job();
+        assert_eq!(job.kind.as_str(), "cleanup");
+        assert_eq!(job.queue.as_str(), "maintenance");
+    }
 }

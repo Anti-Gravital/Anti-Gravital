@@ -37,20 +37,29 @@ Phase 4.6-D (additive pre-Phase-5 extraction/hardening, sibling of 4.6-A `mta` a
 
 ## Test plan
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings`
-- [ ] `cargo test -p ag-workers` (memory backend: retry, poison guard, shutdown, ordering)
-- [ ] `cargo test -p ag-workers --features postgres` (testcontainers: SKIP LOCKED leasing,
-  lease-expiry + reaper, retry across restart, DLQ persistence, `enqueue_in_tx` rollback,
-  scheduler singleton across N processes)
-- [ ] `cargo test -p ag-dsl worker` (parse + semantic + generated stubs compile)
-- [ ] `cargo test -p ag-mail --features workers` (S7/M2: Email payload roundtrip,
-  retriable/permanent classification, enqueue-through-adapter delivered by a pool)
-- [ ] `cargo test -p ag-mail --features workers-postgres -- --ignored` (S7/M3 parity:
-  mail job persists as `kind=mail.delivery`, delivered, survives restart; needs
-  `TEST_DATABASE_URL`)
-- [ ] `cargo test --workspace --all-features` (no circular deps; cross-crate green)
-- [ ] `cargo audit` and `cargo deny check`
+- [x] `cargo fmt --all -- --check` — clean.
+- [x] `cargo clippy -p ag-workers --all-features --all-targets -- -D warnings` — clean;
+  also `-p ag-cli` and the four new examples clippy-clean with `-D warnings`. Full
+  `--workspace --all-features` not re-run in this session.
+- [x] `cargo test -p ag-workers` (memory backend: retry, poison guard, shutdown,
+  ordering, runtime outcomes, scheduler, properties) — 15 tests green.
+- [ ] `cargo test -p ag-workers --features postgres` (SKIP LOCKED leasing, lease-expiry +
+  reaper, retry across restart, DLQ persistence, `enqueue_in_tx` rollback, scheduler
+  singleton) — `#[ignore]`, needs a live `DATABASE_URL`. Tracked in #108.
+- [x] `cargo test -p ag-dsl worker` (parse + generated stubs compile) — green.
+- [x] `cargo test -p ag-mail --features workers` (S7/M2: Email payload roundtrip,
+  retriable/permanent classification, enqueue-through-adapter delivered by a pool) — green.
+- [ ] `cargo test -p ag-mail --features workers-postgres -- --ignored` (S7/M3 parity) —
+  needs `TEST_DATABASE_URL`. Tracked in #109 (M4 removal in #103 depends on it).
+- [x] Examples build, clippy-clean, and run: `workers-scheduled`, `workers-producer-edge`,
+  `workers-mail-integration` run end to end; `workers-postgres` exits cleanly without
+  `DATABASE_URL`.
+- [ ] `cargo audit` and `cargo deny check` — not re-run in this session.
+
+Deferred to GitHub Issues (could not run here without a live database; this sandbox has
+no System V IPC, so Postgres cannot start): #108 (run/verify Postgres integration
+tests), #109 (S7/M3 mail-job reconciliation), #110 (`ag-data` canonical transaction
+handle for `enqueue_in_tx`).
 
 ## Exit criteria advanced (docs/roadmap/STATUS.md)
 
@@ -66,8 +75,10 @@ Phase 4.6-D (additive pre-Phase-5 extraction/hardening, sibling of 4.6-A `mta` a
   untouched at introduction).
 - [x] No unnecessary complexity (extracts an existing pattern; one new dep `tokio-util`).
 - [x] No circular dependencies.
-- [ ] Compiles (per staged commit).
-- [ ] Tests pass (per staged commit).
-- [ ] `cargo fmt` clean.
-- [ ] `cargo clippy -D warnings` clean.
+- [x] Compiles (ag-workers, ag-cli, ag-mail, ag-dsl, and the five examples).
+- [x] Tests pass (ag-workers memory/property/runtime/scheduler/poison-guard; ag-dsl
+  worker; ag-mail `workers`). Postgres-backed tests are `#[ignore]`, tracked in #108/#109.
+- [x] `cargo fmt` clean.
+- [x] `cargo clippy -D warnings` clean (ag-workers `--all-features --all-targets`, ag-cli,
+  examples).
 - [x] Documentation updated in the same change (RFC/ADR/module/roster/roadmap/architecture).

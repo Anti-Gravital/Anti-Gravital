@@ -7,6 +7,14 @@ cd "$repo_root"
 
 bash -n install.sh
 
+for installer_file in install.sh install.ps1 checksums/installers.sha256; do
+    eol="$(git check-attr eol -- "$installer_file" | awk '{print $3}')"
+    if [[ "$eol" != "lf" ]]; then
+        printf '%s must be checked out with LF line endings.\n' "$installer_file" >&2
+        exit 1
+    fi
+done
+
 workspace_msrv="$(sed -n 's/^rust-version = "\([0-9][0-9.]*\)"/\1/p' Cargo.toml | head -n 1)"
 bash_msrv="$(sed -n 's/^REQUIRED_RUST="\([0-9][0-9.]*\)"/\1/p' install.sh)"
 powershell_msrv="$(sed -n 's/^\$RequiredRust = \[version\]"\([0-9][0-9.]*\)"/\1/p' install.ps1)"

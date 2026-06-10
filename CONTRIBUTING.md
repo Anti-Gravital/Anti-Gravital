@@ -100,6 +100,7 @@ no puede, marquela como pendiente de traduccion y abra un issue.
 ## Estilo de codigo
 
 - Rust edition 2021.
+- Rust MSRV: 1.95.0, pinned in `rust-toolchain.toml` and checked by CI.
 - Formateo: `cargo fmt`, sin excepciones.
 - Lints: `clippy` con `-D warnings`.
 - `unsafe` requiere comentario inmediato anterior con el motivo y un

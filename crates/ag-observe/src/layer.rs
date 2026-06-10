@@ -1,6 +1,7 @@
 //! Construction of the composed tracing subscriber.
 
 use crate::config::{LogFormat, ObserveConfig};
+use crate::metrics::install_prometheus_recorder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 /// Initialization error for the observability subsystem.
@@ -28,7 +29,11 @@ impl std::error::Error for ObserveError {}
 /// Initializes the observability subsystem.
 ///
 /// Configures the global `tracing` subscriber with layers for structured
-/// logging, OTLP export (if configured) and Prometheus metrics.
+/// logging and Prometheus metrics.
+///
+/// OTLP trace export is reserved for a future version. If
+/// `ObserveConfig::otlp_endpoint` is configured, initialization returns
+/// [`ObserveError::OtlpSetup`] instead of silently dropping traces.
 ///
 /// Must be called only once at process startup, before any
 /// invocation of tracing macros.
@@ -38,6 +43,14 @@ impl std::error::Error for ObserveError {}
 /// Returns [`ObserveError::AlreadyInitialized`] if the global subscriber
 /// was already configured by a previous call.
 pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
+    if let Some(endpoint) = &config.otlp_endpoint {
+        return Err(ObserveError::OtlpSetup(format!(
+            "OTEL_EXPORTER_OTLP_ENDPOINT is configured as {endpoint:?}, but OTLP trace export is not available in this version"
+        )));
+    }
+
+    install_prometheus_recorder();
+
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     let registry = tracing_subscriber::registry().with(env_filter);
@@ -57,30 +70,9 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
         }
     }
 
-    // TECH-DEBT:
-    // motivo: Full opentelemetry-otlp integration requires an active tokio
-    //         runtime at the time init() is called. The real OTLP exporter
-    //         is omitted here to avoid forcing a runtime dependency at the
-    //         initialization point.
-    // impacto: The otlp_endpoint field is read and logged but no exporter
-    //          is connected. Traces are not exported via OTLP.
-    // eliminacion esperada: Phase 4, iteration ag-observe v0.2, when the
-    //          async process initialization pattern is established.
-    if config.otlp_endpoint.is_some() {
-        tracing::warn!(
-            otlp_endpoint = config.otlp_endpoint.as_deref(),
-            "otlp_endpoint configured but the OTLP exporter is not active in this version"
-        );
-    }
-
-    // Install the Prometheus exporter globally
-    metrics_exporter_prometheus::PrometheusBuilder::new()
-        .install()
-        .ok(); // If already installed, silently ignore
-
     tracing::info!(
         prometheus_port = config.prometheus_port,
-        otlp = config.otlp_endpoint.is_some(),
+        otlp = false,
         "observability initialized"
     );
 
@@ -112,14 +104,16 @@ mod tests {
     }
 
     #[test]
-    fn init_with_otlp_endpoint_logs_warning() {
+    fn init_with_otlp_endpoint_returns_error() {
         use crate::config::ObserveConfig;
         let config = ObserveConfig {
             otlp_endpoint: Some("http://localhost:4317".to_string()),
             ..ObserveConfig::default()
         };
         let result = init(&config);
-        assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
+        assert!(
+            matches!(result, Err(ObserveError::OtlpSetup(message)) if message.contains("OTEL_EXPORTER_OTLP_ENDPOINT"))
+        );
     }
 
     #[test]

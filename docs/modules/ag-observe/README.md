@@ -7,8 +7,10 @@
 
 ## Dominio
 
-Observabilidad nativa: tracing estructurado (JSON/text), exporter OpenTelemetry OTLP,
-metricas Prometheus con handler HTTP Axum.
+Observabilidad nativa: tracing estructurado (JSON/text) y metricas Prometheus
+con handler HTTP Axum. OTLP esta reservado; configurar
+`OTEL_EXPORTER_OTLP_ENDPOINT` hace que `init()` falle explicitamente hasta que
+exista un exporter real.
 
 ## Stack implementado
 
@@ -16,7 +18,6 @@ metricas Prometheus con handler HTTP Axum.
 |---|---|---|
 | Tracing estructurado | `tracing` + `tracing-subscriber` | 0.1 / 0.3 |
 | Formato JSON | `tracing-subscriber` EnvFilter + fmt | 0.3 |
-| Exporter OTLP | `opentelemetry-otlp` | 0.27 |
 | Metricas Prometheus | `metrics` + `metrics-exporter-prometheus` | 0.24 |
 
 ## Capacidades implementadas (Fase 4)
@@ -26,7 +27,8 @@ metricas Prometheus con handler HTTP Axum.
   Retorna `ObserveError::AlreadyInitialized` en llamadas subsiguientes (no panic).
 - `ag_observe::metrics_handler` — handler Axum para `/metrics` Prometheus.
 - `LogFormat::Json` / `LogFormat::Text` — seleccionado via `LOG_FORMAT`.
-- Propagacion de contexto W3C TraceContext cuando `OTLP_ENDPOINT` esta definida.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` se detecta y rechaza con
+  `ObserveError::OtlpSetup`; no se aceptan configuraciones OTLP no operativas.
 
 ## Uso en Axum
 

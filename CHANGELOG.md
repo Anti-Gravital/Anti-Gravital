@@ -7,6 +7,22 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Correctivo pre-Fase 5 - Observabilidad y toolchain (2026-06-10)
+
+Corregido:
+
+- `ag-observe`: `/metrics` ahora renderiza el snapshot real de Prometheus
+  mediante `PrometheusHandle`; si el exporter no fue inicializado, responde de
+  forma explicita en vez de devolver un cuerpo vacio.
+- `ag-observe`: configurar `OTEL_EXPORTER_OTLP_ENDPOINT` ahora falla con
+  `ObserveError::OtlpSetup` hasta que exista un exporter OTLP real, evitando
+  aceptar una configuracion que descartaba trazas.
+
+Cambiado:
+
+- MSRV declarado alineado a Rust 1.95.0 en `Cargo.toml`, `clippy.toml`,
+  documentacion de instalacion/contribucion y CI (`cargo check` dedicado).
+
 ### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
 
 Anadido:

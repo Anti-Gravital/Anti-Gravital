@@ -1,7 +1,7 @@
 # ag-observe
 
-Observabilidad nativa para Anti-Gravital: tracing estructurado (JSON/text),
-exporter OpenTelemetry (OTLP gRPC), metricas Prometheus con handler HTTP.
+Observabilidad nativa para Anti-Gravital: tracing estructurado (JSON/text)
+y metricas Prometheus con handler HTTP.
 
 > Estado: Fase 4 -- implementado.
 
@@ -42,9 +42,9 @@ Expone metricas en formato Prometheus text en `/metrics`.
 
 ### OpenTelemetry OTLP
 
-- Exporter gRPC hacia un colector OTLP (Jaeger, Grafana Tempo, etc.).
-- Activado cuando `OTLP_ENDPOINT` esta definida.
-- Propagacion de contexto W3C TraceContext.
+- Reservado para una version futura.
+- Si `OTEL_EXPORTER_OTLP_ENDPOINT` esta definida, `init()` devuelve un error
+  explicito en vez de aceptar una configuracion que no exporta trazas.
 
 ### Metricas Prometheus
 
@@ -58,7 +58,7 @@ Expone metricas en formato Prometheus text en `/metrics`.
 | `SERVICE_NAME` | `ag-service` | Nombre del servicio en trazas |
 | `LOG_LEVEL` | `info` | Nivel de log (`trace`, `debug`, `info`, `warn`, `error`) |
 | `LOG_FORMAT` | `text` | `text` o `json` |
-| `OTLP_ENDPOINT` | `""` | gRPC OTLP (ej: `http://localhost:4317`). Vacio = deshabilitado |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `""` | Reservado. Si esta definido, `init()` falla explicitamente porque el exporter OTLP aun no esta implementado |
 
 ## Referencias
 

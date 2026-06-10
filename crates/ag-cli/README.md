@@ -90,7 +90,7 @@ ag mail test --to me@example.com --smtp-host mail.example.com --smtp-port 587
 ## Installation
 
 ```bash
-# From source (requires Rust >= 1.79):
+# From source (requires Rust >= 1.95):
 bash install.sh          # Linux / macOS
 .\install.ps1            # Windows PowerShell
 ```

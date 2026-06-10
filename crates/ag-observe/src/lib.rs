@@ -1,7 +1,7 @@
 //! Native observability for the Anti-Gravital ecosystem.
 //!
 //! Configures the global `tracing` subscriber with structured logging,
-//! OpenTelemetry (OTLP) export and Prometheus metrics. Includes
+//! Prometheus metrics. Includes
 //! pre-configured Grafana dashboards in `dashboards/`.
 //!
 //! # Minimal usage
@@ -22,7 +22,7 @@
 //! |---|---|---|
 //! | `LOG_FORMAT` | `pretty` | Log format: `pretty` or `json` |
 //! | `PROMETHEUS_PORT` | `9090` | Port where `/metrics` is exposed |
-//! | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | OTLP endpoint for traces |
+//! | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | Reserved; configuring it makes `init()` return an OTLP setup error |
 //! | `AG_DEV_CONSOLE` | `false` | Enables tokio-console (feature `dev-console`) |
 
 pub mod config;

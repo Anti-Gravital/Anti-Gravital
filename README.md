@@ -89,7 +89,7 @@ criteria pending.
 - `ag-storage`: native filesystem store with embedded Axum HTTP server, path-safe
   by construction, image processing (resize/thumbnail/webp), S3/MinIO backend via
   `object_store`, HMAC-SHA256 signed URLs. `AgStore` is a `Native | S3` enum.
-- `ag-observe`: structured tracing, OTLP exporter, Prometheus metrics via
+- `ag-observe`: structured tracing, Prometheus metrics via
   `axum::Router`, custom layer, LogFormat (JSON/Text). Idempotent init.
 
 DSL extended to v0.5 (auth/policies in endpoints) and v0.6 (declared events).
@@ -124,7 +124,7 @@ Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
 
 ### Quick start
 
-Requires Rust 1.79+ (1.95+ recommended for all features).
+Requires Rust 1.95+.
 
 ```sh
 # Install from source (Linux / macOS)
@@ -325,7 +325,7 @@ Los cinco modulos batteries-included estan operativos como crates independientes
 - `ag-storage`: store filesystem nativo con servidor HTTP Axum embebido, seguridad de path
   por construccion, procesamiento de imagen (resize/thumbnail/webp), backend S3/MinIO via
   `object_store`, URLs firmadas con HMAC-SHA256. `AgStore` es un enum `Native | S3`.
-- `ag-observe`: tracing estructurado, exporter OTLP, metricas Prometheus via `axum::Router`,
+- `ag-observe`: tracing estructurado, metricas Prometheus via `axum::Router`,
   layer personalizado, LogFormat (JSON/Text). Init idempotente.
 
 DSL ampliado a v0.5 (auth/politicas en endpoints) y v0.6 (eventos declarados). Generadores
@@ -357,7 +357,7 @@ El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
 
 ### Inicio rapido
 
-Requiere Rust 1.79+ (se recomienda 1.95+).
+Requiere Rust 1.95+.
 
 ```sh
 # Instalar desde fuente (Linux / macOS)

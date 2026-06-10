@@ -75,7 +75,9 @@ pub mod telemetry;
 
 pub use admission::AdmissionOutcome;
 pub use backoff::RetryPolicy;
-pub use config::RuntimeConfig;
+pub use config::{
+    parse_duration, BackendKind, ConfigError, QueueConfig, RuntimeConfig, WorkerMode, WorkersConfig,
+};
 pub use context::JobContext;
 pub use error::{WorkerError, WorkerErrorKind};
 pub use handler::JobHandler;

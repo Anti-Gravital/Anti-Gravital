@@ -337,6 +337,13 @@ hasta que el gate cierre. Decision en `docs/rfc/RFC-0012-ag-workers.md` y
 `docs/adr/0013-ag-workers-execution-model.md`. El alcance esta fijo; la entrega se
 secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
+S1-S5 estan implementadas y verificadas con CI verde (codigo + tests sobre el
+backend nativo en memoria). S6 esta parcial (patron y ejemplos listos; falta el
+wiring dedicado del feature `producer`). S7 tiene M0-M2 hechos; M3/M4 dependen de
+verificar la paridad contra una base PostgreSQL viva, lo que el CI por defecto no
+ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
+#109 (S7/M3) y #103 (S7/M4).
+
 ### Criterios de entrada (4.6-D.1)
 
 - [x] RFC aprobado para `ag-workers`. Vease RFC-0012.
@@ -347,26 +354,30 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
 ### Entregables (4.6-D.2)
 
-- [ ] S1 Fundaciones: crate `ag-workers`; `ids`, `job` (envelope + maquina de estados
+- [x] S1 Fundaciones: crate `ag-workers`; `ids`, `job` (envelope + maquina de estados
   + prioridad), `payload` (rmp + versionado + migrate), `error`/`outcome`, `handler`,
   `registry`, `context` (CancellationToken). Sin runtime.
-- [ ] S2 Runtime en memoria: `MemoryQueue`, workers estaticos, loop de dispatch,
+- [x] S2 Runtime en memoria: `MemoryQueue`, workers estaticos, loop de dispatch,
   retry/backoff, timeout, DLQ en memoria, poison guard, shutdown gracioso, telemetria.
-- [ ] S3 Persistencia: `PostgresQueue` via `ag-data`, migraciones, leasing
-  `FOR UPDATE SKIP LOCKED`, heartbeat + reaper, `enqueue_in_tx`, DLQ persistente,
-  admision/backpressure (feature `postgres`).
-- [ ] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
+- [x] S3 Persistencia (codigo): `PostgresQueue` via `ag-data`, migraciones
+  (`0001`-`0003`), leasing `FOR UPDATE SKIP LOCKED`, heartbeat + reaper,
+  `enqueue_in_tx`, DLQ persistente, admision/backpressure (feature `postgres`). La
+  verificacion contra una base viva es criterio de salida y se rastrea en el
+  Issue #108 (el entorno de CI por defecto no levanta PostgreSQL).
+- [x] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
   acotados; pool CPU-bound (`spawn_blocking` + semaforo).
-- [/] S5 Superficies: declaracion `worker` en el Anti-DSL (v0.8) + generador
+- [x] S5 Superficies: declaracion `worker` en el Anti-DSL (v0.8) + generador
   `worker_gen` (payloads tipados, stubs `JobHandler`, `register_workers`). CLI
-  `ag workers list` operativa (compila el schema y lista los workers; sin
-  infraestructura). Pendientes: `ag workers run/dlq/enqueue` (requieren backend en vivo)
-  y ejemplos `examples/workers-*`.
-- [/] S6 Modo producer + edge: el patron enqueue-only esta documentado (un proceso
-  construye el backend y llama `enqueue`/`enqueue_in_tx` sin arrancar un `WorkerPool`;
-  ver `examples/workers-basic/README.md` y RFC-0012 seccion 17.4). Ejemplo
-  `examples/workers-basic` operativo (backend en memoria, pool estatico, shutdown).
-  Pendiente: wiring dedicado del feature `producer` con `ag-edge`.
+  `ag workers` completa tras el feature `workers-runtime`: `list` (compila el schema,
+  sin infraestructura), `run`, `enqueue`, `queues`, `dlq` (`list`/`inspect`/`retry`/
+  `purge`) y `doctor`; los subcomandos que tocan backend durable requieren
+  `DATABASE_URL`. Ejemplos entregados: `workers-basic`, `workers-postgres`,
+  `workers-scheduled`, `workers-mail-integration`, `workers-producer-edge`.
+- [/] S6 Modo producer + edge: el feature `producer` (enqueue-only, sin runtime de
+  workers) existe y el patron esta documentado y ejemplificado
+  (`examples/workers-producer-edge`, RFC-0012 seccion 17.4). Pendiente: wiring
+  dedicado del feature `producer` desde `ag-edge` (consumidor enqueue-only segun
+  seccion 7); seguimiento en Issue (area `ag-edge`/`ag-workers`).
 - [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
   M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
   M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
@@ -382,19 +393,29 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
 ### Criterios de salida (4.6-D.3)
 
-- [ ] Jobs tipados se ejecutan sobre el backend en memoria (`ag dev`) con retry,
-  backoff y DLQ.
-- [ ] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
-  `enqueue_in_tx` commitea job + escrituras del llamador de forma atomica (test de rollback).
-- [ ] El poison guard convierte un job en crash-loop en una entrada acotada del DLQ.
-- [ ] Los jobs por intervalo disparan una sola vez entre N procesos (test singleton).
-- [ ] La declaracion `worker` del DSL compila y genera payloads + stubs de handler.
-- [ ] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated).
-- [ ] Cobertura >= 80%; targets de fuzz para la gramatica `worker` y el decoder de payload.
-- [ ] Cero dependencias circulares (CI verde).
-- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
+- [x] Jobs tipados se ejecutan sobre el backend en memoria (`ag dev`) con retry,
+  backoff y DLQ (`tests/runtime_outcomes.rs`, `tests/retry_policy.rs`).
+- [/] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
+  `enqueue_in_tx` commitea job + escrituras del llamador de forma atomica (test de
+  rollback). El codigo y los tests existen (`tests/postgres_queue.rs`), pero son
+  `#[ignore]` y exigen `DATABASE_URL`; su ejecucion contra una base viva esta
+  bloqueada por el entorno y se rastrea en el Issue #108.
+- [x] El poison guard convierte un job en crash-loop en una entrada acotada del DLQ
+  (`tests/poison_guard.rs`).
+- [x] Los jobs por intervalo disparan una sola vez (claim singleton) sobre el backend
+  en memoria (`tests/scheduler_dynamic.rs`). La verificacion cross-proceso sobre
+  PostgreSQL forma parte del Issue #108.
+- [x] La declaracion `worker` del DSL compila y genera payloads + stubs de handler
+  (`ag-dsl` v0.8, `codegen/worker_gen.rs`).
+- [x] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated
+  `workers-runtime`).
+- [/] Cobertura >= 80% (82.28% en `quality`); la gramatica `worker` se fuzzea via los
+  targets unificados del DSL (`fuzz_parser`/`fuzz_compile`); el target de fuzz del
+  decoder de payload de `ag-workers` (`fuzz_workers_payload`) se anade en esta fase.
+- [x] Cero dependencias circulares (CI verde).
+- [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
   `cargo deny check` verdes.
-- [ ] Sin afirmacion de produccion/GA antes de que el gate pre-Fase 5 lo permita.
+- [x] Sin afirmacion de produccion/GA antes de que el gate pre-Fase 5 lo permita.
 
 ## Fase 5 - ag-cloud
 

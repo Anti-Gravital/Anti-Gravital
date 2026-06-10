@@ -1,0 +1,58 @@
+[package]
+name = "ag-edge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+description = "Anti-Gravital edge data plane: hostname routing, SNI certificate selection, ACME HTTP-01 responder and canonical/redirect policy for attached domains"
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# Runnable HTTP edge listener (axum + tokio): host routing, redirects and the
+# ACME HTTP-01 responder.
+server = ["dep:axum", "dep:tokio", "dep:tower", "dep:tracing"]
+# TLS serving with SNI certificate selection (implies server).
+tls = ["server", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pki-types", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:thiserror"]
+
+[dependencies]
+# Reuses the control-plane hostname normalization without pulling ACME or
+# provider HTTP clients (default-features disabled). Edge is downstream of the
+# ag-domains control plane (ADR-0012 architecture).
+ag-domains = { path = "../ag-domains", version = "0.0.0", default-features = false }
+serde = { workspace = true }
+
+# server feature
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+# tls feature
+rustls = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { workspace = true, optional = true }
+http-body-util = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "time"] }
+reqwest = { workspace = true }
+rcgen = { workspace = true }
+rustls = { workspace = true }
+rustls-pki-types = { workspace = true }
+tokio-rustls = { workspace = true }
+async-trait = { workspace = true }

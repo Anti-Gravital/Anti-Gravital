@@ -38,11 +38,12 @@ use tower::ServiceBuilder;
 
 /// Starts the HTTP server and blocks until the process ends.
 pub async fn run_server(store: Arc<AgStore>, config: &StorageConfig) -> Result<(), StorageError> {
-    let addr = format!("0.0.0.0:{}", config.server_port);
-    let listener = tokio::net::TcpListener::bind(&addr)
+    config.validate_server_security()?;
+    let addr = std::net::SocketAddr::new(config.server_bind, config.server_port);
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(StorageError::Io)?;
-    tracing::info!(port = config.server_port, "ag-storage server escuchando");
+    tracing::info!(%addr, authenticated = !config.store_token.is_empty(), "ag-storage server listening");
     let app = build_router(store, config);
     axum::serve(listener, app)
         .await
@@ -124,15 +125,12 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
         "png" => ("image/png", false),
         "gif" => ("image/gif", false),
         "webp" => ("image/webp", false),
-        // TECH-DEBT:
-        // reason: SVG can contain JavaScript and trigger XSS in browsers.
-        // impact: SVG objects are served inline; use a sanitizer or force
-        //          attachment to mitigate XSS in browser clients.
-        // expected removal: second ag-storage iteration with a CSP policy.
-        "svg" => ("image/svg+xml", false),
+        // User-controlled active content keeps its MIME type but must not render
+        // inline on the storage origin.
+        "svg" => ("image/svg+xml", true),
         "ico" => ("image/x-icon", false),
         "txt" => ("text/plain; charset=utf-8", false),
-        "html" | "htm" => ("text/html; charset=utf-8", false),
+        "html" | "htm" => ("text/html; charset=utf-8", true),
         "css" => ("text/css; charset=utf-8", false),
         "json" => ("application/json", false),
         "pdf" => ("application/pdf", false),
@@ -477,6 +475,56 @@ mod tests {
             .unwrap();
         let resp = app.oneshot(get_req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn active_content_is_served_as_attachment() {
+        for (key, body, content_type) in [
+            (
+                "page.html",
+                "<script>alert(1)</script>",
+                "text/html; charset=utf-8",
+            ),
+            (
+                "image.svg",
+                r#"<svg onload="alert(1)"></svg>"#,
+                "image/svg+xml",
+            ),
+        ] {
+            let (_dir, store) = temp_store();
+            store.put(key, Bytes::from(body)).await.unwrap();
+            let app = build_router(store, &crate::StorageConfig::default());
+
+            let response = app
+                .oneshot(
+                    Request::builder()
+                        .uri(format!("/v1/objects/{key}"))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.headers()[header::CONTENT_TYPE], content_type);
+            assert!(response.headers()[header::CONTENT_DISPOSITION]
+                .to_str()
+                .unwrap()
+                .starts_with("attachment;"));
+        }
+    }
+
+    #[test]
+    fn active_content_types_require_attachment() {
+        assert_eq!(
+            content_type_for("page.html"),
+            ("text/html; charset=utf-8", true)
+        );
+        assert_eq!(
+            content_type_for("page.htm"),
+            ("text/html; charset=utf-8", true)
+        );
+        assert_eq!(content_type_for("image.svg"), ("image/svg+xml", true));
     }
 
     #[tokio::test]

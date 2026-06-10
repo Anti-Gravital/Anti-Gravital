@@ -137,7 +137,10 @@ pub fn analyze(schema: &Schema) -> Vec<Diagnostic> {
 
 /// Validates `mail` blocks: recognized provider, `from` with an at sign, templates with vars.
 fn check_mail_blocks(schema: &Schema, diags: &mut Vec<Diagnostic>) {
-    const VALID_PROVIDERS: &[&str] = &["smtp", "resend", "ses", "postmark"];
+    // Native senders only. External providers are reached with `smtp` pointed
+    // at the provider's SMTP endpoint; there are no provider-brand values
+    // (ADR-0011). `mta` selects the native outbound MTA.
+    const VALID_PROVIDERS: &[&str] = &["smtp", "mta"];
 
     let mut seen_names: HashMap<&str, usize> = HashMap::new();
     for mail in &schema.mails {
@@ -570,6 +573,18 @@ fn check_validation_annotations(
                                 parent_name, field_name
                             ),
                             "usa @length con un entero positivo",
+                        ));
+                    }
+                }
+                if let Annotation::Regex(pattern) = &ann.value {
+                    if let Err(error) = regex::Regex::new(pattern) {
+                        diags.push(Diagnostic::semantic_error_with_hint(
+                            ann.span.clone(),
+                            format!(
+                                "@regex en '{}.{}': patron invalido: {error}",
+                                parent_name, field_name
+                            ),
+                            "corrige el patron para que sea una expresion regular valida",
                         ));
                     }
                 }
@@ -1141,6 +1156,20 @@ model Bad {
     }
 
     #[test]
+    fn v03_invalid_regex_pattern_is_error() {
+        let src = r#"
+model Bad {
+    id   UUID   @primary @auto
+    name String @regex("[")
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags.iter().any(|d| {
+            d.is_error() && d.message.contains("patron invalido") && d.message.contains("Bad.name")
+        }));
+    }
+
+    #[test]
     fn v03_length_on_non_string_is_error() {
         let src = r#"
 model Bad {
@@ -1330,6 +1359,34 @@ mail transaccional {
         assert!(diags
             .iter()
             .any(|d| d.is_error() && d.message.contains("mailgun")));
+    }
+
+    #[test]
+    fn v07_mail_block_brand_provider_removed_is_error() {
+        // Provider-brand values (e.g. "resend") were removed by ADR-0011;
+        // only the native senders "smtp" and "mta" are accepted now.
+        let src = r#"
+mail transaccional {
+    provider resend
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("resend")));
+    }
+
+    #[test]
+    fn v07_mail_block_mta_provider_is_valid() {
+        let src = r#"
+mail transaccional {
+    provider mta
+    from "noreply@ejemplo.com"
+}
+"#;
+        let (_, diags) = compile(src);
+        assert!(diags.iter().all(|d| !d.is_error()), "{diags:?}");
     }
 
     #[test]

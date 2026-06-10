@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Correo transaccional outbound para Anti-Gravital: sender SMTP nativo + adapters Resend/SES/Postmark con templates tipados validados en compile-time"
+description = "Correo transaccional outbound para Anti-Gravital: relay SMTP nativo y MTA outbound nativo (opt-in) con templates tipados validados en compile-time"
 keywords.workspace = true
 categories.workspace = true
 publish = false
@@ -22,13 +22,31 @@ workspace = true
 default = ["smtp", "templates", "metrics"]
 smtp = ["dep:lettre"]
 templates = []
+# Motor de plantillas externo opcional (minijinja) para plantillas con loops y
+# condicionales, implementando el trait `MailTemplate`. Ver DEBT-003.
+minijinja = ["dep:minijinja"]
 metrics = ["dep:metrics"]
-# Adapters de proveedor - opcionales (cargo features) para no inflar el binario.
-resend = ["dep:reqwest"]
-ses = ["dep:reqwest"]
-postmark = ["dep:reqwest"]
+# Para enviar a traves de un proveedor externo se apunta el SmtpSender nativo
+# al endpoint SMTP del proveedor: no se requieren adaptadores con nombre de
+# marca. La via sin terceros es el motor MTA nativo (feature `mta`). Ver
+# ADR-0011 (politica de marcas) y RFC-0010.
 # Cola persistente via ag-data (opcional; cola en memoria es el backend por defecto).
 queue-persistent = ["dep:ag-data", "dep:sqlx", "dep:chrono", "dep:uuid"]
+# Motor MTA outbound nativo (Fase 4.6-A): resolucion MX, entrega ESMTP+STARTTLS
+# directa al MX destino, firma DKIM y clasificacion de bounces. Opt-in; el
+# sender por defecto sigue siendo SmtpSender (relay). Ver RFC-0009 / ADR-0010.
+mta = ["dep:mail-send", "dep:mail-auth", "dep:mail-parser", "dep:hickory-resolver", "dep:rustls-pki-types"]
+# Superficie de API gestionada (Fase 4.6-C). Por ahora: firma de webhooks
+# HMAC-SHA256. Opt-in; ver RFC-0009. Las rutas REST llegan en pasos posteriores.
+api = ["dep:hmac", "dep:sha2", "dep:base64"]
+# Adaptador hacia el motor de ejecucion compartido ag-workers (RFC-0012 S7/M2):
+# enruta la entrega generica por la cola de ag-workers en vez de la cola propia.
+# La logica especifica de correo permanece en ag-mail. Opt-in.
+workers = ["dep:ag-workers"]
+# Entrega de correo durable a traves del backend PostgreSQL de ag-workers
+# (RFC-0012 S7/M3). Activa el backend persistente compartido en vez de la cola
+# generica duplicada de ag-mail (queue-persistent, en deprecacion; ver S7/M4).
+workers-postgres = ["workers", "ag-workers/postgres", "dep:sqlx"]
 # NullSender y helpers disponibles para tests en crates externos.
 test-utils = []
 
@@ -44,8 +62,8 @@ tracing = { workspace = true }
 # SMTP nativo
 lettre = { workspace = true, optional = true }
 
-# Adapters HTTP (Resend, SES, Postmark)
-reqwest = { workspace = true, optional = true }
+# Motor de plantillas externo opcional
+minijinja = { version = "2", optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }
@@ -56,6 +74,29 @@ sqlx = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+# Motor de ejecucion en segundo plano compartido (features "workers" /
+# "workers-postgres", RFC-0012 S7). Enruta la programacion generica de jobs de
+# entrega a traves de ag-workers; la logica especifica de correo
+# (SMTP/MTA/DKIM/bounce) permanece en ag-mail. Opt-in.
+ag-workers = { workspace = true, optional = true }
+
+# Motor MTA outbound nativo (feature "mta"). Crates de Stalwart Labs + hickory.
+# Pinned; modo nativo por defecto del crate no los requiere (ADR-0009).
+# mail-send aporta el cliente ESMTP+STARTTLS y el constructor MIME (mail_builder).
+# La firma DKIM se hace con mail-auth 0.9 directamente (su hickory ^0.26 unifica
+# con ag-domains 0.26.1); NO se activa la feature `dkim` de mail-send porque
+# arrastra mail-auth 0.8, que fija hickory =0.26.0-alpha.1 y entra en conflicto.
+# Backend `ring` para coincidir con el rustls/ring de The Shield.
+mail-send = { version = "0.6", optional = true, default-features = false, features = ["builder", "ring", "tls12"] }
+mail-auth = { version = "0.9", optional = true, default-features = false, features = ["ring"] }
+mail-parser = { version = "0.11", optional = true, default-features = false }
+hickory-resolver = { version = "0.26.1", optional = true, default-features = false, features = ["tokio"] }
+rustls-pki-types = { workspace = true, optional = true }
+
+# Firma de webhooks (feature "api").
+hmac = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+base64 = { version = "0.22", optional = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
-wiremock = { workspace = true }

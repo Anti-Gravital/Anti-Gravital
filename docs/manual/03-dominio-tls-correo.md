@@ -69,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     let zone_id = provider.zone_id("ejemplo.com").await?;
 
     let config = MailRecordsConfig {
-        spf_includes: vec!["include:_spf.resend.com".to_owned()],
+        spf_includes: vec!["include:_spf.proveedor.example".to_owned()],
         dkim: Some(DkimConfig {
             selector: "s1".to_owned(),
             public_key_base64: "MIIBIjANBgkq...".to_owned(),
@@ -203,13 +203,17 @@ let email = EmailBuilder::new()
 sender.send(&email).await?;
 ```
 
-### Via Resend (HTTP)
+### Via un proveedor externo (SMTP)
+
+Para enviar a traves de un proveedor externo, apunta el `SmtpSender` nativo a
+su endpoint SMTP. No hay adaptadores con nombre de marca (ver `ADR-0011`); la
+via sin terceros es el `MtaSender` nativo (feature `mta`).
 
 ```rust
-use ag_mail::sender::resend::{ResendConfig, ResendSender};
+use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
 
-let config = ResendConfig::new("re_api_key_aqui");
-let sender = ResendSender::new(config);
+let config = SmtpConfig::new("smtp.proveedor.example", 587, "usuario", "clave");
+let sender = SmtpSender::new(config)?;
 sender.send(&email).await?;
 ```
 
@@ -237,10 +241,10 @@ y magic links mediante `AuthMailer`:
 ```rust
 use std::sync::Arc;
 use ag_auth::{AgAuth, AuthConfig, AuthMailer};
-use ag_mail::sender::resend::{ResendConfig, ResendSender};
+use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
 
 let sender: Arc<dyn ag_mail::sender::MailSender> =
-    Arc::new(ResendSender::new(ResendConfig::new("re_api_key")));
+    Arc::new(SmtpSender::new(SmtpConfig::new("smtp.proveedor.example", 587, "usuario", "clave"))?);
 
 let mailer = Arc::new(AuthMailer::new(
     sender,

@@ -9,6 +9,7 @@ pub mod openapi_gen;
 pub mod rust_gen;
 pub mod sql_gen;
 pub mod ts_gen;
+pub mod worker_gen;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -47,6 +48,11 @@ impl GeneratedFiles {
 /// The caller (ag-cli) is responsible for writing them to disk.
 pub fn generate(schema: &Schema) -> GeneratedFiles {
     let mut files = GeneratedFiles::default();
+
+    files.insert(
+        PathBuf::from("src/mod.rs"),
+        rust_gen::generate_module(schema),
+    );
 
     // v0.1: DB models
     files.insert(
@@ -107,6 +113,11 @@ pub fn generate(schema: &Schema) -> GeneratedFiles {
         files.insert(path, content);
     }
 
+    // Worker payloads + handler stubs — only when there are declared workers (v0.8)
+    if let Some((path, content)) = worker_gen::generate(schema) {
+        files.insert(path, content);
+    }
+
     files
 }
 
@@ -141,7 +152,7 @@ response UserResponse { id UUID }
     }
 
     #[test]
-    fn generates_five_files() {
+    fn generates_six_files() {
         let schema = schema_from(
             r#"
 model User {
@@ -152,7 +163,8 @@ model User {
 "#,
         );
         let files = generate(&schema);
-        assert_eq!(files.len(), 5);
+        assert_eq!(files.len(), 6);
+        assert!(files.files.contains_key(&PathBuf::from("src/mod.rs")));
         assert!(files.files.contains_key(&PathBuf::from("src/models.rs")));
         assert!(files
             .files

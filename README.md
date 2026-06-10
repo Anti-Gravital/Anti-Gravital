@@ -1,532 +1,258 @@
 # Anti-Gravital
 
-**[English](#in-english) | [Espanol](#en-espanol)**
+Rust-native, modular backend framework for building secure, high-performance
+backend services with a schema-first workflow. The repository is a Cargo
+workspace of `ag-*` crates plus the `ag` developer CLI.
 
-> Status: Phase 4.5 technical implementation complete — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 cross-module E2E tests.
-> Estado: Fase 4.5 implementacion tecnica completa — ag-mail (SMTP+Resend), ag-domains (Cloudflare+ACME+SPF/DKIM/DMARC), DSL v0.7, ag-lsp v0.7, 14 tests E2E cross-module.
+English is the canonical project language. A concise Spanish version follows.
 
-Anti-Gravital is an open source ecosystem for building high-performance
-backend applications in pure Rust, with three core properties: no
-external runtime, schema-first approach, and a modular architecture of
-independent crates.
+> Current status (verified 2026-06-08): capabilities through Phase 4.5 are available, but the pre-Phase 5 release gate is still OPEN. Do not interpret implemented modules as a production-readiness certification.
 
-Anti-Gravital es un ecosistema de software libre para construir
-aplicaciones backend de alto rendimiento en Rust puro, con tres
-propiedades fundamentales: ausencia de runtime externo, enfoque
-schema-first y arquitectura modular de crates independientes.
+Anti-Gravital gives Rust backend teams a coherent framework experience without
+hiding the underlying Rust ecosystem. It combines:
 
----
+- A secure HTTP runtime and Shield pipeline built on Axum, Tower, Tokio and rustls.
+- A schema-first Anti-DSL (`.ag`) for models, endpoints, validation, auth,
+  events, mail and domain declarations.
+- Code generation for Rust, SQL migrations, TypeScript, OpenAPI and AsyncAPI.
+- A unified CLI for scaffolding, development, builds, schema workflows, mail
+  checks and domain operations.
+- Modular crates for auth, cache, realtime, storage, observability, mail,
+  domains, UI integration, AI, mobile, migration tooling and WASI plugins.
 
-## In English
+It does not replace PostgreSQL, Redis, NATS, object storage, Docker, Kubernetes,
+Terraform, Flutter or frontend frameworks. `ag-mail` handles transactional
+email, not IMAP/POP mailboxes. `ag-domains` manages DNS/domain/TLS workflows;
+it is not a registrar. Generated Rust handlers are application-owned stubs.
 
-### What it is
+### Architecture map
 
-A high-performance Rust backend runtime, a domain definition language
-called Anti-DSL (`.ag` files), a unified CLI (`ag`), a set of batteries
-included modules published as independent crates, a WASI plugin
-system, a simplified deployment layer, native transactional email
-(`ag-mail`) and domain plus TLS management (`ag-domains`) introduced
-in Phase 4.5, typed SDK generators for TypeScript and Dart, and
-importers from legacy frameworks.
+| Layer | Main crates | Role |
+| --- | --- | --- |
+| Core | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, DSL compiler and developer workflows |
+| Standard | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, events, files/images and telemetry |
+| Extended | `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`, `ag-lsp` | UI, AI, mobile, importers, plugins and editor support |
+| Phase 4.5 / edge | `ag-mail`, `ag-domains`, `ag-edge` | Mail, DNS/domain/TLS, host routing and TLS serving |
 
-### What it is not
+## English
 
-It does not replace Kubernetes, Flutter, React Native, Next.js, Docker,
-PostgreSQL, Redis, MinIO or NATS. It is not a game engine or a
-scientific computing framework. `ag-mail` is not a full mail server:
-it only sends outbound transactional email; it does not receive
-inbound mail, and does not implement IMAP/POP, antispam or IP
-reputation. `ag-domains` is not a domain registrar: domains are
-purchased externally. See the scope chapter at
-`docs/architecture/03-alcance-y-limites.md`.
+### What is usable today
 
-### Project status
+- HTTP security and serving through `ag-core` Shield.
+- PostgreSQL pools and migrations through `ag-data`.
+- DSL parsing, diagnostics, SQL/Rust/TypeScript/OpenAPI/AsyncAPI generation through `ag-dsl`.
+- Project scaffolding and development commands through `ag-cli`.
+- Auth, cache, realtime, storage, observability, UI, AI, mobile and WASM-host modules from Phase 4.
+- Transactional mail and the implemented domain-management surface from Phase 4.5.
 
-Phases 1 through 4.5 have been technically completed. There is functional,
-tested, and benchmarked code.
+Every crate remains independently selectable. Later roadmap phases are additive and are not required to use the capabilities above.
 
-**Phase 1 — The Shield MVP:** complete. The `ag-core` crate contains
-the operational `shield` module with HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
-JWT Ed25519 authentication, rate limiting, CORS, CSRF, payload
-validation, and structured logging. Pipeline verified with E2E tests
-and criterion benchmarks.
+### Install
 
-**Phase 2 — The Core MVP:** complete (technical implementation).
-Axum router integrated with the Shield, typed extractors, `AgError`
-error system, PostgreSQL connection pool via sqlx, embedded migrations,
-and the `todo-api` example app with a full CRUD. The `ag` CLI provides
-`new`, `dev`, and `build` with three templates (`rest`, `realtime`,
-`fullstack`). The `todo-api` app deploys as a `FROM scratch` image of
-2.49 MB. Benchmarks measured on real hardware: HTTP stack 89K req/s,
-CRUD with PostgreSQL 14.5K req/s reads (bottleneck is PostgreSQL,
-not the framework). Phase throughput and latency targets (40K req/s,
-p99 <= 5 ms) require hardware with more cores or pgbouncer.
+Prerequisites: Git and Rust 1.95.0 or newer.
 
-**Phase 3 — Anti-DSL alpha:** technical implementation complete (branch
-`fase-3`). The `ag-dsl` compiler is operational with DSL v0.1 to v0.4:
-models, endpoints, validations, and model relations (@references/@relation,
-FOREIGN KEY SQL, Option<M>/Vec<M> Rust, $ref OpenAPI). The CLI exposes
-`ag generate`, `ag schema lint`, and `ag schema diff`. LSP server
-(`ag-lsp`) with real-time diagnostics, autocompletion, and hover. VS Code
-plugin with syntax highlighting and LSP integration (`.vsix` packaged).
-cargo-fuzz harness with 3 active targets in CI. 129 green tests (119
-ag-dsl + 10 ag-lsp), 95.26% coverage. Real 2-hour benchmark against Neon
-PostgreSQL: 255,805 requests, 0 errors, peak 43 req/s. External community
-criteria pending.
+Linux or macOS, from a blank working directory:
 
-**Phase 4 — Standard modules:** technical implementation complete (branch
-`fase-4`). Five batteries-included modules operational as independent crates:
+```bash
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
+```
 
-- `ag-auth`: WebAuthn/FIDO2 (registration+authentication, COSE ES256/EdDSA
-  verification), OAuth2 PKCE (Google, GitHub), JWT Ed25519, BLAKE3 API keys,
-  refresh tokens with in-memory blacklist. 32 tests.
-- `ag-cache`: L1 in-memory cache with moka, tag-based invalidation, configurable TTL.
-  >= 80% coverage. RFC-0005 (native RESP2 server) proposed, pending approval.
-- `ag-realtime`: InProcess pub/sub event bus, external NATS client with 3-level TLS
-  (system/custom CA/mTLS) and JetStream, Axum helpers for WebSocket and SSE
-  (EventSource-compatible). `AgRealtime::new` is async. `realtime-chat` and
-  `ai-backend` examples operational.
-- `ag-storage`: native filesystem store with embedded Axum HTTP server, path-safe
-  by construction, image processing (resize/thumbnail/webp), S3/MinIO backend via
-  `object_store`, HMAC-SHA256 signed URLs. `AgStore` is a `Native | S3` enum.
-- `ag-observe`: structured tracing, Prometheus metrics via
-  `axum::Router`, custom layer, LogFormat (JSON/Text). Idempotent init.
+Windows PowerShell:
 
-DSL extended to v0.5 (auth/policies in endpoints) and v0.6 (declared events).
-Updated generators: rust_gen (Claims extractor), openapi_gen (securitySchemes),
-ts_gen (event payloads), new async_api_gen (AsyncAPI 2.6). 136 tests in ag-dsl,
-95.88% coverage. `tests/integration` crate with 7 cross-module E2E tests
-(auth+cache+realtime+storage+observe). >= 80% coverage in all modules. External
-criteria (community, crates.io publication) pending.
+```powershell
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-Gravital; .\install.ps1
+```
 
-**Phase 4.5 — ag-mail + ag-domains:** technical implementation complete
-(2026-05-24). Two new crates introduced by ADR-0007:
+The installer verifies the Rust version, builds the workspace in release mode and installs `ag` into the Cargo bin directory. It performs no privileged system changes.
 
-- `ag-mail` (deferred standard): `MailSender` trait + `SmtpSender` (lettre +
-  rustls) + adapters for Resend, SES and Postmark as Cargo features.
-  `StringTemplate` engine for HTML/plaintext with compile-time var validation.
-  Async queue with retries and exponential backoff (`InMemoryQueue`). Metrics
-  towards `ag-observe` (feature `"metrics"`). Integration with `ag-auth` via
-  `AuthMailer` for email verification, password recovery and magic links. 38
-  tests.
-- `ag-domains` (optional infra): `DnsProvider` trait + `CloudflareProvider`
-  for A/AAAA/CNAME/TXT/MX records. ACME/Let's Encrypt via `instant-acme`
-  (DNS-01 challenge, automatic renewal). SPF/DKIM/DMARC generation
-  (`apply_mail_records`, idempotent). Propagation verification with
-  `hickory-resolver`. 28 tests.
+### Start a project
 
-DSL extended to v0.7 (`mail`, `domain`, `template` blocks). `ag-lsp` updated
-for the new blocks (hover, completions). CLI commands `ag domains check`,
-`ag domains sync` and `ag mail test` operational. `auth-mail-demo` example
-with three flows. 14 cross-module E2E tests total (7 Phase 4 + 7 Phase 4.5).
-
-Detailed per-criterion status lives in `docs/roadmap/STATUS.md`.
-
-### Quick start
-
-Requires Rust 1.95+.
-
-```sh
-# Install from source (Linux / macOS)
-bash install.sh
-
-# Or on Windows PowerShell:
-# .\install.ps1
-
-# Or directly:
-# cargo install --path crates/ag-cli --locked
-
-# Create a new project (prompts for template in interactive sessions)
-ag new my-api
-
-# Start in development mode
+```bash
+ag new my-api --template rest
 cd my-api
 ag dev
 ```
 
-Full installation guide and troubleshooting: `docs/manual/04-instalacion-y-onboarding.md`.
+Available templates: `rest`, `realtime`, `fullstack`.
 
-The app responds at `http://localhost:8080`. The `rest` template
-generates a project with Shield, typed extractors, and a PostgreSQL
-connection ready to configure via `DATABASE_URL`.
+### CLI
 
-For the full CRUD example with PostgreSQL:
+| Command | Purpose |
+| --- | --- |
+| `ag new NAME --template TYPE` | Scaffold a project |
+| `ag dev --bind 0.0.0.0:8080` | Run in development mode; uses cargo-watch when installed |
+| `ag build [--target TRIPLE]` | Build a release binary |
+| `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
+| `ag schema lint` | Validate a DSL schema and report diagnostics |
+| `ag schema diff REFERENCE` | Classify schema changes |
+| `ag mail test --to ADDRESS` | Verify SMTP configuration |
+| `ag domains check --domain HOST` | Check DNS propagation |
+| `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
+| `ag domains attach|instructions|export-zone|status|list|verify|detach` | Operate the implemented local domain attachment workflow |
+| `ag workers list` | List the background workers declared in a schema (ag-workers, RFC-0012) |
 
-```sh
-export DATABASE_URL="postgresql://user:pass@localhost/my_db"
-cargo run -p todo-api
-```
+Run `ag COMMAND --help` for authoritative flags and environment variables.
 
-**DSL workflow (Phase 3, operational since v0.1+v0.2):**
+### DSL workflow
 
-Define your API in a `schema.ag` file and generate all artifacts:
-
-```sh
-ag generate --schema schema.ag --output ./generated
-```
-
-Produces: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
-`src/router.rs`, `migrations/0001_initial.sql`,
-`clients/typescript/types.ts`, `clients/typescript/client.ts`,
-`openapi.json`.
-
-Validate and diff schemas:
-
-```sh
+```bash
 ag schema lint --schema schema.ag
-ag schema diff old-schema.ag --schema schema.ag
+ag generate --schema schema.ag --output generated
 ```
 
-### Measured performance
+The generator writes a Rust module, SQL migration, TypeScript types/client, OpenAPI and optional AsyncAPI artifacts. Generated handler bodies are deliberate stubs and must be implemented by the application. Rust-side `@regex` request validation is executable and caches each compiled pattern. Generated projects using it must declare `regex = "1"`.
 
-**Phase 2 — Ryzen 5 2500U local (2026-05-21)**
+### Evidence-based roadmap
 
-Measurements on AMD Ryzen 5 2500U (4C/8T), native PostgreSQL 18.4,
-`rustc 1.95.0`, release profile with fat LTO. Full methodology in
-`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+The roadmap has 10 main phases plus the additive Phase 4.5 introduced by
+ADR-0007. Later phases expand the ecosystem but are not required to use the
+implemented Phase 0-4.5 capabilities. Durations are planning estimates, not
+release promises.
 
-| Endpoint                     | req/s    | p99      | Notes                     |
-| ---------------------------- | -------- | -------- | ------------------------- |
-| GET /health (no DB)          | 88 930   | 3.2 ms   | Pure HTTP stack           |
-| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Bottleneck: PostgreSQL    |
-| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
+| Phase | Delivered repository capability | Current evidence state | Remaining gate work |
+| --- | --- | --- | --- |
+| 0 | Governance, Apache-2.0, monorepo, CI and technical constitution | Repository deliverables present | External branding, community and public calendar criteria remain |
+| 1 | Shield HTTP/TLS/auth/rate-limit/validation pipeline | Implementation and tests available | Reference performance, coverage certification and external adoption criteria remain |
+| 2 | Core extractors/responses, PostgreSQL data layer, scaffolds and CRUD example | Implementation available; measured benchmarks published | Published 40K req/s and p99 targets were not met on recorded hardware |
+| 3 | DSL v0.1-v0.4, generators, LSP and VS Code extension | Broad parser/generator coverage; consolidation issue #70 open | 24-hour fuzz gate, direct generated-vs-manual benchmark and generator completeness |
+| 4 | Standard auth/cache/realtime/storage/observe/UI/AI/mobile/WASM modules | Modules and tests available; realtime/cache hardening included in this audit | Manual scale/performance evidence and remaining documented debt |
+| 4.5 | Transactional mail plus implemented DNS/TLS/domain management surface | Code and cross-module tests exist; `ag-domains` is under active development | Reconcile active domain work, release evidence and documentation before claiming completion |
+| 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains and TLS | Pending; not required for Phase 0-4.5 usage | Pre-Phase 5 gate; public beta v0.5 milestone |
+| 6 | `ag-ai` and Knowledge Graph: providers/models, retrieval and graph-assisted backend workflows | Pending roadmap phase; existing crate work is not phase completion | Phase 5 completion and beta feedback |
+| 7 | `ag-migrate`: importers and assisted migration from existing backend frameworks | Pending roadmap phase | Phase 6 completion and importer acceptance tests |
+| 8 | `ag-mobile`: Flutter/Dart bridge, generated clients and offline/mobile contracts | Pending roadmap phase | Phase 7 completion and mobile compatibility gates |
+| 9 | WASI plugins: sandboxed extensions, lifecycle hooks, permissions and registry | Pending roadmap phase | Phase 8 completion and security review |
+| 10 | Hardening and 1.0: stable API/DSL, security audit, performance, docs, LTS and ecosystem readiness | Pending; stable 1.0 milestone | Phase 9 completion and 1.0 release gates |
 
-The 40K req/s target requires hardware with >= 8 physical cores or
-pgbouncer in transaction mode.
+The formal status is maintained in [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md). The release decision is maintained in [docs/audits/PRE_FASE5_RELEASE_GATE.md](docs/audits/PRE_FASE5_RELEASE_GATE.md). Open technical debt is maintained in [docs/DEBT.md](docs/DEBT.md).
 
-**Phase 3 — Neon PostgreSQL serverless (2026-05-22)**
+Estimated public beta: end of Phase 5, around month 15 of the original plan.
+Estimated stable 1.0: end of Phase 10, around month 30. See the
+[roadmap index](docs/roadmap/README.md) and [calendar](docs/roadmap/calendar.md)
+for the complete phase documents and exit criteria.
 
-2-hour benchmark against Neon PostgreSQL (us-east-1, pooler). Mixed
-operations: POST invoices with transactions, GET by id, GET filtered
-list, PATCH status. Connection pool of 20. Full methodology in
-`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
+### Known release blockers
 
-| Metric                       | Value    | Notes                           |
-| ---------------------------- | -------- | ------------------------------- |
-| Total requests               | 255 805  | 120 min 11 s                    |
-| Errors                       | 0        | Error rate 0.00%                |
-| Average throughput           | 35.5 req/s | Includes cold-start           |
-| Peak throughput              | 43.0 req/s | Cooldown phase (25 workers)   |
+- The 24-hour fuzz gate is still pending.
+- Stabilized performance evidence is pending.
+- The release gate must be reevaluated on the final consolidation commit.
+- Remaining open debt must be accepted, fixed or explicitly deferred before a production-ready claim.
 
-Saturation test: system stable up to 800 concurrent workers (0 errors).
-Saturation at 1600 workers due to connection pool exhaustion (Neon was
-at 10% CPU / 12% RAM throughout). See
-`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
+### Contributing and security
 
-### Source of truth
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CLAUDE.md](CLAUDE.md), [SECURITY.md](SECURITY.md) and [GOVERNANCE.md](GOVERNANCE.md) before opening a change.
 
-The three master documents live in `docs/master/` and govern every
-technical decision:
+## Espanol
 
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, positioning, scope.
-- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — how the system is built.
-- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — what is built and when.
+Anti-Gravital es un framework backend modular y nativo en Rust para construir
+servicios seguros y de alto rendimiento con un flujo schema-first. El
+repositorio es un workspace Cargo compuesto por crates `ag-*` y la CLI de
+desarrollo `ag`.
 
-These documents are decomposed into navigable files under
-`docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
-`docs/security/`, `docs/governance/` and `docs/benchmarks/`. If a
-derivative diverges from its master, the master wins.
+El objetivo es ofrecer una experiencia de framework completo sin ocultar el
+ecosistema Rust. Combina un runtime HTTP seguro, el Anti-DSL (`.ag`),
+generacion de Rust/SQL/TypeScript/OpenAPI/AsyncAPI, una CLI unificada y crates
+modulares para auth, cache, realtime, storage, observabilidad, correo,
+dominios, UI, IA, mobile, migraciones y plugins WASI.
 
-### How to contribute
+No reemplaza PostgreSQL, Redis, NATS, object storage, Docker, Kubernetes,
+Terraform, Flutter ni frameworks frontend. `ag-mail` envia correo
+transaccional, no aloja buzones IMAP/POP. `ag-domains` gestiona DNS, dominios y
+TLS, pero no es un registrador. Los handlers generados son stubs que implementa
+cada aplicacion.
 
-See `CONTRIBUTING.md` for the full guide. Quick summary:
+### Mapa de arquitectura
 
-1. Read the masters in `docs/master/` and current phase status in
-   `docs/roadmap/STATUS.md`.
-2. For architectural changes, open an RFC in `docs/rfc/` before
-   touching code.
-3. Keep pull requests small: titles up to 256 characters and a single
-   logical unit of change.
-4. Run `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
-   `cargo audit` and `cargo deny check` before submitting.
+| Capa | Crates principales | Rol |
+| --- | --- | --- |
+| Nucleo | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, compilador DSL y workflows |
+| Estandar | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, eventos, archivos/imagenes y telemetria |
+| Extendida | `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`, `ag-lsp` | UI, IA, mobile, importadores, plugins y editor |
+| Fase 4.5 / edge | `ag-mail`, `ag-domains`, `ag-edge` | Correo, DNS/dominios/TLS, routing y serving TLS |
 
-### License
+> Estado actual (verificado 2026-06-08): las capacidades hasta la Fase 4.5 estan disponibles, pero la puerta formal pre-Fase 5 sigue ABIERTA. Modulo implementado no significa certificacion de produccion.
 
-Apache 2.0. See `LICENSE`.
+### Disponible hoy
 
-### Origin
+- Seguridad HTTP y serving con Shield en `ag-core`.
+- Pools PostgreSQL y migraciones con `ag-data`.
+- DSL, diagnostics y generacion SQL/Rust/TypeScript/OpenAPI/AsyncAPI con `ag-dsl`.
+- Scaffolding, desarrollo y build con `ag-cli`.
+- Modulos estandar de autenticacion, cache, realtime, storage y observabilidad.
+- Correo transaccional y la superficie de dominios ya implementada en Fase 4.5.
 
-Project started by Gravital Labs, the open source division of Nereira
-Technology and Business Solutions, Republic of Panama. Initial
-maintainer: Angel Nereira.
+Las fases posteriores son aditivas: no son requisito para usar lo anterior.
 
----
+### Instalar
 
-## En espanol
+Requisitos: Git y Rust 1.95.0 o superior.
 
-### Que es
+Linux o macOS:
 
-Un runtime backend Rust de alto rendimiento, un lenguaje de definicion
-de dominio llamado Anti-DSL (archivos `.ag`), una CLI unificada (`ag`),
-un conjunto de modulos batteries-included publicados como crates
-independientes, un sistema de plugins WASI, una capa de despliegue
-simplificado, comunicacion transaccional nativa (`ag-mail`) y gestion
-de dominios y TLS (`ag-domains`) introducidas en la Fase 4.5, generadores
-de SDK tipados para TypeScript y Dart, e importadores desde frameworks
-legacy.
+```bash
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
+```
 
-### Que no es
+Windows PowerShell:
 
-No reemplaza Kubernetes. No reemplaza Flutter ni React Native. No
-reemplaza Next.js. No reemplaza Docker. No reemplaza PostgreSQL,
-Redis, MinIO ni NATS. No es un motor de juegos ni un framework de
-computo cientifico. `ag-mail` no es un servidor de correo completo:
-solo envia correo outbound transaccional, no recibe correo inbound,
-no implementa IMAP/POP, antispam ni reputacion de IP. `ag-domains`
-no es un registrador de dominios: el dominio se compra externamente.
-Vease el capitulo de alcance en
-`docs/architecture/03-alcance-y-limites.md`.
+```powershell
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-Gravital; .\install.ps1
+```
 
-### Estado del proyecto
+El instalador verifica Rust, compila el workspace en release e instala `ag` en el directorio binario de Cargo. No realiza cambios privilegiados del sistema.
 
-El proyecto ha completado las fases 1, 2, 3, 4 y 4.5 de implementacion tecnica.
-Existe codigo funcional, probado y benchmarkeado.
+### Crear y operar un proyecto
 
-**Fase 1 — The Shield MVP:** completada. El crate `ag-core` contiene
-el modulo `shield` operativo con HTTP/1.1, HTTP/2, TLS 1.3 (rustls),
-autenticacion JWT Ed25519, rate limiting, CORS, CSRF, validacion de
-payload y logging estructurado. Pipeline verificada con tests E2E y
-benchmarks criterion.
-
-**Fase 2 — The Core MVP:** completada (implementacion tecnica).
-Router Axum integrado con la Shield, extractores tipados, sistema de
-errores `AgError`, pool PostgreSQL via sqlx, migraciones embebidas y
-la aplicacion de ejemplo `todo-api` con CRUD completo. La CLI `ag`
-ofrece `new`, `dev` y `build` con tres templates (`rest`, `realtime`,
-`fullstack`). La app `todo-api` se despliega como imagen `FROM scratch`
-de 2.49 MB. Benchmarks medidos en hardware real: stack HTTP 89K req/s,
-CRUD con PostgreSQL 14.5K req/s de lectura (cuello de botella en PG,
-no en el framework). Los criterios de throughput y latencia de la fase
-(40K req/s, p99 <= 5 ms) requieren hardware con mas nucleos o pgbouncer.
-
-**Fase 3 — Anti-DSL alpha:** implementacion tecnica completa (rama `fase-3`).
-El compilador `ag-dsl` esta operativo con DSL v0.1 a v0.4: modelos, endpoints,
-validaciones y relaciones entre modelos (@references/@relation, FOREIGN KEY SQL,
-Option<M>/Vec<M> Rust, $ref OpenAPI). La CLI expone `ag generate`, `ag schema lint`
-y `ag schema diff`. Servidor LSP (`ag-lsp`) con diagnostics en tiempo real,
-autocompletado y hover. Plugin VS Code con syntax highlighting e integracion
-LSP (`.vsix` empaquetado). Harness cargo-fuzz con 3 targets activo en CI.
-129 tests verdes (119 ag-dsl + 10 ag-lsp), cobertura 95.26%.
-Benchmark real de 2 horas contra Neon PostgreSQL: 255.805 requests,
-0 errores, peak 43 req/s. Criterios externos (comunidad) pendientes.
-
-**Fase 4 — Modulos estandar:** implementacion tecnica completa (rama `fase-4`).
-Los cinco modulos batteries-included estan operativos como crates independientes:
-
-- `ag-auth`: WebAuthn/FIDO2 (registro+autenticacion, verificacion COSE ES256/EdDSA),
-  OAuth2 PKCE (Google, GitHub), JWT Ed25519, API keys BLAKE3, refresh tokens con
-  blacklist en memoria. 32 tests.
-- `ag-cache`: cache L1 en memoria con moka, invalidacion por tags, TTL configurable.
-  Cobertura >= 80%. RFC-0005 (servidor nativo RESP2) propuesto, pendiente de aprobacion.
-- `ag-realtime`: bus de eventos InProcess pub/sub, cliente NATS externo con TLS 3 niveles
-  (sistema/CA custom/mTLS) y JetStream, helpers Axum para WebSocket y SSE (EventSource-
-  compatible). `AgRealtime::new` es asincrono. Examples `realtime-chat` y `ai-backend`
-  operativos.
-- `ag-storage`: store filesystem nativo con servidor HTTP Axum embebido, seguridad de path
-  por construccion, procesamiento de imagen (resize/thumbnail/webp), backend S3/MinIO via
-  `object_store`, URLs firmadas con HMAC-SHA256. `AgStore` es un enum `Native | S3`.
-- `ag-observe`: tracing estructurado, metricas Prometheus via `axum::Router`,
-  layer personalizado, LogFormat (JSON/Text). Init idempotente.
-
-DSL ampliado a v0.5 (auth/politicas en endpoints) y v0.6 (eventos declarados). Generadores
-actualizados: rust_gen (Claims extractor), openapi_gen (securitySchemes), ts_gen
-(payload de eventos), nuevo async_api_gen (AsyncAPI 2.6). 136 tests en ag-dsl, cobertura
-95.88%. Crate `tests/integration` con 7 tests E2E cross-module (auth+cache+realtime+storage+observe).
-Cobertura >= 80% en todos los modulos. Criterios externos (comunidad, publicacion en crates.io) pendientes.
-
-**Fase 4.5 — ag-mail + ag-domains:** implementacion tecnica completa (2026-05-24).
-Dos crates nuevos introducidos por ADR-0007:
-
-- `ag-mail` (estandar diferido): trait `MailSender` + `SmtpSender` (lettre + rustls)
-  + adapters para Resend, SES y Postmark como Cargo features. Motor `StringTemplate`
-  para HTML/plaintext con validacion de vars en compile-time. Cola asincrona con
-  reintentos y backoff exponencial (`InMemoryQueue`). Metricas hacia `ag-observe`
-  (feature `"metrics"`). Integracion con `ag-auth` via `AuthMailer` para verificacion,
-  recuperacion y magic links. 38 tests.
-- `ag-domains` (opcional infra): trait `DnsProvider` + `CloudflareProvider` para
-  registros A/AAAA/CNAME/TXT/MX. ACME/Let's Encrypt via `instant-acme` (DNS-01,
-  renovacion automatica). Generacion SPF/DKIM/DMARC (`apply_mail_records`,
-  idempotente). Verificacion de propagacion con `hickory-resolver`. 28 tests.
-
-DSL ampliado a v0.7 (bloques `mail`, `domain`, `template`). `ag-lsp` actualizado para
-los bloques nuevos (hover, completions). Comandos CLI `ag domains check`,
-`ag domains sync` y `ag mail test` operativos. Example `auth-mail-demo` con tres
-flujos. 14 tests E2E cross-module en total (7 Fase 4 + 7 Fase 4.5).
-
-El estado detallado de cada criterio vive en `docs/roadmap/STATUS.md`.
-
-### Inicio rapido
-
-Requiere Rust 1.95+.
-
-```sh
-# Instalar desde fuente (Linux / macOS)
-bash install.sh
-
-# En Windows PowerShell:
-# .\install.ps1
-
-# O directamente:
-# cargo install --path crates/ag-cli --locked
-
-# Crear un proyecto nuevo (pide la plantilla si el terminal es interactivo)
-ag new mi-api
-
-# Arrancar en modo desarrollo
+```bash
+ag new mi-api --template rest
 cd mi-api
 ag dev
 ```
 
-Guia de instalacion completa y troubleshooting: `docs/manual/04-instalacion-y-onboarding.md`.
+Para trabajar con el DSL:
 
-La app responde en `http://localhost:8080`. El template `rest` genera
-un proyecto con Shield, extractores tipados y conexion a PostgreSQL
-lista para configurar con `DATABASE_URL`.
-
-Para el ejemplo completo CRUD con PostgreSQL:
-
-```sh
-export DATABASE_URL="postgresql://usuario:clave@localhost/mi_db"
-cargo run -p todo-api
-```
-
-**Flujo DSL (Fase 3, operativo desde v0.1+v0.2):**
-
-Define tu API en un archivo `schema.ag`:
-
-```ag
-config {
-    project_name "mi-api"
-    database "postgres"
-}
-
-model User {
-    id    UUID   @primary @auto
-    email String @unique
-    name  String
-}
-
-request CreateUserRequest { email String  name String }
-response UserResponse     { id UUID  email String  name String }
-error EmailTaken { status 409 message "Email ya registrado" }
-
-endpoint CreateUser {
-    method   POST
-    path     /users
-    body     CreateUserRequest
-    response UserResponse
-    errors   [EmailTaken]
-}
-```
-
-Genera todos los artefactos con un comando:
-
-```sh
-ag generate --schema schema.ag --output ./generated
-```
-
-Produce: `src/models.rs`, `src/types.rs`, `src/handlers.rs`,
-`src/router.rs`, `migrations/0001_initial.sql`,
-`clients/typescript/types.ts`, `clients/typescript/client.ts`,
-`openapi.json`.
-
-Valida el schema sin generar:
-
-```sh
+```bash
 ag schema lint --schema schema.ag
-ag schema diff schema-anterior.ag --schema schema.ag
+ag generate --schema schema.ag --output generated
 ```
 
-### Rendimiento medido
+### Roadmap y calendario completo
 
-**Fase 2 — Ryzen 5 2500U local (2026-05-21)**
+La hoja de ruta tiene 10 fases principales mas la Fase 4.5 aditiva. Las fases
+posteriores amplian el ecosistema, pero no son requisito para usar lo ya
+implementado. Las duraciones son estimaciones, no promesas de fecha.
 
-Mediciones en AMD Ryzen 5 2500U (4C/8T), PostgreSQL 18.4 nativo,
-`rustc 1.95.0`, perfil release con LTO fat. Metodologia completa en
-`docs/benchmarks/measurement-2026-05-21-fase-2-crud-ryzen5-2500u.md`.
+| Fase | Objetivo | Duracion | Estado actual |
+| --- | --- | --- | --- |
+| 0 | Fundaciones, gobernanza, licencia, CI, RFC/ADR y comunidad | 2 meses | Base del repositorio presente; faltan criterios externos |
+| 1 | Shield MVP: HTTP/TLS, JWT, limites, CORS, CSRF, validacion y logging | 2 meses | Implementacion disponible; faltan gates finales |
+| 2 | Core MVP: HTTP tipado, PostgreSQL, migraciones, scaffolds y CRUD | 2 meses | Implementacion disponible; targets publicados siguen como gate |
+| 3 | Anti-DSL v0.1-v0.4, generadores, LSP y VS Code | 3 meses | Implementacion amplia; faltan fuzzing/adopcion y gaps del generador |
+| 4 | Modulos auth, cache, realtime, storage, observabilidad, UI, IA, mobile y WASM | 3 meses | Modulos disponibles; quedan escala y deuda documentada |
+| 4.5 | Correo transaccional, DNS, dominios, TLS/ACME y attachments | Aditiva | Capacidades disponibles; `ag-domains` tiene trabajo activo |
+| 5 | `ag-cloud`: deploy, secretos, logs, rollback, dominios y TLS simplificados | 3 meses | Pendiente; hito beta publica v0.5 |
+| 6 | `ag-ai` y Knowledge Graph: providers, retrieval y flujos asistidos | 3 meses | Pendiente; el crate existente no implica cierre de fase |
+| 7 | `ag-migrate`: importadores y migracion asistida desde otros frameworks | 2 meses | Pendiente |
+| 8 | `ag-mobile`: bridge Flutter/Dart, clientes y sincronizacion offline | 2 meses | Pendiente |
+| 9 | Plugins WASI: aislamiento, hooks, permisos y registry | 3 meses | Pendiente |
+| 10 | Endurecimiento y 1.0: API/DSL estable, auditoria, rendimiento, docs y LTS | 3 meses | Pendiente; hito estable 1.0 |
 
-| Endpoint                     | req/s    | p99      | Notas                     |
-| ---------------------------- | -------- | -------- | ------------------------- |
-| GET /health (sin DB)         | 88 930   | 3.2 ms   | Stack HTTP puro           |
-| GET /todos/:id (SELECT PK)   | 14 478   | 14.6 ms  | Cuello de botella: PG     |
-| POST /todos (INSERT)         | 8 934    | 9.4 ms   | synchronous_commit off    |
+Beta publica estimada: final de Fase 5, alrededor del mes 15 del plan original.
+Version 1.0 estable estimada: final de Fase 10, alrededor del mes 30. Consulta
+`docs/roadmap/README.md`, `docs/roadmap/calendar.md`,
+`docs/roadmap/STATUS.md`, `docs/audits/PRE_FASE5_RELEASE_GATE.md` y
+`docs/DEBT.md`.
 
-El objetivo de 40K req/s requiere hardware con >= 8 nucleos fisicos o
-uso de pgbouncer en transaction mode.
+### Limitaciones que no se ocultan
 
-**Fase 3 — Neon PostgreSQL serverless (2026-05-22)**
+- El fuzzing manual de 24 horas sigue pendiente.
+- Falta evidencia final de rendimiento sobre codigo estabilizado.
+- Los handlers Rust generados son stubs intencionales.
+- La validacion Rust para `@regex` es ejecutable y cachea cada patron compilado; los proyectos generados que la usen deben declarar `regex = "1"`.
+- `ag-domains` tiene trabajo activo y esta auditoria no modifica su implementacion.
 
-Benchmark de 2 horas contra Neon PostgreSQL (us-east-1, pooler). Mix
-de operaciones: POST facturas con transacciones, GET por id, GET lista
-filtrada, PATCH estado. Pool de 20 conexiones. Metodologia completa en
-`docs/benchmarks/measurement-2026-05-22-neon-real.md`.
+## License / Licencia
 
-| Metrica                      | Valor    | Notas                           |
-| ---------------------------- | -------- | ------------------------------- |
-| Total requests               | 255 805  | 120 min 11 s                    |
-| Errores                      | 0        | Error rate 0.00%                |
-| Throughput promedio          | 35.5 req/s | Incluye cold-start              |
-| Throughput pico              | 43.0 req/s | Fase cooldown (25 workers)      |
+Apache License 2.0. See [LICENSE](LICENSE).
 
-Prueba de saturacion: sistema estable hasta 800 workers concurrentes
-(0 errores). Saturacion a 1600 workers por agotamiento del pool de
-conexiones (Neon estaba al 10% CPU / 12% RAM). Ver
-`docs/benchmarks/measurement-2026-05-22-neon-saturacion.md`.
-
-### Fuente de verdad
-
-Los tres documentos maestros viven en `docs/master/` y gobiernan toda
-decision tecnica del proyecto:
-
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` — vision, posicionamiento y alcance.
-- `ANTI-GRAVITAL-Arquitectura-Tecnica.md` — como se construye.
-- `ANTI-GRAVITAL-Hoja-de-Ruta.md` — que se construye y cuando.
-
-Esta documentacion se descompone en archivos navegables bajo
-`docs/architecture/`, `docs/roadmap/`, `docs/modules/`, `docs/dsl/`,
-`docs/security/`, `docs/governance/` y `docs/benchmarks/`. Si existe
-divergencia entre un derivado y el maestro, el maestro gana.
-
-### Como contribuir
-
-Vease `CONTRIBUTING.md` para la guia completa. Resumen rapido:
-
-1. Lea los maestros bajo `docs/master/` y la fase actual en
-   `docs/roadmap/STATUS.md`.
-2. Para cambios arquitectonicos, abra una RFC en `docs/rfc/` antes de
-   tocar codigo.
-3. Mantenga sus pull requests cortas: titulo de hasta 256 caracteres y
-   una unica unidad logica de cambio.
-4. Pase `cargo fmt`, `cargo clippy -D warnings`, `cargo test`,
-   `cargo audit` y `cargo deny check` antes de proponer cambios.
-
-### Licencia
-
-Apache 2.0. Vease `LICENSE`.
-
-### Origen
-
-Proyecto iniciado por Gravital Labs, division open source de Nereira
-Technology and Business Solutions, Republica de Panama. Mantenedor
-inicial: Angel Nereira.
-
----
-
-## Calendario / Calendar
-
-| Fase / Phase | Hito / Milestone              | Estado / Status                                         |
-| ------------ | ----------------------------- | ------------------------------------------------------- |
-| 0            | Fundaciones y gobernanza      | En curso (externos pendientes) / In progress (externals pending) |
-| 1            | The Shield MVP                | Implementacion completa / Technical implementation complete |
-| 2            | The Core MVP                  | Implementacion completa / Technical implementation complete |
-| 3            | Anti-DSL alpha                | Implementacion completa / Technical implementation complete |
-| 4            | Modulos estandar              | Implementacion completa / Technical implementation complete |
-| 4.5          | ag-mail + ag-domains: comunicacion y dominios | Implementacion completa / Technical implementation complete |
-| 5            | ag-cloud y version 0.5 beta   | Pendiente / Pending                                     |
-| 6            | ag-ai y Knowledge Graph       | Pendiente / Pending                                     |
-| 7            | ag-migrate importadores       | Pendiente / Pending                                     |
-| 8            | ag-mobile Flutter bridge      | Pendiente / Pending                                     |
-| 9            | Sistema de plugins WASI       | Pendiente / Pending                                     |
-| 10           | Endurecimiento y version 1.0  | Pendiente / Pending                                     |
-
-Detalle completo en `docs/roadmap/STATUS.md` y `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`.
+Project initiated by Angel Nereira under Gravital Labs / Nereira Technology and Business Solutions.

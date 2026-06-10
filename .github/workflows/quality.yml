@@ -134,6 +134,10 @@ jobs:
           key: ${{ runner.os }}-tarpaulin-${{ hashFiles('**/Cargo.toml') }}
       - name: install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked
+      # The native MTA (`mta`) and managed API (`api`) live behind opt-in
+      # features not enabled in this default-feature run, and the network/PG
+      # paths need infrastructure; their tests run in the `ci / ag-mail mta +
+      # api features` job instead. Excluded here like `smtp.rs` (network).
       - name: run coverage with 80% gate
         run: >
           cargo tarpaulin --workspace --timeout 300 --fail-under 80
@@ -143,3 +147,6 @@ jobs:
           "crates/ag-realtime/src/ws.rs"
           "crates/ag-realtime/src/sse.rs"
           "crates/ag-mail/src/sender/smtp.rs"
+          "crates/ag-mail/src/sender/mta/*"
+          "crates/ag-mail/src/api/*"
+          "crates/ag-mail/src/template/jinja.rs"

@@ -23,12 +23,296 @@ Cambiado:
 - MSRV declarado alineado a Rust 1.95.0 en `Cargo.toml`, `clippy.toml`,
   documentacion de instalacion/contribucion y CI (`cargo check` dedicado).
 
+### ag-workers: RFC-0012 + ADR-0013 (fundacion documental, Fase 4.6-D)
+
+Anadido:
+
+- `docs/rfc/RFC-0012-ag-workers.md`: motor de ejecucion en segundo plano nativo
+  (jobs tipados, reintentos, DLQ, scheduling, worker pools). Estandar diferido,
+  precedente `ag-mail` (`ADR-0007`). Alcance fijo; entrega secuenciada S1-S7.
+- `docs/adr/0013-ag-workers-execution-model.md`: modelo de ejecucion (maquina de
+  estados, dos backends, poison guard bajo `panic = "abort"`, scheduling singleton,
+  semantica at-least-once) y autorizacion del BDFL para implementar con el gate
+  pre-Fase 5 abierto, sin afirmacion de produccion/GA hasta que cierre.
+- `docs/modules/ag-workers/README.md`: documentacion del modulo.
+- `docs/architecture/05-ecosistema-modulos.md`: fila `ag-workers` (estandar diferido)
+  y nota de conteo del ecosistema.
+- `docs/architecture/08-modulos-batteries-included.md`: seccion 8.10.
+- `docs/roadmap/STATUS.md`: Fase 4.6-D con criterios de entrada/entregables/salida.
+- `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`: fila 4.6 en el calendario y nota de fase.
+
+Decisiones fijadas (RFC-0012 seccion 9, ADR-0013): documentacion primero y codigo en
+etapas S1-S7; nueva dependencia de workspace `tokio-util` para `CancellationToken`;
+`enqueue_in_tx` acepta `&mut sqlx::Transaction` tras la feature `postgres` (sin `AgTx`
+en `ag-data`; brecha rastreada como Issue `tech-debt`, regla 29). No se anaden
+entradas a `docs/DEBT.md` (congelado).
+
+### ag-edge: listener de upgrade HTTP->HTTPS (cierra issue #91)
+
+Anadido:
+
+- `crates/ag-edge` feature `server`: `serve_http_redirect` / `http_redirect_router`
+  - un listener de puerto 80 que sirve el challenge ACME HTTP-01 sobre HTTP plano
+  (no se redirige, o se rompe la emision) y redirige todo lo demas a
+  `https://<host><path>?<query>` con el status indicado (308/301). Tests de
+  integracion sobre TCP real.
+
+### Gobernanza: deuda tecnica en GitHub Issues (CLAUDE.md regla 29)
+
+Cambiado:
+
+- CLAUDE.md regla 29: la deuda tecnica, bugs, fallos y documentacion de
+  problemas se registran como GitHub Issues con etiqueta `tech-debt`, no como
+  archivos del repositorio. `docs/DEBT.md` queda congelado (historico); se
+  prohiben nuevos archivos tipo `BACKLOG.md`/`TODO.md`/`*-DEBT.md`.
+- Eliminado `docs/ag-domains/BACKLOG.md`; su contenido vive en el issue #76.
+
+### ag-domains: endpoint verify + capacidades de proveedor + comando diagnose
+
+Anadido:
+
+- `crates/ag-domains/src/api.rs`: `POST /v1/domains/attachments/{id}/verify` con
+  `OwnershipVerifier` inyectable (`NullVerifier` por defecto;
+  `PropagationOwnershipVerifier` tras feature `propagation`). Emite
+  `domain.ownership.verified` y registra fallos de verificacion. Cierra el
+  hueco de que el evento estuviera modelado pero nunca emitido.
+
+- `crates/ag-domains/src/provider/capabilities.rs`: registro de capacidades por
+  proveedor (`ProviderCapabilities`, `known_provider_capabilities`,
+  `capabilities_for`) — eje adaptador (manual/read_apply) vs features del
+  proveedor (apex alias, CNAME flattening, DNS-01 auto). Lista conservadora.
+- `crates/ag-domains/src/api.rs`: endpoint `GET /v1/domains/provider-capabilities`
+  (feature `api`) + test de integracion.
+- `crates/ag-cli`: comando `ag domains diagnose` — compara registros esperados vs
+  observados en resolvers publicos y reporta hallazgos accionables; usa
+  `propagation::lookup_observed` (nuevo, lookup A/AAAA/CNAME/TXT) + `diagnostics`.
+- Docs: `reference/provider-capability-matrix.md`, `how-to/connect-providers.md`,
+  `how-to/domain-connect.md`, `how-to/configure-wildcard.md`,
+  `how-to/troubleshoot.md`; `reference/cli.md` documenta `diagnose`; OpenAPI con
+  `/provider-capabilities`.
+
+### ag-domains: orquestacion de emision de certificados (RFC-0011, fase 2)
+
+Anadido:
+
+- `crates/ag-domains/src/issuance.rs`: proteccion de rate-limit del blueprint
+  §13.4. `CertIssuer` trait (el emisor ACME real se inyecta), `IssuedCertificate`,
+  `san_key` (clave de deduplicacion canonica por conjunto SAN), `IssuanceLimiter`
+  (dedup de ordenes en vuelo + contadores por dominio registrable) y
+  `issue_certificate` (reserva, emite, cuenta exitos, libera). Logica nativa sin
+  dependencias externas; tests con issuer mock.
+- `crates/ag-edge/tests/issuance_to_edge.rs`: test E2E que emite via la
+  orquestacion (issuer rcgen), carga el PEM en el `CertStore` del edge y lo
+  selecciona por SNI; verifica la cadena emision -> serving completa.
+
+### ag-domains: event log de dominio + metricas de control-plane
+
+Anadido:
+
+- `crates/ag-domains/src/events.rs`: `DomainEvent` (vocabulario blueprint
+  §16.2: `domain.attachment.created`, `domain.ownership.verified`,
+  `domain.detached`) y trait `EventSink` con `NullEventSink` (defecto),
+  `InMemoryEventSink` (nativo/tests) y `TracingEventSink`. Sin broker externo
+  (ADR-0009). La API REST emite eventos en create/detach (`ApiState::with_events`).
+- `crates/ag-domains/src/metrics.rs`: contadores `ag_domains_attachments_total`,
+  `ag_domains_detached_total`, `ag_domains_verification_failures_total`.
+- Tests: unitarios del event log + test de integracion que captura los eventos
+  emitidos por la API real.
+
+### ag-domains: store SQL Postgres (RFC-0011, fase D)
+
+Anadido:
+
+- `crates/ag-domains` feature `sql-store`: `SqlAttachmentStore` (Postgres via
+  sqlx) que implementa `AttachmentStore`. Almacena el attachment como JSONB con
+  columnas indexadas (id, hostname, lifecycle) y tabla de tombstones; esquema
+  embebido + `migrations/0001_ag_domains_attachments.sql`. Mapea violacion de
+  unicidad a `AlreadyExists` y respeta tombstones en `create`. El store nativo
+  (memoria/JSON) sigue siendo el predeterminado (ADR-0009). Tests de integracion
+  `#[ignore]` que requieren `DATABASE_URL`.
+
+Cambios internos (no rompen la API publica del crate):
+
+- El trait `AttachmentStore` pasa a asincrono y `&self` (mutabilidad interior),
+  para poder compartir un store como `Arc<dyn AttachmentStore>` entre tareas y
+  permitir backends async. `InMemoryStore`/`JsonFileStore` adaptados; la API REST
+  ya no envuelve el store en un `Mutex` externo; la CLI ejecuta los comandos de
+  dominios sobre el runtime tokio.
+
+### ag-domains/ag-edge: edge en vivo + API REST (RFC-0011, fases B y C)
+
+Anadido:
+
+- `crates/ag-edge` feature `server`: listener HTTP ejecutable (`serve_http`,
+  axum) que sirve el challenge ACME HTTP-01 (`Http01ChallengeStore` +
+  `acme_challenge_token`, con proteccion ante path traversal), aplica politica
+  canonica/redireccion y enruta por `Host`/`:authority` con fail-closed para
+  hosts desconocidos. Tests de integracion sobre TCP real.
+- `crates/ag-edge` feature `tls`: almacen `CertStore` de certificados rustls
+  (exacto + wildcard) con puente PEM desde la salida de emision ACME
+  (`insert_pem`), `SniCertResolver` (RFC 6066) y `serve_https`. Test de
+  integracion con handshake TLS real verificando seleccion por SNI.
+- `crates/ag-domains` feature `api`: API REST `/v1/domains/attachments`
+  (crear/listar/obtener/instructions/status/detach) respaldada por cualquier
+  `AttachmentStore`, con mapeo de errores a codigos HTTP. Tests de integracion
+  sobre HTTP real (`tests/api_rest.rs`).
+- `openapi/ag-domains.v1.yaml` actualizado al contrato implementado.
+
+Cambios de workspace:
+
+- `hyper-util`: features `server-auto` y `service` anadidas (para el listener
+  HTTPS del edge).
+
+### ag-domains plano de control + ag-edge (ADR-0012 / RFC-0011, fase A)
+
+Anadido:
+
+- `crates/ag-domains`: capa de plano de control aditiva. Modulos `hostname`
+  (normalizacion/clasificacion IDN via `idna`), `attachment` (maquina de estados
+  con dimensiones ownership/dns/tls/routing), `store` (`AttachmentStore` trait +
+  `InMemoryStore` + `JsonFileStore` nativos), `ownership` (token TXT + verificacion
+  via propagacion), `instructions` (motor de registros DNS + exportacion zona BIND),
+  `caa` (preflight CAA antes de ACME) y `diagnostics` (esperado vs observado). La
+  libreria declarativa DNS+TLS previa queda intacta. Dependencias nuevas `idna`,
+  `uuid`. 80 tests.
+
+- `crates/ag-edge` (nuevo crate, plano de datos): `router::resolve_hostname`
+  (precedencia exacto/wildcard/legacy con fail-closed para hostnames
+  desconocidos), `tls::SniCertStore` + `allow_on_demand` (emision on-demand
+  restringida), `redirect::CanonicalPolicy` (www<->apex preservando path/query).
+  Libreria pura y probada; sin listeners en vivo todavia. 17 tests.
+
+- `crates/ag-cli`: subcomandos `ag domains attach`, `instructions`, `export-zone`,
+  `status`, `list`, `verify`, `detach`. Flujo manual sin credenciales de proveedor.
+
+- Gobernanza: `docs/rfc/RFC-0011-ag-domains-control-plane.md`,
+  `docs/adr/0012-ag-domains-control-plane.md`. Documentacion en
+  `docs/ag-domains/` y esqueleto OpenAPI en `openapi/ag-domains.v1.yaml`.
+
+Estado real tras las fases A-C: los listeners HTTP/HTTPS, el responder HTTP-01
+y la API REST ya estan implementados. Permanecen diferidos el almacen SQL
+(Postgres, fase D), Domain Connect y adaptadores de proveedor adicionales
+(fase E; Cloudflare y exportacion BIND ya existen), wildcards DNS-01 y el modulo
+`ag-registrars` (fase F).
+
+
+### ag-mail - Motor de plantillas externo (minijinja) (2026-06-04)
+
+Aditivo, tras la feature `minijinja` (apagada por defecto). Cierra DEBT-003.
+
+- `template::jinja::MinijinjaTemplate`: implementa el trait `MailTemplate` sobre
+  el motor `minijinja` (loops, condicionales, filtros), alternativa drop-in al
+  `StringTemplate` por defecto. Dep `minijinja` tras la feature.
+
+### Fase 4.6-C - MTA: webhooks firmados (2026-06-04)
+
+Aditivo, tras la nueva feature `api` (apagada por defecto). Avanza DEBT-021.
+
+- `api::webhook`: firma y verificacion de webhooks HMAC-SHA256 sobre
+  `{id}.{timestamp}.{payload}` con secretos `whsec_`, cabecera `v1,<base64>`,
+  soporte de multiples firmas (rotacion) y ventana de tolerancia anti-replay;
+  verificacion en tiempo constante. Deps `hmac`/`sha2`/`base64` tras `api`.
+- `.github/workflows/ci.yml`: el job `mail-mta` ahora ejercita `mta,api`.
+
+### Fase 4.6-B - MTA: colas, shaping, egress y suppression (2026-06-04)
+
+Aditivo, tras la feature `mta` (apagada por defecto). Cierra DEBT-019 (núcleo) y
+avanza DEBT-020. Persistencia durable del spool queda como DEBT-023.
+
+- `sender::mta::egress`: `EgressSource`/`EgressPool` con weighted round-robin
+  suave (SWRR) para IP warming; `MtaSender` elige una fuente por mensaje y
+  aplica EHLO + IP de origen al conectar.
+- `sender::mta::shaping`: `ShapingLimits`/`ShapingConfig` por `site_name`
+  (rate token-bucket determinista + cap de conexiones por semáforo).
+- `sender::mta::queue`: cola de dos niveles en memoria (scheduled min-heap +
+  ready batch `max_ready`) con `MtaRetryPolicy` (backoff exponencial, max-age),
+  trait `DeliveryBackend` (lo implementa `MtaSender`), worker `run`, y reportes
+  por ciclo. `MtaSender::build_jobs` genera jobs por dominio desde un `Email`.
+- `sender::mta::suppress`: `SuppressionList` automática (hard bounce 5xx,
+  límite de reintentos), case-insensitive; la cola la consulta y la alimenta.
+- `sender::mta::dsn`: intake asíncrono de DSN (RFC 3464) y ARF (RFC 5965) vía
+  `mail-parser`; `process_dsn`/`process_arf` alimentan la suppression list
+  (cierra DEBT-020).
+- `MtaSender` clasifica los fallos SMTP: solo un 5xx del destino es permanente
+  (suprime); fallos propios (DKIM, MX, TLS) son transitorios (reintentables).
+- Métricas de profundidad de cola; tests deterministas (reloj explícito).
+
+### Fase 4.6-A - Endurecimiento: RSA DKIM, metricas y CI del MTA (2026-06-04)
+
+Aditivo, cierra deuda de la 4.6-A (DEBT-017/018).
+
+- `sender::mta::dkim`: firma DKIM ahora soporta Ed25519 **y RSA-SHA256**
+  (PKCS#8 DER y PEM) via `mail_auth ... RsaKey::from_key_der` (no deprecado);
+  tests positivos para ambos algoritmos. Nueva dep `rustls-pki-types` tras `mta`.
+- `MtaSender::send`: emite metricas `ag_mail_sent_total` /
+  `ag_mail_send_latency_seconds` y `ag_mail_retry_total` en failover de MX.
+- `.github/workflows/ci.yml`: nuevo job `mail-mta` (build + test + clippy
+  `--features mta`), antes el MTA no se compilaba en CI (RFC-0009 §4.8).
+- `docs/DEBT.md`: renumeradas las entradas de MTA (colision de DEBT-012/013/014);
+  DEBT-017/018 cerradas; 4.6-B/C/D y el test de entrega en vivo quedan como
+  DEBT-019..022.
+
+### Fase 4.6-A - Implementacion: motor MTA outbound nativo de ag-mail (opt-in)
+
+Aditivo. Nueva feature de Cargo `mta` en `ag-mail`, apagada por defecto; el
+sender por defecto y los adapters no cambian (ADR-0010 / RFC-0009).
+
+Anadido:
+
+- `crates/ag-mail` feature `mta`: `sender::mta::MtaSender` (implementa
+  `MailSender`) con entrega directa al MX destino via ESMTP+STARTTLS
+  (`mail-send`), agrupacion de destinatarios por dominio y construccion MIME
+  RFC 5322 (`mail-builder`).
+- `sender::mta::resolve`: resolucion MX (`hickory-resolver`) con orden por
+  preferencia, rollup `site_name` y fallback de MX implicito (RFC 5321).
+- `sender::mta::dkim`: firma DKIM Ed25519 (RFC 8463) aplicada al final;
+  el material de clave lo aporta el llamador / `ag-domains`.
+- `sender::mta::bounce`: clasificador de bounces SMTP/RFC 3463 (transitorio
+  vs permanente), puro y unit-testeado.
+- Nuevas variantes de error `AgMailError::{Dns, NoMailHost, Dkim}`.
+- Dependencias opcionales tras `mta`: `mail-send 0.6` (features `builder`,
+  `ring`, `tls12`), `mail-auth 0.9` (`ring`), `hickory-resolver 0.26`.
+
+Notas: la ruta de entrega en vivo se cubre con tests `#[ignore]` (requiere
+red/puerto 25). Deuda registrada en `docs/DEBT.md` (DEBT-012 RSA DKIM,
+DEBT-013 metricas+CI, DEBT-014 colas/shaping/DSN-FBL).
+
+### Gobernanza - Pivot ag-mail a MTA outbound nativo (2026-06-03)
+
+Solo documentacion y gobernanza; sin codigo funcional nuevo.
+
+- `docs/adr/0010-ag-mail-native-mta-pivot.md`: nuevo ADR que supersede el
+  alcance v1 "NO es un MTA / inbound nunca" de `ADR-0007` y expande `ag-mail`
+  a un MTA outbound nativo (resolucion MX, ESMTP+STARTTLS, firma DKIM,
+  clasificacion de bounces), por fases y opt-in tras features de Cargo,
+  conservando el patron Native | Adapter y la direccionalidad `ag-auth ->
+  ag-mail`. `ADR-0007` sigue vigente para `ag-domains` y la clasificacion.
+  Principio aditivo-only vinculante: el MTA se anade como `MtaSender` opt-in
+  sin degradar el baseline (default `SmtpSender`, adapters de proveedor
+  existentes y colas permanecen sin cambios). Se rechaza el "overwrite / MTA
+  por defecto / degradar adapters / migrar la cola" del blueprint. Las
+  plataformas externas citadas en la investigacion son solo referencia, no
+  dependencias ni objetivos de integracion del proyecto.
+- `docs/rfc/RFC-0009-ag-mail-native-mta.md`: plan tecnico (6 subsistemas,
+  dependencias `mail-send`/`mail-builder`/`mail-auth`/`mail-parser`/
+  `hickory-resolver` tras feature `mta`, cola de dos niveles, modelo de datos,
+  superficie REST, webhooks firmados HMAC-SHA256, plan por fases 4.6-A..D + Fase 5+).
+  Supersede a `RFC-0006` para el alcance de `ag-mail`.
+- Alineacion documental: `docs/modules/ag-mail/README.md` reescrito (baseline
+  implementado real + direccion MTA, fin del estado "Pendiente"); notas de
+  actualizacion de alcance en Arquitectura `§8.8` (maestro EN+ES y derivado) y
+  nota futura `§4.5.5` en Hoja-de-Ruta (maestro EN+ES y derivado de fase);
+  README raiz (EN+ES); indices de ADR y RFC; `RFC-0006`/`ADR-0007` marcados
+  superseded para el alcance de `ag-mail`.
+- `docs/master/VERSION.md` y `.github/workflows/docs.yml`: hashes SHA-256 de
+  los dos maestros recalculados.
+
 ### Fase 4.5 - Implementacion tecnica: ag-mail + ag-domains (2026-05-24)
 
 Anadido:
 
-- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls)
-  + `ResendSender` (HTTP). `InMemoryQueue` con reintentos y backoff exponencial.
+- `crates/ag-mail` (estandar diferido): `MailSender` trait + `SmtpSender` (lettre + rustls).
+  `InMemoryQueue` con reintentos y backoff exponencial.
   `StringTemplate` + `MailTemplate` trait. `NullSender` (feature `test-utils`). 38 tests.
 
 - `crates/ag-domains` (opcional infra): `DnsProvider` trait + `CloudflareProvider` (reqwest).

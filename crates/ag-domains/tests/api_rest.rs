@@ -1,0 +1,273 @@
+//! Integration tests for the control-plane REST API over real HTTP.
+#![cfg(feature = "api")]
+
+use std::sync::Arc;
+
+use ag_domains::api::{build_router, ApiState, OwnershipVerifier};
+use ag_domains::attachment::DomainAttachment;
+use ag_domains::events::InMemoryEventSink;
+use ag_domains::instructions::EdgeTargets;
+use ag_domains::store::{AttachmentStore, InMemoryStore};
+use async_trait::async_trait;
+use serde_json::Value;
+
+struct AlwaysVerify;
+
+#[async_trait]
+impl OwnershipVerifier for AlwaysVerify {
+    async fn verify(&self, _attachment: &DomainAttachment) -> bool {
+        true
+    }
+}
+
+async fn start() -> String {
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+    let edge = EdgeTargets::new("edge.example-cloud.net");
+    let state = ApiState::new(store, edge);
+    let app = build_router(state);
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, app).await;
+    });
+    format!("http://{addr}")
+}
+
+#[tokio::test]
+async fn full_attachment_lifecycle_over_http() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+
+    // Create.
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({
+            "hostname": "api.example.com",
+            "project_id": "site",
+            "target_ref": "svc_api"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 201);
+    let body: Value = resp.json().await.unwrap();
+    let id = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(body["hostname_ascii"], "api.example.com");
+    assert_eq!(body["lifecycle"], "pending_ownership");
+    assert_eq!(body["ownership"]["name"], "_ag-domain.example.com");
+
+    // Get by id.
+    let resp = client
+        .get(format!("{base}/v1/domains/attachments/{id}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+
+    // List.
+    let resp = client
+        .get(format!("{base}/v1/domains/attachments"))
+        .send()
+        .await
+        .unwrap();
+    let list: Value = resp.json().await.unwrap();
+    assert_eq!(list.as_array().unwrap().len(), 1);
+
+    // Instructions.
+    let resp = client
+        .get(format!("{base}/v1/domains/attachments/{id}/instructions"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    let ins: Value = resp.json().await.unwrap();
+    let records = ins["records"].as_array().unwrap();
+    assert!(records.iter().any(|r| r["record_type"] == "CNAME"));
+    assert!(records.iter().any(|r| r["is_ownership"] == true));
+
+    // Detach.
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments/{id}/detach"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 204);
+}
+
+#[tokio::test]
+async fn duplicate_hostname_conflicts() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let payload = serde_json::json!({"hostname": "dup.example.com", "project_id": "site"});
+
+    let first = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(first.status(), 201);
+
+    let second = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(second.status(), 409);
+}
+
+#[tokio::test]
+async fn invalid_hostname_is_400() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({"hostname": "https://x/y", "project_id": "site"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 400);
+}
+
+#[tokio::test]
+async fn emits_lifecycle_events() {
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+    let sink = Arc::new(InMemoryEventSink::new());
+    let state =
+        ApiState::new(store, EdgeTargets::new("edge.example-cloud.net")).with_events(sink.clone());
+    let app = build_router(state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, app).await;
+    });
+    let base = format!("http://{addr}");
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({"hostname": "ev.example.com", "project_id": "site"}))
+        .send()
+        .await
+        .unwrap();
+    let id = resp.json::<Value>().await.unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    client
+        .post(format!("{base}/v1/domains/attachments/{id}/detach"))
+        .send()
+        .await
+        .unwrap();
+
+    let events = sink.events();
+    assert_eq!(events.len(), 2, "events: {events:?}");
+    assert_eq!(events[0].event_type(), "domain.attachment.created");
+    assert_eq!(events[1].event_type(), "domain.detached");
+}
+
+#[tokio::test]
+async fn verify_endpoint_marks_verified_and_emits_event() {
+    let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+    let sink = Arc::new(InMemoryEventSink::new());
+    let state = ApiState::new(store, EdgeTargets::new("edge.example-cloud.net"))
+        .with_events(sink.clone())
+        .with_verifier(Arc::new(AlwaysVerify));
+    let app = build_router(state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, app).await;
+    });
+    let base = format!("http://{addr}");
+    let client = reqwest::Client::new();
+
+    let id = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({"hostname": "verify.example.com", "project_id": "site"}))
+        .send()
+        .await
+        .unwrap()
+        .json::<Value>()
+        .await
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments/{id}/verify"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    let body: Value = resp.json().await.unwrap();
+    assert_eq!(body["ownership_status"], "verified");
+
+    let events = sink.events();
+    assert!(events
+        .iter()
+        .any(|e| e.event_type() == "domain.ownership.verified"));
+}
+
+#[tokio::test]
+async fn verify_endpoint_default_does_not_grant() {
+    // Default NullVerifier never confirms: ownership stays pending, no event.
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let id = client
+        .post(format!("{base}/v1/domains/attachments"))
+        .json(&serde_json::json!({"hostname": "nope.example.com", "project_id": "site"}))
+        .send()
+        .await
+        .unwrap()
+        .json::<Value>()
+        .await
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let resp = client
+        .post(format!("{base}/v1/domains/attachments/{id}/verify"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    assert_eq!(
+        resp.json::<Value>().await.unwrap()["ownership_status"],
+        "pending"
+    );
+}
+
+#[tokio::test]
+async fn lists_provider_capabilities() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{base}/v1/domains/provider-capabilities"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+    let caps: Value = resp.json().await.unwrap();
+    let arr = caps.as_array().unwrap();
+    assert!(arr.iter().any(|c| c["provider"] == "manual"));
+    let cf = arr.iter().find(|c| c["provider"] == "cloudflare").unwrap();
+    assert_eq!(cf["adapter"], "read_apply");
+    assert_eq!(cf["dns01_automation"], true);
+}
+
+#[tokio::test]
+async fn unknown_id_is_404() {
+    let base = start().await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{base}/v1/domains/attachments/dom_missing"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 404);
+}

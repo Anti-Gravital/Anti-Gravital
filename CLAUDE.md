@@ -693,16 +693,82 @@ Prohibido:
 - hacks silenciosos,
 - codigo temporal permanente.
 
-Formato:
+Formato del marcador en el codigo:
 
 ```rust
-// TECH-DEBT:
+// TECH-DEBT (issue #123):
 // motivo:
 // impacto:
 // eliminacion esperada:
 ```
 
-Toda deuda debe tener issue, prioridad y fecha objetivo.
+### Seguimiento en GitHub Issues (no en archivos del repositorio)
+
+La deuda tecnica, los bugs, los fallos y la documentacion de problemas se
+registran como **GitHub Issues**, NO como archivos Markdown dentro del
+repositorio. El objetivo es no llenar el repo de archivos que documentan
+errores/deuda y mantener ese seguimiento organizado y buscable en Issues.
+
+Reglas:
+
+- Toda deuda nueva se abre como Issue con la etiqueta `tech-debt` (y `bug`,
+  `security`, etc. segun corresponda), con motivo, impacto, plan de
+  eliminacion y prioridad/fecha objetivo en el cuerpo del Issue.
+- Un Issue = un problema. Se descompone el trabajo en Issues pequenos y
+  enfocados (accionables y cerrables de forma independiente); esta PROHIBIDO
+  condensar muchos problemas distintos en un unico Issue gigante. Cuando varios
+  Issues forman un area, se permite un Issue "padre"/seguimiento que solo enlaza
+  a los hijos (checklist o sub-issues), sin volver a describir cada problema.
+- Los marcadores `// TECH-DEBT` en el codigo referencian el numero/URL del
+  Issue; no describen la deuda por extenso ni la duplican en archivos.
+- Esta PROHIBIDO crear nuevos archivos cuyo proposito sea documentar deuda,
+  fallos, auditorias de problemas o "pendientes" (p. ej. `*-DEBT.md`,
+  `BACKLOG.md`, `TODO.md`, notas de problemas). Esa informacion va a Issues.
+- `docs/DEBT.md` queda CONGELADO como registro historico: no se anaden
+  entradas nuevas; las existentes se migran a Issues al tocarlas y se
+  reemplazan por su referencia. No se borra de golpe para no perder
+  trazabilidad.
+- La documentacion tecnica que SI permanece en el repo es la que describe el
+  sistema tal como es (arquitectura, modulos, RFC/ADR aprobados, referencia,
+  guias), no la que enumera lo que falta o esta roto.
+
+Excepcion: una RFC/ADR puede enumerar fases o limitaciones como parte de una
+decision de diseno; eso es contrato arquitectonico, no un registro de deuda.
+
+### Ciclo de vida del Issue: verificacion obligatoria antes de cerrar
+
+Los Issues son el tablero unico, confiable y honesto del estado real del
+proyecto (que falla, que falta, que esta en curso). Para que sea fiable, el
+cierre de un Issue esta gobernado por estas reglas:
+
+1. **Criterios de aceptacion verificables.** Todo Issue incluye, en su cuerpo,
+   una seccion de criterios de aceptacion ("Done when") y unos pasos de
+   verificacion concretos y reproducibles (que test ejecutar, que comando, que
+   comportamiento observar). Sin criterios verificables, el Issue esta
+   incompleto.
+2. **No se cierra hasta estar 100% verificado.** Esta PROHIBIDO marcar un Issue
+   como resuelto/cerrado sin evidencia de que realmente se resolvio (soluciones
+   fantasma). La evidencia es: tests automatizados que lo demuestran (o, si
+   depende de un servicio externo, un test `#[ignore]` + verificacion manual
+   documentada), `fmt`/`clippy`/`build` en verde, y comportamiento reproducible.
+   El cierre referencia el PR/commit que aporta esa evidencia.
+3. **Al verificar, cerrar de inmediato.** En cuanto la resolucion esta verificada
+   y fusionada, el Issue se cierra (`state: closed`, `reason: completed`) y, si
+   pertenece a un Issue padre, se marca su casilla. Esta PROHIBIDO dejar un Issue
+   resuelto-pero-abierto (el tablero mentiria diciendo que algo sigue roto) o
+   cerrado-sin-verificar.
+4. **Etiquetado obligatorio.** Cada Issue lleva, como minimo: tipo
+   (`bug` | `tech-debt` | `enhancement` | `documentation`), area (`ag-domains`,
+   `ag-edge`, `ag-mail`, ...), prioridad (`p1` | `p2` | `p3`) y, cuando aplique,
+   `blocked` (dependencia/servicio externo) o `good first issue`.
+5. **Apto para terceros.** El Issue se redacta con suficiente detalle (contexto,
+   archivos/modulos afectados, plan, criterios de aceptacion y verificacion) para
+   que un contribuidor externo pueda tomarlo y resolverlo sin conocimiento
+   tribal. Debe existir al menos un `good first issue` accesible para nuevos
+   colaboradores.
+6. **En cada iteracion.** Antes de terminar una sesion de trabajo, se concilian
+   los Issues afectados: lo verificado se cierra, lo nuevo se abre, lo bloqueado
+   se etiqueta. El tablero refleja la realidad del codigo, no la intencion.
 
 ---
 
@@ -958,6 +1024,40 @@ en codigo, ni en texto de interfaces de usuario, ni en comentarios, ni
 en mensajes de commit, ni en titulos de PR, ni en issues, ni en
 plantillas. Los iconos se manejan como SVG o glifos tipograficos cuando
 sea estrictamente necesario.
+
+### Politica de marcas comerciales de terceros (ADR-0011)
+
+No se usan nombres de marcas comerciales de terceros para nombrar componentes
+del proyecto: ni en codigo, ni en identificadores, ni en features de Cargo, ni
+en comentarios, ni en documentacion. Un nombre de marca comercial de tercero
+solo se admite con una unica condicion:
+
+- como etiqueta explicita de un adaptador que integra especificamente a ese
+  tercero (para que el contribuidor sepa donde "enchufar" ese servicio),
+  confinado al modulo de ese adaptador y detras de su feature de Cargo, y
+  solo cuando NO existe una via nativa generica que cubra la misma necesidad.
+
+Esta prohibido usar una marca comercial como nombre de un componente propio o
+generico, como parte de la superficie publica del producto, o por comodidad de
+no inventar un nombre propio.
+
+Excepciones:
+
+- Tecnologias open-source en las que nos apoyamos o que usamos para construir
+  Anti-Gravital no son marcas comerciales prohibidas y se mantienen (p. ej.
+  `lettre`, `mail-send`, `mail-auth`, `hickory-resolver`, `rustls`, `tokio`,
+  `axum`, `sqlx`, `moka`).
+- Proveedores de buzon/destino citados como requisito de interoperabilidad o
+  entregabilidad (aquellos cuyas reglas SPF/DKIM/DMARC o de envio masivo hay
+  que cumplir) no son componentes nuestros y se mantienen donde sea
+  tecnicamente necesario.
+
+Caso aplicado: `ag-mail` no expone adaptadores con nombre de marca; para usar
+un proveedor externo se apunta el `SmtpSender` nativo a su endpoint SMTP, y la
+via sin terceros es el `MtaSender` nativo. Los adaptadores `CloudflareProvider`
+(`ag-domains`) y `S3Store` (`ag-storage`) se conservan como etiquetas legitimas
+de adaptador. El job `prohibited content scan` en `.github/workflows/docs.yml`
+verifica la ausencia de las marcas de correo retiradas.
 
 ### Sincronizacion obligatoria del README
 

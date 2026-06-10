@@ -18,12 +18,16 @@ members = [
     "crates/ag-wasm-host",
     "crates/ag-lsp",
     "crates/ag-mail",
+    "crates/ag-workers",
     "crates/ag-domains",
+    "crates/ag-edge",
     "examples/todo-api",
     "examples/realtime-chat",
     "examples/ai-backend",
     "examples/auth-mail-demo",
+    "examples/workers-basic",
     "tests/integration",
+    "tests/generated-rust-fixture",
 ]
 
 [workspace.package]
@@ -50,6 +54,7 @@ publish = false
 ag-core = { path = "crates/ag-core", version = "0.0.0" }
 ag-data = { path = "crates/ag-data", version = "0.0.0" }
 ag-dsl = { path = "crates/ag-dsl", version = "0.0.0" }
+ag-workers = { path = "crates/ag-workers", version = "0.0.0" }
 axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query", "ws"] }
 async-nats = "0.48"
 rmp-serde  = "1"
@@ -59,6 +64,7 @@ clap = { version = "4", features = ["derive", "env"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros", "uuid", "json", "chrono"] }
 chumsky = "0.9"
 logos = "0.14"
+regex = "1"
 governor = "0.7"
 http = "1"
 jsonwebtoken = { version = "10", default-features = false, features = ["use_pem", "rust_crypto"] }
@@ -67,12 +73,15 @@ rustls-pki-types = { version = "1.10", features = ["std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
 http-body-util = "0.1"
 hyper = { version = "1.4", features = ["http1", "http2"] }
-hyper-util = { version = "0.1", features = ["tokio", "server", "server-graceful", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["tokio", "server", "server-auto", "server-graceful", "service", "http1", "http2"] }
 pin-project-lite = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
+# Cooperative cancellation (CancellationToken) for ag-workers job handlers.
+# Justified by RFC-0012 / ADR-0013; minimal, first-party, no extra features needed.
+tokio-util = { version = "0.7", default-features = false }
 toml = "0.8"
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "request-id", "util", "cors"] }
@@ -90,6 +99,8 @@ console-subscriber       = "0.4"
 async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
+cap-fs-ext               = "4.0.2"
+cap-std                  = "4.0.2"
 getrandom                = "0.2"
 passkey-types            = "0.5"
 oauth2                   = { version = "5", default-features = false }
@@ -98,6 +109,9 @@ sha2                     = "0.10"
 p256                     = { version = "0.13", default-features = false, features = ["ecdsa"] }
 hmac                     = "0.12"
 url                      = "2"
+# IDN / Punycode normalization for hostname identity (RFC-0011, ag-domains
+# control plane). Ubiquitous, well-maintained, already present transitively.
+idna                     = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }

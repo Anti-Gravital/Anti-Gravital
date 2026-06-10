@@ -15,7 +15,7 @@ use chumsky::prelude::*;
 use crate::ast::{
     Annotation, AuthMode, Config, DefaultValue, DomainBlock, EndpointDef, ErrorDef, EventDef,
     FieldDef, FieldType, HttpMethod, MailBlock, MailTemplateDef, ModelDef, RequestDef, ResponseDef,
-    Schema, Spanned,
+    Schema, Spanned, WorkerDef, WorkerRetry,
 };
 use crate::diagnostics::Diagnostic;
 use crate::lexer::{Span, Token};
@@ -56,6 +56,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         event_parser().map(SchemaItem::Event),
         mail_parser().map(SchemaItem::Mail),
         domain_parser().map(SchemaItem::Domain),
+        worker_parser().map(SchemaItem::Worker),
     ))
     .recover_with(skip_then_retry_until([
         Token::Model,
@@ -67,6 +68,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
         Token::Event,
         Token::Mail,
         Token::Domain,
+        Token::Worker,
     ]));
 
     item.repeated().then_ignore(end()).map(|items| {
@@ -82,6 +84,7 @@ fn schema_parser() -> impl Parser<Token, Schema, Error = ParseErr> {
                 SchemaItem::Event(ev) => schema.events.push(ev),
                 SchemaItem::Mail(mb) => schema.mails.push(mb),
                 SchemaItem::Domain(db) => schema.domains.push(db),
+                SchemaItem::Worker(w) => schema.workers.push(w),
             }
         }
         schema
@@ -99,6 +102,7 @@ enum SchemaItem {
     Event(EventDef),
     Mail(MailBlock),
     Domain(DomainBlock),
+    Worker(WorkerDef),
 }
 
 /// Parser for the `config { ... }` block.
@@ -744,6 +748,117 @@ fn domain_parser() -> impl Parser<Token, DomainBlock, Error = ParseErr> {
         .labelled("bloque domain")
 }
 
+// ============================================================
+// DSL v0.8 — background worker parser
+// ============================================================
+
+/// Possible entries inside a `worker { ... }` block.
+enum WorkerEntry {
+    Retry(WorkerRetry),
+    Input(Vec<FieldDef>),
+    Kv(String, String),
+}
+
+/// Parser for the `worker Name { ... }` block (ag-workers, RFC-0012).
+///
+/// Supports key/value fields (`queue`, `mode`, `concurrency`, `timeout`, `emits`,
+/// `on_failure`), a nested `retry { ... }` policy block and an `input { ... }` block of
+/// typed payload fields (reusing the model field grammar).
+fn worker_parser() -> impl Parser<Token, WorkerDef, Error = ParseErr> {
+    let worker_name = just(Token::Worker)
+        .ignore_then(select! { Token::Ident(s) => s }.labelled("nombre del worker"))
+        .map_with_span(|s, span: Span| Spanned::new(s, span));
+
+    // A scalar value rendered to String (covers strings, idents, ints and booleans).
+    let value = choice((
+        select! { Token::StringLit(s) => s },
+        select! { Token::Ident(s) => s },
+        select! { Token::IntLit(n) => n.to_string() },
+        just(Token::True).to("true".to_owned()),
+        just(Token::False).to("false".to_owned()),
+    ))
+    .labelled("valor");
+
+    // retry { max_attempts N backoff exponential ... }
+    let retry_block = just(Token::Ident("retry".to_owned()))
+        .ignore_then(
+            select! { Token::Ident(k) => k }
+                .then(value.clone())
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map(|kvs| {
+            let mut r = WorkerRetry::default();
+            for (k, v) in kvs {
+                match k.as_str() {
+                    "max_attempts" => r.max_attempts = v.parse().ok(),
+                    "backoff" => r.backoff = Some(v),
+                    "initial_delay" => r.initial_delay = Some(v),
+                    "max_delay" => r.max_delay = Some(v),
+                    "jitter" => r.jitter = Some(v == "true"),
+                    _ => {}
+                }
+            }
+            r
+        });
+
+    // input { field Type @annotations ... } — reuses the model field grammar.
+    let input_block = just(Token::Ident("input".to_owned())).ignore_then(
+        field_parser()
+            .repeated()
+            .collect::<Vec<_>>()
+            .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+    );
+
+    let kv_field = select! { Token::Ident(k) => k }.then(value);
+
+    let entry = choice((
+        retry_block.map(WorkerEntry::Retry),
+        input_block.map(WorkerEntry::Input),
+        kv_field.map(|(k, v)| WorkerEntry::Kv(k, v)),
+    ));
+
+    worker_name
+        .then(
+            entry
+                .repeated()
+                .collect::<Vec<_>>()
+                .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+        )
+        .map_with_span(|(name, entries), span: Span| {
+            let mut w = WorkerDef {
+                name,
+                queue: None,
+                mode: None,
+                concurrency: None,
+                timeout: None,
+                retry: None,
+                input: Vec::new(),
+                emits: Vec::new(),
+                on_failure: None,
+                span,
+            };
+            for e in entries {
+                match e {
+                    WorkerEntry::Retry(r) => w.retry = Some(r),
+                    WorkerEntry::Input(f) => w.input = f,
+                    WorkerEntry::Kv(k, v) => match k.as_str() {
+                        "queue" => w.queue = Some(v),
+                        "mode" => w.mode = Some(v),
+                        "concurrency" => w.concurrency = v.parse().ok(),
+                        "timeout" => w.timeout = Some(v),
+                        "emits" => w.emits.push(v),
+                        "on_failure" => w.on_failure = Some(v),
+                        _ => {}
+                    },
+                }
+            }
+            w
+        })
+        .labelled("declaracion de worker")
+}
+
 // ---- Conversion of chumsky errors to Diagnostic ---------------------
 
 fn parse_error_to_diagnostic(err: ParseErr) -> Diagnostic {
@@ -1292,7 +1407,7 @@ mail transaccional {
     fn parse_mail_block_with_templates() {
         let src = r#"
 mail transaccional {
-    provider resend
+    provider mta
     from "noreply@ejemplo.com"
 
     template bienvenida {

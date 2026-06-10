@@ -49,7 +49,7 @@ deuda. CLAUDE.md gana 5 reglas nuevas respaldadas por un ADR.
 Cambiar la linea 5 (`Estado: **Fase 4.5 — skeleton (Etapa 2-1)**. No implementado todavia.`) por:
 
 ```markdown
-Status: **Phase 4.5 — implemented.** Native SMTP sender, Resend/SES/Postmark
+Status: **Phase 4.5 — implemented.** Native SMTP relay
 adapters, in-memory retry queue, string templating and `ag-observe` metrics are
 functional. Pending tech debt (persistent queue, custom SMTP headers, external
 template engines) is tracked in `docs/DEBT.md`.
@@ -82,7 +82,7 @@ por:
 //! # Status
 //!
 //! Phase 4.5 — implemented. Public API: [`MailSender`] trait with `SmtpSender`
-//! (default) and `ResendSender`/`SesSender`/`PostmarkSender` adapters, the
+//! (default relay), the
 //! [`Email`]/`EmailBuilder` model, an in-memory retry queue and `ag-observe`
 //! metrics. Outstanding tech debt (persistent queue, custom SMTP headers,
 //! external template engines) is tracked in `docs/DEBT.md`. Governing decision:

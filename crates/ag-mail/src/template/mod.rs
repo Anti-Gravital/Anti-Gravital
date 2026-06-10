@@ -7,6 +7,8 @@
 //! The build-time variable validation (for the `ag-dsl` compiler)
 //! is in the `validate` submodule.
 
+#[cfg(feature = "minijinja")]
+pub mod jinja;
 pub mod validate;
 
 use std::collections::HashMap;

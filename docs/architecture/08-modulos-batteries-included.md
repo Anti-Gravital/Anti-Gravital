@@ -88,9 +88,19 @@ recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
 antispam, filtrado ni gestión de reputación de IP. Esta restricción es
 deliberada y está fijada en el ADR.
 
+> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
+> un MTA / inbound nunca" queda **superseded**: `ag-mail` se expande a un MTA
+> outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
+> clasificación de bounces) para enviar correo autenticado sin terceros en la
+> ruta de envío. Es por fases y opt-in tras features de Cargo (`mta`, `api`,
+> `queue-jetstream`); el baseline de relay outbound sigue siendo el modo por
+> defecto. Buzones, IMAP/POP/JMAP e inbound general siguen fuera de alcance;
+> inbound solo como parsing de DSN/ARF para bounces. Plan técnico: `RFC-0009`.
+> Trabajo futuro, no implementado aún.
+
 El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
 sender SMTP nativo. Los adapters de proveedor se declaran como features de
-Cargo (`--features resend,ses,postmark`) y cada uno implementa el trait
+del relay SMTP nativo (apuntable a cualquier proveedor externo); la via sin terceros es el MTA nativo (`mta`). Cada sender implementa el trait
 `MailSender`. El patrón Native | Adapter es idéntico al usado por
 `ag-storage` (`Native | S3`) y `ag-cache` (`moka | Redis`).
 
@@ -100,7 +110,7 @@ referencia un `domain` válido, si el archivo del template no existe o si
 las variables del HTML no coinciden con las `vars` tipadas declaradas, el
 compilador del DSL rechaza el build. Un correo mal formado deja de ser un
 bug de runtime y se convierte en un error de compilación. Este es el
-diferenciador real frente a Resend, no la entregabilidad.
+diferenciador real (correo correcto en build-time), no la entregabilidad.
 
 La **cola asíncrona** acepta jobs con reintentos y backoff exponencial.
 Backend por defecto en memoria; backend opcional persistente vía `ag-data`
@@ -146,6 +156,52 @@ resolvers públicos antes de marcar una operación como exitosa, bloqueando
 `ag deploy` hasta que el dominio responde.
 
 Detalle completo en `docs/modules/ag-domains/`.
+
+### 8.10 `ag-workers` — Ejecución en segundo plano (estándar diferido)
+
+`ag-workers` es el motor de ejecución en segundo plano del ecosistema. Su trabajo es
+sacar el trabajo que no pertenece al ciclo de request fuera de los handlers HTTP —
+jobs en background, reintentos, dead-letter, tareas programadas y worker pools —
+preservando las propiedades del framework: ejecución nativa en Rust sin runtime
+externo obligatorio, contratos schema-first, fronteras de crate acíclicas,
+observabilidad nativa y simplicidad operacional (un solo binario por defecto).
+
+La decisión arquitectónica central es **extraer un patrón ya probado, no inventar uno
+nuevo**. `ag-mail` ya implementa cola con reintentos, backoff exponencial, backend
+persistente sobre `ag-data` y ejecución de workers (`crates/ag-mail/src/queue/`).
+`ag-workers` generaliza ese patrón a un crate compartido para que cada futuro
+consumidor (entrega de webhooks, renovación ACME, post-procesado de subidas,
+notificaciones, reportes) construya sobre un único substrato aburrido, durable y
+observable, en lugar de reimplementar su propia cola.
+
+El modelo mental es **el job**: una unidad tipada de trabajo diferido con identidad,
+cola, payload versionado (`rmp-serde`) y política de reintentos. El runtime lo ejecuta
+vía estrategias distintas (async sobre Tokio; CPU-bound sobre `spawn_blocking` acotado
+por semáforo, nunca `rayon`) pero el contrato es uniforme. Hay dos backends de primera
+clase: en memoria (por defecto, nativo) y PostgreSQL (durable, vía `ag-data`, feature
+`postgres`, con `FOR UPDATE SKIP LOCKED` para leasing concurrente). El **enqueue
+transaccional** (`enqueue_in_tx`) inserta el job dentro de la misma transacción que las
+escrituras del llamador, dando la propiedad de transactional-outbox sin tabla de outbox
+separada.
+
+Dos propiedades son críticas. Primera: el perfil de release usa `panic = "abort"`, así
+que el motor **no** promete aislamiento total de pánico; un job que entra en pánico
+aborta el proceso, y el backend durable más la expiración de lease lo hacen recuperable.
+Segunda, derivada de la anterior: un **circuit breaker de poison-job** incrementa el
+contador de intentos en el momento del lease y enruta directamente al DLQ cualquier job
+que supere `panic_guard_attempts`, convirtiendo un crash-loop infinito en una entrada
+acotada y observable del DLQ. El scheduling de intervalos usa un claim singleton
+(`FOR UPDATE SKIP LOCKED` sobre `ag_worker_schedules`) para disparar una sola vez bajo
+escalado horizontal. Las etiquetas de métricas están acotadas; `tenant_id` nunca es una
+etiqueta.
+
+`ag-workers` se declara en el schema con el bloque `worker` (paralelo a `event`,
+v0.6), que genera payloads tipados, stubs de `JobHandler`, el registro cerrado y, con la
+feature `postgres`, migraciones SQL. Es **estándar diferido** (precedente `ag-mail`,
+`ADR-0007`): producción-grade pero no instalado por defecto en los templates oficiales;
+se incorpora cuando el `schema.ag` declara un `worker` o una feature lo habilita.
+
+Decisión en `RFC-0012` y `ADR-0013`. Detalle completo en `docs/modules/ag-workers/`.
 
 
 ---

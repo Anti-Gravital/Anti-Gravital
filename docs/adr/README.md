@@ -29,3 +29,10 @@ Consecuencias, Alternativas, Estado.
 | 0003 | Modelo de gobernanza BDFL inicial con transicion a comite | aceptado | `0003-bdfl-governance.md` |
 | 0004 | Descomposicion verbatim de los documentos maestros | aceptado | `0004-descomposicion-de-maestros.md` |
 | 0005 | Identidades de contacto oficiales del proyecto | aceptado | `0005-contact-identities.md` |
+| 0006 | ag-auth WebAuthn sin webauthn-rs | aceptado | `0006-ag-auth-webauthn-sin-webauthn-rs.md` |
+| 0007 | Incorporacion de ag-mail y ag-domains (Fase 4.5) | aceptado; alcance ag-mail superseded por ADR-0010 | `0007-ag-mail-ag-domains.md` |
+| 0008 | Politica de idioma (ingles canonico) | aceptado | `0008-politica-de-idioma.md` |
+| 0009 | Gobernanza correctiva pre-Fase 5 | aceptado | `0009-gobernanza-correctiva.md` |
+| 0010 | ag-mail native outbound MTA pivot | aceptado | `0010-ag-mail-native-mta-pivot.md` |
+| 0011 | Politica de marcas comerciales de terceros | aceptado | `0011-politica-marcas-comerciales.md` |
+| 0012 | ag-domains plano de control de attachment y serving | aceptado | `0012-ag-domains-control-plane.md` |

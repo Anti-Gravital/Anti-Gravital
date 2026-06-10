@@ -1,10 +1,10 @@
 # ai-backend
 
-Servidor de streaming SSE multi-proveedor de IA. Detecta las API keys
-disponibles en el entorno y expone solo los proveedores configurados.
-Agregar un proveedor nuevo = implementar el trait `AiProvider`.
+Multi-provider AI SSE streaming server. It detects the API keys available in the
+environment and exposes only the configured providers. Adding a new provider =
+implementing the `AiProvider` trait.
 
-## Ejecucion
+## Running
 
 ```bash
 # Claude (Anthropic)
@@ -16,63 +16,63 @@ GEMINI_API_KEY=AIza... cargo run -p ai-backend
 # OpenAI
 OPENAI_API_KEY=sk-... cargo run -p ai-backend
 
-# Ollama (OpenAI-compatible local, modelo por defecto llama3)
+# Ollama (OpenAI-compatible local, default model llama3)
 OPENAI_API_KEY=ollama \
 OPENAI_BASE_URL=http://localhost:11434 \
 cargo run -p ai-backend
 
-# Multiples proveedores simultaneos
+# Multiple providers at once
 ANTHROPIC_API_KEY=... GEMINI_API_KEY=... cargo run -p ai-backend
 ```
 
-## Variables de entorno
+## Environment variables
 
-| Variable              | Default                    | Descripcion                       |
+| Variable              | Default                    | Description                       |
 |-----------------------|----------------------------|-----------------------------------|
-| `ANTHROPIC_API_KEY`   | —                          | Habilita proveedor claude         |
-| `GEMINI_API_KEY`      | —                          | Habilita proveedor gemini         |
-| `OPENAI_API_KEY`      | —                          | Habilita proveedor openai         |
-| `OPENAI_BASE_URL`     | `https://api.openai.com`   | Endpoint OpenAI-compatible        |
-| `AI_DEFAULT_PROVIDER` | primer registrado          | Proveedor por defecto             |
-| `PORT`                | `3001`                     | Puerto del servidor               |
-| `LOG_FORMAT`          | `pretty`                   | `pretty` o `json`                 |
+| `ANTHROPIC_API_KEY`   | —                          | Enables the claude provider       |
+| `GEMINI_API_KEY`      | —                          | Enables the gemini provider       |
+| `OPENAI_API_KEY`      | —                          | Enables the openai provider       |
+| `OPENAI_BASE_URL`     | `https://api.openai.com`   | OpenAI-compatible endpoint        |
+| `AI_DEFAULT_PROVIDER` | first registered           | Default provider                  |
+| `PORT`                | `3001`                     | Server port                       |
+| `LOG_FORMAT`          | `pretty`                   | `pretty` or `json`                |
 
 ## API
 
-| Metodo | Ruta         | Descripcion                          |
+| Method | Path         | Description                          |
 |--------|--------------|--------------------------------------|
-| POST   | `/chat`      | Stream SSE de tokens                 |
-| GET    | `/providers` | Lista proveedores disponibles        |
+| POST   | `/chat`      | SSE token stream                     |
+| GET    | `/providers` | List available providers             |
 | GET    | `/health`    | Health check                         |
 
-### Ver proveedores disponibles
+### List available providers
 
 ```bash
 curl http://localhost:3001/providers
 ```
 
-### Chat con proveedor por defecto
+### Chat with the default provider
 
 ```bash
 curl -N -X POST http://localhost:3001/chat \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Explica Rust en tres oraciones"}'
+  -d '{"prompt": "Explain Rust in three sentences"}'
 ```
 
-### Chat especificando proveedor y modelo
+### Chat specifying provider and model
 
 ```bash
 curl -N -X POST http://localhost:3001/chat \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "hola", "provider": "gemini", "model": "gemini-1.5-pro"}'
+  -d '{"prompt": "hello", "provider": "gemini", "model": "gemini-1.5-pro"}'
 ```
 
-## Agregar un nuevo proveedor
+## Adding a new provider
 
-1. Crear `src/provider/mi_proveedor.rs` implementando el trait `AiProvider`
-2. Registrarlo en `ProviderRegistry::from_env()` segun la key del entorno
-3. Re-exportarlo en `provider/mod.rs`
+1. Create `src/provider/my_provider.rs` implementing the `AiProvider` trait.
+2. Register it in `ProviderRegistry::from_env()` based on its environment key.
+3. Re-export it in `provider/mod.rs`.
 
-## Crates demostrados
+## Crates demonstrated
 
-- `ag-observe`: logging y trazabilidad
+- `ag-observe`: logging and tracing

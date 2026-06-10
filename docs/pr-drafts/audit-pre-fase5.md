@@ -77,7 +77,7 @@ gate row is `pass`.
   confinement, 6 properties green). `pre-fase5-properties.md`.
 - [ ] Stage 6 performance.
 - [x] Stage 7 concurrency (no unbounded channels; mail queue bounded; storage
-  I/O non-blocking; fixed missing reqwest timeouts on Cloudflare+Resend).
+  I/O non-blocking; fixed missing reqwest timeouts on the provider HTTP adapters).
   `pre-fase5-concurrency.md`.
 - [x] Stage 8 per-module security (10 crates pass; JWT alg-pinned, API keys
   constant-time, SQL parameterized; fixed metric-cardinality footgun doc).

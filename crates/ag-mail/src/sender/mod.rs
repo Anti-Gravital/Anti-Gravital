@@ -1,8 +1,9 @@
-//! `MailSender` trait and provider adapters.
+//! `MailSender` trait and senders.
 //!
-//! `MailSender` is the outbound port (interface) of `ag-mail`. The adapters
-//! (`SmtpSender`, `ResendSender`, etc.) are the concrete implementations
-//! behind Cargo features.
+//! `MailSender` is the outbound port (interface) of `ag-mail`. The concrete
+//! senders are the native SMTP relay (`SmtpSender`, default) and the native
+//! outbound MTA (`mta::MtaSender`, opt-in). To send through an external email
+//! provider, point `SmtpSender` at that provider's SMTP endpoint.
 
 use async_trait::async_trait;
 
@@ -11,14 +12,8 @@ use crate::{error::AgMailError, message::Email};
 #[cfg(feature = "smtp")]
 pub mod smtp;
 
-#[cfg(feature = "resend")]
-pub mod resend;
-
-#[cfg(feature = "ses")]
-pub mod ses;
-
-#[cfg(feature = "postmark")]
-pub mod postmark;
+#[cfg(feature = "mta")]
+pub mod mta;
 
 /// Result of a successful send.
 #[derive(Debug, Clone)]

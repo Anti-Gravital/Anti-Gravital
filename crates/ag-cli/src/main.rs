@@ -44,7 +44,7 @@ const FULLSTACK_MIGRATION: &str =
 #[command(
     name = "ag",
     version = VERSION,
-    about = "Anti-Gravital CLI - crea y gestiona proyectos AG",
+    about = "Anti-Gravital CLI - create and manage AG projects",
     long_about = None,
 )]
 struct Cli {
@@ -117,6 +117,12 @@ enum Commands {
         #[command(subcommand)]
         command: MailCommands,
     },
+
+    /// Operations on background workers (ag-workers).
+    Workers {
+        #[command(subcommand)]
+        command: WorkersCommands,
+    },
 }
 
 /// Sub-commands of `ag schema`.
@@ -133,6 +139,17 @@ enum SchemaCommands {
         /// Reference file (another schema.ag, snapshot, etc.).
         reference: PathBuf,
         /// Current schema file.
+        #[arg(long, default_value = "schema.ag")]
+        schema: PathBuf,
+    },
+}
+
+/// Sub-commands of `ag workers`.
+#[derive(Subcommand)]
+enum WorkersCommands {
+    /// Lists the background workers declared in a schema (no infrastructure needed).
+    List {
+        /// DSL schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
@@ -173,6 +190,113 @@ enum DomainsCommands {
         #[arg(long, env = "AG_CLOUDFLARE_TOKEN")]
         token: String,
     },
+    /// Attaches an external domain to a project and prints DNS instructions.
+    ///
+    /// Native and manual: writes a local attachment store and produces the
+    /// exact records to paste at your DNS provider. No credentials required.
+    Attach {
+        /// Hostname to attach (e.g. example.com, api.example.com, *.example.com).
+        domain: String,
+        /// Project identifier.
+        #[arg(long)]
+        project: String,
+        /// Environment identifier.
+        #[arg(long, default_value = "production")]
+        env: String,
+        /// Target service reference.
+        #[arg(long, default_value = "default")]
+        service: String,
+        /// Edge CNAME target host for subdomains/wildcards.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable; A/AAAA records).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Reprints DNS instructions for an attached domain.
+    Instructions {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Exports a BIND zone-file fragment for an attached domain.
+    ExportZone {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Shows the status of an attached domain.
+    Status {
+        /// Attached hostname.
+        domain: String,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Lists all attached domains in the local store.
+    List {
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Verifies the TXT ownership record across public resolvers.
+    Verify {
+        /// Attached hostname.
+        domain: String,
+        /// Minimum number of resolvers that must confirm.
+        #[arg(long, default_value = "1")]
+        min_confirmed: usize,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Detaches a domain, stops renewal and writes a takeover tombstone.
+    Detach {
+        /// Attached hostname.
+        domain: String,
+        /// Tombstone duration in days (subdomain-takeover prevention).
+        #[arg(long, default_value = "30")]
+        tombstone_days: u64,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
+    /// Compares expected vs observed DNS records and reports findings.
+    ///
+    /// Queries public resolvers for the records this attachment expects and
+    /// reports what is missing, wrong, or conflicting. Read-only; no credentials.
+    Diagnose {
+        /// Attached hostname.
+        domain: String,
+        /// Edge CNAME target host.
+        #[arg(long, env = "AG_EDGE_HOST")]
+        edge_host: String,
+        /// Apex IP address (repeatable).
+        #[arg(long = "ip")]
+        ips: Vec<String>,
+        /// Path to the local attachment store.
+        #[arg(long, default_value = ".ag/domains.json")]
+        state: PathBuf,
+    },
 }
 
 /// Sub-commands of `ag mail`.
@@ -190,7 +314,7 @@ enum MailCommands {
         #[arg(long, env = "AG_MAIL_FROM", default_value = "test@localhost")]
         from: String,
         /// Subject of the test email.
-        #[arg(long, default_value = "ag mail test — Anti-Gravital")]
+        #[arg(long, default_value = "ag mail test: Anti-Gravital")]
         subject: String,
         /// SMTP host.
         #[arg(long, env = "AG_SMTP_HOST", default_value = "localhost")]
@@ -214,6 +338,9 @@ fn main() {
         Commands::Dev { bind } => cmd_dev(&bind),
         Commands::Build { target } => cmd_build(target.as_deref()),
         Commands::Generate { schema, output } => cmd_generate(&schema, &output),
+        Commands::Workers { command } => match command {
+            WorkersCommands::List { schema } => cmd_workers_list(&schema),
+        },
         Commands::Schema { command } => match command {
             SchemaCommands::Lint { schema } => cmd_schema_lint(&schema),
             SchemaCommands::Diff { reference, schema } => cmd_schema_diff(&schema, &reference),
@@ -222,7 +349,7 @@ fn main() {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .expect("no se pudo crear el runtime tokio");
+                .expect("failed to create the Tokio runtime");
             match command {
                 DomainsCommands::Check {
                     domain,
@@ -238,13 +365,56 @@ fn main() {
                     zone_id,
                     token,
                 } => rt.block_on(cmd_domains_sync(&schema, &zone_id, &token)),
+                DomainsCommands::Attach {
+                    domain,
+                    project,
+                    env,
+                    service,
+                    edge_host,
+                    ips,
+                    state,
+                } => rt.block_on(cmd_domains_attach(
+                    &domain, &project, &env, &service, &edge_host, &ips, &state,
+                )),
+                DomainsCommands::Instructions {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => rt.block_on(cmd_domains_instructions(&domain, &edge_host, &ips, &state)),
+                DomainsCommands::ExportZone {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => rt.block_on(cmd_domains_export_zone(&domain, &edge_host, &ips, &state)),
+                DomainsCommands::Status { domain, state } => {
+                    rt.block_on(cmd_domains_status(&domain, &state))
+                }
+                DomainsCommands::List { state } => rt.block_on(cmd_domains_list(&state)),
+                DomainsCommands::Verify {
+                    domain,
+                    min_confirmed,
+                    state,
+                } => rt.block_on(cmd_domains_verify(&domain, min_confirmed, &state)),
+                DomainsCommands::Detach {
+                    domain,
+                    tombstone_days,
+                    state,
+                } => rt.block_on(cmd_domains_detach(&domain, tombstone_days, &state)),
+                DomainsCommands::Diagnose {
+                    domain,
+                    edge_host,
+                    ips,
+                    state,
+                } => rt.block_on(cmd_domains_diagnose(&domain, &edge_host, &ips, &state)),
             }
         }
         Commands::Mail { command } => {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .expect("no se pudo crear el runtime tokio");
+                .expect("failed to create the Tokio runtime");
             match command {
                 MailCommands::Test {
                     to,
@@ -316,7 +486,7 @@ fn resolve_template_interactive() -> String {
 }
 
 fn cmd_dev(bind: &str) -> Result<(), String> {
-    println!("Iniciando servidor en modo desarrollo (bind: {bind})...");
+    println!("Starting development server (bind: {bind})...");
 
     let watch_available = process::Command::new("cargo")
         .args(["watch", "--version"])
@@ -327,24 +497,24 @@ fn cmd_dev(bind: &str) -> Result<(), String> {
         .unwrap_or(false);
 
     let status = if watch_available {
-        println!("Usando cargo-watch para hot reload.");
+        println!("Using cargo-watch for hot reload.");
         process::Command::new("cargo")
             .env("BIND", bind)
             .args(["watch", "-x", "run"])
             .status()
-            .map_err(|e| format!("no se pudo ejecutar cargo watch: {e}"))?
+            .map_err(|e| format!("failed to run cargo watch: {e}"))?
     } else {
-        println!("cargo-watch no encontrado. Ejecutando sin hot reload.");
-        println!("Para habilitar hot reload: cargo install cargo-watch");
+        println!("cargo-watch not found. Running without hot reload.");
+        println!("To enable hot reload: cargo install cargo-watch");
         process::Command::new("cargo")
             .env("BIND", bind)
             .arg("run")
             .status()
-            .map_err(|e| format!("no se pudo ejecutar cargo run: {e}"))?
+            .map_err(|e| format!("failed to run cargo run: {e}"))?
     };
 
     if !status.success() {
-        return Err("el servidor termino con error".into());
+        return Err("the server exited with an error".into());
     }
     Ok(())
 }
@@ -356,29 +526,29 @@ fn cmd_build(target: Option<&str>) -> Result<(), String> {
         args.push(t);
     }
 
-    println!("Compilando en modo release...");
+    println!("Building in release mode...");
     let status = process::Command::new("cargo")
         .args(&args)
         .status()
-        .map_err(|e| format!("no se pudo ejecutar cargo build: {e}"))?;
+        .map_err(|e| format!("failed to run cargo build: {e}"))?;
 
     if !status.success() {
-        return Err("la compilacion fallo".into());
+        return Err("the build failed".into());
     }
-    println!("Compilacion exitosa.");
+    println!("Build completed successfully.");
     Ok(())
 }
 
 fn validate_project_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
-        return Err("el nombre del proyecto no puede estar vacio".into());
+        return Err("project name cannot be empty".into());
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     {
         return Err(format!(
-            "nombre de proyecto invalido '{name}': solo se permiten letras, numeros, guion y guion_bajo"
+            "invalid project name '{name}': only letters, numbers, hyphens, and underscores are allowed"
         ));
     }
     Ok(())
@@ -391,9 +561,9 @@ fn apply_template(template: &str, name: &str) -> String {
 fn write_file(path: &Path, content: &str) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| format!("no se pudo crear directorio '{}': {e}", parent.display()))?;
+            .map_err(|e| format!("failed to create directory '{}': {e}", parent.display()))?;
     }
-    fs::write(path, content).map_err(|e| format!("no se pudo escribir '{}': {e}", path.display()))
+    fs::write(path, content).map_err(|e| format!("failed to write '{}': {e}", path.display()))
 }
 
 fn scaffold_rest(name: &str, dir: &Path) -> Result<(), String> {
@@ -450,12 +620,58 @@ fn scaffold_fullstack(name: &str, dir: &Path) -> Result<(), String> {
 
 // ---- DSL commands (Phase 3) -----------------------------------------
 
+/// Lists the background workers declared in a schema. Reads and compiles the schema;
+/// requires no database or running backend.
+fn cmd_workers_list(schema_path: &Path) -> Result<(), String> {
+    let source = read_schema(schema_path)?;
+    let schema = ag_dsl::compile(&source).map_err(|diags| {
+        let mut msg = format!(
+            "{} error(s) in '{}':\n",
+            diags.iter().filter(|d| d.is_error()).count(),
+            schema_path.display()
+        );
+        for d in &diags {
+            msg.push_str(&format!("  {}\n", d.display(&source)));
+        }
+        msg
+    })?;
+
+    if schema.workers.is_empty() {
+        println!("No workers declared in '{}'.", schema_path.display());
+        return Ok(());
+    }
+
+    println!("Workers declared in '{}':", schema_path.display());
+    for w in &schema.workers {
+        let queue = w.queue.as_deref().unwrap_or("default");
+        let mode = w.mode.as_deref().unwrap_or("static");
+        let concurrency = w
+            .concurrency
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "-".to_owned());
+        println!(
+            "  - {} (queue: {}, mode: {}, concurrency: {})",
+            w.name.value, queue, mode, concurrency
+        );
+        if !w.input.is_empty() {
+            let fields: Vec<String> = w.input.iter().map(|f| f.name.value.clone()).collect();
+            println!("      input: {}", fields.join(", "));
+        }
+        if let Some(retry) = &w.retry {
+            if let Some(max) = retry.max_attempts {
+                println!("      retry: max_attempts {max}");
+            }
+        }
+    }
+    Ok(())
+}
+
 fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
     let source = read_schema(schema_path)?;
 
     let schema = ag_dsl::compile(&source).map_err(|diags| {
         let mut msg = format!(
-            "{} error(es) en '{}':\n",
+            "{} error(s) in '{}':\n",
             diags.iter().filter(|d| d.is_error()).count(),
             schema_path.display()
         );
@@ -468,7 +684,7 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
     let files = ag_dsl::generate(&schema);
 
     println!(
-        "Generando {} artefactos desde '{}'...",
+        "Generating {} artifacts from '{}'...",
         files.len(),
         schema_path.display()
     );
@@ -479,7 +695,7 @@ fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
         println!("  {}", full_path.display());
     }
 
-    println!("Generacion completada en '{}'.", output_dir.display());
+    println!("Generation completed in '{}'.", output_dir.display());
     Ok(())
 }
 
@@ -488,7 +704,7 @@ fn cmd_schema_lint(schema_path: &Path) -> Result<(), String> {
     let diags = ag_dsl::lint(&source);
 
     if diags.is_empty() {
-        println!("'{}': sin problemas encontrados.", schema_path.display());
+        println!("'{}': no issues found.", schema_path.display());
         return Ok(());
     }
 
@@ -504,7 +720,7 @@ fn cmd_schema_lint(schema_path: &Path) -> Result<(), String> {
 
     if !errors.is_empty() {
         return Err(format!(
-            "{} error(es) en '{}'",
+            "{} error(s) in '{}'",
             errors.len(),
             schema_path.display()
         ));
@@ -518,7 +734,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     let current = ag_dsl::compile(&current_source).map_err(|diags| {
         format!(
-            "errores en schema actual: {}",
+            "errors in current schema: {}",
             diags
                 .iter()
                 .filter(|d| d.is_error())
@@ -530,7 +746,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     let reference = ag_dsl::compile(&ref_source).map_err(|diags| {
         format!(
-            "errores en schema de referencia: {}",
+            "errors in reference schema: {}",
             diags
                 .iter()
                 .filter(|d| d.is_error())
@@ -544,7 +760,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     if changes.is_empty() {
         println!(
-            "Sin cambios entre '{}' y '{}'.",
+            "No changes between '{}' y '{}'.",
             reference_path.display(),
             schema_path.display()
         );
@@ -552,7 +768,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
     }
 
     println!(
-        "Cambios entre '{}' y '{}':",
+        "Changes between '{}' y '{}':",
         reference_path.display(),
         schema_path.display()
     );
@@ -586,14 +802,14 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
     // Removed models (breaking)
     for name in old_models.keys() {
         if !new_models.contains_key(name) {
-            changes.push(format!("[BREAKING]  modelo '{name}' eliminado"));
+            changes.push(format!("[BREAKING]  model '{name}' removed"));
         }
     }
 
     // Added models (non-breaking)
     for name in new_models.keys() {
         if !old_models.contains_key(name) {
-            changes.push(format!("[additive]  modelo '{name}' añadido"));
+            changes.push(format!("[additive]  model '{name}' added"));
         }
     }
 
@@ -613,30 +829,30 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
 
             for fname in old_fields.keys() {
                 if !new_fields.contains_key(fname) {
-                    changes.push(format!("[BREAKING]  '{name}.{fname}' eliminado"));
+                    changes.push(format!("[BREAKING]  '{name}.{fname}' removed"));
                 }
             }
             for fname in new_fields.keys() {
                 if !old_fields.contains_key(fname) {
-                    changes.push(format!("[additive]  '{name}.{fname}' añadido"));
+                    changes.push(format!("[additive]  '{name}.{fname}' added"));
                 }
             }
             for (fname, old_field) in &old_fields {
                 if let Some(new_field) = new_fields.get(fname) {
                     if old_field.ty.value != new_field.ty.value {
                         changes.push(format!(
-                            "[BREAKING]  '{name}.{fname}' tipo cambiado: {:?} -> {:?}",
+                            "[BREAKING]  '{name}.{fname}' type changed: {:?} -> {:?}",
                             old_field.ty.value, new_field.ty.value
                         ));
                     }
                     if old_field.optional && !new_field.optional {
                         changes.push(format!(
-                            "[BREAKING]  '{name}.{fname}' cambio de nullable a NOT NULL"
+                            "[BREAKING]  '{name}.{fname}' changed from nullable to NOT NULL"
                         ));
                     }
                     if !old_field.optional && new_field.optional {
                         changes.push(format!(
-                            "[additive]  '{name}.{fname}' cambio de NOT NULL a nullable"
+                            "[additive]  '{name}.{fname}' changed from NOT NULL to nullable"
                         ));
                     }
                 }
@@ -649,12 +865,9 @@ fn diff_schemas(old: &ag_dsl::ast::Schema, new: &ag_dsl::ast::Schema) -> Vec<Str
 
 fn read_schema(path: &Path) -> Result<String, String> {
     if !path.exists() {
-        return Err(format!(
-            "archivo schema no encontrado: '{}'",
-            path.display()
-        ));
+        return Err(format!("schema file not found: '{}'", path.display()));
     }
-    fs::read_to_string(path).map_err(|e| format!("no se pudo leer '{}': {e}", path.display()))
+    fs::read_to_string(path).map_err(|e| format!("failed to read '{}': {e}", path.display()))
 }
 
 // ============================================================
@@ -668,7 +881,7 @@ async fn cmd_domains_check(
 ) -> Result<(), String> {
     use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
 
-    println!("Verificando propagacion DNS para '{domain}'...");
+    println!("Checking DNS propagation for '{domain}'...");
 
     let checker = PropagationChecker::new(DEFAULT_RESOLVERS, min_confirmed);
 
@@ -677,22 +890,22 @@ async fn cmd_domains_check(
             let result = checker.check_txt(domain, value).await;
             if result.is_fully_propagated() {
                 println!(
-                    "OK — registro TXT propagado ({}/{} resolvers)",
+                    "OK: TXT record propagated ({}/{} resolvers)",
                     result.confirmed, result.total
                 );
             } else {
                 println!(
-                    "PENDIENTE — {}/{} resolvers confirman el valor '{value}'",
+                    "PENDING: {}/{} resolvers confirm the value '{value}'",
                     result.confirmed, result.total
                 );
-                println!("Espera unos minutos y vuelve a ejecutar el comando.");
+                println!("Wait a few minutes and run the command again.");
             }
         }
         None => {
             // No expected value: verifies that at least one resolver responds.
             let result = checker.check_txt(domain, "").await;
             println!(
-                "Consulta completada — {}/{} resolvers respondieron",
+                "Query completed: {}/{} resolvers responded",
                 result.total, result.total
             );
         }
@@ -711,7 +924,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 
     let schema = ag_dsl::compile(&source).map_err(|diags| {
         let mut msg = format!(
-            "{} error(es) en '{}':\n",
+            "{} error(s) in '{}':\n",
             diags.iter().filter(|d| d.is_error()).count(),
             schema_path.display()
         );
@@ -722,7 +935,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
     })?;
 
     if schema.domains.is_empty() {
-        println!("No hay bloques 'domain' en el schema. Nada que sincronizar.");
+        println!("No domain blocks were found in the schema. Nothing to synchronize.");
         return Ok(());
     }
 
@@ -735,7 +948,7 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
             .unwrap_or(domain_block.name.value.as_str());
 
         println!(
-            "Sincronizando registros de correo para '{}' (zone {zone_id})...",
+            "Synchronizing mail records for '{}' (zone {zone_id})...",
             domain_name
         );
 
@@ -763,20 +976,339 @@ async fn cmd_domains_sync(schema_path: &Path, zone_id: &str, token: &str) -> Res
 
         let result = apply_mail_records(&req, &provider, zone_id)
             .await
-            .map_err(|e| format!("error al sincronizar '{domain_name}': {e}"))?;
+            .map_err(|e| format!("failed to synchronize '{domain_name}': {e}"))?;
 
         println!(
-            "  creados: {}, actualizados: {}, sin cambios: {}",
+            "  created: {}, updated: {}, unchanged: {}",
             result.created, result.updated, result.unchanged
         );
     }
 
-    println!("Sincronizacion completada.");
+    println!("Synchronization completed.");
     Ok(())
 }
 
 // ============================================================
-// Comandos ag mail (Fase 4.5)
+// ag domains control-plane commands (RFC-0011, phase A)
+// ============================================================
+
+use std::net::{Ipv4Addr, Ipv6Addr};
+
+use ag_domains::attachment::{
+    AttachmentLifecycle, DnsMode, DnsStatus, DomainAttachment, OwnershipMethod, OwnershipStatus,
+    RoutingStatus, TargetKind, TlsMode, TlsStatus,
+};
+use ag_domains::hostname::{Hostname, HostnameKind};
+use ag_domains::instructions::{export_bind_zone, generate_instructions, EdgeTargets};
+use ag_domains::ownership::{generate_attachment_id, generate_token, ownership_record_name};
+use ag_domains::store::{now_unix, AttachmentStore, JsonFileStore};
+
+fn parse_edge_targets(edge_host: &str, ips: &[String]) -> Result<EdgeTargets, String> {
+    let mut targets = EdgeTargets::new(edge_host);
+    for ip in ips {
+        if let Ok(v4) = ip.parse::<Ipv4Addr>() {
+            targets = targets.with_ipv4(v4);
+        } else if let Ok(v6) = ip.parse::<Ipv6Addr>() {
+            targets = targets.with_ipv6(v6);
+        } else {
+            return Err(format!("invalid IP address: '{ip}'"));
+        }
+    }
+    Ok(targets)
+}
+
+fn open_store(state: &Path) -> Result<JsonFileStore, String> {
+    JsonFileStore::open(state)
+        .map_err(|e| format!("could not open store '{}': {e}", state.display()))
+}
+
+fn print_instructions(ins: &ag_domains::instructions::DnsInstructions) {
+    println!("Type   Name                              Value");
+    for rec in ins.all() {
+        println!(
+            "{:<6} {:<33} {}",
+            rec.record_type.to_string(),
+            rec.name,
+            rec.value
+        );
+    }
+    for note in &ins.notes {
+        println!("\nNote: {note}");
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn cmd_domains_attach(
+    domain: &str,
+    project: &str,
+    env: &str,
+    service: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+
+    if store
+        .is_tombstoned(hostname.ascii(), now_unix())
+        .await
+        .map_err(|e| e.to_string())?
+    {
+        return Err(format!(
+            "'{}' is tombstoned (takeover protection); wait for expiry or use a different host",
+            hostname.ascii()
+        ));
+    }
+
+    let id = generate_attachment_id();
+    let ownership_value = generate_token(&id);
+    let ownership_name = ownership_record_name(&hostname);
+    let tls_mode = match hostname.kind() {
+        HostnameKind::Wildcard => TlsMode::ManagedDns01,
+        _ => TlsMode::ManagedHttp01,
+    };
+
+    let mut attachment = DomainAttachment {
+        id: id.clone(),
+        hostname: hostname.clone(),
+        project: project.to_owned(),
+        environment: env.to_owned(),
+        target_kind: TargetKind::Service,
+        target_ref: service.to_owned(),
+        dns_mode: DnsMode::Manual,
+        tls_mode,
+        ownership_method: OwnershipMethod::Txt,
+        ownership_name,
+        ownership_value: ownership_value.clone(),
+        ownership_status: OwnershipStatus::Pending,
+        dns_status: DnsStatus::Pending,
+        tls_status: TlsStatus::Pending,
+        routing_status: RoutingStatus::Disabled,
+        lifecycle: AttachmentLifecycle::Draft,
+        created_at: now_unix(),
+    };
+    attachment.recompute_lifecycle();
+
+    store
+        .create(attachment)
+        .await
+        .map_err(|e| format!("could not attach: {e}"))?;
+
+    println!("Domain attachment created.\n");
+    println!("Domain:      {}", hostname.ascii());
+    println!("Project:     {project}");
+    println!("Environment: {env}");
+    println!("Attachment:  {id}");
+    println!("Status:      pending_ownership\n");
+
+    let ins = generate_instructions(&hostname, &targets, &ownership_value);
+    println!("Add these records at your DNS provider:\n");
+    print_instructions(&ins);
+    println!("\nThen run:\n  ag domains verify {}", hostname.ascii());
+    Ok(())
+}
+
+async fn cmd_domains_instructions(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| {
+            format!(
+                "no attachment for '{}'; run 'ag domains attach' first",
+                hostname.ascii()
+            )
+        })?;
+
+    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+    println!("DNS instructions for {}\n", hostname.ascii());
+    print_instructions(&ins);
+    Ok(())
+}
+
+async fn cmd_domains_export_zone(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    let ins = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+    print!("{}", export_bind_zone(&hostname, &ins));
+    Ok(())
+}
+
+async fn cmd_domains_status(domain: &str, state: &Path) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let store = open_store(state)?;
+    let a = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    println!("Domain:      {}", a.hostname.ascii());
+    println!("Attachment:  {}", a.id);
+    println!("Project:     {}", a.project);
+    println!("Environment: {}\n", a.environment);
+    println!("Lifecycle:   {:?}", a.lifecycle);
+    println!("Ownership:   {:?}", a.ownership_status);
+    println!("DNS:         {:?}", a.dns_status);
+    println!("TLS:         {:?}", a.tls_status);
+    println!("Routing:     {:?}", a.routing_status);
+    Ok(())
+}
+
+async fn cmd_domains_list(state: &Path) -> Result<(), String> {
+    let store = open_store(state)?;
+    let all = store.list().await.map_err(|e| e.to_string())?;
+    if all.is_empty() {
+        println!("No attached domains.");
+        return Ok(());
+    }
+    println!(
+        "{:<32} {:<16} {:<14} LIFECYCLE",
+        "HOSTNAME", "PROJECT", "ENVIRONMENT"
+    );
+    for a in all {
+        println!(
+            "{:<32} {:<16} {:<14} {:?}",
+            a.hostname.ascii(),
+            a.project,
+            a.environment,
+            a.lifecycle
+        );
+    }
+    Ok(())
+}
+
+async fn cmd_domains_verify(
+    domain: &str,
+    min_confirmed: usize,
+    state: &Path,
+) -> Result<(), String> {
+    use ag_domains::ownership::verify_ownership;
+    use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
+
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let store = open_store(state)?;
+    let mut attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    println!("Verifying ownership TXT for '{}'...", hostname.ascii());
+    let checker = PropagationChecker::new(DEFAULT_RESOLVERS, min_confirmed);
+    let probe = verify_ownership(&checker, &hostname, &attachment.ownership_value).await;
+
+    if probe.confirmed >= min_confirmed {
+        attachment.ownership_status = OwnershipStatus::Verified;
+        attachment.recompute_lifecycle();
+        store
+            .update(attachment)
+            .await
+            .map_err(|e| format!("could not update store: {e}"))?;
+        println!(
+            "OK: ownership verified ({}/{} resolvers).",
+            probe.confirmed, probe.total
+        );
+    } else {
+        println!(
+            "PENDING: {}/{} resolvers confirm the token. Wait for DNS propagation and retry.",
+            probe.confirmed, probe.total
+        );
+    }
+    Ok(())
+}
+
+async fn cmd_domains_detach(domain: &str, tombstone_days: u64, state: &Path) -> Result<(), String> {
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let store = open_store(state)?;
+    let tombstone_secs = tombstone_days.saturating_mul(24 * 60 * 60);
+    store
+        .detach(hostname.ascii(), tombstone_secs)
+        .await
+        .map_err(|e| format!("could not detach: {e}"))?;
+    println!("Detached '{}'.", hostname.ascii());
+    println!("Routing removed and certificate renewal stopped.");
+    println!(
+        "Tombstoned for {tombstone_days} day(s) to prevent takeover. Remove the DNS records at your provider."
+    );
+    Ok(())
+}
+
+async fn cmd_domains_diagnose(
+    domain: &str,
+    edge_host: &str,
+    ips: &[String],
+    state: &Path,
+) -> Result<(), String> {
+    use ag_domains::diagnostics::{diagnose, ObservedRecord, Severity};
+    use ag_domains::propagation::{lookup_observed, DEFAULT_RESOLVERS};
+
+    let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    let targets = parse_edge_targets(edge_host, ips)?;
+    let store = open_store(state)?;
+    let attachment = store
+        .get(hostname.ascii())
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("no attachment for '{}'", hostname.ascii()))?;
+
+    let instructions = generate_instructions(&hostname, &targets, &attachment.ownership_value);
+
+    // Observe each expected record at a public resolver.
+    let resolver = DEFAULT_RESOLVERS[0];
+    let mut observed = Vec::new();
+    for rec in instructions.all() {
+        for value in lookup_observed(resolver, &rec.name, rec.record_type.clone()).await {
+            observed.push(ObservedRecord {
+                record_type: rec.record_type.clone(),
+                name: rec.name.clone(),
+                value,
+            });
+        }
+    }
+
+    let result = diagnose(&instructions, &observed);
+    println!("Diagnostics for {}\n", hostname.ascii());
+    for finding in &result.findings {
+        let tag = match finding.severity {
+            Severity::Ok => "[ok]",
+            Severity::Error => "[error]",
+        };
+        println!("{tag} {}", finding.message);
+        if !finding.action.is_empty() {
+            println!("       action: {}", finding.action);
+        }
+    }
+    if result.is_healthy() {
+        println!("\nNo action required.");
+    }
+    Ok(())
+}
+
+// ============================================================
+// ag mail commands (Phase 4.5)
 // ============================================================
 
 #[allow(clippy::too_many_arguments)]
@@ -797,7 +1329,7 @@ async fn cmd_mail_test(
         },
     };
 
-    println!("Enviando correo de prueba a '{to}'...");
+    println!("Sending test email to '{to}'...");
     println!("  SMTP: {smtp_host}:{smtp_port}");
 
     let config = match (smtp_user, smtp_pass) {
@@ -805,31 +1337,31 @@ async fn cmd_mail_test(
         _ => SmtpConfig::new_unauthenticated(smtp_host, smtp_port),
     };
 
-    let sender = SmtpSender::new(config).map_err(|e| format!("config SMTP invalida: {e}"))?;
+    let sender = SmtpSender::new(config).map_err(|e| format!("invalid SMTP configuration: {e}"))?;
 
     let email = EmailBuilder::new()
         .from(Address::new(from))
         .to(Address::new(to))
         .subject(subject)
         .html_body(format!(
-            "<p>Correo de prueba enviado por <code>ag mail test</code>.</p>\
-             <p>Si ves este mensaje, la configuracion SMTP es correcta.</p>\
+            "<p>Test email sent by <code>ag mail test</code>.</p>\
+             <p>If you can read this message, the SMTP configuration is correct.</p>\
              <p>Host: <strong>{smtp_host}:{smtp_port}</strong></p>"
         ))
         .text_body(format!(
-            "Correo de prueba de ag mail test.\nHost: {smtp_host}:{smtp_port}"
+            "Test email from ag mail test.\nHost: {smtp_host}:{smtp_port}"
         ))
         .build()
-        .map_err(|e| format!("email invalido: {e}"))?;
+        .map_err(|e| format!("invalid email address: {e}"))?;
 
     let result = sender
         .send(&email)
         .await
-        .map_err(|e| format!("fallo de envio: {e}"))?;
+        .map_err(|e| format!("send failed: {e}"))?;
 
     match result.message_id {
-        Some(id) => println!("OK — correo enviado. Message-ID: {id}"),
-        None => println!("OK — correo enviado."),
+        Some(id) => println!("OK: email sent. Message-ID: {id}"),
+        None => println!("OK: email sent."),
     }
 
     Ok(())
@@ -853,7 +1385,7 @@ mod tests {
 
     #[test]
     fn validate_name_rejects_spaces() {
-        assert!(validate_project_name("mi proyecto").is_err());
+        assert!(validate_project_name("my project").is_err());
     }
 
     #[test]
@@ -865,9 +1397,9 @@ mod tests {
 
     #[test]
     fn apply_template_replaces_all_occurrences() {
-        let tmpl = "{{name}} y {{name}}";
-        let result = apply_template(tmpl, "alfa");
-        assert_eq!(result, "alfa y alfa");
+        let tmpl = "{{name}} and {{name}}";
+        let result = apply_template(tmpl, "alpha");
+        assert_eq!(result, "alpha and alpha");
     }
 
     #[test]
@@ -876,7 +1408,7 @@ mod tests {
         let diags = ag_dsl::lint(src);
         assert!(
             !diags.is_empty(),
-            "debe haber warnings para modelo sin @primary"
+            "a model without @primary must produce warnings"
         );
     }
 }

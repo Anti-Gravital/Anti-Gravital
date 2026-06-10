@@ -27,8 +27,8 @@ bash install.sh
 
 The script verifies the Rust toolchain, builds the workspace in release mode,
 and installs `ag` into `~/.cargo/bin`. Security note: the script does not pipe
-untrusted content into a shell. Read it before running a remote copy, and
-verify the SHA-256 hash published in the release notes.
+untrusted content into a shell. Before running it, follow the canonical
+[installation integrity procedure](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
 
@@ -123,11 +123,17 @@ ag domains status example.com
 ag domains list
 ag domains verify example.com
 ag domains detach example.com
+ag domains diagnose example.com --edge-host edge.example.net
 ```
 
 State is stored in `.ag/domains.json` by default. Use `--state` to select
 another file. Run `ag domains COMMAND --help` for required apex IPs, edge
-targets and lifecycle options.
+targets and lifecycle options. The [domain CLI reference](../ag-domains/reference/cli.md)
+documents the full native workflow; provider-backed DNS synchronization is
+documented separately by `ag domains sync --help`.
+
+`ag deploy`, `ag migrate`, and `ag plugin` are future commands and are not
+available in the current binary.
 
 ## Troubleshooting
 
@@ -166,7 +172,8 @@ bash install.sh
 ```
 
 El script verifica el toolchain Rust, compila el workspace en modo release
-e instala `ag` en `~/.cargo/bin`.
+e instala `ag` en `~/.cargo/bin`. Antes de ejecutarlo, sigue el
+[procedimiento canonico de integridad](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
 
@@ -201,8 +208,11 @@ ag dev
 ## Operar dominios adjuntos
 
 Los comandos implementados son `attach`, `instructions`, `export-zone`,
-`status`, `list`, `verify` y `detach`. Consulta `ag domains --help` y
+`status`, `list`, `verify`, `detach` y `diagnose`. Consulta `ag domains --help` y
 `ag domains COMANDO --help` para los argumentos vigentes.
+
+`ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y no estan
+disponibles en el binario actual.
 
 ## Configurar correo (opcional)
 
@@ -211,6 +221,7 @@ export AG_SMTP_HOST=smtp.example.com
 export AG_SMTP_PORT=587
 export AG_SMTP_USER=usuario
 export AG_SMTP_PASS=secreto
+export AG_MAIL_FROM=noreply@example.com
 ag mail test --to yo@example.com
 ```
 

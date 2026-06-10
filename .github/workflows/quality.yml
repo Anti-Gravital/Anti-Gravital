@@ -17,6 +17,58 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
+  installers:
+    name: installer checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify checksums and MSRV parity
+        if: runner.os == 'Linux'
+        run: bash tools/check-installers.sh
+      - name: Verify PowerShell syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ./install.ps1), [ref]$tokens, [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+      - name: Verify PowerShell checksums and MSRV behavior
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Content checksums/installers.sha256 | ForEach-Object {
+            $hash, $path = $_ -split '\s+', 2
+            $actual = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $hash) {
+              throw "Checksum mismatch: $path"
+            }
+          }
+          $fakeBin = Join-Path $env:RUNNER_TEMP "ag-installer-fixtures"
+          New-Item -ItemType Directory -Force $fakeBin | Out-Null
+          Set-Content (Join-Path $fakeBin "cargo.cmd") '@echo unexpected cargo invocation & exit /b 99'
+          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.78.0 (test fixture)'
+          $env:PATH = "$fakeBin;$env:PATH"
+          pwsh -NoProfile -File ./install.ps1
+          if ($LASTEXITCODE -ne 1) {
+            throw "install.ps1 accepted Rust below the workspace MSRV"
+          }
+          Set-Content (Join-Path $fakeBin "cargo.cmd") '@echo cargo %* & exit /b 0'
+          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.95.0 (test fixture)'
+          pwsh -NoProfile -File ./install.ps1
+          if ($LASTEXITCODE -ne 0) {
+            throw "install.ps1 rejected the workspace MSRV"
+          }
+
   msrv:
     name: cargo check (MSRV 1.95.0)
     runs-on: ubuntu-latest

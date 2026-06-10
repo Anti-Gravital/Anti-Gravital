@@ -760,7 +760,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
 
     if changes.is_empty() {
         println!(
-            "No changes between '{}' y '{}'.",
+            "No changes between '{}' and '{}'.",
             reference_path.display(),
             schema_path.display()
         );
@@ -768,7 +768,7 @@ fn cmd_schema_diff(schema_path: &Path, reference_path: &Path) -> Result<(), Stri
     }
 
     println!(
-        "Changes between '{}' y '{}':",
+        "Changes between '{}' and '{}':",
         reference_path.display(),
         schema_path.display()
     );
@@ -1370,6 +1370,47 @@ async fn cmd_mail_test(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn command_tree_matches_the_documented_public_surface() {
+        let command = Cli::command();
+        let root_commands: Vec<_> = command
+            .get_subcommands()
+            .map(|subcommand| subcommand.get_name())
+            .collect();
+        assert_eq!(
+            root_commands,
+            ["new", "dev", "build", "generate", "schema", "domains", "mail", "workers",]
+        );
+        assert!(!root_commands.contains(&"deploy"));
+        assert!(!root_commands.contains(&"migrate"));
+        assert!(!root_commands.contains(&"plugin"));
+
+        let domains = command
+            .get_subcommands()
+            .find(|subcommand| subcommand.get_name() == "domains")
+            .expect("domains command must exist");
+        let domain_commands: Vec<_> = domains
+            .get_subcommands()
+            .map(|subcommand| subcommand.get_name())
+            .collect();
+        assert_eq!(
+            domain_commands,
+            [
+                "check",
+                "sync",
+                "attach",
+                "instructions",
+                "export-zone",
+                "status",
+                "list",
+                "verify",
+                "detach",
+                "diagnose",
+            ]
+        );
+    }
 
     #[test]
     fn validate_name_accepts_valid_names() {

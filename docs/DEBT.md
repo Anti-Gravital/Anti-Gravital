@@ -183,11 +183,14 @@ CLAUDE.md section 29.
   using cargo-tarpaulin with `--fail-under 80`. Runs on every push/PR to main.
 
 ### DEBT-011 — Unified installer
-- Reason: no install.sh / install.ps1.
+- Reason: the cross-platform installers originally lacked enforced parity and
+  referred to release checksums that did not exist.
 - Expected removal: plan P6.
-- Status: closed (P6, 2026-05-26). `install.sh` (Linux/macOS) and `install.ps1` (Windows)
-  added to repo root. Both verify the Rust toolchain, build the workspace in release mode,
-  and install `ag` via `cargo install --locked`. Auditable per ADR-0009 rule 4.
+- Status: closed (P6 corrective, 2026-06-10). `install.sh` (Linux/macOS) and
+  `install.ps1` (Windows) enforce the workspace MSRV, build in release mode,
+  and install `ag` via `cargo install --locked`. The authoritative installer
+  hashes live in `checksums/installers.sha256`; CI checks MSRV parity, hashes,
+  and shell syntax. See `docs/security/INSTALLATION_INTEGRITY.md`.
 
 ## Pre-Phase 5 audit (2026-05-29)
 

@@ -21,13 +21,22 @@ path = "src/main.rs"
 [lints]
 workspace = true
 
+[features]
+# Operational `ag workers` commands that talk to a live durable backend
+# (enqueue/dlq/inspect/doctor). Pulls ag-workers (postgres) + sqlx. RFC-0012 §27.
+# On by default; a minimal CLI build can opt out with --no-default-features.
+default = ["workers-runtime"]
+workers-runtime = ["dep:ag-workers", "dep:sqlx"]
+
 [dependencies]
 ag-dsl = { workspace = true }
 ag-domains = { path = "../ag-domains", version = "0.0.0", features = ["propagation", "cloudflare"] }
 ag-mail = { path = "../ag-mail", version = "0.0.0", features = ["smtp"] }
+ag-workers = { path = "../ag-workers", version = "0.0.0", optional = true, features = ["postgres"] }
 clap = { workspace = true }
 dialoguer = "0.11"
 serde = { workspace = true }
+sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }

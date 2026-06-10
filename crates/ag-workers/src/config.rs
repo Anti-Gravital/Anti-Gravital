@@ -309,8 +309,8 @@ impl WorkersConfig {
     }
 }
 
-/// Parses a human duration: a bare integer is seconds; suffixes `ms`, `s`, `m`, `h`
-/// are supported (e.g. `"250ms"`, `"30s"`, `"5m"`, `"1h"`).
+/// Parses a human duration: a bare integer is seconds; suffixes `ms`, `s`, `m`, `h`,
+/// `d`, `w` are supported (e.g. `"250ms"`, `"30s"`, `"5m"`, `"1h"`, `"30d"`, `"2w"`).
 pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
     let v = value.trim();
     let err = |reason: &str| ConfigError::Duration {
@@ -325,6 +325,10 @@ pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
         (n, "m")
     } else if let Some(n) = v.strip_suffix('h') {
         (n, "h")
+    } else if let Some(n) = v.strip_suffix('d') {
+        (n, "d")
+    } else if let Some(n) = v.strip_suffix('w') {
+        (n, "w")
     } else {
         (v, "s")
     };
@@ -337,6 +341,8 @@ pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
         "s" => Duration::from_secs(n),
         "m" => Duration::from_secs(n * 60),
         "h" => Duration::from_secs(n * 3600),
+        "d" => Duration::from_secs(n * 86_400),
+        "w" => Duration::from_secs(n * 604_800),
         _ => unreachable!(),
     })
 }
@@ -493,5 +499,48 @@ mod tests {
         std::env::remove_var("AG_WORKERS_MODE");
         std::env::remove_var("AG_WORKERS_MAX_PAYLOAD_BYTES");
         std::env::remove_var("AG_WORKERS_QUEUE_MAIL_MAX");
+    }
+
+    #[test]
+    fn worker_mode_from_str_all_variants() {
+        assert_eq!(
+            "embedded".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Embedded
+        );
+        assert_eq!(
+            "  Standalone ".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Standalone
+        );
+        assert_eq!(
+            "DISTRIBUTED".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Distributed
+        );
+        assert_eq!(
+            "producer".parse::<WorkerMode>().unwrap(),
+            WorkerMode::Producer
+        );
+        assert!("galactic".parse::<WorkerMode>().is_err());
+    }
+
+    #[test]
+    fn backend_kind_from_str_all_variants() {
+        assert_eq!(
+            "memory".parse::<BackendKind>().unwrap(),
+            BackendKind::Memory
+        );
+        for pg in ["postgres", "postgresql", "PG"] {
+            assert_eq!(pg.parse::<BackendKind>().unwrap(), BackendKind::Postgres);
+        }
+        assert!("sqlite".parse::<BackendKind>().is_err());
+    }
+
+    #[test]
+    fn parse_duration_days_and_weeks() {
+        assert_eq!(
+            parse_duration("2d").unwrap(),
+            Duration::from_secs(2 * 86_400)
+        );
+        assert_eq!(parse_duration("1w").unwrap(), Duration::from_secs(604_800));
+        assert!(parse_duration("5x").is_err());
     }
 }

@@ -8,7 +8,7 @@
 //! contract and adapts a [`MailSender`] to the [`JobHandler`] contract.
 //!
 //! This is the migration that retires the duplication between `ag-mail`'s own
-//! persistent queue ([`crate::queue::store`], feature `queue-persistent`) and
+//! persistent queue (`crate::queue::store`, feature `queue-persistent`) and
 //! `ag-workers`' PostgreSQL backend (see RFC-0012 S7/M3-M4).
 //!
 //! ```no_run

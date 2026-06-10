@@ -91,3 +91,22 @@ Environment overrides: `AG_WORKERS_ENABLED`, `AG_WORKERS_MODE`, `AG_WORKERS_BACK
 `AG_WORKERS_SHUTDOWN_TIMEOUT`, `AG_WORKERS_MAX_PAYLOAD_BYTES`,
 `AG_WORKERS_POISON_GUARD_ATTEMPTS`, and per-queue `AG_WORKERS_QUEUE_<NAME>_MIN` /
 `_MAX`.
+
+## Examples
+
+Runnable examples live in `examples/` (RFC-0012 §38):
+
+- `workers-basic` — in-memory backend, static worker pool.
+- `workers-scheduled` — interval jobs via the singleton scheduler (§21).
+- `workers-producer-edge` — producer-only enqueue for edge/serverless, consumed by a
+  separate fleet (§17.4).
+- `workers-mail-integration` — routing `ag-mail` delivery through `ag-workers` (S7/M2).
+- `workers-postgres` — durable backend with transactional `enqueue_in_tx` (§13.3);
+  needs `DATABASE_URL`.
+
+```bash
+cargo run -p workers-scheduled
+cargo run -p workers-producer-edge
+cargo run -p workers-mail-integration
+DATABASE_URL=postgres://... cargo run -p workers-postgres
+```

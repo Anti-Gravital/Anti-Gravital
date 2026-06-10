@@ -16,6 +16,7 @@ use crate::ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 use crate::job::{JobEnvelope, JobPriority, JobStatus, NewJob};
 use crate::outcome::DeadLetterReason;
 use crate::payload::PayloadBytes;
+use crate::queue::dlq::DeadLetterRecord;
 use crate::queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 
 /// Embedded migrations for the worker tables (`./migrations`).
@@ -30,6 +31,9 @@ const INSERT_SQL: &str = "INSERT INTO ag_worker_jobs \
 const SELECT_COLUMNS: &str = "id, kind, queue, payload, payload_version, priority, status, \
     attempts, max_attempts, timeout_ms, scheduled_at, available_at, created_at, updated_at, \
     locked_by, lock_until, dedup_key, tenant_id, trace_id, last_error";
+
+const DLQ_COLUMNS: &str =
+    "id, kind, queue, attempts, max_attempts, reason, last_error, created_at, dead_lettered_at";
 
 fn backend_err(e: sqlx::Error) -> QueueError {
     QueueError::Backend(e.to_string())
@@ -66,10 +70,11 @@ impl PostgresQueue {
 
     /// Transactional enqueue: the job insert participates in the caller's `ag-data`
     /// transaction, so the job and the caller's writes commit atomically (the
-    /// transactional-outbox property without a separate outbox table). The `ag-data`
-    /// crate exposes no canonical transaction handle today, so this takes a raw
-    /// `sqlx::Transaction`. This gap is to be tracked as a GitHub Issue (label
-    /// `tech-debt`) per CLAUDE.md rule 29; the decision is recorded in ADR-0013 §6.
+    /// transactional-outbox property without a separate outbox table).
+    ///
+    /// Takes a raw `sqlx::Transaction` until `ag-data` exposes a canonical handle.
+    // TECH-DEBT (issue #110): replace the raw `sqlx::Transaction` with an `ag-data`
+    // transaction handle; decision recorded in ADR-0013 §6.
     pub async fn enqueue_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -116,6 +121,121 @@ impl PostgresQueue {
         .map_err(backend_err)?
         .rows_affected();
         Ok(affected)
+    }
+
+    // -- Operational inspection / dead-letter management (RFC-0012 §20/§27) --------
+    // These power `ag workers dlq ...` / `inspect` against the durable backend. They
+    // are inherent methods (not on the `QueueBackend` trait) because the trait is the
+    // hot enqueue/lease path; operational tooling targets PostgreSQL specifically.
+
+    /// Lists dead-letter records, newest first, optionally filtered by `queue`.
+    pub async fn list_dead_letters(
+        &self,
+        queue: Option<&str>,
+        limit: i64,
+    ) -> Result<Vec<DeadLetterRecord>, QueueError> {
+        let rows = match queue {
+            Some(q) => {
+                sqlx::query(&format!(
+                    "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
+                 WHERE queue = $1 ORDER BY dead_lettered_at DESC LIMIT $2"
+                ))
+                .bind(q)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query(&format!(
+                    "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
+                 ORDER BY dead_lettered_at DESC LIMIT $1"
+                ))
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
+        .map_err(backend_err)?;
+        rows.iter().map(row_to_dead_letter).collect()
+    }
+
+    /// Fetches a single dead-letter record by job id.
+    pub async fn get_dead_letter(
+        &self,
+        job_id: JobId,
+    ) -> Result<Option<DeadLetterRecord>, QueueError> {
+        let row = sqlx::query(&format!(
+            "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters WHERE id = $1"
+        ))
+        .bind(job_id.as_uuid())
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(backend_err)?;
+        row.as_ref().map(row_to_dead_letter).transpose()
+    }
+
+    /// Re-enqueues a dead-lettered job back onto its queue, resetting `status` to
+    /// `queued` and `attempts` to 0, then removes it from the dead-letter table.
+    pub async fn redrive_dead_letter(&self, job_id: JobId) -> Result<(), QueueError> {
+        let mut tx = self.pool.begin().await.map_err(backend_err)?;
+        let inserted = sqlx::query(
+            "INSERT INTO ag_worker_jobs \
+                 (id, kind, queue, payload, payload_version, priority, status, attempts, \
+                  max_attempts, timeout_ms, scheduled_at, available_at, created_at, updated_at, \
+                  locked_by, lock_until, dedup_key, tenant_id, trace_id, last_error) \
+             SELECT id, kind, queue, payload, payload_version, priority, 'queued', 0, \
+                  max_attempts, timeout_ms, NULL, now(), created_at, now(), \
+                  NULL, NULL, dedup_key, tenant_id, trace_id, last_error \
+             FROM ag_worker_dead_letters WHERE id = $1",
+        )
+        .bind(job_id.as_uuid())
+        .execute(&mut *tx)
+        .await
+        .map_err(backend_err)?
+        .rows_affected();
+        if inserted == 0 {
+            tx.rollback().await.map_err(backend_err)?;
+            return Err(QueueError::NotFound(job_id));
+        }
+        sqlx::query("DELETE FROM ag_worker_dead_letters WHERE id = $1")
+            .bind(job_id.as_uuid())
+            .execute(&mut *tx)
+            .await
+            .map_err(backend_err)?;
+        tx.commit().await.map_err(backend_err)?;
+        Ok(())
+    }
+
+    /// Deletes dead-letters older than `older_than`. Returns the number purged.
+    pub async fn purge_dead_letters(
+        &self,
+        older_than: std::time::Duration,
+    ) -> Result<u64, QueueError> {
+        let secs = older_than.as_secs() as i64;
+        let affected = sqlx::query(
+            "DELETE FROM ag_worker_dead_letters \
+             WHERE dead_lettered_at < now() - ($1::bigint * interval '1 second')",
+        )
+        .bind(secs)
+        .execute(&self.pool)
+        .await
+        .map_err(backend_err)?
+        .rows_affected();
+        Ok(affected)
+    }
+
+    /// Distinct queue names seen across live jobs and the dead-letter table.
+    pub async fn queue_names(&self) -> Result<Vec<String>, QueueError> {
+        let rows = sqlx::query(
+            "SELECT queue FROM ag_worker_jobs \
+             UNION SELECT queue FROM ag_worker_dead_letters ORDER BY queue",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(backend_err)?;
+        rows.iter()
+            .map(|r| r.try_get::<String, _>("queue").map_err(backend_err))
+            .collect()
     }
 }
 
@@ -318,6 +438,26 @@ fn row_to_envelope(row: &PgRow) -> Result<JobEnvelope, QueueError> {
         tenant_id: tenant_id.map(TenantId::new),
         trace_id: row.try_get("trace_id").map_err(backend_err)?,
         last_error: row.try_get("last_error").map_err(backend_err)?,
+    })
+}
+
+/// Maps a `ag_worker_dead_letters` row (the [`DLQ_COLUMNS`] projection) to a
+/// [`DeadLetterRecord`].
+fn row_to_dead_letter(row: &PgRow) -> Result<DeadLetterRecord, QueueError> {
+    Ok(DeadLetterRecord {
+        id: JobId::from_uuid(row.try_get("id").map_err(backend_err)?),
+        kind: JobKind::new(row.try_get::<String, _>("kind").map_err(backend_err)?),
+        queue: QueueName::new(row.try_get::<String, _>("queue").map_err(backend_err)?),
+        attempts: row.try_get::<i32, _>("attempts").map_err(backend_err)? as u32,
+        max_attempts: row.try_get::<i32, _>("max_attempts").map_err(backend_err)? as u32,
+        reason: row.try_get("reason").map_err(backend_err)?,
+        last_error: row.try_get("last_error").map_err(backend_err)?,
+        created_at: row
+            .try_get::<DateTime<Utc>, _>("created_at")
+            .map_err(backend_err)?,
+        dead_lettered_at: row
+            .try_get::<DateTime<Utc>, _>("dead_lettered_at")
+            .map_err(backend_err)?,
     })
 }
 

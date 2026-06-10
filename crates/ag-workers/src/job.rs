@@ -469,4 +469,65 @@ mod tests {
         env.attempts = 2;
         assert!(env.attempts_exhausted());
     }
+
+    #[test]
+    fn priority_i16_roundtrips_and_defaults() {
+        for p in [
+            JobPriority::Low,
+            JobPriority::Normal,
+            JobPriority::High,
+            JobPriority::Critical,
+        ] {
+            assert_eq!(JobPriority::from_i16(p.as_i16()), p);
+        }
+        // Unknown stored values fall back to Normal.
+        assert_eq!(JobPriority::from_i16(99), JobPriority::Normal);
+        assert_eq!(JobPriority::from_i16(-1), JobPriority::Normal);
+    }
+
+    #[test]
+    fn status_str_roundtrips_and_rejects_unknown() {
+        for s in [
+            JobStatus::Scheduled,
+            JobStatus::Queued,
+            JobStatus::Leased,
+            JobStatus::Running,
+            JobStatus::Succeeded,
+            JobStatus::RetryScheduled,
+            JobStatus::Failed,
+            JobStatus::DeadLettered,
+            JobStatus::Cancelled,
+            JobStatus::Expired,
+        ] {
+            assert_eq!(JobStatus::from_db_str(s.as_str()), Some(s));
+        }
+        assert_eq!(JobStatus::from_db_str("bogus"), None);
+    }
+
+    #[test]
+    fn newjob_builders_propagate_to_envelope() {
+        let env = NewJob::new("k", "q", PayloadBytes::from_vec(vec![]), 1)
+            .with_priority(JobPriority::High)
+            .with_max_attempts(7)
+            .with_timeout(Duration::from_secs(42))
+            .with_dedup_key("dk-1")
+            .with_tenant(TenantId::new("acme"))
+            .with_trace_id("trace-9")
+            .into_envelope(Utc::now());
+        assert_eq!(env.priority, JobPriority::High);
+        assert_eq!(env.max_attempts, 7);
+        assert_eq!(env.timeout, Duration::from_secs(42));
+        assert_eq!(env.dedup_key.as_deref(), Some("dk-1"));
+        assert_eq!(env.tenant_id.as_ref().map(|t| t.as_str()), Some("acme"));
+        assert_eq!(env.trace_id.as_deref(), Some("trace-9"));
+    }
+
+    #[test]
+    fn explicit_scheduled_sets_scheduled_at() {
+        let env = NewJob::new("k", "q", PayloadBytes::from_vec(vec![]), 1)
+            .scheduled()
+            .into_envelope(Utc::now());
+        assert_eq!(env.status, JobStatus::Scheduled);
+        assert!(env.scheduled_at.is_some());
+    }
 }

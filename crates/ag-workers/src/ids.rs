@@ -27,6 +27,11 @@ impl JobId {
         Self(id)
     }
 
+    /// Parses a job id from its UUID string form (e.g. from CLI input).
+    pub fn parse(s: &str) -> Result<Self, uuid::Error> {
+        Ok(Self(Uuid::parse_str(s.trim())?))
+    }
+
     /// Returns the underlying UUID.
     pub fn as_uuid(&self) -> Uuid {
         self.0
@@ -200,5 +205,40 @@ mod tests {
     fn queue_name_from_str() {
         let q: QueueName = "mail".into();
         assert_eq!(q.as_str(), "mail");
+    }
+
+    #[test]
+    fn job_id_parses_and_displays() {
+        let id = JobId::new();
+        let text = id.to_string();
+        assert_eq!(JobId::parse(&text).unwrap(), id);
+        assert!(JobId::parse("not-a-uuid").is_err());
+        assert_eq!(JobId::default().to_string().len(), 36);
+    }
+
+    #[test]
+    fn worker_id_from_string_roundtrips() {
+        let w = WorkerId::from_string("worker-7");
+        assert_eq!(w.as_str(), "worker-7");
+        assert_eq!(w.to_string(), "worker-7");
+    }
+
+    #[test]
+    fn queue_and_kind_construct_and_display() {
+        let q = QueueName::new("media");
+        assert_eq!(q.to_string(), "media");
+        let k = JobKind::new("resize");
+        assert_eq!(k.as_str(), "resize");
+        assert_eq!(k.to_string(), "resize");
+        let k2: JobKind = "resize".into();
+        assert_eq!(k, k2);
+        assert_ne!(k, *"other");
+    }
+
+    #[test]
+    fn tenant_id_constructs_and_displays() {
+        let t = TenantId::new("acme");
+        assert_eq!(t.as_str(), "acme");
+        assert_eq!(t.to_string(), "acme");
     }
 }

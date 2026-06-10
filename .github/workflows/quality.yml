@@ -190,10 +190,20 @@ jobs:
       # features not enabled in this default-feature run, and the network/PG
       # paths need infrastructure; their tests run in the `ci / ag-mail mta +
       # api features` job instead. Excluded here like `smtp.rs` (network).
+      # ag-workers' durable PostgreSQL backend is the same case: feature
+      # unification under --workspace pulls it in via the workers-postgres
+      # example, but its tests are #[ignore] and require DATABASE_URL.
+      #
+      # The gate measures library code only: examples, benchmarks and fuzz
+      # targets are executable documentation/harnesses with no unit tests by
+      # design, so counting them only distorts the denominator (each new
+      # example lowered workspace coverage regardless of crate test quality).
       - name: run coverage with 80% gate
         run: >
           cargo tarpaulin --workspace --timeout 300 --fail-under 80
           --out Xml --exclude-files "crates/*/tests/*" "tests/*"
+          "examples/*" "benchmarks/*" "fuzz/*"
+          "crates/*/benches/*" "crates/*/examples/*"
           "crates/ag-cli/src/main.rs"
           "crates/ag-lsp/src/main.rs"
           "crates/ag-realtime/src/ws.rs"
@@ -202,3 +212,4 @@ jobs:
           "crates/ag-mail/src/sender/mta/*"
           "crates/ag-mail/src/api/*"
           "crates/ag-mail/src/template/jinja.rs"
+          "crates/ag-workers/src/queue/postgres.rs"

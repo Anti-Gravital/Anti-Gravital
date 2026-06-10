@@ -70,10 +70,11 @@ impl PostgresQueue {
 
     /// Transactional enqueue: the job insert participates in the caller's `ag-data`
     /// transaction, so the job and the caller's writes commit atomically (the
-    /// transactional-outbox property without a separate outbox table). The `ag-data`
-    /// crate exposes no canonical transaction handle today, so this takes a raw
-    /// `sqlx::Transaction`. This gap is to be tracked as a GitHub Issue (label
-    /// `tech-debt`) per CLAUDE.md rule 29; the decision is recorded in ADR-0013 §6.
+    /// transactional-outbox property without a separate outbox table).
+    ///
+    /// Takes a raw `sqlx::Transaction` until `ag-data` exposes a canonical handle.
+    // TECH-DEBT (issue #110): replace the raw `sqlx::Transaction` with an `ag-data`
+    // transaction handle; decision recorded in ADR-0013 §6.
     pub async fn enqueue_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,

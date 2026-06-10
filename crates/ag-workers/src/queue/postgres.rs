@@ -134,21 +134,25 @@ impl PostgresQueue {
         limit: i64,
     ) -> Result<Vec<DeadLetterRecord>, QueueError> {
         let rows = match queue {
-            Some(q) => sqlx::query(&format!(
-                "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
+            Some(q) => {
+                sqlx::query(&format!(
+                    "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
                  WHERE queue = $1 ORDER BY dead_lettered_at DESC LIMIT $2"
-            ))
-            .bind(q)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await,
-            None => sqlx::query(&format!(
-                "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
+                ))
+                .bind(q)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query(&format!(
+                    "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
                  ORDER BY dead_lettered_at DESC LIMIT $1"
-            ))
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await,
+                ))
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
         }
         .map_err(backend_err)?;
         rows.iter().map(row_to_dead_letter).collect()

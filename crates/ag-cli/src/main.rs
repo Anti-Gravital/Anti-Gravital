@@ -153,6 +153,75 @@ enum WorkersCommands {
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
+
+    /// Explains where worker execution lives (hosted by your application binary).
+    #[cfg(feature = "workers-runtime")]
+    Run,
+
+    /// Enqueues a job onto a durable queue (requires DATABASE_URL).
+    ///
+    /// The payload file must contain the already-encoded payload bytes the target
+    /// handler expects; the CLI stores them verbatim.
+    #[cfg(feature = "workers-runtime")]
+    Enqueue {
+        /// Job kind (must match a handler registered by the worker process).
+        kind: String,
+        /// Queue to enqueue onto.
+        #[arg(long, default_value = "default")]
+        queue: String,
+        /// File with the encoded payload bytes.
+        #[arg(long)]
+        payload: PathBuf,
+        /// Payload schema version recorded on the job.
+        #[arg(long, default_value = "1")]
+        payload_version: u16,
+    },
+
+    /// Lists queues seen on the durable backend with their depths (requires DATABASE_URL).
+    #[cfg(feature = "workers-runtime")]
+    Queues,
+
+    /// Dead-letter queue inspection and management (requires DATABASE_URL).
+    #[cfg(feature = "workers-runtime")]
+    Dlq {
+        #[command(subcommand)]
+        command: DlqCommands,
+    },
+
+    /// Checks configuration and durable-backend connectivity (requires DATABASE_URL).
+    #[cfg(feature = "workers-runtime")]
+    Doctor,
+}
+
+/// Sub-commands of `ag workers dlq`.
+#[cfg(feature = "workers-runtime")]
+#[derive(Subcommand)]
+enum DlqCommands {
+    /// Lists dead-letter entries, newest first.
+    List {
+        /// Restrict to a single queue.
+        #[arg(long)]
+        queue: Option<String>,
+        /// Maximum number of entries to show.
+        #[arg(long, default_value = "50")]
+        limit: i64,
+    },
+    /// Shows a single dead-letter entry by job id.
+    Inspect {
+        /// Job id (UUID).
+        job_id: String,
+    },
+    /// Re-enqueues a dead-letter back onto its queue (resets attempts).
+    Retry {
+        /// Job id (UUID).
+        job_id: String,
+    },
+    /// Deletes dead-letters older than a duration (e.g. 30d, 12h).
+    Purge {
+        /// Age threshold; entries older than this are removed.
+        #[arg(long, default_value = "30d")]
+        older_than: String,
+    },
 }
 
 /// Sub-commands of `ag domains`.
@@ -340,6 +409,16 @@ fn main() {
         Commands::Generate { schema, output } => cmd_generate(&schema, &output),
         Commands::Workers { command } => match command {
             WorkersCommands::List { schema } => cmd_workers_list(&schema),
+            #[cfg(feature = "workers-runtime")]
+            WorkersCommands::Run => cmd_workers_run(),
+            #[cfg(feature = "workers-runtime")]
+            other => {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("failed to create the Tokio runtime");
+                rt.block_on(cmd_workers_runtime(other))
+            }
         },
         Commands::Schema { command } => match command {
             SchemaCommands::Lint { schema } => cmd_schema_lint(&schema),
@@ -662,6 +741,186 @@ fn cmd_workers_list(schema_path: &Path) -> Result<(), String> {
                 println!("      retry: max_attempts {max}");
             }
         }
+    }
+    Ok(())
+}
+
+/// Explains that worker execution is hosted by the application binary (RFC-0012
+/// §17.2): the generic `ag` CLI does not have the user's compiled handler registry.
+#[cfg(feature = "workers-runtime")]
+fn cmd_workers_run() -> Result<(), String> {
+    println!(
+        "Worker execution is hosted by your application binary, not the generic `ag` CLI:\n\
+         the worker pool needs your compiled JobHandler registry, which lives in your app.\n\n\
+         In your application, build the backend and start a pool:\n\n    \
+         use ag_workers::{{WorkerPool, RuntimeConfig, Shutdown, QueueName}};\n    \
+         let pool = WorkerPool::start(backend, registry, config, shutdown, QueueName::new(\"mail\"), 4);\n\n\
+         The generic `ag workers` commands cover operations that need no handlers:\n\
+         enqueue, queues, dlq (list/inspect/retry/purge), doctor."
+    );
+    Ok(())
+}
+
+/// Builds a durable backend from `DATABASE_URL` for the operational commands.
+#[cfg(feature = "workers-runtime")]
+async fn workers_backend() -> Result<ag_workers::PostgresQueue, String> {
+    let url = std::env::var("DATABASE_URL")
+        .map_err(|_| "DATABASE_URL is required for `ag workers` runtime commands".to_string())?;
+    let pool = sqlx::PgPool::connect(&url)
+        .await
+        .map_err(|e| format!("could not connect to the database: {e}"))?;
+    Ok(ag_workers::PostgresQueue::new(pool))
+}
+
+/// Async dispatcher for the durable-backend operational commands.
+#[cfg(feature = "workers-runtime")]
+async fn cmd_workers_runtime(command: WorkersCommands) -> Result<(), String> {
+    use ag_workers::QueueBackend;
+    match command {
+        WorkersCommands::Enqueue {
+            kind,
+            queue,
+            payload,
+            payload_version,
+        } => {
+            let bytes = std::fs::read(&payload)
+                .map_err(|e| format!("could not read payload file {}: {e}", payload.display()))?;
+            let backend = workers_backend().await?;
+            let job = ag_workers::NewJob::new(
+                kind.as_str(),
+                queue.as_str(),
+                ag_workers::PayloadBytes::from_vec(bytes),
+                payload_version,
+            );
+            let id = backend.enqueue(job).await.map_err(|e| e.to_string())?;
+            println!("enqueued {id} onto queue '{queue}' (kind {kind})");
+            Ok(())
+        }
+        WorkersCommands::Queues => {
+            let backend = workers_backend().await?;
+            let names = backend.queue_names().await.map_err(|e| e.to_string())?;
+            if names.is_empty() {
+                println!("no queues found");
+                return Ok(());
+            }
+            println!(
+                "{:<24} {:>8} {:>10} {:>8}",
+                "QUEUE", "READY", "SCHEDULED", "LEASED"
+            );
+            for name in names {
+                let q = ag_workers::QueueName::new(name.clone());
+                let d = backend.depth(&q).await.map_err(|e| e.to_string())?;
+                println!(
+                    "{:<24} {:>8} {:>10} {:>8}",
+                    name, d.ready, d.scheduled, d.leased
+                );
+            }
+            Ok(())
+        }
+        WorkersCommands::Dlq { command } => cmd_workers_dlq(command).await,
+        WorkersCommands::Doctor => cmd_workers_doctor().await,
+        // List and Run never reach the async dispatcher.
+        WorkersCommands::List { .. } | WorkersCommands::Run => unreachable!(),
+    }
+}
+
+/// `ag workers dlq ...` against the durable backend.
+#[cfg(feature = "workers-runtime")]
+async fn cmd_workers_dlq(command: DlqCommands) -> Result<(), String> {
+    let backend = workers_backend().await?;
+    match command {
+        DlqCommands::List { queue, limit } => {
+            let entries = backend
+                .list_dead_letters(queue.as_deref(), limit)
+                .await
+                .map_err(|e| e.to_string())?;
+            if entries.is_empty() {
+                println!("dead-letter queue is empty");
+                return Ok(());
+            }
+            println!(
+                "{:<38} {:<20} {:<14} {:>4} REASON",
+                "JOB ID", "KIND", "QUEUE", "ATT"
+            );
+            for e in entries {
+                println!(
+                    "{:<38} {:<20} {:<14} {:>4} {}",
+                    e.id,
+                    e.kind.as_str(),
+                    e.queue.as_str(),
+                    e.attempts,
+                    e.reason
+                );
+            }
+            Ok(())
+        }
+        DlqCommands::Inspect { job_id } => {
+            let id =
+                ag_workers::JobId::parse(&job_id).map_err(|e| format!("invalid job id: {e}"))?;
+            match backend
+                .get_dead_letter(id)
+                .await
+                .map_err(|e| e.to_string())?
+            {
+                Some(e) => {
+                    println!("id:               {}", e.id);
+                    println!("kind:             {}", e.kind.as_str());
+                    println!("queue:            {}", e.queue.as_str());
+                    println!("attempts:         {} / {}", e.attempts, e.max_attempts);
+                    println!("reason:           {}", e.reason);
+                    println!(
+                        "last_error:       {}",
+                        e.last_error.unwrap_or_else(|| "-".to_owned())
+                    );
+                    println!("created_at:       {}", e.created_at);
+                    println!("dead_lettered_at: {}", e.dead_lettered_at);
+                    Ok(())
+                }
+                None => Err(format!("no dead-letter entry with id {job_id}")),
+            }
+        }
+        DlqCommands::Retry { job_id } => {
+            let id =
+                ag_workers::JobId::parse(&job_id).map_err(|e| format!("invalid job id: {e}"))?;
+            backend
+                .redrive_dead_letter(id)
+                .await
+                .map_err(|e| e.to_string())?;
+            println!("re-enqueued {job_id} from the dead-letter queue");
+            Ok(())
+        }
+        DlqCommands::Purge { older_than } => {
+            let dur = ag_workers::parse_duration(&older_than).map_err(|e| e.to_string())?;
+            let n = backend
+                .purge_dead_letters(dur)
+                .await
+                .map_err(|e| e.to_string())?;
+            let plural = if n == 1 { "entry" } else { "entries" };
+            println!("purged {n} dead-letter {plural} older than {older_than}");
+            Ok(())
+        }
+    }
+}
+
+/// `ag workers doctor`: configuration + durable-backend connectivity.
+#[cfg(feature = "workers-runtime")]
+async fn cmd_workers_doctor() -> Result<(), String> {
+    let cfg = ag_workers::WorkersConfig::default()
+        .apply_env()
+        .map_err(|e| format!("configuration error: {e}"))?;
+    println!(
+        "config:  mode={:?} backend={:?} max_payload_bytes={} poison_guard_attempts={}",
+        cfg.mode, cfg.backend, cfg.max_payload_bytes, cfg.poison_guard_attempts
+    );
+    if std::env::var("DATABASE_URL").is_ok() {
+        let backend = workers_backend().await?;
+        backend
+            .queue_names()
+            .await
+            .map_err(|e| format!("backend query failed: {e}"))?;
+        println!("backend: connected; ag_worker_jobs reachable");
+    } else {
+        println!("backend: DATABASE_URL not set (durable backend unavailable)");
     }
     Ok(())
 }

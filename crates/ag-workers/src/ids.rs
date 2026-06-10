@@ -27,6 +27,11 @@ impl JobId {
         Self(id)
     }
 
+    /// Parses a job id from its UUID string form (e.g. from CLI input).
+    pub fn parse(s: &str) -> Result<Self, uuid::Error> {
+        Ok(Self(Uuid::parse_str(s.trim())?))
+    }
+
     /// Returns the underlying UUID.
     pub fn as_uuid(&self) -> Uuid {
         self.0

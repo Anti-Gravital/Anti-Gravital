@@ -309,8 +309,8 @@ impl WorkersConfig {
     }
 }
 
-/// Parses a human duration: a bare integer is seconds; suffixes `ms`, `s`, `m`, `h`
-/// are supported (e.g. `"250ms"`, `"30s"`, `"5m"`, `"1h"`).
+/// Parses a human duration: a bare integer is seconds; suffixes `ms`, `s`, `m`, `h`,
+/// `d`, `w` are supported (e.g. `"250ms"`, `"30s"`, `"5m"`, `"1h"`, `"30d"`, `"2w"`).
 pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
     let v = value.trim();
     let err = |reason: &str| ConfigError::Duration {
@@ -325,6 +325,10 @@ pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
         (n, "m")
     } else if let Some(n) = v.strip_suffix('h') {
         (n, "h")
+    } else if let Some(n) = v.strip_suffix('d') {
+        (n, "d")
+    } else if let Some(n) = v.strip_suffix('w') {
+        (n, "w")
     } else {
         (v, "s")
     };
@@ -337,6 +341,8 @@ pub fn parse_duration(value: &str) -> Result<Duration, ConfigError> {
         "s" => Duration::from_secs(n),
         "m" => Duration::from_secs(n * 60),
         "h" => Duration::from_secs(n * 3600),
+        "d" => Duration::from_secs(n * 86_400),
+        "w" => Duration::from_secs(n * 604_800),
         _ => unreachable!(),
     })
 }

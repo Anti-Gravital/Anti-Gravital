@@ -285,6 +285,17 @@ pub fn validate_key(key: &str) -> Result<(), StorageError> {
     if key.contains("//") {
         return Err(StorageError::InvalidKey("key cannot contain '//'".into()));
     }
+    // Reject characters that act as path separators or anchors on non-Unix
+    // platforms. `/` is the only key separator; `\` is a Windows path separator
+    // (it would bypass the `/`-based `..` segment check below) and `:` is the
+    // Windows drive/ADS separator (a component like `A:` resets the joined path to
+    // an absolute drive root, escaping the storage root). Neither is valid in a
+    // portable object key.
+    if key.contains('\\') || key.contains(':') {
+        return Err(StorageError::InvalidKey(
+            "key cannot contain '\\' or ':'".into(),
+        ));
+    }
     for byte in key.bytes() {
         if byte == 0 {
             return Err(StorageError::InvalidKey("key contains null byte".into()));
@@ -456,6 +467,19 @@ mod tests {
             validate_key("foo/"),
             Err(StorageError::InvalidKey(_))
         ));
+    }
+
+    #[test]
+    fn key_with_backslash_or_colon_is_rejected() {
+        // `\` is a Windows path separator and `:` a drive/ADS separator; both
+        // bypass the `/`-only confinement checks on Windows. The colon case is the
+        // minimal input that escaped the root in `resolve_path_never_escapes_root`.
+        for key in ["foo\\bar", "a\\..\\..\\x", "C:secret", "¡/A:", "x:y"] {
+            assert!(
+                matches!(validate_key(key), Err(StorageError::InvalidKey(_))),
+                "key {key:?} must be rejected"
+            );
+        }
     }
 
     #[test]

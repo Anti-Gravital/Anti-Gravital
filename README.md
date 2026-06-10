@@ -89,9 +89,13 @@ Available templates: `rest`, `realtime`, `fullstack`.
 | `ag mail test --to ADDRESS` | Verify SMTP configuration |
 | `ag domains check --domain HOST` | Check DNS propagation |
 | `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
-| `ag domains attach|instructions|export-zone|status|list|verify|detach` | Operate the implemented local domain attachment workflow |
+| `ag domains attach|instructions|export-zone|status|list|verify|detach|diagnose` | Operate the implemented local domain attachment workflow |
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.
+`ag deploy`, `ag migrate`, and `ag plugin` are future commands and are not
+available in the current binary.
+See the [`ag-cli` command guide](crates/ag-cli/README.md) and the
+[domain CLI reference](docs/ag-domains/reference/cli.md) for detailed workflows.
 
 ### DSL workflow
 
@@ -216,6 +220,10 @@ Para trabajar con el DSL:
 ag schema lint --schema schema.ag
 ag generate --schema schema.ag --output generated
 ```
+
+Los comandos locales de dominios disponibles son `attach`, `instructions`,
+`export-zone`, `status`, `list`, `verify`, `detach` y `diagnose`. Los comandos
+futuros `ag deploy`, `ag migrate` y `ag plugin` no estan disponibles.
 
 ### Roadmap y calendario completo
 

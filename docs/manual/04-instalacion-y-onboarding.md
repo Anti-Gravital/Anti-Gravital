@@ -123,11 +123,17 @@ ag domains status example.com
 ag domains list
 ag domains verify example.com
 ag domains detach example.com
+ag domains diagnose example.com --edge-host edge.example.net
 ```
 
 State is stored in `.ag/domains.json` by default. Use `--state` to select
 another file. Run `ag domains COMMAND --help` for required apex IPs, edge
-targets and lifecycle options.
+targets and lifecycle options. The [domain CLI reference](../ag-domains/reference/cli.md)
+documents the full native workflow; provider-backed DNS synchronization is
+documented separately by `ag domains sync --help`.
+
+`ag deploy`, `ag migrate`, and `ag plugin` are future commands and are not
+available in the current binary.
 
 ## Troubleshooting
 
@@ -202,8 +208,11 @@ ag dev
 ## Operar dominios adjuntos
 
 Los comandos implementados son `attach`, `instructions`, `export-zone`,
-`status`, `list`, `verify` y `detach`. Consulta `ag domains --help` y
+`status`, `list`, `verify`, `detach` y `diagnose`. Consulta `ag domains --help` y
 `ag domains COMANDO --help` para los argumentos vigentes.
+
+`ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y no estan
+disponibles en el binario actual.
 
 ## Configurar correo (opcional)
 
@@ -212,6 +221,7 @@ export AG_SMTP_HOST=smtp.example.com
 export AG_SMTP_PORT=587
 export AG_SMTP_USER=usuario
 export AG_SMTP_PASS=secreto
+export AG_MAIL_FROM=noreply@example.com
 ag mail test --to yo@example.com
 ```
 

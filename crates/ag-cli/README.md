@@ -1,8 +1,9 @@
 # ag-cli
 
-> Status: Phases 2-4.5 — implemented. The `ag` binary exposes `new`, `dev`, `build`,
-> `generate`, `schema lint`, `schema diff`, `domains check/sync` and `mail test`.
-> `deploy`/`ai`/`migrate`/`plugin` subcommands arrive in later phases.
+> Status: Phases 2-4.5 — implemented. The `ag` binary exposes project, DSL,
+> transactional-mail, DNS, and local domain-attachment workflows documented
+> below. `deploy`, `migrate`, and `plugin` are not available; they require their
+> future roadmap phases and approved RFCs.
 > Criticidad: Nucleo.
 > Architecture chapter: docs/architecture/05-ecosistema-modulos.md
 
@@ -65,6 +66,27 @@ Verifies DNS propagation for a domain. Exits non-zero if fewer than
 Applies SPF/DKIM/DMARC records to the DNS provider idempotently.
 Reads zone ID and token from flags or environment variables.
 
+### Local domain attachment workflow
+
+These commands use the native JSON store at `.ag/domains.json` by default and
+do not require provider credentials:
+
+```bash
+ag domains attach example.com --project my-api --edge-host edge.example.net
+ag domains instructions example.com --edge-host edge.example.net
+ag domains export-zone example.com --edge-host edge.example.net
+ag domains status example.com
+ag domains list
+ag domains verify example.com
+ag domains detach example.com
+ag domains diagnose example.com --edge-host edge.example.net
+```
+
+Use `--state PATH` to select another store. Apex domains also require one or
+more `--ip ADDRESS` values for commands that generate or diagnose records.
+See the [domain CLI reference](../../docs/ag-domains/reference/cli.md) for the
+full lifecycle and flags.
+
 ### `ag mail test --to dest@example.com [options]`
 
 Sends a test email to verify the SMTP configuration.
@@ -80,12 +102,22 @@ ag mail test --to me@example.com --smtp-host mail.example.com --smtp-port 587
 |-----------------------|--------------------------|---------------|------------------------------------|
 | `AG_CLOUDFLARE_TOKEN` | `ag domains sync`        | —             | Cloudflare API token               |
 | `AG_DNS_ZONE_ID`      | `ag domains sync`        | —             | Cloudflare zone ID                 |
+| `AG_EDGE_HOST`        | Domain attach/instructions/export/diagnose | — | Edge CNAME target |
 | `AG_SMTP_HOST`        | `ag mail test`           | `localhost`   | SMTP host                          |
 | `AG_SMTP_PORT`        | `ag mail test`           | `587`         | SMTP port                          |
 | `AG_SMTP_USER`        | `ag mail test`           | —             | SMTP username (optional)           |
 | `AG_SMTP_PASS`        | `ag mail test`           | —             | SMTP password (optional)           |
 | `AG_MAIL_FROM`        | `ag mail test`           | `test@localhost` | Sender address                  |
-| `BIND`                | `ag dev` (internal)      | `0.0.0.0:8080` | Server bind address               |
+
+`ag dev --bind ADDRESS` passes `BIND` to the child application. Users select
+the address with the flag; `BIND` is not read as CLI configuration.
+
+## Command availability
+
+`ag deploy`, `ag migrate`, and `ag plugin` are intentionally unavailable.
+Their roadmap phases and RFCs must be approved and implemented before those
+commands can be added. The CLI does not expose placeholder commands for future
+work.
 
 ## Installation
 

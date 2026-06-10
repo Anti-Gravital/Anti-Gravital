@@ -101,7 +101,7 @@ Available templates: `rest`, `realtime`, `fullstack`.
 | `ag mail test --to ADDRESS` | Verify SMTP configuration |
 | `ag domains check --domain HOST` | Check DNS propagation |
 | `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
-| `ag domains attach|instructions|export-zone|status|list|verify|detach|diagnose` | Operate the implemented local domain attachment workflow |
+| `ag domains attach`|instructions|export-zone|status|list|verify|detach|diagnose` | Operate the implemented local domain attachment workflow |
 | `ag workers list` | List the background workers declared in a schema (ag-workers, RFC-0012) |
 | `ag workers run` | Run a standalone worker process against the configured backend |
 | `ag workers enqueue KIND --payload FILE` | Enqueue a job onto the durable backend (needs `DATABASE_URL`) |

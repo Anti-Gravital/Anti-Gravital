@@ -22,7 +22,11 @@ be issued via the ACME **DNS-01** challenge (HTTP-01 cannot prove a wildcard).
 
 During certificate issuance a `_acme-challenge.example.com` TXT record is also
 required (DNS-01). With the manual flow you publish it when prompted; with a
-`read_apply` provider adapter it is created and cleaned up automatically.
+provider adapter the record is created and cleaned up automatically by the
+DNS-01 orchestration (`ag_domains::issue_dns01_with_adapter`), which publishes
+the challenge records through the provider adapter SDK and tears them down once
+the order finalizes. The managed scope is strictly the `_acme-challenge` subtree,
+so no other DNS record is touched. See `reference/provider-adapter-sdk.md`.
 
 ## Why stricter validation
 

@@ -71,3 +71,6 @@ pub use provider::sdk::{
     diff as zone_diff, ChangeRef, ProviderAdapter, VerifyOutcome, ZoneAdapter, ZoneChange,
     ZonePlan, ZoneRef,
 };
+
+#[cfg(feature = "acme")]
+pub use acme::wildcard::{issue_dns01_with_adapter, Dns01Desired, Dns01OrderDriver};

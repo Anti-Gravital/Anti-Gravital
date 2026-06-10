@@ -8,3 +8,4 @@
 
 pub mod challenge;
 pub mod renewal;
+pub mod wildcard;

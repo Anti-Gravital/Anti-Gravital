@@ -1,6 +1,7 @@
 //! Storage store configuration.
 
-use std::path::PathBuf;
+use crate::StorageError;
+use std::{net::IpAddr, path::PathBuf};
 
 /// Active storage backend.
 #[derive(Debug, Clone, PartialEq)]
@@ -24,9 +25,13 @@ pub struct StorageConfig {
     pub root_path: PathBuf,
     /// If `true`, starts an Axum HTTP server in the background.
     pub server_mode: bool,
+    /// HTTP server bind address. Default: loopback only.
+    pub server_bind: IpAddr,
     /// HTTP server port. Default: 4280.
     pub server_port: u16,
-    /// Static Bearer token. Empty = no authentication (dev mode).
+    /// Allows an unauthenticated non-loopback bind when explicitly enabled.
+    pub allow_insecure_public: bool,
+    /// Static Bearer token. Empty = no authentication (loopback development only).
     pub store_token: String,
     /// Maximum object size in MB. Default: 100.
     pub max_object_size_mb: u64,
@@ -53,7 +58,9 @@ impl Default for StorageConfig {
             backend: StorageBackend::Native,
             root_path: PathBuf::from("./ag-store-data"),
             server_mode: false,
+            server_bind: IpAddr::from([127, 0, 0, 1]),
             server_port: 4280,
+            allow_insecure_public: false,
             store_token: String::new(),
             max_object_size_mb: 100,
             rate_limit_rps: 100,
@@ -113,10 +120,17 @@ impl StorageConfig {
             server_mode: std::env::var("STORAGE_SERVER")
                 .map(|v| v.eq_ignore_ascii_case("true"))
                 .unwrap_or(false),
+            server_bind: std::env::var("STORAGE_BIND")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or_else(|| IpAddr::from([127, 0, 0, 1])),
             server_port: std::env::var("STORAGE_PORT")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(4280),
+            allow_insecure_public: std::env::var("STORAGE_ALLOW_INSECURE_PUBLIC")
+                .map(|value| value.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
             store_token: std::env::var("STORE_TOKEN").unwrap_or_default(),
             max_object_size_mb: std::env::var("STORAGE_MAX_OBJECT_SIZE_MB")
                 .ok()
@@ -133,6 +147,20 @@ impl StorageConfig {
             bucket: std::env::var("STORAGE_BUCKET").unwrap_or_else(|_| "ag-storage".into()),
             sign_secret: std::env::var("STORAGE_SIGN_SECRET").unwrap_or_default(),
         }
+    }
+
+    /// Validates that server exposure is authenticated or deliberately local.
+    pub fn validate_server_security(&self) -> Result<(), StorageError> {
+        if self.server_mode
+            && !self.server_bind.is_loopback()
+            && self.store_token.is_empty()
+            && !self.allow_insecure_public
+        {
+            return Err(StorageError::Config(
+                "unauthenticated public storage bind rejected; set STORE_TOKEN, use a loopback STORAGE_BIND, or explicitly set STORAGE_ALLOW_INSECURE_PUBLIC=true".into(),
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -176,6 +204,54 @@ mod tests {
             None => std::env::remove_var("STORAGE_SERVER"),
         }
         assert!(cfg.server_mode);
+    }
+
+    #[test]
+    fn public_bind_without_token_is_rejected() {
+        let config = StorageConfig {
+            server_mode: true,
+            server_bind: IpAddr::from([0, 0, 0, 0]),
+            ..StorageConfig::default()
+        };
+
+        assert!(matches!(
+            config.validate_server_security(),
+            Err(StorageError::Config(_))
+        ));
+    }
+
+    #[test]
+    fn loopback_bind_without_token_is_allowed() {
+        let config = StorageConfig {
+            server_mode: true,
+            ..StorageConfig::default()
+        };
+
+        assert!(config.validate_server_security().is_ok());
+    }
+
+    #[test]
+    fn explicit_insecure_public_bind_is_allowed() {
+        let config = StorageConfig {
+            server_mode: true,
+            server_bind: IpAddr::from([0, 0, 0, 0]),
+            allow_insecure_public: true,
+            ..StorageConfig::default()
+        };
+
+        assert!(config.validate_server_security().is_ok());
+    }
+
+    #[test]
+    fn public_bind_with_token_is_allowed() {
+        let config = StorageConfig {
+            server_mode: true,
+            server_bind: IpAddr::from([0, 0, 0, 0]),
+            store_token: "secret".into(),
+            ..StorageConfig::default()
+        };
+
+        assert!(config.validate_server_security().is_ok());
     }
 
     #[test]

@@ -76,6 +76,16 @@ buf.append("user.created", payload)?;
 bus.publish("user.created", payload.to_vec())?;
 ```
 
+For async producers, use `append_async`. It reuses the persistent handle,
+runs filesystem work on Tokio's blocking pool, and permits 64 pending appends
+by default. `open_with_max_pending_appends` configures that bound; calls wait
+for capacity rather than submitting unbounded blocking work.
+
+During shutdown, stop producers, await `flush_async`, and then drop all
+`EventBuffer` clones. There is no detached writer task. Malformed or
+truncated replay records fail with `InvalidData` and line context;
+publication failures stop replay with `BrokenPipe`.
+
 The buffer is intentionally minimal (file-only). A database-backed store
 requires an RFC per CLAUDE.md section 22.
 

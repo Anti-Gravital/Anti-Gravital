@@ -405,6 +405,7 @@ fn generate_validate_impl(struct_name: &str, fields: &[FieldDef]) -> String {
             format!("self.{fname}")
         };
 
+        let mut regex_count = 0;
         for ann in &field.annotations {
             let check = match (&ann.value, &field.ty.value) {
                 (Annotation::Min(n), FieldType::String) => Some(validation_block(
@@ -494,12 +495,33 @@ fn generate_validate_impl(struct_name: &str, fields: &[FieldDef]) -> String {
                 )),
                 (Annotation::Regex(pattern), FieldType::String) => {
                     let target = if field.optional {
-                        "value"
+                        "value.as_str()".to_owned()
                     } else {
-                        &format!("self.{fname}")
+                        format!("self.{fname}.as_str()")
                     };
+                    regex_count += 1;
+                    let suffix = if regex_count == 1 {
+                        String::new()
+                    } else {
+                        format!("_{regex_count}")
+                    };
+                    let static_name = format!(
+                        "{}_{}_REGEX{suffix}",
+                        to_snake_case(struct_name).to_ascii_uppercase(),
+                        fname.to_ascii_uppercase()
+                    );
+                    let condition = format!(
+                        "!{static_name}.get_or_init(|| regex::Regex::new({pattern:?})\n\
+                         .expect(\"the DSL compiler validated this @regex pattern\"))\n\
+                         .is_match({target})"
+                    );
                     Some(format!(
-                        "    // TODO(#70): validate {target} against regex {pattern:?} after the regex dependency is approved."
+                        "    static {static_name}: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();\n{}",
+                        validation_block(
+                            field,
+                            condition,
+                            format!("errors.push(\"{fname}: value does not match required pattern\".to_owned());"),
+                        )
                     ))
                 }
                 _ => None,
@@ -793,6 +815,27 @@ request Metrics {
         assert!(out.contains("value < &rust_decimal::Decimal::from(0)"));
         assert!(out.contains("if let Some(value) = &self.email"));
         assert!(!out.contains("as i64"));
+    }
+
+    #[test]
+    fn regex_validation_is_executable_and_cached() {
+        let schema = schema_from(
+            r#"
+request UpdateUser {
+    username String @regex("^[a-z][a-z0-9_]{2,15}$") @regex("^[a-z]")
+}
+"#,
+        );
+        let out = generate_types(&schema);
+        assert!(
+            out.contains("static UPDATE_USER_USERNAME_REGEX: std::sync::OnceLock<regex::Regex>")
+        );
+        assert!(out.contains("regex::Regex::new(\"^[a-z][a-z0-9_]{2,15}$\")"));
+        assert!(
+            out.contains("static UPDATE_USER_USERNAME_REGEX_2: std::sync::OnceLock<regex::Regex>")
+        );
+        assert_eq!(out.matches(".is_match(self.username.as_str())").count(), 2);
+        assert!(!out.contains("TODO(#70)"));
     }
 
     #[test]

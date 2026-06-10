@@ -5,6 +5,7 @@ model User {
 
 request UpdateUser {
     email String @email
+    username String @regex("^[a-z][a-z0-9_]{2,15}$")
 }
 
 response UserResponse {

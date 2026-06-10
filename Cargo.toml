@@ -64,6 +64,7 @@ clap = { version = "4", features = ["derive", "env"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "macros", "uuid", "json", "chrono"] }
 chumsky = "0.9"
 logos = "0.14"
+regex = "1"
 governor = "0.7"
 http = "1"
 jsonwebtoken = { version = "10", default-features = false, features = ["use_pem", "rust_crypto"] }
@@ -98,6 +99,7 @@ console-subscriber       = "0.4"
 async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
+cap-fs-ext               = "4.0.2"
 cap-std                  = "4.0.2"
 getrandom                = "0.2"
 passkey-types            = "0.5"

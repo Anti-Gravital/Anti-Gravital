@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUser {
     pub email: String,
+    pub username: String,
 }
 
 impl UpdateUser {
@@ -24,6 +25,17 @@ impl UpdateUser {
                 .unwrap_or(false))
         {
             errors.push("email: invalid email format".to_owned());
+        }
+        static UPDATE_USER_USERNAME_REGEX: std::sync::OnceLock<regex::Regex> =
+            std::sync::OnceLock::new();
+        if !UPDATE_USER_USERNAME_REGEX
+            .get_or_init(|| {
+                regex::Regex::new("^[a-z][a-z0-9_]{2,15}$")
+                    .expect("the DSL compiler validated this @regex pattern")
+            })
+            .is_match(self.username.as_str())
+        {
+            errors.push("username: value does not match required pattern".to_owned());
         }
         errors
     }

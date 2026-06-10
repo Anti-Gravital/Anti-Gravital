@@ -25,6 +25,7 @@ members = [
     "examples/realtime-chat",
     "examples/ai-backend",
     "examples/auth-mail-demo",
+    "examples/workers-basic",
     "tests/integration",
     "tests/generated-rust-fixture",
 ]

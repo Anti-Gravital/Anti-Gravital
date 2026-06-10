@@ -3,6 +3,24 @@
 //! Enabled by the `queue-persistent` feature. Each queued email is one row in
 //! `ag_mail_queue`. A background worker polls due `pending` rows, sends them via
 //! the `MailSender`, and updates the row state with persisted exponential backoff.
+//!
+//! # Deprecated: superseded by the shared `ag-workers` queue (RFC-0012 S7)
+//!
+//! This is `ag-mail`'s own generic persistent queue. The shared background
+//! execution engine `ag-workers` provides the same durable queue/retry/DLQ
+//! mechanics for every module, so maintaining a second persistent queue here is
+//! duplication. New code should route delivery through the `workers` feature
+//! ([`crate::workers::WorkersMailQueue`] over `ag-workers`' PostgreSQL backend);
+//! mail-specific transport (SMTP/MTA/DKIM/bounce) stays in [`crate::sender`].
+//!
+//! Parity is proven by `tests/workers_postgres.rs`; this module is retained until
+//! that parity is verified against a live database, then removed (S7/M4 tracked as
+//! GitHub Issue #103, not in `docs/DEBT.md`).
+
+// The whole module IS the deprecated queue; suppress the lint internally so its own
+// impls/tests build, while external users still see the `#[deprecated]` on the
+// public `PersistentQueue`.
+#![allow(deprecated)]
 
 use std::sync::Arc;
 
@@ -54,6 +72,12 @@ pub(crate) fn next_retry_at(
 }
 
 /// Persistent queue: enqueues into PostgreSQL and a worker drains due rows.
+///
+/// Deprecated in favor of the shared `ag-workers` queue; see the module note.
+#[deprecated(
+    note = "use the `workers` feature (ag_mail::workers::WorkersMailQueue over ag-workers' \
+            PostgreSQL backend); ag-mail's own generic persistent queue is being retired (RFC-0012 S7)"
+)]
 pub struct PersistentQueue {
     pool: ag_data::DbPool,
     policy: RetryPolicy,

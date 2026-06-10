@@ -158,6 +158,11 @@ pub enum Token {
     #[token("retain")]
     Retain,
 
+    // ---- DSL v0.8 keyword — background workers ----
+    /// `worker` — declares a background job worker (ag-workers, RFC-0012).
+    #[token("worker")]
+    Worker,
+
     // ---- Literals ----
     /// Integer literal: `42`, `255`, `0`.
     /// If the value exceeds i64::MAX, logos discards the token and emits a lex error.

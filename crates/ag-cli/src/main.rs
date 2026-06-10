@@ -117,6 +117,12 @@ enum Commands {
         #[command(subcommand)]
         command: MailCommands,
     },
+
+    /// Operations on background workers (ag-workers).
+    Workers {
+        #[command(subcommand)]
+        command: WorkersCommands,
+    },
 }
 
 /// Sub-commands of `ag schema`.
@@ -133,6 +139,17 @@ enum SchemaCommands {
         /// Reference file (another schema.ag, snapshot, etc.).
         reference: PathBuf,
         /// Current schema file.
+        #[arg(long, default_value = "schema.ag")]
+        schema: PathBuf,
+    },
+}
+
+/// Sub-commands of `ag workers`.
+#[derive(Subcommand)]
+enum WorkersCommands {
+    /// Lists the background workers declared in a schema (no infrastructure needed).
+    List {
+        /// DSL schema file.
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
@@ -321,6 +338,9 @@ fn main() {
         Commands::Dev { bind } => cmd_dev(&bind),
         Commands::Build { target } => cmd_build(target.as_deref()),
         Commands::Generate { schema, output } => cmd_generate(&schema, &output),
+        Commands::Workers { command } => match command {
+            WorkersCommands::List { schema } => cmd_workers_list(&schema),
+        },
         Commands::Schema { command } => match command {
             SchemaCommands::Lint { schema } => cmd_schema_lint(&schema),
             SchemaCommands::Diff { reference, schema } => cmd_schema_diff(&schema, &reference),
@@ -599,6 +619,52 @@ fn scaffold_fullstack(name: &str, dir: &Path) -> Result<(), String> {
 }
 
 // ---- DSL commands (Phase 3) -----------------------------------------
+
+/// Lists the background workers declared in a schema. Reads and compiles the schema;
+/// requires no database or running backend.
+fn cmd_workers_list(schema_path: &Path) -> Result<(), String> {
+    let source = read_schema(schema_path)?;
+    let schema = ag_dsl::compile(&source).map_err(|diags| {
+        let mut msg = format!(
+            "{} error(s) in '{}':\n",
+            diags.iter().filter(|d| d.is_error()).count(),
+            schema_path.display()
+        );
+        for d in &diags {
+            msg.push_str(&format!("  {}\n", d.display(&source)));
+        }
+        msg
+    })?;
+
+    if schema.workers.is_empty() {
+        println!("No workers declared in '{}'.", schema_path.display());
+        return Ok(());
+    }
+
+    println!("Workers declared in '{}':", schema_path.display());
+    for w in &schema.workers {
+        let queue = w.queue.as_deref().unwrap_or("default");
+        let mode = w.mode.as_deref().unwrap_or("static");
+        let concurrency = w
+            .concurrency
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "-".to_owned());
+        println!(
+            "  - {} (queue: {}, mode: {}, concurrency: {})",
+            w.name.value, queue, mode, concurrency
+        );
+        if !w.input.is_empty() {
+            let fields: Vec<String> = w.input.iter().map(|f| f.name.value.clone()).collect();
+            println!("      input: {}", fields.join(", "));
+        }
+        if let Some(retry) = &w.retry {
+            if let Some(max) = retry.max_attempts {
+                println!("      retry: max_attempts {max}");
+            }
+        }
+    }
+    Ok(())
+}
 
 fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
     let source = read_schema(schema_path)?;

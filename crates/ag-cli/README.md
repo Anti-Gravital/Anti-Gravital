@@ -1,7 +1,7 @@
 # ag-cli
 
 > Status: Phases 2-4.5 — implemented. The `ag` binary exposes project, DSL,
-> transactional-mail, DNS, and local domain-attachment workflows documented
+> transactional-mail, DNS, local domain-attachment, and worker workflows documented
 > below. `deploy`, `migrate`, and `plugin` are not available; they require their
 > future roadmap phases and approved RFCs.
 > Criticidad: Nucleo.
@@ -55,6 +55,11 @@ Lints the DSL schema and reports warnings and errors.
 ### `ag schema diff <reference> [--schema schema.ag]`
 
 Compares the current schema against a reference file and reports changes.
+
+### `ag workers list [--schema schema.ag]`
+
+Lists background workers declared in the DSL schema. This command reads local
+configuration only and does not require queue infrastructure.
 
 ### `ag domains check --domain example.com [--expected value] [--min-confirmed N]`
 
@@ -122,7 +127,7 @@ work.
 ## Installation
 
 ```bash
-# From source (requires Rust >= 1.79):
+# From source (requires Rust >= 1.95):
 bash install.sh          # Linux / macOS
 .\install.ps1            # Windows PowerShell
 ```

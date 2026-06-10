@@ -63,11 +63,28 @@ jobs:
             throw "install.ps1 accepted Rust below the workspace MSRV"
           }
           Set-Content (Join-Path $fakeBin "cargo.cmd") '@echo cargo %* & exit /b 0'
-          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.79.0 (test fixture)'
+          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.95.0 (test fixture)'
           pwsh -NoProfile -File ./install.ps1
           if ($LASTEXITCODE -ne 0) {
             throw "install.ps1 rejected the workspace MSRV"
           }
+
+  msrv:
+    name: cargo check (MSRV 1.95.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.95.0"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-msrv-1.95.0-${{ hashFiles('**/Cargo.toml') }}
+      - run: cargo check --workspace --all-targets
 
   fmt:
     name: cargo fmt

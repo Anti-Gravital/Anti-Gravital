@@ -10,7 +10,7 @@ This chapter guides you from a blank machine to a running Anti-Gravital project.
 
 | Requirement | Minimum version | Check                    |
 |-------------|-----------------|--------------------------|
-| Rust        | 1.79.0          | `rustc --version`        |
+| Rust        | 1.95.0          | `rustc --version`        |
 | Git         | any modern      | `git --version`          |
 
 No other system dependencies are required for the `rest` template.
@@ -158,7 +158,7 @@ Anti-Gravital en ejecucion.
 
 | Requisito | Version minima | Verificacion             |
 |-----------|----------------|--------------------------|
-| Rust      | 1.79.0         | `rustc --version`        |
+| Rust      | 1.95.0         | `rustc --version`        |
 | Git       | cualquier      | `git --version`          |
 
 ## Instalar el binario `ag`

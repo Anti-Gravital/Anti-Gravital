@@ -51,3 +51,43 @@ the following stages (S5-S7).
 - `scheduler`: delayed and fixed-interval scheduling.
 - `test-utils`: helpers (NullBackend, deterministic clock, fixtures) for downstream
   crate tests.
+
+## Configuration
+
+`WorkersConfig` (RFC-0012 §28) is the deployment-level configuration. It loads from a
+`[workers]` TOML section and is overridable through `AG_WORKERS_*` environment
+variables (environment wins over TOML wins over defaults):
+
+```toml
+[workers]
+enabled = true
+mode = "embedded"          # embedded | standalone | distributed | producer
+backend = "memory"         # memory | postgres
+shutdown_timeout = "30s"
+max_payload_bytes = 262144
+poison_guard_attempts = 3
+
+[workers.queue.mail]
+min_workers = 2
+max_workers = 4
+max_depth = 10000
+lease_timeout = "60s"
+heartbeat_interval = "15s"
+
+[workers.queue.media]
+kind = "cpu"               # CPU-bound queue (blocking pool)
+max_workers = 4
+```
+
+```rust
+use ag_workers::WorkersConfig;
+
+// TOML + AG_WORKERS_* overrides; then derive the dispatch-loop config.
+let cfg = WorkersConfig::load(toml_src)?;
+let runtime = cfg.runtime_config();
+```
+
+Environment overrides: `AG_WORKERS_ENABLED`, `AG_WORKERS_MODE`, `AG_WORKERS_BACKEND`,
+`AG_WORKERS_SHUTDOWN_TIMEOUT`, `AG_WORKERS_MAX_PAYLOAD_BYTES`,
+`AG_WORKERS_POISON_GUARD_ATTEMPTS`, and per-queue `AG_WORKERS_QUEUE_<NAME>_MIN` /
+`_MAX`.

@@ -14,7 +14,10 @@ pub enum LogFormat {
 /// Observability subsystem configuration.
 #[derive(Debug, Clone)]
 pub struct ObserveConfig {
-    /// OTLP endpoint for exporting traces. None disables the exporter.
+    /// Reserved OTLP endpoint for exporting traces.
+    ///
+    /// None keeps OTLP disabled. Some returns an explicit initialization error
+    /// until a real exporter is implemented.
     /// Variable: OTEL_EXPORTER_OTLP_ENDPOINT
     pub otlp_endpoint: Option<String>,
     /// Port where /metrics is exposed in Prometheus format.

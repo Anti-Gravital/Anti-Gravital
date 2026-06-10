@@ -24,7 +24,7 @@ Todo en un proceso Rust, sin IPC, sin sidecar, sin magic.
 
 ## Prerequisitos
 
-- Rust 1.79+ instalado (`rustup update stable`)
+- Rust 1.95+ instalado (`rustup update stable`)
 - PostgreSQL local o remoto accesible
 - `ag` CLI compilado (`cargo install --path crates/ag-cli` desde el
   repositorio)

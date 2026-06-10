@@ -58,5 +58,7 @@ pub mod metrics;
 pub mod queue;
 pub mod sender;
 pub mod template;
+#[cfg(feature = "workers")]
+pub mod workers;
 
 pub use error::AgMailError;

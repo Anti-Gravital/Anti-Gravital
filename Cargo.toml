@@ -25,6 +25,7 @@ members = [
     "examples/realtime-chat",
     "examples/ai-backend",
     "examples/auth-mail-demo",
+    "examples/workers-basic",
     "tests/integration",
     "tests/generated-rust-fixture",
 ]
@@ -32,7 +33,7 @@ members = [
 [workspace.package]
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.79"
+rust-version = "1.95"
 license = "Apache-2.0"
 authors = ["Gravital Labs - Nereira Technology and Business Solutions"]
 repository = "https://github.com/anti-gravital/anti-gravital"

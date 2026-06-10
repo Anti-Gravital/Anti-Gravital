@@ -228,6 +228,7 @@ version = "0.0.0"
 dependencies = [
  "ag-core",
  "ag-data",
+ "ag-workers",
  "async-trait",
  "base64 0.22.1",
  "chrono",
@@ -347,6 +348,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
+ "toml",
  "tracing",
  "uuid",
 ]
@@ -6769,6 +6771,16 @@ dependencies = [
  "serde_json",
  "unicode-xid",
  "wasmparser",
+]
+
+[[package]]
+name = "workers-basic"
+version = "0.0.0"
+dependencies = [
+ "ag-workers",
+ "async-trait",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

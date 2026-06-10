@@ -1,6 +1,20 @@
 //! Standard framework metrics and HTTP /metrics handler.
 
-use axum::response::IntoResponse;
+use axum::{http::StatusCode, response::IntoResponse};
+use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+use std::sync::OnceLock;
+
+static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
+
+pub(crate) fn install_prometheus_recorder() {
+    if PROMETHEUS_HANDLE.get().is_some() {
+        return;
+    }
+
+    if let Ok(handle) = PrometheusBuilder::new().install_recorder() {
+        let _ = PROMETHEUS_HANDLE.set(handle);
+    }
+}
 
 /// Records a completed HTTP request in Prometheus metrics.
 ///
@@ -57,32 +71,29 @@ pub fn dec_active_connections() {
 /// let router = Router::new().route("/metrics", get(ag_observe::metrics_handler));
 /// ```
 pub async fn metrics_handler() -> impl IntoResponse {
-    // The globally installed Prometheus exporter exposes a handle for rendering
-    // the current snapshot. Since metrics-exporter-prometheus installs a global handle,
-    // we retrieve it here.
-    // If the exporter is not installed, return empty text with the correct content-type.
-    (
-        [(
-            axum::http::header::CONTENT_TYPE,
-            "text/plain; version=0.0.4; charset=utf-8",
-        )],
-        render_metrics(),
-    )
+    let status = if PROMETHEUS_HANDLE.get().is_some() {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    let body = render_metrics().unwrap_or_else(|message| format!("{message}\n"));
+
+    (status, prometheus_content_type(), body)
 }
 
-fn render_metrics() -> String {
-    // TECH-DEBT:
-    // motivo: metrics-exporter-prometheus 0.16 returns a PrometheusHandle from
-    //         install() that is required to call handle.render(). Since in
-    //         layer::init() we call install() without capturing the handle, there
-    //         is no way to render the real snapshot from here.
-    // impacto: The /metrics endpoint always returns an empty body. Metrics
-    //          accumulate internally but are not observable via HTTP until
-    //          this TODO is resolved.
-    // eliminacion esperada: Phase 4, iteration ag-observe v0.2. Store the
-    //          PrometheusHandle in a OnceLock<PrometheusHandle> in layer::init()
-    //          and use it here to render() the real snapshot.
-    String::new()
+fn prometheus_content_type() -> [(&'static str, &'static str); 1] {
+    [(
+        axum::http::header::CONTENT_TYPE.as_str(),
+        "text/plain; version=0.0.4; charset=utf-8",
+    )]
+}
+
+fn render_metrics() -> Result<String, &'static str> {
+    PROMETHEUS_HANDLE
+        .get()
+        .map(PrometheusHandle::render)
+        .ok_or("prometheus exporter is not initialized")
 }
 
 #[cfg(test)]
@@ -91,8 +102,6 @@ mod tests {
 
     #[test]
     fn record_request_does_not_panic() {
-        // We cannot verify the snapshot without the handle, but at least
-        // verify that the function does not panic.
         record_request("GET", "/health", 200, 0.001);
     }
 
@@ -123,7 +132,24 @@ mod tests {
     }
 
     #[test]
-    fn render_metrics_returns_string() {
-        let _s = render_metrics();
+    fn render_metrics_reports_missing_initialization() {
+        if PROMETHEUS_HANDLE.get().is_none() {
+            assert_eq!(
+                render_metrics(),
+                Err("prometheus exporter is not initialized")
+            );
+        }
+    }
+
+    #[test]
+    fn render_metrics_includes_recorded_requests_after_init() {
+        install_prometheus_recorder();
+        record_request("GET", "/health", 200, 0.001);
+
+        let rendered = render_metrics().expect("prometheus exporter should be initialized");
+        assert!(
+            rendered.contains("ag_requests_total"),
+            "rendered metrics should include ag_requests_total, got: {rendered}"
+        );
     }
 }

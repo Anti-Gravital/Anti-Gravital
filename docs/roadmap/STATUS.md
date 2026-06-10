@@ -357,10 +357,28 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
   admision/backpressure (feature `postgres`).
 - [ ] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
   acotados; pool CPU-bound (`spawn_blocking` + semaforo).
-- [ ] S5 Superficies: declaracion `worker` en el Anti-DSL + generadores; CLI
-  `ag workers ...` (feature-gated); ejemplos.
-- [ ] S6 Modo producer + edge: feature `producer`; enqueue-only para `ag-edge`/serverless.
-- [ ] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+- [/] S5 Superficies: declaracion `worker` en el Anti-DSL (v0.8) + generador
+  `worker_gen` (payloads tipados, stubs `JobHandler`, `register_workers`). CLI
+  `ag workers list` operativa (compila el schema y lista los workers; sin
+  infraestructura). Pendientes: `ag workers run/dlq/enqueue` (requieren backend en vivo)
+  y ejemplos `examples/workers-*`.
+- [/] S6 Modo producer + edge: el patron enqueue-only esta documentado (un proceso
+  construye el backend y llama `enqueue`/`enqueue_in_tx` sin arrancar un `WorkerPool`;
+  ver `examples/workers-basic/README.md` y RFC-0012 seccion 17.4). Ejemplo
+  `examples/workers-basic` operativo (backend en memoria, pool estatico, shutdown).
+  Pendiente: wiring dedicado del feature `producer` con `ag-edge`.
+- [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+  M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
+  M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
+  clasificacion retriable/permanente) + `WorkersMailQueue` (impl `MailQueue`
+  enrutando la entrega a `ag-workers`); la logica de correo permanece en `ag-mail`;
+  43 tests verdes. M3: tests de paridad Postgres (`tests/workers_postgres.rs`,
+  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) que prueban
+  persistencia como `kind=mail.delivery`, entrega y supervivencia a reinicio.
+  M4: la cola generica duplicada (`queue::store::PersistentQueue`,
+  `queue-persistent`) queda marcada `#[deprecated]` hacia el feature `workers`; su
+  eliminacion se difiere hasta verificar la paridad contra una base de datos viva
+  (seguimiento en GitHub Issue #103, no en `docs/DEBT.md`).
 
 ### Criterios de salida (4.6-D.3)
 

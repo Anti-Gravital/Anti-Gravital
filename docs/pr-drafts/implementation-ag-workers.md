@@ -65,6 +65,36 @@ only, plus the removal of one stale duplicate RFC file.
 - `benchmarks/README.md`: states the real benchmark situation (crate-level
   criterion suites in `crates/*/benches/`; the cross-crate folder is empty).
 
+### Architecture-map / crate-roster honesty (second batch)
+
+A review found `ag-workers` was misclassified or omitted from the canonical
+crate roster in several places, and the masters had never been updated when
+`ag-workers`, `ag-edge` and `ag-lsp` were added (still said "17 crates"):
+
+- Root README architecture map (EN+ES): restructured to the canonical four-tier
+  classification of `CLAUDE.md` §14 so `ag-workers` sits in **deferred standard**
+  next to `ag-mail` (it had been lumped under "edge"); also corrected `ag-data`
+  (Standard, not Core) and `ag-wasm-host` (Core, not Extended).
+- `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` (EN+ES rosters, deferred
+  paragraphs, intro lists, dir-tree diagrams), `Blueprint-v4.1.md` (EN+ES) and
+  `Hoja-de-Ruta.md` (EN+ES count): added `ag-workers` (deferred standard),
+  `ag-edge` (optional infra) and `ag-lsp` (core); count 17 -> 20.
+- `CLAUDE.md` §14 (the constitution): added `ag-workers` to deferred standard,
+  `ag-lsp` to core, `ag-edge` to optional-infra; count note updated. This is a
+  sync of the already-approved `ADR-0013`/`ADR-0012`, not a new decision.
+- `docs/architecture/03` and `05`, `docs/roadmap/calendar.md`: added the missing
+  crates; the calendar also had stale phase statuses (3/4/4.5 shown as
+  pending/upcoming) and no 4.6 row -- corrected.
+- `tools/split-masters.sh`: its hardcoded line ranges were stale by 10-35 lines
+  (the masters were restructured for ADR-0008 without updating the tool) and it
+  was missing the `fase-04-5` entry. Re-derived all ranges from the current
+  `## ` headings and added a warning that a regen migrates derived docs to
+  English (ADR-0008) and must be reviewed. The deeper master<->derived EN/ES
+  reconciliation is tracked in Issue #117.
+
+Historical/immutable docs that legitimately predate `ag-workers` (ADR-0007,
+RFC-0006, old PR drafts and audits) were intentionally left unchanged.
+
 ## Related documents
 
 - CLAUDE.md rules 26 (README sync), 29 (Issues, frozen DEBT.md), ADR-0008

@@ -88,7 +88,7 @@ Anti-Gravital is:
 - A high-performance **Rust backend runtime** for HTTP, WebSocket, and SSE services.
 - A **domain definition language** (Anti-DSL, `.ag` files) and its compiler.
 - A **unified CLI** (`ag`) for creation, generation, development, build, deployment, and administration.
-- A **set of optional modules** published as independent Rust crates (auth, data, realtime, cache, storage, observe, mail —deferred standard—).
+- A **set of optional modules** published as independent Rust crates (auth, data, realtime, cache, storage, observe; mail and workers —deferred standard—).
 - A **domain and TLS management layer** (`ag-domains`, optional infra) that integrates DNS via adapters, ACME for certificates, and SPF/DKIM/DMARC for transactional mail.
 - A **WASI plugin system** for isolated multi-language extensibility.
 - A **deployment orchestration layer** simplified in the Railway/Fly.io style for common cases (not a Kubernetes replacement).
@@ -167,16 +167,19 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-cache`         | in-memory moka, Redis adapter, event-based invalidation          | Standard             |
 | `ag-storage`       | S3, MinIO, local filesystem, signed URLs, image processing       | Standard             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, Grafana dashboards           | Standard             |
+| `ag-lsp`           | Anti-DSL Language Server (diagnostics, completion, hover) for `.ag` files | Core         |
 | `ag-mail`          | outbound SMTP, typed templates, send queues with retries, relay SMTP nativo, SPF/DKIM/DMARC helpers | Deferred standard |
+| `ag-workers`       | background execution engine: typed jobs, retries, DLQ, scheduling, worker pools | Deferred standard |
 | `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
 | `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
 | `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
+| `ag-edge`          | request-time edge data plane: hostname routing, SNI certificate selection, canonical/redirect policy | Optional infra |
 | `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Optional             |
 | `ag-mobile`        | Dart SDK generation, native Flutter auth, offline sync           | Optional             |
 | `ag-migrate`       | OpenAPI, Prisma, Django, FastAPI, Sequelize importers            | Optional             |
 | `ag-wasm-host`     | WASI plugin runtime on wasmtime                                  | Core                 |
 
-The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reaches **17 crates** with the introduction of Phase 4.5.
+The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **20** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`).
 
 ### 5.2 Ecosystem diagram
 
@@ -286,6 +289,7 @@ anti-gravital/
 │   │           ├── openapi_gen.rs
 │   │           └── sql_gen.rs
 │   ├── ag-cli/
+│   ├── ag-lsp/                 # Fase 3 — tooling DSL (núcleo)
 │   ├── ag-auth/
 │   ├── ag-data/
 │   ├── ag-realtime/
@@ -293,9 +297,11 @@ anti-gravital/
 │   ├── ag-storage/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
+│   ├── ag-workers/             # Fase 4.6-D — estándar diferido
 │   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
+│   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)
 │   ├── ag-ai/
 │   ├── ag-mobile/
 │   ├── ag-migrate/
@@ -1325,7 +1331,7 @@ Anti-Gravital es:
 - Un **runtime backend Rust** de alto rendimiento para servicios HTTP, WebSocket y SSE.
 - Un **lenguaje de definición de dominio** (Anti-DSL, archivos `.ag`) y su compilador.
 - Una **CLI unificada** (`ag`) para creación, generación, desarrollo, build, despliegue y administración.
-- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe, mail —estándar diferido—).
+- Un **conjunto de módulos opcionales** publicados como crates Rust independientes (auth, data, realtime, cache, storage, observe; mail y workers —estándar diferido—).
 - Una **capa de gestión de dominios y TLS** (`ag-domains`, opcional infra) que integra DNS vía adapters, ACME para certificados, y SPF/DKIM/DMARC para correo transaccional.
 - Un **sistema de plugins WASI** para extensibilidad multilenguaje aislada.
 - Una **capa de orquestación de despliegue** simplificada al estilo Railway/Fly.io para casos comunes (no un reemplazo de Kubernetes).
@@ -1404,16 +1410,19 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
 | `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
 | `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
+| `ag-lsp`           | Language Server del Anti-DSL (diagnostics, autocompletado, hover) para archivos `.ag` | Núcleo      |
 | `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, relay SMTP nativo, helpers SPF/DKIM/DMARC | Estándar diferido |
+| `ag-workers`       | Motor de ejecución en segundo plano: jobs tipados, reintentos, DLQ, scheduling, worker pools | Estándar diferido |
 | `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
 | `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
+| `ag-edge`          | Plano de datos edge en tiempo de request: routing por hostname, selección de certificado por SNI, política canónica/redirect | Opcional infra |
 | `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Opcional             |
 | `ag-mobile`        | Generación SDK Dart, auth nativo Flutter, offline sync           | Opcional             |
 | `ag-migrate`       | Importadores OpenAPI, Prisma, Django, FastAPI, Sequelize         | Opcional             |
 | `ag-wasm-host`     | Runtime de plugins WASI sobre wasmtime                           | Núcleo               |
 
-La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema pasa de **17 crates** con la introducción de la Fase 4.5.
+La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. `ag-workers` (introducido por `RFC-0012` / `ADR-0013` en la Fase 4.6-D) es el segundo estándar diferido: la mayoría de los backends acaba necesitando ejecución en segundo plano (jobs, reintentos, scheduling), pero no todo proyecto la usa desde el primer día, así que tiene madurez de estándar sin instalarse por defecto en los templates. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema arrancó en **17 crates** con la introducción de la Fase 4.5 y ha crecido de forma aditiva hasta **20** con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge` (`ADR-0012`) y `ag-workers` (`ADR-0013`).
 
 ### 5.2 Diagrama del ecosistema
 
@@ -1536,6 +1545,7 @@ anti-gravital/
 │   │           ├── openapi_gen.rs
 │   │           └── sql_gen.rs
 │   ├── ag-cli/
+│   ├── ag-lsp/                 # Fase 3 — tooling DSL (núcleo)
 │   ├── ag-auth/
 │   ├── ag-data/
 │   ├── ag-realtime/
@@ -1543,9 +1553,11 @@ anti-gravital/
 │   ├── ag-storage/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
+│   ├── ag-workers/             # Fase 4.6-D — estándar diferido
 │   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
+│   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)
 │   ├── ag-ai/
 │   ├── ag-mobile/
 │   ├── ag-migrate/

@@ -30,12 +30,17 @@ it is not a registrar. Generated Rust handlers are application-owned stubs.
 
 ### Architecture map
 
-| Layer | Main crates | Role |
+Tiers follow the canonical crate classification in `CLAUDE.md` §14 and
+chapter 5 of the architecture master. `*` marks a placeholder crate whose
+implementation begins in a later phase.
+
+| Tier | Crates | Role |
 | --- | --- | --- |
-| Core | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, DSL compiler and developer workflows |
-| Standard | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, events, files/images and telemetry |
-| Extended | `ag-lsp` (implemented); `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host` (later-phase placeholders) | Editor support today; UI, AI, mobile, importers and plugins later |
-| Phase 4.5-4.6 / edge | `ag-mail`, `ag-domains`, `ag-edge`, `ag-workers` | Mail and native MTA, DNS/domain/TLS, host routing/TLS serving, and background jobs |
+| Core | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, DSL compiler, developer CLI, editor LSP, WASI plugin host |
+| Standard | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, PostgreSQL data layer, events, cache, files/images and telemetry |
+| Deferred standard | `ag-mail`, `ag-workers` | Transactional mail and native MTA; background-job execution engine |
+| Optional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, cloud deploy, AI/knowledge-graph, mobile bridge and importers |
+| Optional infra | `ag-domains`, `ag-edge` | DNS/domain/TLS control plane and the request-time edge data plane |
 
 ## English
 
@@ -184,12 +189,17 @@ cada aplicacion.
 
 ### Mapa de arquitectura
 
-| Capa | Crates principales | Rol |
+Los niveles siguen la clasificacion canonica de crates de `CLAUDE.md` §14 y
+el capitulo 5 del maestro de arquitectura. `*` marca un crate placeholder
+cuya implementacion comienza en una fase posterior.
+
+| Nivel | Crates | Rol |
 | --- | --- | --- |
-| Nucleo | `ag-core`, `ag-data`, `ag-dsl`, `ag-cli` | Shield/runtime, PostgreSQL, compilador DSL y workflows |
-| Estandar | `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe` | Auth, cache, eventos, archivos/imagenes y telemetria |
-| Extendida | `ag-lsp` (implementado); `ag-ui`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host` (placeholders de fases posteriores) | Soporte de editor hoy; UI, IA, mobile, importadores y plugins despues |
-| Fase 4.5-4.6 / edge | `ag-mail`, `ag-domains`, `ag-edge`, `ag-workers` | Correo y MTA nativo, DNS/dominios/TLS, routing/serving TLS y jobs en segundo plano |
+| Nucleo | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, compilador DSL, CLI, LSP de editor y host de plugins WASI |
+| Estandar | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, capa de datos PostgreSQL, eventos, cache, archivos/imagenes y telemetria |
+| Estandar diferido | `ag-mail`, `ag-workers` | Correo transaccional y MTA nativo; motor de ejecucion de jobs en segundo plano |
+| Opcional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, deploy cloud, IA/knowledge-graph, bridge mobile e importadores |
+| Opcional infra | `ag-domains`, `ag-edge` | Plano de control DNS/dominios/TLS y plano de datos edge en tiempo de request |
 
 > Estado actual (verificado 2026-06-10): las capacidades hasta la Fase 4.5 mas el trabajo aditivo de la Fase 4.6 (MTA outbound nativo en `ag-mail`; motor de ejecucion en segundo plano `ag-workers`, etapas S1-S5) estan disponibles, pero la puerta formal pre-Fase 5 sigue ABIERTA. Modulo implementado no significa certificacion de produccion.
 

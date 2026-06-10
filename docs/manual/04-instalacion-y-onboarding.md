@@ -27,8 +27,8 @@ bash install.sh
 
 The script verifies the Rust toolchain, builds the workspace in release mode,
 and installs `ag` into `~/.cargo/bin`. Security note: the script does not pipe
-untrusted content into a shell. Read it before running a remote copy, and
-verify the SHA-256 hash published in the release notes.
+untrusted content into a shell. Before running it, follow the canonical
+[installation integrity procedure](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
 
@@ -166,7 +166,8 @@ bash install.sh
 ```
 
 El script verifica el toolchain Rust, compila el workspace en modo release
-e instala `ag` en `~/.cargo/bin`.
+e instala `ag` en `~/.cargo/bin`. Antes de ejecutarlo, sigue el
+[procedimiento canonico de integridad](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
 

@@ -64,6 +64,7 @@ git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-
 ```
 
 The installer verifies the Rust version, builds the workspace in release mode and installs `ag` into the Cargo bin directory. It performs no privileged system changes.
+Before execution, verify the checkout using the canonical [installation integrity procedure](docs/security/INSTALLATION_INTEGRITY.md).
 
 ### Start a project
 
@@ -199,6 +200,7 @@ git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-
 ```
 
 El instalador verifica Rust, compila el workspace en release e instala `ag` en el directorio binario de Cargo. No realiza cambios privilegiados del sistema.
+Antes de ejecutarlo, verifica el checkout mediante el [procedimiento canonico de integridad](docs/security/INSTALLATION_INTEGRITY.md).
 
 ### Crear y operar un proyecto
 

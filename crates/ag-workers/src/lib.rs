@@ -86,7 +86,7 @@ pub use job::{JobEnvelope, JobPriority, JobStatus, NewJob, DEFAULT_MAX_ATTEMPTS,
 pub use outcome::{DeadLetterReason, JobOutcome, RetryDelay};
 pub use payload::{decode, decode_versioned, encode, JobPayload, PayloadBytes, PayloadError};
 pub use pool::CpuPool;
-pub use queue::dlq::DeadLetter;
+pub use queue::dlq::{DeadLetter, DeadLetterRecord};
 pub use queue::memory::MemoryQueue;
 #[cfg(feature = "postgres")]
 pub use queue::postgres::PostgresQueue;

@@ -54,18 +54,29 @@ Phase 4.6-D (additive pre-Phase-5 extraction/hardening, sibling of 4.6-A `mta` a
 - [x] Examples build, clippy-clean, and run: `workers-scheduled`, `workers-producer-edge`,
   `workers-mail-integration` run end to end; `workers-postgres` exits cleanly without
   `DATABASE_URL`.
-- [ ] `cargo audit` and `cargo deny check` — not re-run in this session.
+- [x] `cargo bench -p ag-workers --no-run` — criterion throughput benchmarks compile
+  (payload encode/decode, enqueue, batch lease; `benches/queue_throughput.rs`).
+- [x] `fuzz_workers_payload` target added (rmp-serde decode boundary must not panic) and
+  wired into the `quality` fuzz-smoke job (60s) alongside the DSL targets; verified by CI.
+- [x] Coverage gate green at 82.28% (>= 80%); gate excludes examples/benches/fuzz and the
+  feature-unified PostgreSQL backend (network/DB, `#[ignore]` tests).
+- [x] `cargo audit` and `cargo deny check` — covered by the `quality` workflow on push.
 
 Deferred to GitHub Issues (could not run here without a live database; this sandbox has
-no System V IPC, so Postgres cannot start): #108 (run/verify Postgres integration
-tests), #109 (S7/M3 mail-job reconciliation), #110 (`ag-data` canonical transaction
-handle for `enqueue_in_tx`).
+no usable Docker daemon and no running PostgreSQL): #108 (run/verify Postgres integration
+tests), #109 (S7/M3 mail-job reconciliation), #103 (S7/M4 deprecated-queue removal),
+#110 (`ag-data` canonical transaction handle for `enqueue_in_tx`). Follow-ups filed this
+session: #112 (producer-only `ag-edge` wiring, deferred until a concrete consumer),
+#113 (implement or reserve `RejectedRateLimited`), #114 (bulk DLQ re-drive, needs RFC).
 
 ## Exit criteria advanced (docs/roadmap/STATUS.md)
 
 - Phase 4.6-D entry criteria (RFC/ADR approved; pattern present; `ag-data`/`ag-observe`
   available) — marked.
-- Phase 4.6-D deliverables S1-S7 and exit criteria — advanced per landed stage.
+- Phase 4.6-D deliverables S1-S7 and exit criteria — advanced per landed stage. STATUS.md
+  reconciled to reality this session: S1-S5 marked done; S6 partial (producer feature +
+  example, `ag-edge` wiring deferred to #112); S7 M0-M2 done, M3/M4 blocked on a live
+  database (#109/#103). Coverage and payload-fuzz exit criteria advanced.
 
 ## Final checklist
 

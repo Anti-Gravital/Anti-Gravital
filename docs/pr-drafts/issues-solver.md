@@ -1,48 +1,43 @@
-# Resolve ag-domains / ag-workers / ag-data issues (one commit per issue)
+# Resolve open issues: RFC approvals, docs honesty, PSL, bulk DLQ, DNS adapters
 
 ## Summary
 
 Resolves the open, in-environment-reproducible issues, one commit per issue, in
-priority then precedence order. Issues blocked on external infrastructure (live
-PostgreSQL, real-domain ACME) or on an unapproved RFC are not closed here; for
-the RFC-gated ones a design RFC is drafted instead so the maintainer can approve
-and implement.
+priority then precedence order. The maintainer (BDFL) approved RFC-0015, RFC-0016
+and RFC-0017 with the comment period waived (as for RFC-0011/0012), unblocking
+the RFC-gated work. Issues blocked on external infrastructure (live PostgreSQL,
+real-domain ACME) are left untouched, and the design-deferred edge wiring is left
+as documented.
 
-- **#79 (p2) provider adapter SDK seam:** `provider::sdk` adds a declarative
-  plan/diff/apply/verify/rollback layer over `DnsProvider`; pure `diff` plus a
-  `ProviderAdapter<P>` bridge so Cloudflare participates with no extra code.
-- **#85 (p2) DNS-01 wildcard automation:** `acme::wildcard::issue_dns01_with_adapter`
-  publishes `_acme-challenge` records through the SDK (scoped to the challenge
-  subtree) and tears them down; mock-adapter tested.
-- **#88 (p2) control-plane metrics (blueprint 16.1):** active/expiring-soon
-  gauges, TLS-orders and DNS-misconfigured counters wired at the right
-  operations; edge route-resolution latency + cache hit/miss in `ag-edge`.
-- **#89 (p2) dangling-DNS detection:** `dangling` module + `domain.dangling_dns_detected`
-  event (subdomain-takeover hygiene).
-- **#90 (p2) abuse controls (blueprint 15.6):** per-tenant attachment/issuance
-  limits + global ACME queue; REST API returns 429 at the limit (opt-in).
-- **#110 (p3) canonical AgTx:** `ag-data` exposes `AgTx`; `enqueue_in_tx` takes it
-  instead of a raw `sqlx::Transaction`; TECH-DEBT marker removed.
-- **#113 (p3) reserved admission variant:** `RejectedRateLimited` documented as
-  reserved RFC-0012 vocabulary, with a test asserting it is never produced.
-- **#86 (p3) ARI renewal (RFC 9773):** `acme::ari` parsing + scheduling decision;
-  `spawn_renewal_task_with_ari` prefers the CA window, falls back to notAfter.
-- **#84 (p3) Domain Connect:** discovery + settings parsing, MX-safe template
-  variables, sync apply-URL builder; independent verification reused.
-- **#92 (p3) docs:** dedicated apex/subdomain tutorials, TLS-lifecycle /
-  security-model / migration references, HTTP-01-vs-DNS-01 / routing-by-Host-SNI
-  / purchase-vs-attachment explanations.
-- **#93 / #78 / #114 (RFC-gated):** RFC-0015 (ag-registrars), RFC-0016 (PSL
-  eTLD+1), RFC-0017 (bulk DLQ) drafted as proposed; no code until approved.
+- **#93 ag-registrars design RFC:** RFC-0015 accepted (design only, Phase F; no
+  code until that phase). Provider- and registrar-agnostic core preserved.
+- **#71 docs honesty (Stage 10 gate):** phase status across the master roadmap,
+  `STATUS.md` and the README is reconciled to explicit evidence-based states;
+  Stage 10 reconciliation report added; the gate's "Docs honesty" row flips to
+  pass while fuzz-24h, benchmarks and open-debt stay pending (gate remains OPEN).
+- **#117 split-masters reconciliation:** derived `docs/architecture/*` and
+  `docs/roadmap/*` regenerated in English from the bilingual masters, byte-for-byte
+  minus breadcrumbs; no Spanish-only content lost.
+- **#78 (p2) eTLD+1 via PSL:** RFC-0016 accepted; a single shared
+  `registrable_domain` becomes the only eTLD+1 source, PSL-correct behind the
+  optional `psl` feature, two-label heuristic as the offline default; hostname and
+  issuance counting share it. DEBT-024 resolved.
+- **#114 (p3) bulk DLQ:** RFC-0017 accepted; `ag workers dlq retry|purge` gain
+  `--queue/--kind/--limit/--dry-run` filtered bulk operations over the existing
+  `workers-runtime` feature, single-ID behaviour unchanged.
+- **#80/#81/#82/#83 (p3) DNS adapters:** Route 53, Google Cloud DNS, Azure DNS and
+  Namecheap `DnsProvider` adapters, each behind its own Cargo feature, mock/contract
+  tested, real-credential tests `#[ignore]`; capability matrix flipped to read/apply.
 
 ## Phase affected
 
-Phase 4.5 (ag-domains/ag-edge) and additive Phase 4.6 (ag-workers/ag-data).
-No phase transition; all work is additive and feature-gated where applicable.
+Phase 4.5 (ag-domains) and additive Phase 4.6 (ag-workers); plus documentation
+honesty (pre-Phase-5 gate Stage 10). No phase transition; work is additive and
+feature-gated where applicable.
 
 ## Type of change
 
-- [ ] Security fix (security-relevant: #89, #90)
+- [ ] Security fix
 - [ ] Bug fix
 - [x] Tests
 - [x] Documentation
@@ -51,33 +46,33 @@ No phase transition; all work is additive and feature-gated where applicable.
 
 ## Related documents
 
-- `docs/ag-domains/reference/provider-adapter-sdk.md`, `.../abuse-controls.md`,
-  `.../tls-lifecycle.md`, `.../security-model.md`, `.../migration-compatibility.md`
-- `docs/ag-domains/reference/events-and-metrics.md` (updated)
-- `docs/ag-domains/tutorials/attach-apex.md`, `.../attach-subdomain.md`
-- `docs/ag-domains/explanation/http01-vs-dns01.md`, `.../routing-host-sni.md`,
-  `.../purchase-vs-attachment.md`
-- `docs/adr/0013-ag-workers-execution-model.md` (AgTx resolution note)
 - `docs/rfc/RFC-0015-ag-registrars-design.md`, `RFC-0016-eldp1-public-suffix-list.md`,
-  `RFC-0017-ag-workers-bulk-dlq.md`
+  `RFC-0017-ag-workers-bulk-dlq.md` (accepted)
+- `docs/audits/PRE_FASE5_RELEASE_GATE.md`, `docs/audits/pre-fase5-docs-reconciliation.md`
+- `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`, `docs/roadmap/STATUS.md`, `README.md`
+- `docs/architecture/*`, `docs/roadmap/*` (regenerated), `tools/split-masters.sh`
+- `docs/modules/ag-domains*`, `docs/modules/ag-workers*`,
+  `docs/ag-domains/reference/provider-capability-matrix.md`
 
 ## Test plan
 
-- [x] `cargo fmt --all --check` — no diffs
-- [x] `cargo clippy --workspace --all-targets` — clean
-- [x] `cargo test --workspace --all-features` — 0 failures
-- [x] `cargo test -p ag-domains --all-features` — SDK/wildcard/metrics/dangling/abuse/ARI/DomainConnect suites pass
-- [x] `cargo test -p ag-edge --all-features` — router metrics + TLS edge pass
-- [x] `cargo test -p ag-workers --features postgres --no-run` — AgTx enqueue_in_tx compiles
-- [x] `cargo build -p workers-postgres` — example builds against AgTx
+- [ ] `cargo fmt --all --check` — no diffs
+- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings` — clean
+- [ ] `cargo test --workspace --all-features` — 0 failures
+- [ ] `cargo build -p ag-domains --features route53,google-cloud-dns,azure-dns,namecheap`
+- [ ] `bash tools/split-masters.sh` + `git diff --stat docs/architecture docs/roadmap`
+- Real-credential / live-database paths are `#[ignore]` (ADR-0009 convention);
+  their verification is delegated to a credentialed environment.
 
 ## Exit criteria advanced
 
-- #76 ag-domains remaining work: #79, #85, #88, #89, #90, #84, #92 resolved;
-  #78 unblocked via RFC-0016; #93 RFC drafted.
-- ag-workers/ag-data: #110 resolved; #113 reserved; #114 unblocked via RFC-0017.
+- #76 ag-domains remaining work: #78, #80, #81, #82, #83 resolved; #93 RFC accepted.
+- ag-workers: #114 resolved.
+- Pre-Phase-5 gate: Stage 10 (docs honesty, #71) closed; gate remains OPEN
+  (fuzz-24h, benchmarks, open-debt still pending).
 - Still blocked on external infrastructure (untouched, documented): #108, #109,
   #103 (live PostgreSQL), #87 (real-domain ACME staging).
+- Design-deferred (untouched): #112 (ag-edge producer wiring, no consumer yet).
 
 ## Final checklist
 
@@ -86,10 +81,10 @@ No phase transition; all work is additive and feature-gated where applicable.
 - [x] Does not break architecture
 - [x] No unnecessary complexity added
 - [x] No circular dependencies
-- [x] Compiles
-- [x] Tests pass (`cargo test --workspace --all-features`, exit 0)
-- [x] `cargo fmt` passes
-- [x] `cargo clippy` passes
+- [ ] Compiles
+- [ ] Tests pass (`cargo test --workspace --all-features`, exit 0)
+- [ ] `cargo fmt` passes
+- [ ] `cargo clippy` passes
 - [x] Documentation updated in same PR
 - [x] No emojis
 - [x] No AI attribution

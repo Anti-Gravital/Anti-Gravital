@@ -1,13 +1,15 @@
 # RFC-0015 - ag-registrars: domain purchase, transfer and renewal (phase F)
 
-- Status: proposed (pending review and approval)
-- Author: Gravital Labs - Nereira Technology and Business Solutions
+- Status: accepted
+- Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-06-11
+- Decision date: 2026-06-11
 - Target phase: Phase F (post Phase 4.5/4.6; after the pre-Phase-5 gate)
 - Affected modules/crates: a new `ag-registrars` crate; `ag-domains` and
   `ag-edge` are explicitly NOT modified by this RFC
 - Predecessor RFC: RFC-0011 (ag-domains control plane), RFC-0007 (ag-domains scope)
-- Comment period: minimum seven calendar days
+- Comment period: waived by BDFL decision. This RFC records an approved design
+  for a future, optional Phase-F crate; no code is written until Phase F starts.
 
 ## 1. Motivation
 
@@ -152,12 +154,15 @@ incident.
 
 ## 9. Decision
 
-To be completed after the comment period.
-
-- Decider: BDFL or technical committee.
-- Decision date: YYYY-MM-DD.
-- Outcome: accepted / rejected / deferred.
-- Brief rationale.
+- Decider: Angel Nereira (BDFL).
+- Decision date: 2026-06-11.
+- Outcome: accepted (design only; comment period waived by BDFL).
+- Rationale: the design keeps `ag-domains`/`ag-edge` provider- and
+  registrar-agnostic (no core dependency on registrar commerce), confines the
+  commercial concern to an optional Phase-F crate, and follows the brand policy
+  (ADR-0011) and native-first principle (ADR-0009). Approval authorizes the
+  design as the reference for Phase F; per issue #93, no code is written until
+  Phase F begins.
 
 ## 10. References
 

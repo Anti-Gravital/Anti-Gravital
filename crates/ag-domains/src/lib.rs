@@ -48,6 +48,7 @@ pub mod metrics;
 // library above is unchanged. These modules add domain attachment lifecycle,
 // ownership proof, DNS instruction generation, CAA preflight, diagnostics and
 // native persistence.
+pub mod abuse;
 pub mod attachment;
 pub mod caa;
 pub mod dangling;

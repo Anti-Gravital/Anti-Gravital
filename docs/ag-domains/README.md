@@ -29,7 +29,8 @@ historical DEBT-025).
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
   `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
   `reference/provider-capability-matrix.md`,
-  `reference/provider-adapter-sdk.md` (plan/diff/apply/verify/rollback)
+  `reference/provider-adapter-sdk.md` (plan/diff/apply/verify/rollback),
+  `reference/abuse-controls.md` (per-tenant limits + global ACME queue)
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`
 

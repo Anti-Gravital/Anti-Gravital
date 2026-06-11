@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
 
 use crate::{
+    acme::ari,
     acme::challenge::{remove_dns01_challenge, set_dns01_challenge},
     error::AgDomainsError,
     metrics::set_cert_days_until_expiry,
@@ -110,6 +111,37 @@ pub fn spawn_renewal_task<P>(
 where
     P: DnsProvider + 'static,
 {
+    // No ARI source: schedule purely from `notAfter`.
+    spawn_renewal_task_with_ari(
+        config,
+        credentials,
+        provider,
+        renew_before_days,
+        |_| None,
+        on_renewed,
+    )
+}
+
+/// Like [`spawn_renewal_task`], but ARI-aware (RFC 9773): after each issuance,
+/// `renewal_info_for` may return the CA's [`ari::RenewalInfo`] for the new
+/// certificate, and the next renewal is scheduled inside that window instead of
+/// from `notAfter`. Returning `None` falls back to the `notAfter` schedule.
+///
+/// `renewal_info_for` is the ARI fetch boundary: the caller performs the HTTP
+/// GET of the `RenewalInfo` resource (needing the live CA, hence not exercised
+/// in unit tests) and parses it with [`ari::parse_renewal_info`]. The scheduling
+/// decision itself is [`ari::next_renewal_sleep`], which is unit-tested.
+pub fn spawn_renewal_task_with_ari<P>(
+    config: CertConfig,
+    credentials: AccountCredentials,
+    provider: P,
+    renew_before_days: u64,
+    renewal_info_for: impl Fn(&IssuedCert) -> Option<ari::RenewalInfo> + Send + 'static,
+    on_renewed: impl Fn(IssuedCert) + Send + 'static,
+) -> tokio::task::JoinHandle<()>
+where
+    P: DnsProvider + 'static,
+{
     // AccountCredentials does not implement Clone; serialize once and
     // deserialize on each iteration for a fresh copy.
     let credentials_json =
@@ -119,11 +151,16 @@ where
 
     tokio::spawn(async move {
         let mut not_after: Option<DateTime<Utc>> = None;
+        let mut ari_info: Option<ari::RenewalInfo> = None;
 
         loop {
-            // Sleep until the renewal window, or immediately on the first run.
+            // Sleep until the renewal window. Prefer the CA's ARI window; fall
+            // back to `notAfter` minus the threshold. Run immediately on first
+            // pass (no certificate yet).
             let sleep_secs = match not_after {
-                Some(exp) => seconds_until_renewal(exp, renew_before_days, Utc::now()),
+                Some(exp) => {
+                    ari::next_renewal_sleep(ari_info.as_ref(), exp, renew_before_days, Utc::now())
+                }
                 None => 0,
             };
 
@@ -143,6 +180,9 @@ where
             match issue_with_credentials(&config, creds, &provider).await {
                 Ok(cert) => {
                     not_after = parse_not_after(&cert.cert_chain_pem).ok();
+                    // Ask the caller for the CA's ARI window for this new cert;
+                    // `None` keeps the `notAfter` schedule.
+                    ari_info = renewal_info_for(&cert);
                     if let Some(exp) = not_after {
                         let days = (exp - Utc::now()).num_days().max(0);
                         set_cert_days_until_expiry(&config.domain, days);

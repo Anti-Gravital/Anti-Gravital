@@ -6,6 +6,7 @@
 //! Flow: create account -> create order -> resolve DNS-01 -> wait for
 //! validation -> generate CSR with rcgen -> finalize -> download PEM.
 
+pub mod ari;
 pub mod challenge;
 pub mod renewal;
 pub mod wildcard;

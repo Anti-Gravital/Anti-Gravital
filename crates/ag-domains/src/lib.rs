@@ -76,3 +76,8 @@ pub use provider::sdk::{
 
 #[cfg(feature = "acme")]
 pub use acme::wildcard::{issue_dns01_with_adapter, Dns01Desired, Dns01OrderDriver};
+
+#[cfg(feature = "acme")]
+pub use acme::ari::{
+    next_renewal_sleep, parse_renewal_info, seconds_until_ari_renewal, RenewalInfo, RenewalWindow,
+};

@@ -22,6 +22,10 @@ workspace = true
 default = ["acme", "propagation"]
 acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:chrono"]
 propagation = ["dep:hickory-resolver"]
+# PSL-correct eTLD+1 (RFC-0016): registrable-domain derivation via the Public
+# Suffix List for multi-label suffixes (co.uk, com.br). OFF by default; the
+# native two-label heuristic keeps the default build offline (ADR-0009).
+psl = ["dep:psl"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
 # REST API surface for the control plane (RFC-0011 phase C), backed by the
@@ -55,6 +59,10 @@ sqlx = { workspace = true, optional = true }
 
 # Propagacion DNS (hickory-resolver)
 hickory-resolver = { version = "0.26.1", default-features = false, features = ["tokio"], optional = true }
+
+# Public Suffix List for PSL-correct eTLD+1 (feature "psl"). Pure-Rust, embedded
+# list, no network; permissively licensed (RFC-0016).
+psl = { version = "2", optional = true }
 
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }

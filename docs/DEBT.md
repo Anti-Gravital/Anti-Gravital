@@ -248,16 +248,10 @@ findings were fixed in-branch and are not listed here.
 ## ag-domains control plane
 
 ### DEBT-024 — eTLD+1 via two-label heuristic (no Public Suffix List)
-- Reason: `ag-domains::hostname` derives the registrable domain by taking the
-  last two labels. Multi-label public suffixes (`co.uk`, `com.br`, etc.) are
-  misclassified, which skews apex vs subdomain detection and generated DNS
-  instructions for those TLDs.
-- Impact: incorrect instructions/classification for domains under multi-label
-  public suffixes. Single-label TLDs (`.com`, `.net`, `.io`) are correct.
-- Expected removal: a PSL-backed implementation behind a dependency RFC
-  (candidate crate: `psl` or `publicsuffix`); gate it so the native default
-  keeps working offline.
-- Status: open. Severity: Medium. Source: RFC-0011 §7.
+- Status: RESOLVED (issue #78, RFC-0016). A single shared
+  `ag-domains::registrable::registrable_domain` is the only eTLD+1 source for
+  `hostname` and `issuance`; PSL-correct behind the `psl` Cargo feature, with the
+  two-label heuristic as the offline default (ADR-0009). See GitHub issue #78.
 
 ### DEBT-025 — ag-domains control plane deferred phases (RFC-0011 E-F)
 - Reason: phases A, B, C and D are implemented. A = control-plane library +

@@ -1,13 +1,15 @@
 # RFC-0016 - eTLD+1 via the Public Suffix List (ag-domains)
 
-- Status: proposed (pending review and approval)
-- Author: Gravital Labs - Nereira Technology and Business Solutions
+- Status: accepted
+- Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-06-11
+- Decision date: 2026-06-11
 - Target phase: maintenance of Phase 4.5 ag-domains (correctness fix)
-- Affected modules/crates: `ag-domains` (`hostname`, `issuance`); a new optional
-  dependency
+- Affected modules/crates: `ag-domains` (`hostname`, `issuance`, `registrable`);
+  a new optional dependency (`psl`)
 - Predecessor RFC: RFC-0011 (ag-domains control plane)
-- Comment period: minimum seven calendar days
+- Comment period: waived by BDFL decision. The dependency is pure-Rust, embedded
+  and feature-gated OFF by default; the native build is unaffected.
 
 ## 1. Motivation
 
@@ -88,11 +90,13 @@ API change. No data migration is involved.
 
 ## 9. Decision
 
-To be completed after the comment period.
-
-- Decider: BDFL or technical committee.
-- Decision date: YYYY-MM-DD.
-- Outcome: accepted / rejected / deferred.
+- Decider: Angel Nereira (BDFL).
+- Decision date: 2026-06-11.
+- Outcome: accepted (comment period waived by BDFL).
+- Rationale: the fix is a correctness improvement that shares a single eTLD+1
+  source between `hostname` and `issuance`; the dependency is pure-Rust,
+  embedded, permissively licensed and gated OFF by default, so the native build
+  stays offline (ADR-0009) and rule 15 is satisfied.
 
 ## 10. References
 

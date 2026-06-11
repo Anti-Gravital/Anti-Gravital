@@ -31,6 +31,9 @@ rigida en todos los targets (septima regla de dependencias en
 
 - `acme` (default): cliente ACME contra Let's Encrypt.
 - `propagation` (default): verificacion via resolvers DNS publicos.
+- `psl` (RFC-0016): derivacion de eTLD+1 via Public Suffix List, correcta para
+  sufijos multi-etiqueta (`co.uk`, `com.br`). OFF por defecto; el heuristico de
+  dos etiquetas mantiene el build nativo offline (ADR-0009).
 - `cloudflare`: adapter Cloudflare (DnsProvider). Otros adapters se añaden
   en iteraciones futuras detras de su propia feature.
 

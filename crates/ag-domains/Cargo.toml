@@ -32,6 +32,8 @@ cloudflare = ["dep:reqwest"]
 route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:chrono"]
 # Google Cloud DNS adapter (service-account RS256 JWT + JSON API). RFC-0011 phase E.
 google-cloud-dns = ["dep:reqwest", "dep:jsonwebtoken", "dep:chrono"]
+# Azure DNS adapter (OAuth2 client-credentials + ARM JSON API). RFC-0011 phase E.
+azure-dns = ["dep:reqwest"]
 # REST API surface for the control plane (RFC-0011 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]

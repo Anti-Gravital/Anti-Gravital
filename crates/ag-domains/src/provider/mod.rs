@@ -24,6 +24,9 @@ pub mod route53;
 #[cfg(feature = "google-cloud-dns")]
 pub mod google_cloud_dns;
 
+#[cfg(feature = "azure-dns")]
+pub mod azure_dns;
+
 /// Abstraction over any DNS provider.
 ///
 /// Adapters implement this trait. The ecosystem consumes it via

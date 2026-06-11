@@ -101,8 +101,16 @@ pub fn known_provider_capabilities() -> Vec<ProviderCapabilities> {
             zone_export: true,
             domain_purchase: false,
         },
-        // Azure DNS: record-set operations + apex alias records; no adapter yet.
-        ProviderCapabilities::manual("azure-dns", true, false),
+        // Azure DNS: read/apply adapter (feature `azure-dns`) + apex alias record sets.
+        ProviderCapabilities {
+            provider: "azure-dns",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: true,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
         // Namecheap: host-record API exists, but no Anti-Gravital adapter yet.
         ProviderCapabilities::manual("namecheap", false, false),
         // Hostinger: hPanel DNS; manual flow + BIND export.

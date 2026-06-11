@@ -42,6 +42,9 @@ rigida en todos los targets (septima regla de dependencias en
 - `google-cloud-dns`: adapter Google Cloud DNS (JWT RS256 de service account +
   API JSON `changes`). La firma JWT se verifica en un test sign/verify; la ruta
   real va con test `#[ignore]` de credencial.
+- `azure-dns`: adapter Azure DNS (OAuth2 client-credentials + API JSON de ARM,
+  record sets por tipo, `PUT` upsert). Tests de forma con wiremock; ruta real con
+  test `#[ignore]` de credencial.
 
 ## Control plane (ADR-0012 / RFC-0011, phase A)
 

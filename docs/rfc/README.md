@@ -78,3 +78,4 @@ como `superseded`.
 | 0012 | ag-workers: motor de ejecucion en segundo plano (Fase 4.6-D) | aceptada | `RFC-0012-ag-workers.md` |
 | 0013 | Confinamiento de filesystem por capabilities en ag-storage | aprobada | `RFC-0013-capability-filesystem-confinement.md` |
 | 0014 | Validacion @regex ejecutable en Rust (generador DSL) | aceptada | `RFC-0014-regex-runtime-validation.md` |
+| 0015 | ag-registrars: compra/transferencia/renovacion de dominios (Fase F) | propuesta | `RFC-0015-ag-registrars-design.md` |

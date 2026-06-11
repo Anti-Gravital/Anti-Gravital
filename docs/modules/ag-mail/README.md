@@ -102,7 +102,7 @@ data model + marketing objects (historical DEBT-021) and the live-delivery test
 (historical DEBT-022). The durable-spool need (historical DEBT-023) is now
 served by the opt-in `workers-postgres` feature, which routes delivery through
 the shared `ag-workers` PostgreSQL backend (RFC-0012 S7); its live-database
-parity verification is tracked in Issue #109.
+parity was verified against a real PostgreSQL 16 (Issue #109 resolved).
 
 ### Planned — later phases
 

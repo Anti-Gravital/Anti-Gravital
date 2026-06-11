@@ -402,16 +402,16 @@ prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
 
 - [x] Jobs tipados se ejecutan sobre el backend en memoria (`ag dev`) con retry,
   backoff y DLQ (`tests/runtime_outcomes.rs`, `tests/retry_policy.rs`).
-- [/] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
+- [x] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
   `enqueue_in_tx` commitea job + escrituras del llamador de forma atomica (test de
-  rollback). El codigo y los tests existen (`tests/postgres_queue.rs`), pero son
-  `#[ignore]` y exigen `DATABASE_URL`; su ejecucion contra una base viva esta
-  bloqueada por el entorno y se rastrea en el Issue #108.
+  rollback). Verificado contra una PostgreSQL 16 viva: las 6 pruebas `#[ignore]` de
+  `tests/postgres_queue.rs` pasan con `--test-threads=1` (Issue #108). El CI por
+  defecto sigue sin levantar Postgres, asi que permanecen `#[ignore]`.
 - [x] El poison guard convierte un job en crash-loop en una entrada acotada del DLQ
   (`tests/poison_guard.rs`).
 - [x] Los jobs por intervalo disparan una sola vez (claim singleton) sobre el backend
-  en memoria (`tests/scheduler_dynamic.rs`). La verificacion cross-proceso sobre
-  PostgreSQL forma parte del Issue #108.
+  en memoria (`tests/scheduler_dynamic.rs`); la concurrencia con `SKIP LOCKED` se
+  verifico ademas contra PostgreSQL viva (`skip_locked_no_double_lease`, Issue #108).
 - [x] La declaracion `worker` del DSL compila y genera payloads + stubs de handler
   (`ag-dsl` v0.8, `codegen/worker_gen.rs`).
 - [x] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated

@@ -5,25 +5,25 @@
 > Anterior: [12-migracion-ag-migrate.md](./12-migracion-ag-migrate.md)
 > Siguiente: [14-observabilidad-ag-observe.md](./14-observabilidad-ag-observe.md)
 
-## 13. Puente de aplicaciones nativas (`ag-mobile`): Flutter y clientes generados
+## 13. Native application bridge (`ag-mobile`): Flutter and generated clients
 
-El reposicionamiento más importante derivado del análisis crítico es que Anti-Gravital no compite con Flutter. Se posiciona como **el backend nativo ideal para aplicaciones Flutter**. Esto multiplica el valor estratégico del proyecto: en lugar de competir con un framework de UI multiplataforma maduro y muy bien diseñado, Anti-Gravital se convierte en su compañero natural.
+The most important repositioning derived from the critical analysis is that Anti-Gravital does not compete with Flutter. It positions itself as **the ideal native backend for Flutter applications**. This multiplies the strategic value of the project: instead of competing with a mature and very well designed cross-platform UI framework, Anti-Gravital becomes its natural companion.
 
-### 13.1 Generación de SDK Dart
+### 13.1 Dart SDK generation
 
-`ag-mobile` genera un paquete Dart completo a partir del `schema.ag`. El paquete incluye tipos generados con freezed para inmutabilidad, cliente HTTP basado en dio con interceptores para autenticación, cliente WebSocket para realtime, soporte de Server-Sent Events, y mocks para tests.
+`ag-mobile` generates a complete Dart package from the `schema.ag`. The package includes types generated with freezed for immutability, an HTTP client based on dio with interceptors for authentication, a WebSocket client for realtime, Server-Sent Events support, and mocks for tests.
 
-### 13.2 Autenticación nativa Flutter
+### 13.2 Native Flutter authentication
 
-El módulo incluye widgets y servicios listos para los flujos de autenticación. La integración con WebAuthn aprovecha las plataformas nativas (Android Credential Manager API, iOS Passkeys vía AuthenticationServices). El flujo OAuth2 usa `flutter_appauth` con configuración auto-generada.
+The module includes widgets and services ready for the authentication flows. The WebAuthn integration leverages the native platforms (Android Credential Manager API, iOS Passkeys via AuthenticationServices). The OAuth2 flow uses `flutter_appauth` with auto-generated configuration.
 
-### 13.3 Offline-first y sincronización
+### 13.3 Offline-first and synchronization
 
-`ag-mobile` ofrece un layer de sincronización offline opcional. Las operaciones se encolan localmente en una base SQLite, se replican al servidor cuando hay conectividad, y los conflictos se resuelven con políticas declarativas en el schema (last-write-wins, custom merge, server-wins). Es una funcionalidad ambiciosa que se implementa en una fase tardía del roadmap.
+`ag-mobile` offers an optional offline synchronization layer. Operations are queued locally in a SQLite database, replicated to the server when there is connectivity, and conflicts are resolved with declarative policies in the schema (last-write-wins, custom merge, server-wins). It is an ambitious functionality that is implemented in a late phase of the roadmap.
 
-### 13.4 Otros clientes generados
+### 13.4 Other generated clients
 
-Aunque Flutter es el target prioritario para móvil, el sistema de codegen es extensible. La versión 1.0 incluye generadores para Dart (Flutter), TypeScript (React, Vue, Svelte, Next.js), y Kotlin (Android nativo, opcionalmente Kotlin Multiplatform). Una versión posterior puede incluir Swift y Python.
+Although Flutter is the priority target for mobile, the codegen system is extensible. Version 1.0 includes generators for Dart (Flutter), TypeScript (React, Vue, Svelte, Next.js), and Kotlin (native Android, optionally Kotlin Multiplatform). A later version may include Swift and Python.
 
 ---
 

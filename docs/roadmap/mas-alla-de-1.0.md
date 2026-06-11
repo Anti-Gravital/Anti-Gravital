@@ -5,16 +5,17 @@
 > Anterior: [fase-10-endurecimiento-y-1.0.md](./fase-10-endurecimiento-y-1.0.md)
 > Siguiente: [reglas-de-oro.md](./reglas-de-oro.md)
 
-## Más allá de la 1.0: hojas de ruta futuras
+## Beyond 1.0: future roadmaps
 
-Una vez liberada la 1.0, el proyecto entra en modo de mantenimiento estable con releases minor cada 3 meses. Los temas candidatos para versiones futuras incluyen:
+Once 1.0 is released, the project enters stable maintenance mode with minor releases every 3 months. The candidate topics for future versions include:
 
-- Versión 1.x: optimizaciones de rendimiento adicionales, soporte de protocolos adicionales (HTTP/3 vía QUIC).
-- Versión 2.x: refactorización de la ABI de plugins si la comunidad WebAssembly hace cambios mayores. Soporte de nuevos targets de despliegue.
-- Generador Swift para iOS nativo.
-- Generador Kotlin Multiplatform para Android nativo y casos cross-platform.
-- Soporte multi-tenant más sofisticado con federación de instancias.
+- Version 1.x: additional performance optimizations, support for additional protocols (HTTP/3 via QUIC).
+- Version 2.x: refactoring of the plugin ABI if the WebAssembly community makes major changes. Support for new deployment targets.
+- Swift generator for native iOS.
+- Kotlin Multiplatform generator for native Android and cross-platform cases.
+- More sophisticated multi-tenant support with instance federation.
 
-Esta hoja de ruta extendida no es un compromiso. Se documenta para señalar dirección, pero se reservará a RFCs específicos cuando llegue el momento.
+This extended roadmap is not a commitment. It is documented to signal direction, but it will be reserved for specific RFCs when the time comes.
 
 ---
+

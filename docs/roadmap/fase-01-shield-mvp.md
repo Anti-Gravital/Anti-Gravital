@@ -5,47 +5,50 @@
 > Anterior: [fase-00-fundaciones-y-gobernanza.md](./fase-00-fundaciones-y-gobernanza.md)
 > Siguiente: [fase-02-core-mvp.md](./fase-02-core-mvp.md)
 
-## Fase 1 — The Shield MVP
+## Phase 1 — The Shield MVP
 
-**Objetivo.** Implementar la capa Shield del núcleo: una pipeline de middleware Tower que valida, autentica básicamente, aplica rate limiting y entrega requests a un handler placeholder. Sin Core completo todavía. Sin DSL todavía. El producto es un binario que responde HTTP con seguridad básica y benchmark publicable.
+**Status: Technical implementation complete.** Detail of boxes in `docs/roadmap/STATUS.md`.
 
-### 1.1 Criterios de entrada
+**Objective.** Implement the core's Shield layer: a Tower middleware pipeline that validates, performs basic authentication, applies rate limiting and delivers requests to a placeholder handler. No complete Core yet. No DSL yet. The product is a binary that responds over HTTP with basic security and a publishable benchmark.
 
-- [ ] Fase 0 completada con todos sus criterios de salida marcados.
-- [ ] Al menos un contribuidor adicional al mantenedor principal está activo en el repositorio.
+### 1.1 Entry criteria
 
-### 1.2 Entregables
+- [ ] Phase 0 completed with all of its exit criteria checked.
+- [ ] At least one contributor in addition to the main maintainer is active in the repository.
 
-- [ ] Crate `ag-core` con módulo `shield` operativo.
-- [ ] Soporte de HTTP/1.1 y HTTP/2 vía Axum + Tokio.
-- [ ] Terminación TLS 1.3 con rustls.
-- [ ] Middleware de validación de payload básico (deserialización con serde y restricciones simples).
-- [ ] Middleware de autenticación JWT con verificación Ed25519.
-- [ ] Middleware de rate limiting con governor (token bucket por IP).
-- [ ] Middleware CORS y CSRF con defaults seguros.
-- [ ] Middleware de logging estructurado con `tracing`.
-- [ ] Configuración mínima desde archivo TOML.
-- [ ] Tests unitarios con cobertura ≥ 80% del crate `ag-core`.
-- [ ] Tests de integración end-to-end del pipeline Shield.
-- [ ] Benchmark Hello World ejecutable: `cargo bench` produce cifras reproducibles.
-- [ ] Documentación API del crate generada con `cargo doc`, publicada en `docs.rs`.
-- [ ] Capítulo del manual de usuario explicando cómo usar la Shield directamente como librería.
+### 1.2 Deliverables
 
-### 1.3 Criterios de salida (puerta antes de Fase 2)
+- [ ] `ag-core` crate with operational `shield` module.
+- [ ] HTTP/1.1 and HTTP/2 support via Axum + Tokio.
+- [ ] TLS 1.3 termination with rustls.
+- [ ] Basic payload validation middleware (deserialization with serde and simple constraints).
+- [ ] JWT authentication middleware with Ed25519 verification.
+- [ ] Rate limiting middleware with governor (token bucket per IP).
+- [ ] CORS and CSRF middleware with secure defaults.
+- [ ] Structured logging middleware with `tracing`.
+- [ ] Minimal configuration from a TOML file.
+- [ ] Unit tests with coverage ≥ 80% of the `ag-core` crate.
+- [ ] End-to-end integration tests of the Shield pipeline.
+- [ ] Executable Hello World benchmark: `cargo bench` produces reproducible figures.
+- [ ] Crate API documentation generated with `cargo doc`, published on `docs.rs`.
+- [ ] User manual chapter explaining how to use the Shield directly as a library.
 
-- [ ] Benchmark Hello World alcanza ≥ 300 K req/s en hardware de referencia documentado.
-- [ ] Latencia p99 del pipeline Shield ≤ 1 ms a 100 K req/s.
-- [ ] Memoria del proceso idle ≤ 15 MB.
-- [ ] Tiempo de arranque ≤ 100 ms.
-- [ ] CI pasa en las cuatro plataformas objetivo.
-- [ ] Análisis estático con `clippy` sin warnings.
-- [ ] Análisis de dependencias con `cargo-audit` sin vulnerabilidades conocidas.
-- [ ] Cero bloques `unsafe` no documentados.
-- [ ] Al menos un blog post técnico publicado sobre la arquitectura de la Shield.
-- [ ] Al menos diez stars en el repositorio.
+### 1.3 Exit criteria (gate before Phase 2)
 
-### 1.4 Riesgos de la fase
+- [ ] Hello World benchmark reaches ≥ 300 K req/s on documented reference hardware.
+- [ ] Shield pipeline p99 latency ≤ 1 ms at 100 K req/s.
+- [ ] Idle process memory ≤ 15 MB.
+- [ ] Startup time ≤ 100 ms.
+- [ ] CI passes on the four target platforms.
+- [ ] Static analysis with `clippy` without warnings.
+- [ ] Dependency analysis with `cargo-audit` without known vulnerabilities.
+- [ ] Zero undocumented `unsafe` blocks.
+- [ ] At least one technical blog post published about the Shield architecture.
+- [ ] At least ten stars on the repository.
 
-El riesgo principal es underestimar la complejidad de TLS y rate limiting en producción. La mitigación es usar exclusivamente crates probados (rustls, governor) y no rodar implementaciones propias. El riesgo secundario es que las cifras de benchmark no alcancen el objetivo; la mitigación es publicar lo que se mide con honestidad y documentar el déficit.
+### 1.4 Phase risks
+
+The main risk is underestimating the complexity of TLS and rate limiting in production. The mitigation is to use exclusively proven crates (rustls, governor) and not to roll our own implementations. The secondary risk is that the benchmark figures do not reach the target; the mitigation is to publish what is measured with honesty and document the shortfall.
 
 ---
+

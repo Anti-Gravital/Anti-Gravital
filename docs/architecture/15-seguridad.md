@@ -5,31 +5,31 @@
 > Anterior: [14-observabilidad-ag-observe.md](./14-observabilidad-ag-observe.md)
 > Siguiente: [16-rendimiento-y-validacion.md](./16-rendimiento-y-validacion.md)
 
-## 15. Modelo de seguridad
+## 15. Security model
 
-La seguridad es una preocupación transversal, no un módulo. Esta sección documenta las garantías y las prácticas del proyecto.
+Security is a cross-cutting concern, not a module. This section documents the project's guarantees and practices.
 
-### 15.1 Garantías por construcción
+### 15.1 Guarantees by construction
 
-Rust elimina por construcción cuatro categorías de bugs que históricamente representan más del 70% de las vulnerabilidades críticas en software de sistemas: use-after-free, buffer overflows, data races, y null pointer dereferences. Estas garantías son a nivel de compilador, no de runtime; no requieren GC ni runtime checks.
+Rust eliminates by construction four categories of bugs that historically represent more than 70% of the critical vulnerabilities in systems software: use-after-free, buffer overflows, data races, and null pointer dereferences. These guarantees are at the compiler level, not at runtime; they do not require GC or runtime checks.
 
-Anti-Gravital prohíbe el uso de `unsafe` en todo el código del framework salvo en bloques explícitamente justificados, documentados, y revisados por al menos dos mantenedores. Cada bloque `unsafe` viene acompañado de un comentario que explica por qué es necesario y qué invariantes preserva.
+Anti-Gravital prohibits the use of `unsafe` in all the framework code except in blocks that are explicitly justified, documented, and reviewed by at least two maintainers. Each `unsafe` block comes accompanied by a comment that explains why it is necessary and which invariants it preserves.
 
-### 15.2 Prácticas de criptografía
+### 15.2 Cryptography practices
 
-Las primitivas criptográficas se importan del crate `ring`, mantenido por miembros del equipo BoringSSL de Google. No se rueda criptografía propia. Los algoritmos por defecto son Ed25519 para firmas, ChaCha20-Poly1305 para AEAD, Argon2id para hashing de passwords, y TLS 1.3 para transporte. Algoritmos heredados (RSA, AES-CBC, SHA-1) están disponibles solo para interoperabilidad explícita.
+The cryptographic primitives are imported from the `ring` crate, maintained by members of Google's BoringSSL team. No custom cryptography is rolled. The default algorithms are Ed25519 for signatures, ChaCha20-Poly1305 for AEAD, Argon2id for password hashing, and TLS 1.3 for transport. Legacy algorithms (RSA, AES-CBC, SHA-1) are available only for explicit interoperability.
 
-### 15.3 Política de divulgación responsable
+### 15.3 Responsible disclosure policy
 
-El repositorio mantiene un archivo `SECURITY.md` con direcciones de contacto (primario `anti@gravitalcloud.com`, respaldo `angelnereira@gravitalcloud.com`) y una política clara: las vulnerabilidades se reportan privadamente, el equipo confirma recepción en 48 horas, publica un parche en 30 días para vulnerabilidades críticas, y un CVE con crédito al reportero.
+The repository maintains a `SECURITY.md` file with contact addresses (primary `anti@gravitalcloud.com`, backup `angelnereira@gravitalcloud.com`) and a clear policy: vulnerabilities are reported privately, the team confirms receipt within 48 hours, publishes a patch within 30 days for critical vulnerabilities, and a CVE with credit to the reporter.
 
-### 15.4 Auditorías
+### 15.4 Audits
 
-Antes de la versión 1.0 estable, el componente Shield del framework se somete a una auditoría externa por una empresa especializada en seguridad de sistemas Rust (Trail of Bits, NCC Group o equivalente). El reporte de auditoría se publica con el lanzamiento.
+Before the stable 1.0 version, the Shield component of the framework undergoes an external audit by a company specialized in Rust systems security (Trail of Bits, NCC Group, or equivalent). The audit report is published with the release.
 
-### 15.5 Fuzzing continuo
+### 15.5 Continuous fuzzing
 
-El parser del DSL y el parser HTTP se someten a fuzzing continuo con `cargo-fuzz`. La CI ejecuta corpus de fuzzing en cada PR; antes del 1.0, se completan al menos 72 horas de fuzzing sin crashes en cada parser.
+The DSL parser and the HTTP parser undergo continuous fuzzing with `cargo-fuzz`. The CI runs fuzzing corpora on each PR; before 1.0, at least 72 hours of fuzzing without crashes are completed on each parser.
 
 ---
 

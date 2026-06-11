@@ -5,36 +5,37 @@
 > Anterior: [fase-08-ag-mobile.md](./fase-08-ag-mobile.md)
 > Siguiente: [fase-10-endurecimiento-y-1.0.md](./fase-10-endurecimiento-y-1.0.md)
 
-## Fase 9 — Sistema de plugins WASI
+## Phase 9 — WASI plugin system
 
-**Objetivo.** Construir el sistema de plugins WASI con wasmtime, definir la ABI estable, publicar los plugins oficiales, y arrancar el registro público.
+**Objective.** Build the WASI plugin system with wasmtime, define the stable ABI, publish the official plugins, and start the public registry.
 
-### 9.1 Criterios de entrada
+### 9.1 Entry criteria
 
-- [ ] Fase 8 completada.
-- [ ] Decisión RFC sobre el alcance de la ABI 1.0 de plugins. Aprobada por el comité técnico (formado en fase 4 o anterior).
+- [ ] Phase 8 completed.
+- [ ] RFC decision on the scope of the 1.0 plugin ABI. Approved by the technical committee (formed in phase 4 or earlier).
 
-### 9.2 Entregables
+### 9.2 Deliverables
 
-- [ ] Crate `ag-wasm-host` operativo sobre wasmtime.
-- [ ] Definición de interfaces WIT (WebAssembly Interface Types) para el host.
-- [ ] Especificación de `plugin.toml`.
-- [ ] Implementación del ciclo de vida de plugin (descubrimiento, validación, carga, activación, descarga).
-- [ ] Sandbox con límites de memoria, fuel y timeout.
-- [ ] Plugins oficiales: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`.
-- [ ] Comando `ag plugin add/remove/list`.
-- [ ] Registro público en `plugins.antigravital.dev`.
-- [ ] Guía: "Cómo escribir un plugin para Anti-Gravital" con ejemplos en Rust, Go (TinyGo) y AssemblyScript.
+- [ ] `ag-wasm-host` crate operational over wasmtime.
+- [ ] Definition of WIT interfaces (WebAssembly Interface Types) for the host.
+- [ ] Specification of `plugin.toml`.
+- [ ] Implementation of the plugin life cycle (discovery, validation, loading, activation, unloading).
+- [ ] Sandbox with memory, fuel and timeout limits.
+- [ ] Official plugins: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`.
+- [ ] `ag plugin add/remove/list` command.
+- [ ] Public registry at `plugins.antigravital.dev`.
+- [ ] Guide: "How to write a plugin for Anti-Gravital" with examples in Rust, Go (TinyGo) and AssemblyScript.
 
-### 9.3 Criterios de salida (puerta antes de Fase 10)
+### 9.3 Exit criteria (gate before Phase 10)
 
-- [ ] El registro publica al menos los seis plugins oficiales.
-- [ ] Al menos tres plugins externos de terceros publicados en el registro.
-- [ ] El benchmark muestra overhead de plugin ≤ 1% sobre handler nativo equivalente.
-- [ ] Al menos 6 000 stars en el repositorio.
+- [ ] The registry publishes at least the six official plugins.
+- [ ] At least three third-party external plugins published in the registry.
+- [ ] The benchmark shows plugin overhead ≤ 1% over an equivalent native handler.
+- [ ] At least 6 000 stars on the repository.
 
-### 9.4 Riesgos de la fase
+### 9.4 Phase risks
 
-El riesgo principal es la complejidad del component model de WebAssembly, que sigue evolucionando. La mitigación es pinneo conservador de la versión soportada y compromiso temprano con la comunidad wasmtime.
+The main risk is the complexity of the WebAssembly component model, which keeps evolving. The mitigation is conservative pinning of the supported version and early commitment with the wasmtime community.
 
 ---
+

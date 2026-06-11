@@ -5,37 +5,37 @@
 > Anterior: [17-gobernanza-open-source.md](./17-gobernanza-open-source.md)
 > Siguiente: [19-glosario.md](./19-glosario.md)
 
-## 18. Análisis de riesgos y mitigaciones
+## 18. Risk analysis and mitigations
 
-Esta sección documenta los riesgos reales del proyecto y las mitigaciones planeadas. Es deliberadamente honesta; un proyecto que no enumera sus riesgos no merece confianza.
+This section documents the real risks of the project and the planned mitigations. It is deliberately honest; a project that does not enumerate its risks does not deserve trust.
 
-### 18.1 Riesgo: complejidad del compilador del DSL
+### 18.1 Risk: DSL compiler complexity
 
-El compilador del DSL es un proyecto de varios años por sí solo. La mitigación es la implementación incremental por versiones del DSL descrita en la sección 7. La versión 0.1 cubre solo modelos básicos y es entregable en dos meses. Cada versión añade un subconjunto bien definido. La versión 1.0 estable del DSL es el hito de mayor riesgo del proyecto y se planifica para el final del cronograma.
+The DSL compiler is a several-year project on its own. The mitigation is the incremental implementation by DSL versions described in section 7. Version 0.1 covers only basic models and is deliverable in two months. Each version adds a well-defined subset. The stable 1.0 version of the DSL is the highest-risk milestone of the project and is planned for the end of the schedule.
 
-### 18.2 Riesgo: curva de aprendizaje de Rust
+### 18.2 Risk: Rust learning curve
 
-Rust tiene una curva de aprendizaje real. La mitigación es triple. Primero, el DSL genera el 80% del scaffolding, de modo que los handlers que el desarrollador escribe son Rust simple: unos pocos `await`, acceso a estado compartido, retornar un `Result`. Segundo, la documentación incluye una guía "Rust para desarrolladores de Python/Node.js" con los conceptos mínimos necesarios. Tercero, el asistente AI integrado puede generar handlers que el desarrollador supervisa.
+Rust has a real learning curve. The mitigation is threefold. First, the DSL generates 80% of the scaffolding, so that the handlers the developer writes are simple Rust: a few `await`s, access to shared state, returning a `Result`. Second, the documentation includes a "Rust for Python/Node.js developers" guide with the minimum necessary concepts. Third, the integrated AI assistant can generate handlers that the developer supervises.
 
-### 18.3 Riesgo: competencia con grandes players
+### 18.3 Risk: competition with big players
 
-Spring, .NET, Express y FastAPI tienen ecosistemas de décadas. Anti-Gravital no puede competir frontalmente con ellos en breadth. La mitigación es enfocarse en nichos donde los incumbentes tienen debilidades estructurales: aplicaciones de alta carga, servicios edge, backends para Flutter, backends para aplicaciones IA con streaming.
+Spring, .NET, Express, and FastAPI have decades-old ecosystems. Anti-Gravital cannot compete frontally with them in breadth. The mitigation is to focus on niches where the incumbents have structural weaknesses: high-load applications, edge services, backends for Flutter, backends for AI applications with streaming.
 
-### 18.4 Riesgo: bus factor
+### 18.4 Risk: bus factor
 
-El proyecto inicial tiene un bus factor preocupantemente bajo (un mantenedor). La mitigación es activa: documentación interna completa desde el día uno, incorporación de contribuidores externos desde la fase 1, y transición a comité técnico antes del 1.0.
+The initial project has a worryingly low bus factor (one maintainer). The mitigation is active: complete internal documentation from day one, incorporation of external contributors from phase 1, and transition to a technical committee before 1.0.
 
-### 18.5 Riesgo: cambios en el ecosistema Rust
+### 18.5 Risk: changes in the Rust ecosystem
 
-El ecosistema Rust sigue evolucionando rápidamente. Axum, Tokio y sqlx pueden hacer cambios breaking en versiones futuras. La mitigación es pinneo conservador de versiones, tests de integración exhaustivos contra cada nueva versión de las dependencias core, y participación activa en sus comunidades para anticipar cambios.
+The Rust ecosystem continues to evolve rapidly. Axum, Tokio, and sqlx may make breaking changes in future versions. The mitigation is conservative version pinning, exhaustive integration tests against each new version of the core dependencies, and active participation in their communities to anticipate changes.
 
-### 18.6 Riesgo: fragmentación de la comunidad
+### 18.6 Risk: community fragmentation
 
-Si la comunidad de Anti-Gravital fragmenta (por ejemplo, surgen forks competidores con features divergentes), el ecosistema se debilita. La mitigación es un proceso RFC abierto que da voz real a la comunidad, releases predecibles, y una hoja de ruta pública.
+If the Anti-Gravital community fragments (for example, competing forks with divergent features emerge), the ecosystem weakens. The mitigation is an open RFC process that gives a real voice to the community, predictable releases, and a public roadmap.
 
-### 18.7 Riesgo: vulnerabilidades de seguridad post-lanzamiento
+### 18.7 Risk: post-launch security vulnerabilities
 
-Aunque Rust elimina muchas categorías de vulnerabilidades, no elimina las lógicas (autorización rota, leaks de información, races a nivel de aplicación). La mitigación es la auditoría externa antes del 1.0, el programa de divulgación responsable, fuzzing continuo, y CI con análisis estático (clippy, cargo-audit, cargo-deny).
+Although Rust eliminates many categories of vulnerabilities, it does not eliminate the logical ones (broken authorization, information leaks, application-level races). The mitigation is the external audit before 1.0, the responsible disclosure program, continuous fuzzing, and CI with static analysis (clippy, cargo-audit, cargo-deny).
 
 ---
 

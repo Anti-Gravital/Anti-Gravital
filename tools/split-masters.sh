@@ -50,7 +50,7 @@ write_road() {
   } > "$out"
 }
 
-# Arquitectura Tecnica: 20 capitulos (seccion inglesa, lineas 48-1288).
+# Arquitectura Tecnica: 20 capitulos (seccion inglesa, lineas 48-1251).
 # Limites obtenidos con: grep -nE '^## [0-9]+\.' del maestro.
 write_arch 1  "01-resumen-ejecutivo.md"            "Resumen ejecutivo"                                  48  63   ""                                          "02-manifiesto-y-posicionamiento.md"
 write_arch 2  "02-manifiesto-y-posicionamiento.md" "Manifiesto y posicionamiento"                       64  79   "01-resumen-ejecutivo.md"                   "03-alcance-y-limites.md"
@@ -71,24 +71,24 @@ write_arch 16 "16-rendimiento-y-validacion.md"     "Objetivos de rendimiento y m
 write_arch 17 "17-gobernanza-open-source.md"       "Modelo de gobernanza Open Source"                   1117 1140 "16-rendimiento-y-validacion.md"           "18-riesgos-y-mitigaciones.md"
 write_arch 18 "18-riesgos-y-mitigaciones.md"       "Analisis de riesgos y mitigaciones"                 1141 1174 "17-gobernanza-open-source.md"             "19-glosario.md"
 write_arch 19 "19-glosario.md"                     "Glosario tecnico"                                   1175 1223 "18-riesgos-y-mitigaciones.md"             "20-apendice-comparativa.md"
-write_arch 20 "20-apendice-comparativa.md"         "Apendice: comparativa de mercado"                   1224 1288 "19-glosario.md"                           ""
+write_arch 20 "20-apendice-comparativa.md"         "Apendice: comparativa de mercado"                   1224 1251 "19-glosario.md"                           ""
 
 # Hoja de Ruta: 12 fases (incluye 4.5 aditiva) + preambulo y reglas.
-# Seccion inglesa, lineas 14-654. Limites: grep -nE '^## ' del maestro.
-write_road "preambulo.md"                       "Hoja de ruta: como leer este documento"           14  75   ""                                          "fase-00-fundaciones-y-gobernanza.md"
-write_road "fase-00-fundaciones-y-gobernanza.md" "Fase 0 - Fundaciones y gobernanza"               76  118  "preambulo.md"                              "fase-01-shield-mvp.md"
-write_road "fase-01-shield-mvp.md"               "Fase 1 - The Shield MVP"                         119 165  "fase-00-fundaciones-y-gobernanza.md"       "fase-02-core-mvp.md"
-write_road "fase-02-core-mvp.md"                 "Fase 2 - The Core MVP y roundtrip completo"      166 205  "fase-01-shield-mvp.md"                     "fase-03-anti-dsl-alpha.md"
-write_road "fase-03-anti-dsl-alpha.md"           "Fase 3 - Anti-DSL alpha (v0.1 a v0.4)"           206 253  "fase-02-core-mvp.md"                       "fase-04-modulos-estandar.md"
-write_road "fase-04-modulos-estandar.md"         "Fase 4 - Modulos estandar"                       254 292  "fase-03-anti-dsl-alpha.md"                 "fase-04-5-ag-mail-y-ag-domains.md"
-write_road "fase-04-5-ag-mail-y-ag-domains.md"   "Fase 4.5 - ag-mail y ag-domains: comunicacion y dominios" 293 397 "fase-04-modulos-estandar.md"      "fase-05-ag-cloud.md"
-write_road "fase-05-ag-cloud.md"                 "Fase 5 - ag-cloud despliegue simplificado"       398 436  "fase-04-5-ag-mail-y-ag-domains.md"         "fase-06-ag-ai-knowledge-graph.md"
-write_road "fase-06-ag-ai-knowledge-graph.md"    "Fase 6 - ag-ai y Knowledge Graph"                437 472  "fase-05-ag-cloud.md"                       "fase-07-ag-migrate.md"
-write_road "fase-07-ag-migrate.md"               "Fase 7 - ag-migrate importadores"                473 506  "fase-06-ag-ai-knowledge-graph.md"          "fase-08-ag-mobile.md"
-write_road "fase-08-ag-mobile.md"                "Fase 8 - ag-mobile Flutter bridge"               507 541  "fase-07-ag-migrate.md"                     "fase-09-plugins-wasi.md"
-write_road "fase-09-plugins-wasi.md"             "Fase 9 - Sistema de plugins WASI"                542 575  "fase-08-ag-mobile.md"                      "fase-10-endurecimiento-y-1.0.md"
-write_road "fase-10-endurecimiento-y-1.0.md"     "Fase 10 - Endurecimiento y hito 1.0"             576 618  "fase-09-plugins-wasi.md"                   "mas-alla-de-1.0.md"
-write_road "mas-alla-de-1.0.md"                  "Mas alla de la 1.0: hojas de ruta futuras"       619 632  "fase-10-endurecimiento-y-1.0.md"           "reglas-de-oro.md"
-write_road "reglas-de-oro.md"                    "Reglas de oro del proceso"                       633 656  "mas-alla-de-1.0.md"                        ""
+# Seccion inglesa, lineas 14-664. Limites: grep -nE '^## ' del maestro.
+write_road "preambulo.md"                       "Hoja de ruta: como leer este documento"           14  83   ""                                          "fase-00-fundaciones-y-gobernanza.md"
+write_road "fase-00-fundaciones-y-gobernanza.md" "Fase 0 - Fundaciones y gobernanza"               84  126  "preambulo.md"                              "fase-01-shield-mvp.md"
+write_road "fase-01-shield-mvp.md"               "Fase 1 - The Shield MVP"                         127 173  "fase-00-fundaciones-y-gobernanza.md"       "fase-02-core-mvp.md"
+write_road "fase-02-core-mvp.md"                 "Fase 2 - The Core MVP y roundtrip completo"      174 213  "fase-01-shield-mvp.md"                     "fase-03-anti-dsl-alpha.md"
+write_road "fase-03-anti-dsl-alpha.md"           "Fase 3 - Anti-DSL alpha (v0.1 a v0.4)"           214 261  "fase-02-core-mvp.md"                       "fase-04-modulos-estandar.md"
+write_road "fase-04-modulos-estandar.md"         "Fase 4 - Modulos estandar"                       262 300  "fase-03-anti-dsl-alpha.md"                 "fase-04-5-ag-mail-y-ag-domains.md"
+write_road "fase-04-5-ag-mail-y-ag-domains.md"   "Fase 4.5 - ag-mail y ag-domains: comunicacion y dominios" 301 405 "fase-04-modulos-estandar.md"      "fase-05-ag-cloud.md"
+write_road "fase-05-ag-cloud.md"                 "Fase 5 - ag-cloud despliegue simplificado"       406 444  "fase-04-5-ag-mail-y-ag-domains.md"         "fase-06-ag-ai-knowledge-graph.md"
+write_road "fase-06-ag-ai-knowledge-graph.md"    "Fase 6 - ag-ai y Knowledge Graph"                445 480  "fase-05-ag-cloud.md"                       "fase-07-ag-migrate.md"
+write_road "fase-07-ag-migrate.md"               "Fase 7 - ag-migrate importadores"                481 514  "fase-06-ag-ai-knowledge-graph.md"          "fase-08-ag-mobile.md"
+write_road "fase-08-ag-mobile.md"                "Fase 8 - ag-mobile Flutter bridge"               515 549  "fase-07-ag-migrate.md"                     "fase-09-plugins-wasi.md"
+write_road "fase-09-plugins-wasi.md"             "Fase 9 - Sistema de plugins WASI"                550 583  "fase-08-ag-mobile.md"                      "fase-10-endurecimiento-y-1.0.md"
+write_road "fase-10-endurecimiento-y-1.0.md"     "Fase 10 - Endurecimiento y hito 1.0"             584 626  "fase-09-plugins-wasi.md"                   "mas-alla-de-1.0.md"
+write_road "mas-alla-de-1.0.md"                  "Mas alla de la 1.0: hojas de ruta futuras"       627 640  "fase-10-endurecimiento-y-1.0.md"           "reglas-de-oro.md"
+write_road "reglas-de-oro.md"                    "Reglas de oro del proceso"                       641 664  "mas-alla-de-1.0.md"                        ""
 
 echo "OK: derivados generados."

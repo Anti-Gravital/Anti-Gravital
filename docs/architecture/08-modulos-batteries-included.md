@@ -5,203 +5,161 @@
 > Anterior: [07-anti-dsl.md](./07-anti-dsl.md)
 > Siguiente: [09-plugins-wasi.md](./09-plugins-wasi.md)
 
-## 8. Módulos batteries-included
+## 8. Batteries-included modules
 
-Esta sección especifica cada uno de los módulos estándar del ecosistema. Cada subsección documenta el propósito, el stack técnico, las decisiones de diseño y los puntos de extensión.
+This section specifies each of the standard modules of the ecosystem. Each subsection documents the purpose, the technical stack, the design decisions, and the extension points.
 
-### 8.1 `ag-auth` — Autenticación y autorización
+### 8.1 `ag-auth` — Authentication and authorization
 
-El módulo de autenticación implementa los esquemas modernos de identidad. La decisión arquitectónica central es soportar Passkeys/WebAuthn como primera clase, no como afterthought; las passwords son un mecanismo legacy soportado pero no recomendado.
+The authentication module implements the modern identity schemes. The central architectural decision is to support Passkeys/WebAuthn as first-class, not as an afterthought; passwords are a legacy mechanism that is supported but not recommended.
 
-El stack técnico es `webauthn-rs` para FIDO2, `jsonwebtoken` para JWT, `ring` para criptografía, `argon2` para hashing de passwords (cuando se usan), y `oauth2` como cliente OAuth2.
+The technical stack implemented is custom WebAuthn with `ciborium` (CBOR) and COSE verification (`p256` for ES256, `ed25519-dalek` for EdDSA) instead of `webauthn-rs`, for Apache-2.0 license compatibility (see `ADR-0006`); `jsonwebtoken` for JWT, `argon2` for password hashing (when used), and `oauth2` as the OAuth2 client (Google, GitHub) with the PKCE flow.
 
-Los flujos soportados son: registro y autenticación con passkey, autenticación con email + password (legacy), OAuth2 con providers preconfigurados (Google, GitHub, Microsoft, Gravital ID), API keys para integraciones servidor-servidor, y refresh tokens con rotación.
+The supported flows are: registration and authentication with passkey, authentication with email + password (legacy), OAuth2 with preconfigured providers (Google, GitHub, Microsoft, Gravital ID), API keys for server-to-server integrations, and refresh tokens with rotation.
 
-Los JWT se firman con Ed25519 por defecto (curva Edwards25519, más rápida que RSA y más segura que ECDSA-P256 contra ataques de canal lateral). La clave privada vive en un secret manager externo (HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager) o en variables de entorno con rotación documentada.
+JWTs are signed with Ed25519 by default (Edwards25519 curve, faster than RSA and more secure than ECDSA-P256 against side-channel attacks). The private key lives in an external secret manager (HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager) or in environment variables with documented rotation.
 
-El RBAC se declara en el schema y se compila a expresiones evaluables. La política se evalúa una vez por request en la Shield, antes de llegar al handler. Las políticas pueden referenciar claims del JWT, parámetros de path, y consultar la base de datos si se declara explícitamente (con cache para evitar el N+1).
+The RBAC is declared in the schema and compiled to evaluable expressions. The policy is evaluated once per request in the Shield, before reaching the handler. Policies can reference JWT claims, path parameters, and query the database if explicitly declared (with caching to avoid the N+1).
 
-### 8.2 `ag-data` — Acceso a datos y migraciones
+### 8.2 `ag-data` — Data access and migrations
 
-El módulo de datos se construye sobre sqlx, con verificación de queries SQL en tiempo de compilación. Esto significa que cuando se ejecuta `cargo build`, sqlx conecta a una base de datos de desarrollo (configurable por variable de entorno) y verifica que cada query sea sintácticamente válida y que los tipos de columnas devueltas coincidan con los structs Rust que las reciben. Un error de SQL deja de ser un error de runtime; se convierte en un error de compilación.
+The data module is built on sqlx, with compile-time verification of SQL queries. This means that when `cargo build` runs, sqlx connects to a development database (configurable by environment variable) and verifies that each query is syntactically valid and that the types of the returned columns match the Rust structs that receive them. A SQL error ceases to be a runtime error; it becomes a compile error.
 
-Los backends soportados son PostgreSQL (recomendado para producción), SQLite (para desarrollo, tests, y aplicaciones edge), y MySQL (para entornos heredados).
+The supported backends are PostgreSQL (recommended for production), SQLite (for development, tests, and edge applications), and MySQL (for legacy environments).
 
-Las migraciones se embeben en el binario con `sqlx::migrate!`. Esto significa que el binario contiene en sí mismo el historial completo de migraciones, y al arrancar puede aplicar automáticamente las pendientes. Para entornos donde esto no es deseable (despliegues blue-green con migración como step separado), el comando `ag migrate apply` ejecuta las migraciones sin levantar el servidor.
+Migrations are embedded in the binary with `sqlx::migrate!`. This means that the binary itself contains the complete history of migrations, and at startup it can automatically apply the pending ones. For environments where this is not desirable (blue-green deployments with migration as a separate step), the `ag migrate apply` command runs the migrations without bringing up the server.
 
-Para arquitecturas multi-tenant, `ag-data` soporta nativamente schema-per-tenant en PostgreSQL: cada inquilino tiene su propio schema con las mismas tablas, y el router de conexión selecciona el schema en función del claim del JWT. También soporta Row-Level Security (RLS) para casos donde el aislamiento por schema es excesivo.
+For multi-tenant architectures, `ag-data` natively supports schema-per-tenant in PostgreSQL: each tenant has its own schema with the same tables, and the connection router selects the schema based on the JWT claim. It also supports Row-Level Security (RLS) for cases where schema isolation is excessive.
 
-Las read replicas se configuran declarativamente; el módulo enruta queries de solo lectura al replica más cercano y queries de escritura al primario.
+Read replicas are configured declaratively; the module routes read-only queries to the nearest replica and write queries to the primary.
 
-### 8.3 `ag-realtime` — Eventos y comunicación en tiempo real
+### 8.3 `ag-realtime` — Events and real-time communication
 
-`ag-realtime` ofrece tres modalidades de comunicación bidireccional: WebSocket binario, Server-Sent Events para flujos unidireccionales, y un bus de eventos pub/sub.
+`ag-realtime` offers three modalities of bidirectional communication: binary WebSocket, Server-Sent Events for unidirectional streams, and a pub/sub event bus.
 
-El bus de eventos usa NATS como broker. Para casos pequeños, NATS se ejecuta embebido en el mismo binario Anti-Gravital (modo edge). Para casos a escala, el binario se conecta a un clúster NATS externo. Esta dualidad permite arrancar simple y escalar sin reescribir.
+The event bus uses NATS as the broker. For small cases, NATS runs embedded in the same Anti-Gravital binary (edge mode). For cases at scale, the binary connects to an external NATS cluster. This duality allows starting simple and scaling without rewriting.
 
-Para WebSocket, el protocolo binario interno (basado en msgpack) reduce el overhead frente a JSON. Los handlers de WebSocket se declaran en el schema y reciben mensajes ya deserializados a structs Rust.
+For WebSocket, the internal binary protocol (based on msgpack) reduces the overhead compared to JSON. The WebSocket handlers are declared in the schema and receive messages already deserialized to Rust structs.
 
-Para SSE, se usa como fallback automático en navegadores que no soportan WebSocket o están detrás de proxies que lo bloquean. La negociación es transparente.
+For SSE, it is used as an automatic fallback in browsers that do not support WebSocket or are behind proxies that block it. The negotiation is transparent.
 
-La persistencia de eventos usa JetStream (componente de NATS) cuando está disponible, lo que permite replay de eventos para nuevos consumidores y durabilidad ante caídas del broker.
+Event persistence uses JetStream (a component of NATS) when available, which allows event replay for new consumers and durability against broker crashes.
 
-### 8.4 `ag-cache` — Caché multinivel
+### 8.4 `ag-cache` — Multi-level cache
 
-El módulo de caché ofrece dos niveles. El nivel L1 es caché en memoria con `moka`, una implementación concurrente sin locks contenciosos basada en TinyLFU. El nivel L2 es Redis (con `fred` como cliente), opcional, para caché distribuida entre instancias.
+The cache module offers two levels. The L1 level, already implemented, is an in-memory cache with `moka`, a concurrent implementation without contended locks based on TinyLFU, with tag-based invalidation. The L2 level (distributed cache between instances) is not yet implemented: `RFC-0005` proposes a native L2 compatible with the RESP2 protocol, without a dependency on Redis as an external service, and remains pending approval and implementation.
 
-La invalidación se hace por eventos. Cuando un endpoint emite un evento (`user.updated`), `ag-cache` invalida automáticamente las entradas relacionadas en ambos niveles. La política de invalidación se declara en el schema.
+Invalidation is done by events. When an endpoint emits an event (`user.updated`), `ag-cache` automatically invalidates the related entries at both levels. The invalidation policy is declared in the schema.
 
-El caché de queries SQL es automático: las queries marcadas con `@cache(ttl: 5m)` en el schema se cachean transparentemente, y la invalidación se dispara cuando un evento toca alguna de las tablas involucradas.
+The SQL query cache is automatic: queries marked with `@cache(ttl: 5m)` in the schema are cached transparently, and invalidation is triggered when an event touches any of the involved tables.
 
-### 8.5 `ag-storage` — Almacenamiento de objetos
+### 8.5 `ag-storage` — Object storage
 
-`ag-storage` ofrece una abstracción sobre tres backends: S3 (AWS y compatibles), MinIO (self-hosted), y filesystem local (para desarrollo). El backend se selecciona por configuración; el código de aplicación no se entera.
+`ag-storage` offers an abstraction over three backends: S3 (AWS and compatibles), MinIO (self-hosted), and local filesystem (for development). The backend is selected by configuration; the application code does not notice.
 
-Las URLs firmadas para descarga y subida directa se generan con un solo call: `storage.signed_url(key, Duration::from_mins(15), Permission::Write)`.
+Signed URLs for download and direct upload are generated with a single call: `storage.signed_url(key, Duration::from_mins(15), Permission::Write)`.
 
-El procesamiento de imágenes (resize, compress, format conversion) se hace con el crate `image`, soportando JPEG, PNG, WebP y AVIF. Los thumbnails se generan automáticamente en upload si se declara la política en el schema.
+Image processing (resize, compress, format conversion) is done with the `image` crate, supporting JPEG, PNG, WebP, and AVIF. Thumbnails are generated automatically on upload if the policy is declared in the schema.
 
-### 8.6 `ag-observe` — Trazabilidad, métricas y logging
+### 8.6 `ag-observe` — Traceability, metrics, and logging
 
-La observabilidad es una preocupación de primer nivel y no un módulo opcional para producción. Su stack es `tracing` para spans estructurados, `opentelemetry-rust` para exportación a backends compatibles (Jaeger, Tempo, Datadog, Honeycomb), `metrics` para métricas con backend Prometheus, y dashboards Grafana pre-configurados que se incluyen como JSON en el repositorio.
+Observability is a first-level concern and not an optional module for production. Its stack is `tracing` for structured spans, `opentelemetry-rust` for export to compatible backends (Jaeger, Tempo, Datadog, Honeycomb), `metrics` for metrics with a Prometheus backend, and pre-configured Grafana dashboards that are included as JSON in the repository.
 
-Cada request atraviesa todo el sistema con un correlation ID único que aparece en todos los logs estructurados, todos los spans de tracing, y todos los errores devueltos al cliente. Esto resuelve el problema del debugging en producción: dado un ticket de soporte con un correlation ID, el operador puede reconstruir el camino completo del request.
+Each request traverses the whole system with a unique correlation ID that appears in all structured logs, all tracing spans, and all errors returned to the client. This solves the problem of debugging in production: given a support ticket with a correlation ID, the operator can reconstruct the complete path of the request.
 
-`tokio-console` se integra en modo desarrollo para inspección en vivo de las tareas Tokio.
+`tokio-console` is integrated in development mode for live inspection of the Tokio tasks.
 
-### 8.7 `ag-ui` — Server-Side Rendering opcional
+### 8.7 `ag-ui` — Optional Server-Side Rendering
 
-El módulo SSR existe para casos donde un frontend SPA es excesivo: dashboards internos, páginas de marketing, formularios simples, e interfaces administrativas. Está basado en `askama` (templating compilado en build time, con tipos verificados) e integración nativa con HTMX para interactividad sin frameworks JavaScript pesados.
+The SSR module exists for cases where a SPA frontend is excessive: internal dashboards, marketing pages, simple forms, and administrative interfaces. It is based on `askama` (build-time compiled templating, with verified types) and native integration with HTMX for interactivity without heavy JavaScript frameworks.
 
-Este módulo es explícitamente *no* un competidor de React, Vue, Svelte o Next.js. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend con un frontend Next.js (u otro) que consume el cliente TypeScript generado.
+This module is explicitly *not* a competitor of React, Vue, Svelte, or Next.js. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend with a Next.js (or other) frontend that consumes the generated TypeScript client.
 
-### 8.8 `ag-mail` — Comunicación transaccional (estándar diferido)
+### 8.8 `ag-mail` — Transactional communication (deferred standard)
 
-Introducido por `ADR-0007` en la Fase 4.5. `ag-mail` es un módulo estándar
-**diferido**: tiene la madurez y el alcance de un estándar, pero NO se instala
-por defecto en los templates oficiales. Se incorpora cuando el proyecto
-requiere correo transaccional outbound (verificación de cuentas, magic links,
-recuperación de contraseña, alertas, notificaciones).
+Introduced by `ADR-0007` in Phase 4.5. `ag-mail` is a **deferred** standard module: it has the maturity and scope of a standard, but is NOT installed by default in the official templates. It is incorporated when the project requires outbound transactional mail (account verification, magic links, password recovery, alerts, notifications).
 
-El alcance v1 es **exclusivamente outbound**. `ag-mail` NO es un MTA, NO
-recibe correo (sin IMAP/POP), NO ofrece buzones persistentes, NO implementa
-antispam, filtrado ni gestión de reputación de IP. Esta restricción es
-deliberada y está fijada en el ADR.
+The v1 scope is **exclusively outbound**. `ag-mail` is NOT an MTA, it does NOT receive mail (no IMAP/POP), it does NOT offer persistent mailboxes, it does NOT implement antispam, filtering, or IP reputation management. This restriction is deliberate and is fixed in the ADR: the inbound and complete mail server capabilities are the work of a different project, not of Anti-Gravital.
 
-> **Actualización de alcance (`ADR-0010`, 2026-06-03).** La restricción "NO es
-> un MTA / inbound nunca" queda **superseded**: `ag-mail` se expande a un MTA
-> outbound nativo (resolución MX, entrega ESMTP+STARTTLS, firma DKIM,
-> clasificación de bounces) para enviar correo autenticado sin terceros en la
-> ruta de envío. Es por fases y opt-in tras features de Cargo (`mta`, `api`,
-> `queue-jetstream`); el baseline de relay outbound sigue siendo el modo por
-> defecto. Buzones, IMAP/POP/JMAP e inbound general siguen fuera de alcance;
-> inbound solo como parsing de DSN/ARF para bounces. Plan técnico: `RFC-0009`.
-> Trabajo futuro, no implementado aún.
+> **Scope update (`ADR-0010`, 2026-06-03).** The "NOT an MTA / inbound never" restriction above is **superseded**: `ag-mail` is being expanded into a native outbound MTA (MX resolution, ESMTP+STARTTLS delivery, DKIM signing, bounce classification) so a project can send authenticated mail with no third party in the sending path. The expansion is phased and opt-in behind Cargo features (`mta`, `api`, `queue-jetstream`); the outbound-relay baseline described here remains the default and is unchanged. Mailbox hosting, IMAP/POP/JMAP and general inbound stay out of scope; inbound is admitted only as DSN/ARF parsing for bounce processing. Technical plan: `RFC-0009`. The native MTA is forward work and is not claimed as implemented here.
 
-El stack técnico es `lettre` con transporte async Tokio y `rustls` para el
-sender SMTP nativo. Los adapters de proveedor se declaran como features de
-del relay SMTP nativo (apuntable a cualquier proveedor externo); la via sin terceros es el MTA nativo (`mta`). Cada sender implementa el trait
-`MailSender`. El patrón Native | Adapter es idéntico al usado por
-`ag-storage` (`Native | S3`) y `ag-cache` (`moka | Redis`).
+The technical stack is `lettre` with async Tokio transport and `rustls` for the native SMTP sender (coherent with The Shield). External providers are reached with the native SMTP relay; the no-third-party path is the native MTA (`mta` feature). The `MailSender` trait abstracts both:
 
-Los **templates** se construyen con `askama` (ya utilizado por `ag-ui`) y se
-validan en build-time contra el `schema.ag`: si el `from` declarado no
-referencia un `domain` válido, si el archivo del template no existe o si
-las variables del HTML no coinciden con las `vars` tipadas declaradas, el
-compilador del DSL rechaza el build. Un correo mal formado deja de ser un
-bug de runtime y se convierte en un error de compilación. Este es el
-diferenciador real (correo correcto en build-time), no la entregabilidad.
+```rust
+#[async_trait::async_trait]
+pub trait MailSender: Send + Sync {
+    async fn send(&self, msg: &Email) -> Result<MessageId, AgMailError>;
+    fn provider_name(&self) -> &'static str;
+    fn dns_requirements(&self, domain: &str) -> Vec<DnsRecordSpec>;
+}
 
-La **cola asíncrona** acepta jobs con reintentos y backoff exponencial.
-Backend por defecto en memoria; backend opcional persistente vía `ag-data`
-(tabla de jobs) para sobrevivir reinicios. Cada job emite métricas hacia
-`ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`,
-`ag_mail_retry_total`, histograma de latencia.
+pub enum AgMail {
+    Native(SmtpSender),                // lettre + rustls
+    Adapter(Box<dyn MailSender>),      // external providers via SMTP
+}
+```
 
-La **integración con `ag-auth`** es estrictamente unidireccional: `ag-auth`
-consume `ag-mail` invocando un trait pequeño que `ag-auth` define. `ag-mail`
-NO conoce a `ag-auth`. La sexta regla del capítulo 5 documenta esta
-direccionalidad.
+The Native | Adapter pattern is identical to the one used by `ag-storage` (`Native | S3`) and to the one planned for the L2 of `ag-cache` (L1 `moka` native today; L2 RESP2 native proposed in `RFC-0005`), reinforcing the project's interoperability rule: integrate dominant providers, do not replace them.
 
-Detalle completo en `docs/modules/ag-mail/`.
+The **templates** are modeled with the `MailTemplate` trait and a `StringTemplate` implementation of `{{var}}` substitution; any external engine (askama, minijinja) can be plugged in by implementing the trait. Variable validation is done against the `schema.ag`: the DSL compiler emits a warning when the `from` of a `mail` block does not reference a declared `domain`, and verifies that the typed `vars` of the template match the markers used. A malformed email ceases to be a runtime bug and approaches a build-detectable error. This is the **real differentiator** (build-time correctness), not deliverability: deliverability is the provider's job; the correctness of the contract is the framework's job.
 
-### 8.9 `ag-domains` — Gestión de dominios y TLS (opcional infra)
+The **async queue** accepts jobs with retries and exponential backoff. Default backend in memory (Tokio task + channel). Optional persistent backend via `ag-data` (jobs table) to survive restarts. Optional integration with `ag-realtime` for event fan-out. Each job emits metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`, `ag_mail_retry_total`, latency histogram.
 
-Introducido por `ADR-0007` en la Fase 4.5. `ag-domains` es un módulo
-**opcional de infraestructura**: no todo backend administra DNS, pero cuando
-un proyecto quiere que `ag deploy` entregue una URL con certificado válido
-en un comando, `ag-domains` es el módulo responsable.
+The **integration with `ag-auth`** is strictly unidirectional: `ag-auth` consumes `ag-mail` by invoking a small trait that `ag-auth` defines. `ag-mail` does NOT know about `ag-auth`. The sixth rule of section 5.3 documents this directionality.
 
-El módulo **NO es un registrador de dominios**: el dominio se compra
-externamente (Namecheap, Cloudflare Registrar, etc.) y se delega vía
-nameservers al proveedor configurado. `ag-domains` tampoco reemplaza
-Terraform ni Pulumi: para infraestructura compleja multi-cloud o gestión
-centralizada de zonas DNS arbitrarias, el proyecto debe usar las
-herramientas dominantes.
+`mail` block of DSL v0.7 (example):
 
-El núcleo del módulo es el trait `DnsProvider` (pequeño, versionado, con
-**tests de contrato** que todo adapter debe pasar). Adapter inicial:
-Cloudflare. Diseñado para añadir Route53, Namecheap, DigitalOcean, etc.
+```ag
+mail WelcomeEmail {
+    from "hello@plenty.market"      # debe referenciar un bloque domain
+    subject "Welcome to Plenty"
+    template "emails/welcome.html"  # debe existir
+    vars {
+        name String
+        activation_url String        # debe usarse en el HTML
+    }
+}
+```
 
-El **cliente ACME** (`instant-acme`) emite y renueva certificados de
-Let's Encrypt. Soporta DNS-01 (preferido) y HTTP-01. Renovación automática
-en background con vigilancia de expiración. Almacenamiento por defecto en
-filesystem; opcionalmente `ag-storage`.
+### 8.9 `ag-domains` — Domain and TLS management (optional infra)
 
-La cooperación con `ag-mail` se materializa en `generate_mail_records`:
-`ag-mail` declara sus requisitos vía `MailSender::dns_requirements` y
-`ag-domains` los materializa como registros (SPF, DKIM, DMARC). La
-**verificación de propagación** usa `hickory-resolver` contra múltiples
-resolvers públicos antes de marcar una operación como exitosa, bloqueando
-`ag deploy` hasta que el dominio responde.
+Introduced by `ADR-0007` in Phase 4.5. `ag-domains` is an **infrastructure optional** module: not every backend administers DNS (many deploy behind a proxy or PaaS that already resolves it), but when a project wants `ag deploy` to deliver a URL `https://miapi.example.com` with a valid certificate in a single command, `ag-domains` is the responsible module.
 
-Detalle completo en `docs/modules/ag-domains/`.
+The module is **NOT a domain registrar**: the domain is bought externally (Namecheap, Cloudflare Registrar, etc.) and delegated via nameservers to the configured provider. `ag-domains` also does not replace Terraform or Pulumi: for complex multi-cloud infrastructure or centralized management of arbitrary DNS zones, the project should use the dominant tools. The boundary is fixed in the ADR.
 
-### 8.10 `ag-workers` — Ejecución en segundo plano (estándar diferido)
+The core of the module is the `DnsProvider` trait:
 
-`ag-workers` es el motor de ejecución en segundo plano del ecosistema. Su trabajo es
-sacar el trabajo que no pertenece al ciclo de request fuera de los handlers HTTP —
-jobs en background, reintentos, dead-letter, tareas programadas y worker pools —
-preservando las propiedades del framework: ejecución nativa en Rust sin runtime
-externo obligatorio, contratos schema-first, fronteras de crate acíclicas,
-observabilidad nativa y simplicidad operacional (un solo binario por defecto).
+```rust
+#[async_trait::async_trait]
+pub trait DnsProvider: Send + Sync {
+    async fn list_records(&self, zone: &str) -> Result<Vec<DnsRecord>, AgDomainsError>;
+    async fn upsert_record(&self, zone: &str, record: &DnsRecord) -> Result<(), AgDomainsError>;
+    async fn delete_record(&self, zone: &str, id: &str) -> Result<(), AgDomainsError>;
+    fn provider_name(&self) -> &'static str;
+}
+```
 
-La decisión arquitectónica central es **extraer un patrón ya probado, no inventar uno
-nuevo**. `ag-mail` ya implementa cola con reintentos, backoff exponencial, backend
-persistente sobre `ag-data` y ejecución de workers (`crates/ag-mail/src/queue/`).
-`ag-workers` generaliza ese patrón a un crate compartido para que cada futuro
-consumidor (entrega de webhooks, renovación ACME, post-procesado de subidas,
-notificaciones, reportes) construya sobre un único substrato aburrido, durable y
-observable, en lugar de reimplementar su propia cola.
+Small, versioned, with **contract tests** that every adapter must pass. The initial adapter is Cloudflare (authentication by API token). The trait is designed to add Route53, Namecheap, DigitalOcean, etc. in later iterations without touching the public surface.
 
-El modelo mental es **el job**: una unidad tipada de trabajo diferido con identidad,
-cola, payload versionado (`rmp-serde`) y política de reintentos. El runtime lo ejecuta
-vía estrategias distintas (async sobre Tokio; CPU-bound sobre `spawn_blocking` acotado
-por semáforo, nunca `rayon`) pero el contrato es uniforme. Hay dos backends de primera
-clase: en memoria (por defecto, nativo) y PostgreSQL (durable, vía `ag-data`, feature
-`postgres`, con `FOR UPDATE SKIP LOCKED` para leasing concurrente). El **enqueue
-transaccional** (`enqueue_in_tx`) inserta el job dentro de la misma transacción que las
-escrituras del llamador, dando la propiedad de transactional-outbox sin tabla de outbox
-separada.
+The **ACME client** (`instant-acme`) issues and renews Let's Encrypt certificates. It supports the DNS-01 challenge (preferred, uses the `DnsProvider` itself to create the required TXT) and HTTP-01 (alternative). The renewal runs as a background Tokio task, watching expiration and renewing before the configured threshold. Certificate storage is filesystem by default, or optional `ag-storage`.
 
-Dos propiedades son críticas. Primera: el perfil de release usa `panic = "abort"`, así
-que el motor **no** promete aislamiento total de pánico; un job que entra en pánico
-aborta el proceso, y el backend durable más la expiración de lease lo hacen recuperable.
-Segunda, derivada de la anterior: un **circuit breaker de poison-job** incrementa el
-contador de intentos en el momento del lease y enruta directamente al DLQ cualquier job
-que supere `panic_guard_attempts`, convirtiendo un crash-loop infinito en una entrada
-acotada y observable del DLQ. El scheduling de intervalos usa un claim singleton
-(`FOR UPDATE SKIP LOCKED` sobre `ag_worker_schedules`) para disparar una sola vez bajo
-escalado horizontal. Las etiquetas de métricas están acotadas; `tenant_id` nunca es una
-etiqueta.
+The cooperation with `ag-mail` materializes in `generate_mail_records`: `ag-mail` declares its requirements via `MailSender::dns_requirements` and `ag-domains` materializes them as records (SPF, DKIM, DMARC). This is a **cooperation** relationship, not a control one: `ag-mail` does not depend on `ag-domains`; a project can use `ag-mail` with a external provider (via SMTP) without `ag-domains` participating.
 
-`ag-workers` se declara en el schema con el bloque `worker` (paralelo a `event`,
-v0.6), que genera payloads tipados, stubs de `JobHandler`, el registro cerrado y, con la
-feature `postgres`, migraciones SQL. Es **estándar diferido** (precedente `ag-mail`,
-`ADR-0007`): producción-grade pero no instalado por defecto en los templates oficiales;
-se incorpora cuando el `schema.ag` declara un `worker` o una feature lo habilita.
+The **propagation verification** uses `hickory-resolver` to query multiple public resolvers and confirm that the records propagated before marking an operation as successful. This blocks `ag deploy` until the domain responds, avoiding delivering URLs that the operator promised but that do not resolve yet.
 
-Decisión en `RFC-0012` y `ADR-0013`. Detalle completo en `docs/modules/ag-workers/`.
+`domain` block of DSL v0.7 (example):
+
+```ag
+domain plenty.market {
+    provider "cloudflare"
+    tls { mode auto  acme true }
+    dns {
+        CNAME "api"     -> "ag-cloud-target"
+        TXT   "_dmarc"  -> "v=DMARC1; p=quarantine"
+    }
+    mail { spf auto  dkim auto  dmarc quarantine }
+}
+```
 
 
 ---

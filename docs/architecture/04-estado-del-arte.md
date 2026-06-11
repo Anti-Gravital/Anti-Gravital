@@ -5,37 +5,37 @@
 > Anterior: [03-alcance-y-limites.md](./03-alcance-y-limites.md)
 > Siguiente: [05-ecosistema-modulos.md](./05-ecosistema-modulos.md)
 
-## 4. Análisis del estado del arte
+## 4. Analysis of the state of the art
 
-Esta sección documenta el contexto competitivo en términos técnicos, sin retórica adversarial. Cada framework analizado resuelve un conjunto real de problemas; el análisis identifica las limitaciones estructurales que Anti-Gravital pretende abordar.
+This section documents the competitive context in technical terms, without adversarial rhetoric. Each framework analyzed solves a real set of problems; the analysis identifies the structural limitations that Anti-Gravital intends to address.
 
-### 4.1 Spring Boot y el ecosistema JVM
+### 4.1 Spring Boot and the JVM ecosystem
 
-Spring Boot domina el desarrollo empresarial Java y Kotlin con dos décadas de ecosistema maduro. Sus debilidades estructurales derivan de la JVM: un consumo de memoria base de 256–512 MB antes de servir el primer request, tiempos de arranque de 6–8 segundos incompatibles con cómputo serverless, y verbosidad de configuración. GraalVM Native Image mitiga parcialmente el arranque y la memoria, pero introduce sus propias limitaciones (reflexión limitada, compatibilidad incompleta de librerías, tiempos de compilación largos). El compromiso fundamental — un runtime gestionado con GC — permanece.
+Spring Boot dominates enterprise Java and Kotlin development with two decades of mature ecosystem. Its structural weaknesses derive from the JVM: a base memory consumption of 256-512 MB before serving the first request, startup times of 6-8 seconds incompatible with serverless computing, and configuration verbosity. GraalVM Native Image partially mitigates startup and memory, but introduces its own limitations (limited reflection, incomplete library compatibility, long compilation times). The fundamental trade-off — a managed runtime with GC — remains.
 
-### 4.2 ASP.NET Core y .NET
+### 4.2 ASP.NET Core and .NET
 
-Técnicamente uno de los frameworks gestionados más rápidos del mercado, con C# moderno y expresivo. CLR con GC mantiene pausas medibles en p99 bajo carga sostenida. La dirección técnica del ecosistema es unilateral de Microsoft. La seguridad de memoria no está garantizada por el compilador; los bugs de race conditions y null reference exceptions son posibles. La adopción fuera del ecosistema Microsoft sigue siendo limitada por razones culturales más que técnicas.
+Technically one of the fastest managed frameworks on the market, with modern and expressive C#. The CLR with GC keeps measurable pauses at p99 under sustained load. The technical direction of the ecosystem is unilaterally Microsoft's. Memory safety is not guaranteed by the compiler; race condition bugs and null reference exceptions are possible. Adoption outside the Microsoft ecosystem remains limited for cultural rather than technical reasons.
 
-### 4.3 Django y FastAPI
+### 4.3 Django and FastAPI
 
-Django mantiene la mejor experiencia de prototipado del mundo Python, con un ecosistema rico para administración, autenticación y plantillas. FastAPI elevó el estándar de DX en APIs Python con tipos Pydantic, generación automática de OpenAPI y soporte async nativo. Ambos comparten el techo estructural de CPython: el Global Interpreter Lock impide concurrencia real CPU-bound dentro de un proceso, lo que obliga a escalar con múltiples procesos (Gunicorn, Uvicorn workers) multiplicando el consumo de memoria. El soporte async de Django sigue siendo parcial; muchas librerías del ecosistema permanecen sincrónicas.
+Django maintains the best prototyping experience in the Python world, with a rich ecosystem for administration, authentication, and templates. FastAPI raised the DX standard for Python APIs with Pydantic types, automatic OpenAPI generation, and native async support. Both share the structural ceiling of CPython: the Global Interpreter Lock prevents real CPU-bound concurrency within a process, which forces scaling with multiple processes (Gunicorn, Uvicorn workers) multiplying memory consumption. Django's async support remains partial; many libraries in the ecosystem remain synchronous.
 
-### 4.4 Node.js, Express y NestJS
+### 4.4 Node.js, Express, and NestJS
 
-Node.js trajo JavaScript al servidor y el ecosistema npm es el más amplio de la industria. El event loop monohilo de V8 es óptimo para I/O concurrente pero se degrada con cualquier trabajo CPU-bound. La cadena de suministro npm es crónicamente vulnerable: la dependencia transitiva media de un proyecto Node.js moderno excede las 200 librerías, y los incidentes de paquetes comprometidos son recurrentes. TypeScript añade seguridad de tipos en desarrollo, pero en runtime sigue siendo JavaScript.
+Node.js brought JavaScript to the server and the npm ecosystem is the broadest in the industry. V8's single-threaded event loop is optimal for concurrent I/O but degrades with any CPU-bound work. The npm supply chain is chronically vulnerable: the average transitive dependency of a modern Node.js project exceeds 200 libraries, and incidents of compromised packages are recurrent. TypeScript adds type safety in development, but at runtime it remains JavaScript.
 
-### 4.5 Next.js y los frameworks fullstack JS
+### 4.5 Next.js and the JS fullstack frameworks
 
-Next.js representa la convergencia frontend/backend en JavaScript. Server Components y Server Actions reducen el boilerplate de APIs internas. Las debilidades estructurales son herencia de Node.js: cold starts en serverless, acoplamiento de facto con Vercel, inadecuación para WebSockets persistentes, estado compartido y procesamiento de larga duración. Next.js es una excelente capa de presentación; no es un backend robusto.
+Next.js represents the frontend/backend convergence in JavaScript. Server Components and Server Actions reduce the boilerplate of internal APIs. The structural weaknesses are inherited from Node.js: serverless cold starts, de facto coupling with Vercel, inadequacy for persistent WebSockets, shared state, and long-running processing. Next.js is an excellent presentation layer; it is not a robust backend.
 
 ### 4.6 Axum, Actix-Web, Rocket (Rust)
 
-Los frameworks Rust actuales son técnicamente excelentes en rendimiento (top 10 de TechEmpower de forma consistente) pero ofrecen lo que la comunidad llama una experiencia *low-level*: el desarrollador construye desde cero la autenticación, la capa de datos, la observabilidad, la generación de clientes y el sistema de migraciones. Anti-Gravital se construye sobre Axum, Tokio y Tower como dependencias internas — no compite con ellos, sino que los empaqueta en una experiencia de framework completo con DSL, CLI y módulos opinados.
+The current Rust frameworks are technically excellent in performance (consistently in the TechEmpower top 10) but offer what the community calls a *low-level* experience: the developer builds authentication, the data layer, observability, client generation, and the migration system from scratch. Anti-Gravital is built on Axum, Tokio, and Tower as internal dependencies — it does not compete with them, but packages them into a complete framework experience with DSL, CLI, and opinionated modules.
 
-### 4.7 Conclusión del análisis
+### 4.7 Conclusion of the analysis
 
-Existe un espacio de mercado real: un framework Rust enterprise-grade dominante todavía no existe. Spring Boot paga el costo histórico de la JVM. Node.js tiene límites estructurales de event loop. Python tiene problemas de concurrencia. Go sacrifica el sistema de tipos. Rust tiene runtime y rendimiento, pero le falta una experiencia de framework completa. Anti-Gravital pretende llenar ese hueco.
+There is a real market space: a dominant enterprise-grade Rust framework does not yet exist. Spring Boot pays the historical cost of the JVM. Node.js has structural event loop limits. Python has concurrency problems. Go sacrifices the type system. Rust has runtime and performance, but lacks a complete framework experience. Anti-Gravital intends to fill that gap.
 
 ---
 

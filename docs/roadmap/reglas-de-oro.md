@@ -4,24 +4,27 @@
 > Indice: [docs/roadmap/README.md](./README.md)
 > Anterior: [mas-alla-de-1.0.md](./mas-alla-de-1.0.md)
 
-## Reglas de oro del proceso
+## Golden rules of the process
 
-A modo de cierre, las cinco reglas que rigen este proceso de extremo a extremo:
+By way of closing, the five rules that govern this end-to-end process:
 
-**Primera regla.** Una fase no se considera concluida hasta que todas sus casillas de criterio de salida están marcadas. Sin excepciones.
+**First rule.** A phase is not considered concluded until all of its exit criteria boxes are checked. No exceptions.
 
-**Segunda regla.** Si una fase requiere más tiempo del estimado, se extiende. Si el alcance original no es alcanzable, se reduce con un RFC público, no se relajan los criterios de calidad.
+**Second rule.** If a phase requires more time than estimated, it is extended. If the original scope is not attainable, it is reduced with a public RFC; the quality criteria are not relaxed.
 
-**Tercera regla.** Toda decisión arquitectónica significativa requiere un RFC. La velocidad de iteración no justifica saltar el proceso.
+**Third rule.** Every significant architectural decision requires an RFC. The iteration speed does not justify skipping the process.
 
-**Cuarta regla.** El proyecto se libera cuando está listo, no cuando lo exige una fecha externa. La credibilidad técnica es el activo más valioso del proyecto.
+**Fourth rule.** The project is released when it is ready, not when an external date demands it. Technical credibility is the project's most valuable asset.
 
-**Quinta regla.** Toda promesa pública (benchmark, feature, fecha) se documenta con evidencia. Si no hay evidencia, no se promete.
+**Fifth rule.** Every public promise (benchmark, feature, date) is documented with evidence. If there is no evidence, it is not promised.
 
-Estas reglas existen por una razón. Anti-Gravital se propone competir con frameworks que han madurado durante décadas. La única manera de ser tomado en serio es construir con la misma seriedad.
+These rules exist for a reason. Anti-Gravital sets out to compete with frameworks that have matured over decades. The only way to be taken seriously is to build with the same seriousness.
 
 ---
 
-**Fin del documento de Hoja de Ruta.**
-Documento complementario: *Arquitectura Técnica e Implementación.*
-Versión PDF unificada: *Anti-Gravital Blueprint v4.0 — Documento Maestro.*
+**End of the Roadmap document.**
+Complementary document: *Technical Architecture and Implementation.*
+Unified PDF version: *Anti-Gravital Blueprint v4.0 — Master Document.*
+
+---
+

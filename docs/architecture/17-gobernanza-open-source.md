@@ -5,27 +5,27 @@
 > Anterior: [16-rendimiento-y-validacion.md](./16-rendimiento-y-validacion.md)
 > Siguiente: [18-riesgos-y-mitigaciones.md](./18-riesgos-y-mitigaciones.md)
 
-## 17. Modelo de gobernanza Open Source
+## 17. Open Source governance model
 
-### 17.1 Licencia y promesa
+### 17.1 License and promise
 
-La licencia es Apache 2.0 para todo el ecosistema. No existe ni existirá una versión Enterprise cerrada con features reservadas para clientes pagos. El compromiso es explícito y se documenta en el README. Cualquier cambio de licencia futuro requeriría la aprobación de toda la comunidad de mantenedores, y el ecosistema sigue siendo forkable.
+The license is Apache 2.0 for the entire ecosystem. There is not and will not be a closed Enterprise version with features reserved for paying customers. The commitment is explicit and is documented in the README. Any future license change would require the approval of the entire community of maintainers, and the ecosystem remains forkable.
 
-### 17.2 Modelo de mantenimiento
+### 17.2 Maintenance model
 
-El proyecto adopta un modelo BDFL inicial con plan de transición a meritocracia explícita. En la fase inicial (versiones 0.x), Ángel Nereira es el mantenedor principal. A partir de la versión 1.0, se establece un comité técnico de cinco personas elegidas entre los contribuidores con mayor historial. El comité aprueba RFCs (Request For Comments) para cambios mayores.
+The project adopts an initial BDFL model with a transition plan to explicit meritocracy. In the initial phase (0.x versions), Angel Nereira is the principal maintainer. Starting from version 1.0, a technical committee of five people elected among the contributors with the greatest track record is established. The committee approves RFCs (Request For Comments) for major changes.
 
 ### 17.3 RFCs
 
-Cualquier cambio que afecte la API pública, el DSL, la arquitectura de plugins o el modelo de seguridad requiere un RFC. El proceso es: el proponente abre un issue en `anti-gravital-rfcs/`, la comunidad debate por al menos dos semanas, el comité técnico vota. Una vez aprobado, el RFC se mueve a estado "Accepted" y se implementa en una versión específica.
+Any change that affects the public API, the DSL, the plugin architecture, or the security model requires an RFC. The process is: the proposer opens an issue in `anti-gravital-rfcs/`, the community debates for at least two weeks, the technical committee votes. Once approved, the RFC is moved to the "Accepted" state and is implemented in a specific version.
 
-### 17.4 Compatibilidad
+### 17.4 Compatibility
 
-Después de la versión 1.0, el proyecto se compromete a semver estricto en la API pública. Breaking changes solo en mayores. Las versiones LTS se anuncian con un calendario público, con al menos 18 meses de soporte de seguridad.
+After version 1.0, the project commits to strict semver in the public API. Breaking changes only in majors. The LTS versions are announced with a public calendar, with at least 18 months of security support.
 
-### 17.5 Sostenibilidad económica
+### 17.5 Economic sustainability
 
-El proyecto se sostiene en tres patas. La primera es Gravital Labs (Nereira Technology and Business Solutions), que financia el desarrollo inicial como inversión estratégica. La segunda es servicios profesionales: consultoría de adopción, training y soporte premium para empresas que quieran SLA, sin que esto cierre features del producto. La tercera, a futuro, son sponsors corporativos (GitHub Sponsors, Open Collective) de empresas que dependen del proyecto.
+The project is sustained on three legs. The first is Gravital Labs (Nereira Technology and Business Solutions), which finances the initial development as a strategic investment. The second is professional services: adoption consulting, training, and premium support for companies that want an SLA, without this closing product features. The third, in the future, are corporate sponsors (GitHub Sponsors, Open Collective) of companies that depend on the project.
 
 ---
 

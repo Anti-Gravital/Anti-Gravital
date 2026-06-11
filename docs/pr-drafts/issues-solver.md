@@ -56,11 +56,17 @@ feature-gated where applicable.
 
 ## Test plan
 
-- [ ] `cargo fmt --all --check` — no diffs
-- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings` — clean
-- [ ] `cargo test --workspace --all-features` — 0 failures
-- [ ] `cargo build -p ag-domains --features route53,google-cloud-dns,azure-dns,namecheap`
-- [ ] `bash tools/split-masters.sh` + `git diff --stat docs/architecture docs/roadmap`
+- [x] `cargo fmt --all --check` — no diffs.
+- [x] `cargo test --workspace --all-features` — 77 suites, 0 failures (exit 0).
+- [x] `cargo clippy` clean on the changed crates (`ag-domains`, `ag-workers`,
+      `ag-cli`) with all their features.
+- [x] `cargo test -p ag-domains --all-features --lib` — 168 passed (psl + the four
+      adapters). SigV4 verified vs AWS `get-vanilla`; RS256 JWT sign/verify checked.
+- [x] `bash tools/split-masters.sh` + `git diff --stat docs/architecture docs/roadmap`
+      — derived chapters English, no Spanish-section bleed, no content lost.
+- Note: `cargo clippy --workspace ... -- -D warnings` reports one pre-existing
+  1.95-toolchain lint in `ag-cache` (`crates/ag-cache/src/server/cmd.rs`),
+  unrelated to this batch and tracked in #119.
 - Real-credential / live-database paths are `#[ignore]` (ADR-0009 convention);
   their verification is delegated to a credentialed environment.
 
@@ -73,6 +79,8 @@ feature-gated where applicable.
 - Still blocked on external infrastructure (untouched, documented): #108, #109,
   #103 (live PostgreSQL), #87 (real-domain ACME staging).
 - Design-deferred (untouched): #112 (ag-edge producer wiring, no consumer yet).
+- Found while running the workspace gate, filed not fixed here: #119 (ag-cache
+  clippy `manual_is_multiple_of`, pre-existing, out of this batch's scope).
 
 ## Final checklist
 
@@ -81,10 +89,10 @@ feature-gated where applicable.
 - [x] Does not break architecture
 - [x] No unnecessary complexity added
 - [x] No circular dependencies
-- [ ] Compiles
-- [ ] Tests pass (`cargo test --workspace --all-features`, exit 0)
-- [ ] `cargo fmt` passes
-- [ ] `cargo clippy` passes
+- [x] Compiles (full workspace, all features)
+- [x] Tests pass (`cargo test --workspace --all-features`, exit 0)
+- [x] `cargo fmt` passes
+- [x] `cargo clippy` passes on changed crates (workspace: pre-existing #119 only)
 - [x] Documentation updated in same PR
 - [x] No emojis
 - [x] No AI attribution

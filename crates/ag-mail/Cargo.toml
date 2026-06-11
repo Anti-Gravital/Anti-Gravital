@@ -103,4 +103,4 @@ tokio = { workspace = true, features = ["test-util"] }
 # parity suites (persistent_queue, workers_postgres) fail to compile under their
 # documented commands, since the `test` cfg does not reach the library when it is
 # built as a dependency of an integration-test binary.
-ag-mail = { path = ".", features = ["test-utils"] }
+ag-mail = { path = ".", version = "0.0.0", features = ["test-utils"] }

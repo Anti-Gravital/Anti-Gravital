@@ -116,7 +116,7 @@ async fn enqueue_in_tx_rolls_back_with_caller() {
     let queue = QueueName::new("mail");
 
     // Rollback: the job must not survive.
-    let mut tx = pool.begin().await.unwrap();
+    let mut tx = ag_data::AgTx::begin(&pool).await.unwrap();
     backend
         .enqueue_in_tx(&mut tx, unit_job("t", "mail"))
         .await
@@ -125,7 +125,7 @@ async fn enqueue_in_tx_rolls_back_with_caller() {
     assert_eq!(backend.depth(&queue).await.unwrap().total(), 0);
 
     // Commit: the job survives.
-    let mut tx = pool.begin().await.unwrap();
+    let mut tx = ag_data::AgTx::begin(&pool).await.unwrap();
     backend
         .enqueue_in_tx(&mut tx, unit_job("t", "mail"))
         .await

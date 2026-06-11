@@ -6802,6 +6802,7 @@ dependencies = [
 name = "workers-postgres"
 version = "0.0.0"
 dependencies = [
+ "ag-data",
  "ag-workers",
  "async-trait",
  "serde",

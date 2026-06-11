@@ -25,6 +25,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
+use crate::abuse::AbuseControls;
 use crate::attachment::{
     AttachmentLifecycle, DnsMode, DnsStatus, DomainAttachment, OwnershipMethod, OwnershipStatus,
     RoutingStatus, TargetKind, TlsMode, TlsStatus,
@@ -68,6 +69,9 @@ pub struct ApiState {
     edge: EdgeTargets,
     events: Arc<dyn EventSink>,
     verifier: Arc<dyn OwnershipVerifier>,
+    /// Optional per-tenant abuse controls (blueprint section 15.6). When unset,
+    /// attachments are unbounded (the prior default behaviour).
+    abuse: Option<AbuseControls>,
 }
 
 impl ApiState {
@@ -81,7 +85,15 @@ impl ApiState {
             edge,
             events: Arc::new(NullEventSink),
             verifier: Arc::new(NullVerifier),
+            abuse: None,
         }
+    }
+
+    /// Enables per-tenant abuse controls (blueprint section 15.6) on the create
+    /// and detach endpoints. Without this, attachments are unbounded.
+    pub fn with_abuse_controls(mut self, controls: AbuseControls) -> Self {
+        self.abuse = Some(controls);
+        self
     }
 
     /// Sets the ownership verifier used by the verify endpoint.
@@ -214,6 +226,7 @@ pub struct ErrorDto {
 }
 
 /// API error mapped to an HTTP status.
+#[derive(Debug)]
 pub struct ApiError {
     status: StatusCode,
     message: String,
@@ -322,10 +335,19 @@ async fn create_attachment(
     let ownership_name = ownership_record_name(&hostname);
     let tls_mode = parse_tls_mode(req.tls_mode.as_deref(), hostname.kind());
 
+    // Enforce the per-tenant attachment limit (blueprint section 15.6) before
+    // persisting. The tenant is the project; reserve a slot up front.
+    let tenant = req.project_id;
+    if let Some(abuse) = &state.abuse {
+        abuse
+            .register_attachment(&tenant)
+            .map_err(|e| ApiError::new(StatusCode::TOO_MANY_REQUESTS, e.to_string()))?;
+    }
+
     let mut attachment = DomainAttachment {
         id,
         hostname,
-        project: req.project_id,
+        project: tenant.clone(),
         environment: req.environment_id,
         target_kind: parse_target_kind(req.target_kind.as_deref()),
         target_ref: req.target_ref.unwrap_or_else(|| "default".to_owned()),
@@ -344,8 +366,16 @@ async fn create_attachment(
     attachment.recompute_lifecycle();
 
     let dto = AttachmentDto::from(&attachment);
-    state.store.create(attachment).await?;
+    if let Err(e) = state.store.create(attachment).await {
+        // Persistence failed: release the abuse-control slot we reserved so a
+        // failed create does not consume the tenant's budget.
+        if let Some(abuse) = &state.abuse {
+            abuse.release_attachment(&tenant);
+        }
+        return Err(e.into());
+    }
     metrics::record_attachment_created();
+    refresh_fleet_gauges_from_store(&state).await;
     state
         .events
         .emit(DomainEvent::AttachmentCreated {
@@ -360,7 +390,29 @@ async fn list_attachments(
     State(state): State<ApiState>,
 ) -> Result<Json<Vec<AttachmentDto>>, ApiError> {
     let all = state.store.list().await?;
+    refresh_fleet_gauges(&all);
     Ok(Json(all.iter().map(AttachmentDto::from).collect()))
+}
+
+/// Sets the fleet-level control-plane gauges (blueprint section 16.1) from a
+/// snapshot of attachments: the active count and the number of certificates in
+/// the renewal window. Called after control-plane mutations and on list.
+fn refresh_fleet_gauges(attachments: &[DomainAttachment]) {
+    let active = attachments.iter().filter(|a| a.is_active()).count();
+    let expiring_soon = attachments
+        .iter()
+        .filter(|a| a.tls_status == TlsStatus::RenewalDue)
+        .count();
+    metrics::set_active_attachments(active as u64);
+    metrics::set_certs_expiring_soon(expiring_soon as u64);
+}
+
+/// Re-reads the store and refreshes the fleet gauges; best-effort, never fails
+/// the surrounding control-plane operation.
+async fn refresh_fleet_gauges_from_store(state: &ApiState) {
+    if let Ok(all) = state.store.list().await {
+        refresh_fleet_gauges(&all);
+    }
 }
 
 async fn get_attachment(
@@ -420,6 +472,10 @@ async fn detach_attachment(
         .detach(attachment.hostname.ascii(), DEFAULT_TOMBSTONE_SECS)
         .await?;
     metrics::record_attachment_detached();
+    if let Some(abuse) = &state.abuse {
+        abuse.release_attachment(&attachment.project);
+    }
+    refresh_fleet_gauges_from_store(&state).await;
     state
         .events
         .emit(DomainEvent::Detached {
@@ -444,6 +500,7 @@ async fn verify_attachment(
         attachment.ownership_status = OwnershipStatus::Verified;
         attachment.recompute_lifecycle();
         state.store.update(attachment.clone()).await?;
+        refresh_fleet_gauges_from_store(&state).await;
         state
             .events
             .emit(DomainEvent::OwnershipVerified {
@@ -520,5 +577,78 @@ mod tests {
     #[test]
     fn router_builds() {
         let _ = build_router(state());
+    }
+
+    fn attach_req(hostname: &str, project: &str) -> AttachRequest {
+        AttachRequest {
+            hostname: hostname.to_owned(),
+            project_id: project.to_owned(),
+            environment_id: "production".to_owned(),
+            target_kind: None,
+            target_ref: None,
+            tls_mode: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn per_tenant_attachment_limit_rejects_with_429() {
+        use crate::abuse::{AbuseControls, AbuseLimits};
+        let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+        let controls = AbuseControls::new(AbuseLimits {
+            max_attachments_per_tenant: 1,
+            max_issuance_per_tenant: 0,
+            max_global_acme_concurrency: 0,
+        });
+        let st = ApiState::new(store, EdgeTargets::new("edge.example-cloud.net"))
+            .with_abuse_controls(controls);
+
+        // First attachment for the tenant succeeds.
+        let _ = create_attachment(
+            State(st.clone()),
+            Json(attach_req("a.example.com", "tenant-1")),
+        )
+        .await
+        .expect("first attachment within limit");
+
+        // Second attachment for the same tenant is rejected at the limit.
+        let rejected = create_attachment(
+            State(st.clone()),
+            Json(attach_req("b.example.com", "tenant-1")),
+        )
+        .await;
+        assert!(
+            matches!(rejected, Err(ref e) if e.status == StatusCode::TOO_MANY_REQUESTS),
+            "second attachment must be rejected with 429",
+        );
+
+        // A different tenant still has budget.
+        let _ = create_attachment(State(st), Json(attach_req("c.example.com", "tenant-2")))
+            .await
+            .expect("other tenant within its own limit");
+    }
+
+    #[tokio::test]
+    async fn detach_frees_tenant_attachment_budget() {
+        use crate::abuse::{AbuseControls, AbuseLimits};
+        let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
+        let controls = AbuseControls::new(AbuseLimits {
+            max_attachments_per_tenant: 1,
+            max_issuance_per_tenant: 0,
+            max_global_acme_concurrency: 0,
+        });
+        let st = ApiState::new(store, EdgeTargets::new("edge.example-cloud.net"))
+            .with_abuse_controls(controls);
+
+        let (_, Json(dto)) =
+            create_attachment(State(st.clone()), Json(attach_req("a.example.com", "t")))
+                .await
+                .unwrap();
+        // At the limit now; detach should free the slot.
+        detach_attachment(State(st.clone()), Path(dto.id.clone()))
+            .await
+            .unwrap();
+        let _ = create_attachment(State(st), Json(attach_req("b.example.com", "t")))
+            .await
+            .expect("budget freed after detach");
     }
 }

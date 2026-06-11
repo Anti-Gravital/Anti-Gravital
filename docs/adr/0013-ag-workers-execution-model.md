@@ -82,11 +82,12 @@ closes.
    - **Cancellation:** add `tokio-util` (0.7, `default-features = false`) to the
      workspace and use `CancellationToken`. It is the only genuinely new dependency;
      everything else reuses existing workspace deps.
-   - **`enqueue_in_tx`:** accepts `&mut sqlx::Transaction<'_, Postgres>` behind the
-     `postgres` feature. `ag-data` exposes no canonical transaction handle (`AgTx`)
-     today; this matches `ag-mail`'s existing raw-sqlx usage and does not modify
-     `ag-data`. The gap is tracked as a GitHub Issue (label `tech-debt`, per
-     CLAUDE.md rule 29; `docs/DEBT.md` is frozen); a canonical `AgTx` is a future RFC.
+   - **`enqueue_in_tx`:** originally accepted `&mut sqlx::Transaction<'_, Postgres>`
+     behind the `postgres` feature because `ag-data` exposed no canonical
+     transaction handle. **Resolved (issue #110):** `ag-data` now exposes
+     `AgTx` (a thin wrapper over `sqlx::Transaction`, `ag-data` being the
+     sanctioned `sqlx` boundary), and `enqueue_in_tx` accepts `&mut ag_data::AgTx`.
+     Call sites no longer name the raw `sqlx` transaction type.
 
 7. **Authorization to implement before the pre-Phase-5 gate closes.** The owner
    authorizes the work now because it is additive, feature-gated, native-by-default

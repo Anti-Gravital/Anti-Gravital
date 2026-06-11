@@ -72,6 +72,37 @@ pub fn record_verification_failure() {
     counter!("ag_domains_verification_failures_total").increment(1);
 }
 
+/// Reports the number of currently active domain attachments (blueprint
+/// section 16.1). Set from a fleet view (e.g. after a control-plane mutation
+/// or list), counting attachments whose four readiness dimensions are met.
+pub fn set_active_attachments(count: u64) {
+    gauge!("ag_domains_attachments_active").set(count as f64);
+}
+
+/// Reports the number of certificates inside the renewal window (blueprint
+/// section 16.1). Derived from attachments in the `RenewalDue` TLS state.
+pub fn set_certs_expiring_soon(count: u64) {
+    gauge!("ag_domains_certs_expiring_soon").set(count as f64);
+}
+
+/// Counts a TLS certificate order (blueprint section 16.1).
+///
+/// `success` separates completed orders from failures, covering both the
+/// "orders" and "failures" dimensions on a single counter.
+pub fn record_tls_order(success: bool) {
+    counter!(
+        "ag_domains_tls_orders_total",
+        "success" => success.to_string(),
+    )
+    .increment(1);
+}
+
+/// Counts a transition of an attachment into a DNS-misconfigured state
+/// (blueprint section 16.1): wrong target, conflicting records or failed DNS.
+pub fn record_dns_misconfigured() {
+    counter!("ag_domains_dns_misconfigured_total").increment(1);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,5 +117,10 @@ mod tests {
         record_attachment_created();
         record_attachment_detached();
         record_verification_failure();
+        set_active_attachments(3);
+        set_certs_expiring_soon(1);
+        record_tls_order(true);
+        record_tls_order(false);
+        record_dns_misconfigured();
     }
 }

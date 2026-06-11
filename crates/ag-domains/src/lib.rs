@@ -48,9 +48,12 @@ pub mod metrics;
 // library above is unchanged. These modules add domain attachment lifecycle,
 // ownership proof, DNS instruction generation, CAA preflight, diagnostics and
 // native persistence.
+pub mod abuse;
 pub mod attachment;
 pub mod caa;
+pub mod dangling;
 pub mod diagnostics;
+pub mod domain_connect;
 pub mod events;
 pub mod hostname;
 pub mod instructions;
@@ -67,3 +70,15 @@ pub mod sql_store;
 pub use attachment::DomainAttachment;
 pub use error::AgDomainsError;
 pub use hostname::{Hostname, HostnameKind};
+pub use provider::sdk::{
+    diff as zone_diff, ChangeRef, ProviderAdapter, VerifyOutcome, ZoneAdapter, ZoneChange,
+    ZonePlan, ZoneRef,
+};
+
+#[cfg(feature = "acme")]
+pub use acme::wildcard::{issue_dns01_with_adapter, Dns01Desired, Dns01OrderDriver};
+
+#[cfg(feature = "acme")]
+pub use acme::ari::{
+    next_renewal_sleep, parse_renewal_info, seconds_until_ari_renewal, RenewalInfo, RenewalWindow,
+};

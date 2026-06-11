@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Transactional enqueue: in a real app the domain writes (e.g. inserting the order)
     // happen on the same `tx`, so the order and its receipt job commit atomically -- or
     // neither does. Here we show only the job insert participating in the transaction.
-    let mut tx = pool.begin().await?;
+    let mut tx = ag_data::AgTx::begin(&pool).await?;
     let job = NewJob::encode::<SendReceipt>("send_receipt", "mail", &SendReceipt { order_id: 42 })?;
     let job_id = queue.enqueue_in_tx(&mut tx, job).await?;
     tx.commit().await?;

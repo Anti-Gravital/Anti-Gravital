@@ -27,6 +27,7 @@
 #![forbid(unsafe_code)]
 
 pub mod challenge;
+pub mod metrics;
 pub mod redirect;
 pub mod router;
 pub mod tls;

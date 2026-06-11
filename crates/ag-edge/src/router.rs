@@ -111,6 +111,31 @@ pub fn resolve_hostname(
     hostname: &str,
     legacy: impl Fn(&str) -> Option<String>,
 ) -> RouteResolution {
+    let started = std::time::Instant::now();
+    let resolution = resolve_hostname_inner(cache, hostname, legacy);
+
+    // Edge observability (blueprint section 16.1): route-resolution latency and
+    // the cache hit/miss split. A custom binding is a cache hit; anything else
+    // (legacy, fallback) is a miss. `Unknown` is a malformed host, not a lookup.
+    let outcome = match &resolution {
+        RouteResolution::Custom(_) => "custom",
+        RouteResolution::Existing(_) => "existing",
+        RouteResolution::ExistingFallback => "fallback",
+        RouteResolution::Unknown => "unknown",
+    };
+    crate::metrics::record_route_resolution(outcome, started.elapsed().as_secs_f64());
+    if !matches!(resolution, RouteResolution::Unknown) {
+        crate::metrics::record_route_cache_lookup(matches!(resolution, RouteResolution::Custom(_)));
+    }
+
+    resolution
+}
+
+fn resolve_hostname_inner(
+    cache: &BindingCache,
+    hostname: &str,
+    legacy: impl Fn(&str) -> Option<String>,
+) -> RouteResolution {
     let normalized = match Hostname::parse(hostname) {
         Ok(h) => h.ascii().to_owned(),
         Err(_) => return RouteResolution::Unknown,

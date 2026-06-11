@@ -50,6 +50,53 @@ use thiserror::Error;
 /// at O(1) cost (it shares the internal pool through `Arc`).
 pub type DbPool = sqlx::PgPool;
 
+/// Canonical transaction handle (ADR-0013 section 6).
+///
+/// Wraps a `sqlx` transaction so consumers (e.g. `ag-workers`'
+/// `enqueue_in_tx`) depend on this `ag-data` abstraction instead of leaking the
+/// raw `sqlx::Transaction` type into every call site. `ag-data` is the project's
+/// sanctioned `sqlx` boundary, so it is the one place that exposes an executor
+/// (`as_executor`) for query participation; the caller's writes and the queue
+/// insert then commit atomically (the transactional-outbox property).
+///
+/// ```ignore
+/// let mut tx = AgTx::begin(&pool).await?;
+/// // ... the caller's own writes via tx.as_executor() ...
+/// queue.enqueue_in_tx(&mut tx, job).await?;
+/// tx.commit().await?; // or tx.rollback().await? to discard both
+/// ```
+pub struct AgTx {
+    inner: sqlx::Transaction<'static, sqlx::Postgres>,
+}
+
+impl AgTx {
+    /// Begins a transaction on the pool.
+    pub async fn begin(pool: &DbPool) -> Result<Self, DataError> {
+        Ok(Self {
+            inner: pool.begin().await?,
+        })
+    }
+
+    /// Commits the transaction, persisting every write made through it.
+    pub async fn commit(self) -> Result<(), DataError> {
+        self.inner.commit().await?;
+        Ok(())
+    }
+
+    /// Rolls the transaction back, discarding every write made through it.
+    pub async fn rollback(self) -> Result<(), DataError> {
+        self.inner.rollback().await?;
+        Ok(())
+    }
+
+    /// Borrows the underlying connection so a statement can run inside this
+    /// transaction. `ag-data` is the sanctioned `sqlx` boundary, so this is the
+    /// single place that surface is exposed.
+    pub fn as_executor(&mut self) -> &mut sqlx::PgConnection {
+        &mut self.inner
+    }
+}
+
 /// Data layer error.
 #[derive(Debug, Error)]
 pub enum DataError {

@@ -14,7 +14,17 @@ pub enum AdmissionOutcome {
     RejectedQueueFull,
     /// Rejected because the payload exceeds the size limit.
     RejectedPayloadTooLarge,
-    /// Rejected by a rate limiter.
+    /// Rejected by a per-queue admission rate limiter.
+    ///
+    /// RESERVED (RFC-0012 section 18, issue #113): this is RFC-sanctioned
+    /// admission vocabulary and part of the `ag_workers_backpressure_total{reason}`
+    /// label space, but it is intentionally **not produced by any admission path
+    /// today**. The two implemented rejections are [`Self::RejectedQueueFull`]
+    /// (depth) and [`Self::RejectedPayloadTooLarge`] (size). A per-queue rate
+    /// limiter that yields this outcome changes the admission contract and is
+    /// therefore gated behind a future RFC/ADR; until then the variant is kept
+    /// reserved (not deleted) so the metric label space and the RFC vocabulary
+    /// stay stable. Its `as_str` mapping is exercised by a unit test.
     RejectedRateLimited,
     /// Rejected because the payload was invalid.
     RejectedInvalidPayload,
@@ -100,5 +110,30 @@ mod tests {
         );
         assert!(AdmissionOutcome::Accepted.is_accepted());
         assert!(!AdmissionOutcome::RejectedRateLimited.is_accepted());
+    }
+
+    /// RESERVED contract (issue #113): no `from_result` mapping yields
+    /// `RejectedRateLimited`. The variant exists only as RFC-0012 section 18
+    /// vocabulary and metric label space until a per-queue rate limiter is added
+    /// behind a future RFC. This test fails loudly if a mapping starts producing
+    /// it without the contract being revisited.
+    #[test]
+    fn rate_limited_is_reserved_and_never_produced_by_from_result() {
+        let cases: [Result<(), QueueError>; 4] = [
+            Ok(()),
+            Err(QueueError::Full("q".into())),
+            Err(QueueError::PayloadTooLarge {
+                actual: 10,
+                limit: 2,
+            }),
+            Err(QueueError::NotFound(JobId::new())),
+        ];
+        for case in &cases {
+            assert_ne!(
+                AdmissionOutcome::from_result(case),
+                AdmissionOutcome::RejectedRateLimited,
+                "RejectedRateLimited must stay reserved (not produced)"
+            );
+        }
     }
 }

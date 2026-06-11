@@ -10,7 +10,7 @@ use ag_data::DbPool;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::postgres::PgRow;
-use sqlx::{Postgres, Row, Transaction};
+use sqlx::{Postgres, Row};
 
 use crate::ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 use crate::job::{JobEnvelope, JobPriority, JobStatus, NewJob};
@@ -68,21 +68,19 @@ impl PostgresQueue {
             .map_err(|e| QueueError::Backend(e.to_string()))
     }
 
-    /// Transactional enqueue: the job insert participates in the caller's `ag-data`
-    /// transaction, so the job and the caller's writes commit atomically (the
-    /// transactional-outbox property without a separate outbox table).
-    ///
-    /// Takes a raw `sqlx::Transaction` until `ag-data` exposes a canonical handle.
-    // TECH-DEBT (issue #110): replace the raw `sqlx::Transaction` with an `ag-data`
-    // transaction handle; decision recorded in ADR-0013 §6.
+    /// Transactional enqueue: the job insert participates in the caller's
+    /// [`ag_data::AgTx`] transaction, so the job and the caller's writes commit
+    /// atomically (the transactional-outbox property without a separate outbox
+    /// table). Going through `ag-data`'s canonical handle keeps the raw `sqlx`
+    /// transaction type out of call sites (ADR-0013 section 6).
     pub async fn enqueue_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut ag_data::AgTx,
         job: NewJob,
     ) -> Result<JobId, QueueError> {
         let env = job.into_envelope(Utc::now());
         bind_insert(&env)
-            .execute(&mut **tx)
+            .execute(tx.as_executor())
             .await
             .map_err(backend_err)?;
         Ok(env.id)

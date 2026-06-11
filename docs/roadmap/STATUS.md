@@ -361,9 +361,14 @@ ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
   retry/backoff, timeout, DLQ en memoria, poison guard, shutdown gracioso, telemetria.
 - [x] S3 Persistencia (codigo): `PostgresQueue` via `ag-data`, migraciones
   (`0001`-`0003`), leasing `FOR UPDATE SKIP LOCKED`, heartbeat + reaper,
-  `enqueue_in_tx`, DLQ persistente, admision/backpressure (feature `postgres`). La
-  verificacion contra una base viva es criterio de salida y se rastrea en el
-  Issue #108 (el entorno de CI por defecto no levanta PostgreSQL).
+  `enqueue_in_tx` (acepta `ag_data::AgTx`, Issue #110), DLQ persistente,
+  admision/backpressure (feature `postgres`). La verificacion contra una base
+  viva es criterio de salida y se rastrea en el Issue #108 (el entorno de CI por
+  defecto no levanta PostgreSQL). La variante de admision `RejectedRateLimited`
+  (RFC-0012 seccion 18) queda **reservada**: es vocabulario sancionado por la RFC
+  y parte del espacio de etiquetas de `ag_workers_backpressure_total`, pero
+  ningun camino de admision la produce hoy; un limitador de tasa por cola que la
+  genere cambia el contrato de admision y va tras una RFC/ADR futura (Issue #113).
 - [x] S4 Scheduling + dinamico: jobs por intervalo con claim singleton; pools dinamicos
   acotados; pool CPU-bound (`spawn_blocking` + semaforo).
 - [x] S5 Superficies: declaracion `worker` en el Anti-DSL (v0.8) + generador

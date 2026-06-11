@@ -31,6 +31,10 @@ tls = ["server", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pki-types", "dep:
 # ag-domains control plane (ADR-0012 architecture).
 ag-domains = { path = "../ag-domains", version = "0.0.0", default-features = false }
 serde = { workspace = true }
+# Native observability (blueprint section 16.1). The `metrics` facade is a no-op
+# until a recorder is registered, so it adds no runtime cost to the edge by
+# default and pulls in no external service (CLAUDE.md rule 9: native observability).
+metrics = { workspace = true }
 
 # server feature
 axum = { workspace = true, optional = true }

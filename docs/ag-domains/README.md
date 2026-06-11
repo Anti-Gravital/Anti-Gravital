@@ -20,7 +20,8 @@ historical DEBT-025).
 
 ## Start here
 
-- Tutorial: `tutorials/attach-first-domain.md`
+- Tutorial: `tutorials/attach-first-domain.md`,
+  `tutorials/attach-apex.md`, `tutorials/attach-subdomain.md`
 - How-to:
   - `how-to/connect-providers.md` (per-provider DNS record locations)
   - `how-to/serve-and-api.md` (run the edge listeners + REST API)
@@ -28,9 +29,14 @@ historical DEBT-025).
   - `how-to/troubleshoot.md` (DNS + certificate issuance)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
   `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
-  `reference/provider-capability-matrix.md`
+  `reference/provider-capability-matrix.md`,
+  `reference/provider-adapter-sdk.md` (plan/diff/apply/verify/rollback),
+  `reference/abuse-controls.md` (per-tenant limits + global ACME queue),
+  `reference/tls-lifecycle.md`, `reference/security-model.md`,
+  `reference/migration-compatibility.md`
 - Explanation: `explanation/apex-vs-subdomain.md`,
-  `explanation/why-txt-ownership.md`
+  `explanation/why-txt-ownership.md`, `explanation/http01-vs-dns01.md`,
+  `explanation/routing-host-sni.md`, `explanation/purchase-vs-attachment.md`
 
 Remaining work and technical debt are tracked in GitHub Issues (CLAUDE.md rule
 29), not in repo files: see issue #76 (ag-domains remaining work / tech debt).

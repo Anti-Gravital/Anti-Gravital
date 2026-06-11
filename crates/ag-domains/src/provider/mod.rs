@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub mod capabilities;
+pub mod sdk;
 
 #[cfg(feature = "cloudflare")]
 pub mod cloudflare;

@@ -2,7 +2,7 @@
 //!
 //! This is the single source of eTLD+1 truth for the crate (DRY): both
 //! [`crate::hostname`] and [`crate::issuance`] derive the registrable domain
-//! through [`registrable_domain`], so apex/subdomain classification and the
+//! through `registrable_domain`, so apex/subdomain classification and the
 //! per-registered-domain issuance rate-limit key never disagree.
 //!
 //! With the `psl` feature it uses the Public Suffix List, which is correct for

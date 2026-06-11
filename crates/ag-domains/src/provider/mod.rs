@@ -27,6 +27,9 @@ pub mod google_cloud_dns;
 #[cfg(feature = "azure-dns")]
 pub mod azure_dns;
 
+#[cfg(feature = "namecheap")]
+pub mod namecheap;
+
 /// Abstraction over any DNS provider.
 ///
 /// Adapters implement this trait. The ecosystem consumes it via

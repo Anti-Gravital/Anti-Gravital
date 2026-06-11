@@ -111,8 +111,16 @@ pub fn known_provider_capabilities() -> Vec<ProviderCapabilities> {
             zone_export: true,
             domain_purchase: false,
         },
-        // Namecheap: host-record API exists, but no Anti-Gravital adapter yet.
-        ProviderCapabilities::manual("namecheap", false, false),
+        // Namecheap: read/apply adapter (feature `namecheap`) over the host-records API.
+        ProviderCapabilities {
+            provider: "namecheap",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: false,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
         // Hostinger: hPanel DNS; manual flow + BIND export.
         ProviderCapabilities::manual("hostinger", false, false),
         // Squarespace: shows required records; manual flow.

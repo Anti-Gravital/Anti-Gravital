@@ -18,7 +18,7 @@ claims automation that does not exist.
 | route53 | read_apply | yes | no | yes | yes | no |
 | google-cloud-dns | read_apply | no | no | yes | yes | no |
 | azure-dns | read_apply | yes | no | yes | yes | no |
-| namecheap | manual | no | no | no | yes | no |
+| namecheap | read_apply | no | no | yes | yes | no |
 | hostinger | manual | no | no | no | yes | no |
 | squarespace | manual | no | no | no | yes | no |
 

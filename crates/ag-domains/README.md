@@ -45,6 +45,9 @@ rigida en todos los targets (septima regla de dependencias en
 - `azure-dns`: adapter Azure DNS (OAuth2 client-credentials + API JSON de ARM,
   record sets por tipo, `PUT` upsert). Tests de forma con wiremock; ruta real con
   test `#[ignore]` de credencial.
+- `namecheap`: adapter Namecheap (API key + host-records XML; `setHosts` es
+  reemplazo total, por lo que el adapter hace read-modify-write). Tests de forma
+  con wiremock; ruta real con test `#[ignore]` de credencial.
 
 ## Control plane (ADR-0012 / RFC-0011, phase A)
 

@@ -59,14 +59,15 @@ Partial / tracked in Issues:
 - S6 producer + edge: the `producer` feature (enqueue-only, no worker runtime) exists
   and is exemplified by `examples/workers-producer-edge` (RFC-0012 §17.4). The
   dedicated `ag-edge` wiring is deferred until a concrete consumer exists (#112).
-- S7 `ag-mail` migration: M0-M2 done (`workers`/`workers-postgres` features in
-  `ag-mail`, `MailDeliveryHandler`, `WorkersMailQueue`; the duplicated
-  `queue-persistent` queue is `#[deprecated]`). M3 parity verification needs a live
-  database (#109); M4 removal follows it (#103).
+- S7 `ag-mail` migration: complete (M0-M4). The `workers`/`workers-postgres`
+  features in `ag-mail` (`MailDeliveryHandler`, `WorkersMailQueue`) route delivery
+  through this engine; M3 parity was verified against a live database (#109) and
+  M4 removed the duplicated `queue-persistent` queue (#103), leaving the shared
+  PostgreSQL backend as the sole durable path.
 
 Verification: unit, integration, property and runtime tests on the memory backend run
 in CI; PostgreSQL integration tests exist but are `#[ignore]` and need `DATABASE_URL`
-(#108). Criterion benchmarks live in `benches/` (see `benches/README.md`) and the
+— verified against a live PostgreSQL 16 (#108). Criterion benchmarks live in `benches/` (see `benches/README.md`) and the
 `fuzz_workers_payload` target fuzzes the payload-decode boundary in the CI fuzz-smoke
 job. The workspace coverage gate is green at >= 80%.
 

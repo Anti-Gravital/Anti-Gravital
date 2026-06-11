@@ -1,20 +1,21 @@
 //! Parity integration tests for mail delivery routed through `ag-workers`'
-//! PostgreSQL backend (RFC-0012 S7/M3).
+//! PostgreSQL backend (RFC-0012 S7/M3-M4).
 //!
 //! These prove that a mail-delivery job enqueued via [`WorkersMailQueue`] becomes
 //! a durable row in `ag_worker_jobs` under `kind = 'mail.delivery'`, is leased and
-//! delivered by a [`MailDeliveryHandler`] with the same observable outcome as
-//! `ag-mail`'s own persistent queue (`tests/persistent_queue.rs`), and survives a
-//! simulated process restart. This is the evidence required before the duplicated
-//! generic queue (`queue-persistent`) is retired (S7/M4).
+//! delivered by a [`MailDeliveryHandler`], and survives a simulated process
+//! restart. This was the evidence required to retire the duplicated generic queue
+//! (`queue-persistent`), now removed (S7/M4): this is the sole durable path.
 //!
 //! Require a live PostgreSQL instance via `TEST_DATABASE_URL`; `#[ignore]`d by
 //! default so CI without a database stays green (repository convention, mirrors
-//! `tests/persistent_queue.rs` and the `ag-workers` Postgres suite).
+//! the `ag-workers` Postgres suite). The tests share one schema and reset it, so
+//! run them serially with `--test-threads=1`.
 //!
 //! ```text
 //! TEST_DATABASE_URL=postgres://user:pass@localhost/ag_mail_test \
-//!   cargo test -p ag-mail --features workers-postgres -- --ignored
+//!   cargo test -p ag-mail --features workers-postgres --test workers_postgres \
+//!   -- --ignored --test-threads=1
 //! ```
 
 #![cfg(feature = "workers-postgres")]

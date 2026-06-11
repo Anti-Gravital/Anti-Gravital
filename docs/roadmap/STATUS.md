@@ -339,10 +339,11 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
 S1-S5 estan implementadas y verificadas con CI verde (codigo + tests sobre el
 backend nativo en memoria). S6 esta parcial (patron y ejemplos listos; falta el
-wiring dedicado del feature `producer`). S7 tiene M0-M2 hechos; M3/M4 dependen de
-verificar la paridad contra una base PostgreSQL viva, lo que el CI por defecto no
-ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
-#109 (S7/M3) y #103 (S7/M4).
+wiring dedicado del feature `producer`). S7 esta completa: M0-M2 entregados y
+M3/M4 verificados contra una base PostgreSQL viva (paridad probada, cola generica
+duplicada eliminada). El CI por defecto no ejerce los tests `#[ignore]` que lo
+prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
+(S7/M3) y #103 (S7/M4).
 
 ### Criterios de entrada (4.6-D.1)
 
@@ -384,18 +385,18 @@ ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
   dedicado del feature `producer` desde `ag-edge` (consumidor enqueue-only segun
   seccion 7); seguimiento en el Issue #112 (diferido hasta que exista un
   consumidor concreto).
-- [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+- [x] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
   M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
   M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
   clasificacion retriable/permanente) + `WorkersMailQueue` (impl `MailQueue`
   enrutando la entrega a `ag-workers`); la logica de correo permanece en `ag-mail`;
   43 tests verdes. M3: tests de paridad Postgres (`tests/workers_postgres.rs`,
-  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) que prueban
-  persistencia como `kind=mail.delivery`, entrega y supervivencia a reinicio.
-  M4: la cola generica duplicada (`queue::store::PersistentQueue`,
-  `queue-persistent`) queda marcada `#[deprecated]` hacia el feature `workers`; su
-  eliminacion se difiere hasta verificar la paridad contra una base de datos viva
-  (seguimiento en GitHub Issue #103, no en `docs/DEBT.md`).
+  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) verificados contra
+  una base viva: persistencia como `kind=mail.delivery`, entrega y supervivencia a
+  reinicio (Issue #109). M4: la cola generica duplicada
+  (`queue::store::PersistentQueue`, feature `queue-persistent`, migracion
+  `0001_mail_queue.sql`) fue eliminada tras probar la paridad; el unico camino
+  durable es ahora el backend compartido de `ag-workers` (Issue #103).
 
 ### Criterios de salida (4.6-D.3)
 

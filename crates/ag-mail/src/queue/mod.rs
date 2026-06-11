@@ -5,11 +5,9 @@
 //! that processes messages applying exponential backoff on failure.
 //!
 //! The queue does not guarantee durability across process restarts. For
-//! durability, use `queue-persistent` (optional feature, future Stage)
-//! that persists the jobs in `ag-data`.
-
-#[cfg(feature = "queue-persistent")]
-pub mod store;
+//! durability, enable the `workers` feature and route delivery through the
+//! shared `ag-workers` background engine (RFC-0012 S7); its PostgreSQL backend
+//! persists jobs as `kind = mail.delivery`. See `crate::workers`.
 
 use std::sync::Arc;
 use std::time::Duration;

@@ -34,9 +34,11 @@ This is what the crate ships today. The status here must match the code
   adapters; see `ADR-0011`).
 - `Email` / `EmailBuilder` message model; typed templates validated at build
   time (`template::validate`).
-- Async retry queue with exponential backoff: in-memory by default, optional
-  persistent backend via `ag-data` (`queue-persistent`, with the
-  `migrations/0001_mail_queue.sql` schema).
+- Async retry queue with exponential backoff: in-memory by default; durable
+  delivery via the shared `ag-workers` PostgreSQL backend behind the `workers` /
+  `workers-postgres` features (mail jobs persist as `kind=mail.delivery`). The
+  former ag-mail-local persistent queue (`queue-persistent`) was removed once
+  parity was verified (RFC-0012 S7/M4).
 - `ag-observe` metrics: `ag_mail_sent_total`, `ag_mail_failed_total`,
   retry/latency series.
 - `NullSender` (`test-utils`) for downstream tests.
@@ -45,9 +47,9 @@ This is what the crate ships today. The status here must match the code
   does NOT depend on `ag-auth`.
 - CLI: `ag mail test`.
 
-The persistent queue, custom SMTP headers and external template engines
-(`minijinja`) for this baseline are implemented; remaining debt is tracked as
-GitHub Issues (label `tech-debt`; `docs/DEBT.md` is frozen).
+Durable delivery (via `ag-workers`), custom SMTP headers and external template
+engines (`minijinja`) for this baseline are implemented; remaining debt is
+tracked as GitHub Issues (label `tech-debt`; `docs/DEBT.md` is frozen).
 
 ## Native outbound MTA (ADR-0010 / RFC-0009)
 
@@ -144,9 +146,10 @@ another specialized project.
 
 ## Dependency rules (verified in CI)
 
-- May depend on `ag-core`, `ag-data` (optional persistent queue / MTA state),
-  `ag-realtime` (optional durable queue + event bus), `ag-observe` (metrics),
-  `ag-storage` (optional attachments), and `ag-domains` (SPF/DKIM/DMARC
+- May depend on `ag-core`, `ag-workers` (optional durable delivery via its
+  PostgreSQL backend; pulls `ag-data` transitively), `ag-data` (optional, e.g.
+  MTA state), `ag-realtime` (optional durable queue + event bus), `ag-observe`
+  (metrics), `ag-storage` (optional attachments), and `ag-domains` (SPF/DKIM/DMARC
   cooperation and DKIM key material).
 - **Must NOT depend on `ag-auth`.** `ag-auth` consumes `ag-mail` through a
   small trait it defines. Sixth rule of architecture chapter 5 (`ADR-0007`),

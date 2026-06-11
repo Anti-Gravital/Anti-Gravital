@@ -53,6 +53,7 @@ pub mod attachment;
 pub mod caa;
 pub mod dangling;
 pub mod diagnostics;
+pub mod domain_connect;
 pub mod events;
 pub mod hostname;
 pub mod instructions;

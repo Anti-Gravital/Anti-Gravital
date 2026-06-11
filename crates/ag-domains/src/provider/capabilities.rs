@@ -91,8 +91,16 @@ pub fn known_provider_capabilities() -> Vec<ProviderCapabilities> {
             zone_export: true,
             domain_purchase: false,
         },
-        // Google Cloud DNS: record-set changes; no apex alias; no adapter yet.
-        ProviderCapabilities::manual("google-cloud-dns", false, false),
+        // Google Cloud DNS: read/apply adapter (feature `google-cloud-dns`); no apex alias.
+        ProviderCapabilities {
+            provider: "google-cloud-dns",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: false,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
         // Azure DNS: record-set operations + apex alias records; no adapter yet.
         ProviderCapabilities::manual("azure-dns", true, false),
         // Namecheap: host-record API exists, but no Anti-Gravital adapter yet.

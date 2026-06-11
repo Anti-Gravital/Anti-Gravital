@@ -30,6 +30,8 @@ psl = ["dep:psl"]
 cloudflare = ["dep:reqwest"]
 # Amazon Route 53 adapter (AWS SigV4 + REST/XML). RFC-0011 phase E.
 route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:chrono"]
+# Google Cloud DNS adapter (service-account RS256 JWT + JSON API). RFC-0011 phase E.
+google-cloud-dns = ["dep:reqwest", "dep:jsonwebtoken", "dep:chrono"]
 # REST API surface for the control plane (RFC-0011 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]
@@ -72,6 +74,7 @@ hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
 hex = { version = "0.4", optional = true }
 quick-xml = { version = "0.37", features = ["serialize"], optional = true }
+jsonwebtoken = { version = "10", optional = true }
 
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }
@@ -84,3 +87,7 @@ tokio = { workspace = true, features = ["test-util", "rt-multi-thread", "macros"
 wiremock = { workspace = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
+# Generate a throwaway RSA key at test time for the google-cloud-dns JWT path,
+# so no private key is ever embedded in the source tree.
+rsa = "0.9"
+rand = "0.8"

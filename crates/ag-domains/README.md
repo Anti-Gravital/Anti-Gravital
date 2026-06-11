@@ -39,6 +39,9 @@ rigida en todos los targets (septima regla de dependencias en
 - `route53`: adapter Amazon Route 53 (AWS SigV4 + REST/XML). El firmador SigV4 se
   verifica contra el vector `get-vanilla` publicado por AWS; la ruta real va con
   test `#[ignore]` de credencial.
+- `google-cloud-dns`: adapter Google Cloud DNS (JWT RS256 de service account +
+  API JSON `changes`). La firma JWT se verifica en un test sign/verify; la ruta
+  real va con test `#[ignore]` de credencial.
 
 ## Control plane (ADR-0012 / RFC-0011, phase A)
 

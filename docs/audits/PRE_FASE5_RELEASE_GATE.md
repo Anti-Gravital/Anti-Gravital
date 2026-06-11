@@ -30,7 +30,7 @@ means a `fail` or `pending` on that row forbids advancing.
 | Examples | pass | Stage 9 (`pre-fase5-examples.md`): 4 binaries build, self-contained ones run as documented, `ecommerce-api` regen reproducible (`diff -rq` identical), 3 `ag new` templates scaffold clean, docs honest, 2026-05-29 | yes | 9 |
 | Security | pass | Stage 3 (`pre-fase5-security.md`) + Stage 8 per-module (`pre-fase5-security-modules.md`): all 10 functional crates pass, 2026-05-29 | yes | 3/8 |
 | API/DX | pass | Stage 2 architecture (`pre-fase5-architecture.md`) + module API review (Stage 8); footguns documented, 2026-05-29 | yes | 2 |
-| Docs honesty | pending | report | yes | 10 |
+| Docs honesty | pass | `pre-fase5-docs-reconciliation.md`: evidence-based phase states across README/master/calendar; no completion claim against an open gate, 2026-06-11 | yes | 10 |
 | Open debt | pending | `docs/DEBT.md` | yes | all |
 
 ## Findings severity classification
@@ -71,7 +71,7 @@ the plan's final checklist):
 - [ ] Long manual fuzz executed or documented as a blocking pending item.
 - [ ] Minimum coverage verified.
 - [ ] Primary examples work.
-- [ ] README claims are backed by evidence.
+- [x] README claims are backed by evidence (Stage 10, 2026-06-11).
 - [ ] Open technical debt is documented.
 - [ ] `ag-cloud` remains a skeleton until this gate closes.
 
@@ -100,5 +100,5 @@ gate rows are unchanged — only the execution sequence is:
 | 7 | `docs/audits/pre-fase5-concurrency.md` | done (PR 5) |
 | 8 | `docs/audits/pre-fase5-security-modules.md` | done (PR 5) |
 | 9 | `docs/audits/pre-fase5-examples.md` | done (PR 6) |
-| 10 | `docs/audits/pre-fase5-docs-reconciliation.md` | pending |
+| 10 | `docs/audits/pre-fase5-docs-reconciliation.md` | done (issue #71) |
 | 11 | `docs/audits/PRE_FASE5_RELEASE_GATE.md` | this file |

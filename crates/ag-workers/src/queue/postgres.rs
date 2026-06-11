@@ -16,7 +16,7 @@ use crate::ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 use crate::job::{JobEnvelope, JobPriority, JobStatus, NewJob};
 use crate::outcome::DeadLetterReason;
 use crate::payload::PayloadBytes;
-use crate::queue::dlq::DeadLetterRecord;
+use crate::queue::dlq::{BulkDlqOutcome, DeadLetterRecord, DlqFilter, BULK_DLQ_SAMPLE_CAP};
 use crate::queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 
 /// Embedded migrations for the worker tables (`./migrations`).
@@ -235,6 +235,106 @@ impl PostgresQueue {
             .map(|r| r.try_get::<String, _>("queue").map_err(backend_err))
             .collect()
     }
+
+    // -- Bulk dead-letter operations (RFC-0017) -----------------------------------
+    // Filtered, bounded re-drive / purge for day-2 recovery. `--dry-run` in the CLI
+    // calls `preview_dead_letters` first; the single-ID methods above stay unchanged.
+
+    /// Counts the entries a filter would affect and returns a bounded id sample,
+    /// without mutating anything. Backs the CLI `--dry-run` preview.
+    pub async fn preview_dead_letters(
+        &self,
+        filter: &DlqFilter,
+    ) -> Result<BulkDlqOutcome, QueueError> {
+        let rows = sqlx::query(
+            "SELECT id FROM ag_worker_dead_letters \
+             WHERE queue = $1 \
+               AND ($2::text IS NULL OR kind = $2) \
+               AND ($3::bigint IS NULL OR dead_lettered_at < now() - ($3 * interval '1 second')) \
+             ORDER BY dead_lettered_at DESC LIMIT $4",
+        )
+        .bind(&filter.queue)
+        .bind(filter.kind.as_deref())
+        .bind(filter.older_than.map(|d| d.as_secs() as i64))
+        .bind(filter.limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(backend_err)?;
+        rows_to_outcome(&rows)
+    }
+
+    /// Re-enqueues up to `filter.limit` dead-letters matching `queue` (and optional
+    /// `kind`), newest first, resetting status to `queued` and attempts to 0 in one
+    /// transaction. `older_than` is ignored for re-drive. Returns count + id sample.
+    pub async fn redrive_dead_letters(
+        &self,
+        filter: &DlqFilter,
+    ) -> Result<BulkDlqOutcome, QueueError> {
+        let rows = sqlx::query(
+            "WITH picked AS ( \
+                 SELECT id FROM ag_worker_dead_letters \
+                 WHERE queue = $1 AND ($2::text IS NULL OR kind = $2) \
+                 ORDER BY dead_lettered_at DESC LIMIT $3 \
+                 FOR UPDATE SKIP LOCKED \
+             ), moved AS ( \
+                 INSERT INTO ag_worker_jobs \
+                     (id, kind, queue, payload, payload_version, priority, status, attempts, \
+                      max_attempts, timeout_ms, scheduled_at, available_at, created_at, updated_at, \
+                      locked_by, lock_until, dedup_key, tenant_id, trace_id, last_error) \
+                 SELECT d.id, d.kind, d.queue, d.payload, d.payload_version, d.priority, 'queued', 0, \
+                      d.max_attempts, d.timeout_ms, NULL, now(), d.created_at, now(), \
+                      NULL, NULL, d.dedup_key, d.tenant_id, d.trace_id, d.last_error \
+                 FROM ag_worker_dead_letters d WHERE d.id IN (SELECT id FROM picked) \
+                 RETURNING id \
+             ) \
+             DELETE FROM ag_worker_dead_letters \
+             WHERE id IN (SELECT id FROM moved) RETURNING id",
+        )
+        .bind(&filter.queue)
+        .bind(filter.kind.as_deref())
+        .bind(filter.limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(backend_err)?;
+        rows_to_outcome(&rows)
+    }
+
+    /// Deletes up to `filter.limit` dead-letters matching `queue` (and optional
+    /// `kind` and `older_than`), newest first. Returns count + id sample.
+    pub async fn purge_dead_letters_filtered(
+        &self,
+        filter: &DlqFilter,
+    ) -> Result<BulkDlqOutcome, QueueError> {
+        let rows = sqlx::query(
+            "DELETE FROM ag_worker_dead_letters WHERE id IN ( \
+                 SELECT id FROM ag_worker_dead_letters \
+                 WHERE queue = $1 \
+                   AND ($2::text IS NULL OR kind = $2) \
+                   AND ($3::bigint IS NULL OR dead_lettered_at < now() - ($3 * interval '1 second')) \
+                 ORDER BY dead_lettered_at DESC LIMIT $4 \
+             ) RETURNING id",
+        )
+        .bind(&filter.queue)
+        .bind(filter.kind.as_deref())
+        .bind(filter.older_than.map(|d| d.as_secs() as i64))
+        .bind(filter.limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(backend_err)?;
+        rows_to_outcome(&rows)
+    }
+}
+
+/// Builds a [`BulkDlqOutcome`] from rows that each project a single `id` column.
+fn rows_to_outcome(rows: &[PgRow]) -> Result<BulkDlqOutcome, QueueError> {
+    let affected = rows.len() as u64;
+    let sample = rows
+        .iter()
+        .take(BULK_DLQ_SAMPLE_CAP)
+        .map(|r| r.try_get::<uuid::Uuid, _>("id").map(JobId::from_uuid))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(backend_err)?;
+    Ok(BulkDlqOutcome { affected, sample })
 }
 
 #[async_trait]

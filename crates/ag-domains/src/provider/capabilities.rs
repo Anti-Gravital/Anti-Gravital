@@ -81,14 +81,46 @@ pub fn known_provider_capabilities() -> Vec<ProviderCapabilities> {
             zone_export: true,
             domain_purchase: false,
         },
-        // Route 53: provider-specific Alias at apex; no Anti-Gravital adapter yet.
-        ProviderCapabilities::manual("route53", true, false),
-        // Google Cloud DNS: record-set changes; no apex alias; no adapter yet.
-        ProviderCapabilities::manual("google-cloud-dns", false, false),
-        // Azure DNS: record-set operations + apex alias records; no adapter yet.
-        ProviderCapabilities::manual("azure-dns", true, false),
-        // Namecheap: host-record API exists, but no Anti-Gravital adapter yet.
-        ProviderCapabilities::manual("namecheap", false, false),
+        // Route 53: read/apply adapter (feature `route53`) + provider Alias at apex.
+        ProviderCapabilities {
+            provider: "route53",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: true,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
+        // Google Cloud DNS: read/apply adapter (feature `google-cloud-dns`); no apex alias.
+        ProviderCapabilities {
+            provider: "google-cloud-dns",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: false,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
+        // Azure DNS: read/apply adapter (feature `azure-dns`) + apex alias record sets.
+        ProviderCapabilities {
+            provider: "azure-dns",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: true,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
+        // Namecheap: read/apply adapter (feature `namecheap`) over the host-records API.
+        ProviderCapabilities {
+            provider: "namecheap",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: false,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
         // Hostinger: hPanel DNS; manual flow + BIND export.
         ProviderCapabilities::manual("hostinger", false, false),
         // Squarespace: shows required records; manual flow.

@@ -31,8 +31,23 @@ rigida en todos los targets (septima regla de dependencias en
 
 - `acme` (default): cliente ACME contra Let's Encrypt.
 - `propagation` (default): verificacion via resolvers DNS publicos.
+- `psl` (RFC-0016): derivacion de eTLD+1 via Public Suffix List, correcta para
+  sufijos multi-etiqueta (`co.uk`, `com.br`). OFF por defecto; el heuristico de
+  dos etiquetas mantiene el build nativo offline (ADR-0009).
 - `cloudflare`: adapter Cloudflare (DnsProvider). Otros adapters se añaden
   en iteraciones futuras detras de su propia feature.
+- `route53`: adapter Amazon Route 53 (AWS SigV4 + REST/XML). El firmador SigV4 se
+  verifica contra el vector `get-vanilla` publicado por AWS; la ruta real va con
+  test `#[ignore]` de credencial.
+- `google-cloud-dns`: adapter Google Cloud DNS (JWT RS256 de service account +
+  API JSON `changes`). La firma JWT se verifica en un test sign/verify; la ruta
+  real va con test `#[ignore]` de credencial.
+- `azure-dns`: adapter Azure DNS (OAuth2 client-credentials + API JSON de ARM,
+  record sets por tipo, `PUT` upsert). Tests de forma con wiremock; ruta real con
+  test `#[ignore]` de credencial.
+- `namecheap`: adapter Namecheap (API key + host-records XML; `setHosts` es
+  reemplazo total, por lo que el adapter hace read-modify-write). Tests de forma
+  con wiremock; ruta real con test `#[ignore]` de credencial.
 
 ## Control plane (ADR-0012 / RFC-0011, phase A)
 

@@ -22,8 +22,20 @@ workspace = true
 default = ["acme", "propagation"]
 acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:chrono"]
 propagation = ["dep:hickory-resolver"]
+# PSL-correct eTLD+1 (RFC-0016): registrable-domain derivation via the Public
+# Suffix List for multi-label suffixes (co.uk, com.br). OFF by default; the
+# native two-label heuristic keeps the default build offline (ADR-0009).
+psl = ["dep:psl"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
+# Amazon Route 53 adapter (AWS SigV4 + REST/XML). RFC-0011 phase E.
+route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:chrono"]
+# Google Cloud DNS adapter (service-account RS256 JWT + JSON API). RFC-0011 phase E.
+google-cloud-dns = ["dep:reqwest", "dep:jsonwebtoken", "dep:chrono"]
+# Azure DNS adapter (OAuth2 client-credentials + ARM JSON API). RFC-0011 phase E.
+azure-dns = ["dep:reqwest"]
+# Namecheap adapter (API key + host-records XML, replace-all setHosts). RFC-0011 phase E.
+namecheap = ["dep:reqwest", "dep:quick-xml"]
 # REST API surface for the control plane (RFC-0011 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]
@@ -56,6 +68,18 @@ sqlx = { workspace = true, optional = true }
 # Propagacion DNS (hickory-resolver)
 hickory-resolver = { version = "0.26.1", default-features = false, features = ["tokio"], optional = true }
 
+# Public Suffix List for PSL-correct eTLD+1 (feature "psl"). Pure-Rust, embedded
+# list, no network; permissively licensed (RFC-0016).
+psl = { version = "2", optional = true }
+
+# DNS provider adapter auth/serialization (feature-gated). All already present in
+# the workspace dependency tree; used here behind adapter features (RFC-0011 E).
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+hex = { version = "0.4", optional = true }
+quick-xml = { version = "0.37", features = ["serialize"], optional = true }
+jsonwebtoken = { version = "10", optional = true }
+
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }
 rcgen = { workspace = true, optional = true }
@@ -67,3 +91,7 @@ tokio = { workspace = true, features = ["test-util", "rt-multi-thread", "macros"
 wiremock = { workspace = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
+# Generate a throwaway RSA key at test time for the google-cloud-dns JWT path,
+# so no private key is ever embedded in the source tree.
+rsa = "0.9"
+rand = "0.8"

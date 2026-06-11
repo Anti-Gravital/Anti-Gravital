@@ -5,36 +5,37 @@
 > Anterior: [fase-06-ag-ai-knowledge-graph.md](./fase-06-ag-ai-knowledge-graph.md)
 > Siguiente: [fase-08-ag-mobile.md](./fase-08-ag-mobile.md)
 
-## Fase 7 — `ag-migrate` importadores
+## Phase 7 — `ag-migrate` importers
 
-**Objetivo.** Construir los importadores de migración desde frameworks legacy. Es probablemente la fase con mayor impacto en adopción real.
+**Objective.** Build the migration importers from legacy frameworks. It is probably the phase with the greatest impact on real adoption.
 
-### 7.1 Criterios de entrada
+### 7.1 Entry criteria
 
-- [ ] Fase 6 completada.
-- [ ] Investigación de muestras reales: al menos diez schemas/proyectos de cada framework objetivo recolectados como corpus de testing.
+- [ ] Phase 6 completed.
+- [ ] Research of real samples: at least ten schemas/projects of each target framework collected as a testing corpus.
 
-### 7.2 Entregables
+### 7.2 Deliverables
 
-- [ ] Crate `ag-migrate` con cinco importadores:
-  - [ ] Importador OpenAPI 3.0 y 3.1.
-  - [ ] Importador Prisma.
-  - [ ] Importador Django.
-  - [ ] Importador FastAPI.
-  - [ ] Importador Sequelize.
-  - [ ] Importador GraphQL SDL.
-- [ ] Comando `ag migrate from <framework> <ruta>`.
-- [ ] Guías oficiales de migración por framework con ejemplos completos.
-- [ ] Estudio de caso documentado: migración real de una aplicación FastAPI mediana.
+- [ ] `ag-migrate` crate with five importers:
+  - [ ] OpenAPI 3.0 and 3.1 importer.
+  - [ ] Prisma importer.
+  - [ ] Django importer.
+  - [ ] FastAPI importer.
+  - [ ] Sequelize importer.
+  - [ ] GraphQL SDL importer.
+- [ ] `ag migrate from <framework> <path>` command.
+- [ ] Official migration guides per framework with complete examples.
+- [ ] Documented case study: real migration of a medium-sized FastAPI application.
 
-### 7.3 Criterios de salida (puerta antes de Fase 8)
+### 7.3 Exit criteria (gate before Phase 8)
 
-- [ ] Cada importador tiene cobertura de tests ≥ 80% sobre el corpus de proyectos reales.
-- [ ] La guía de migración FastAPI ha sido validada por al menos un equipo externo que migró su aplicación.
-- [ ] Al menos 3 500 stars en el repositorio.
+- [ ] Each importer has test coverage ≥ 80% over the corpus of real projects.
+- [ ] The FastAPI migration guide has been validated by at least one external team that migrated its application.
+- [ ] At least 3 500 stars on the repository.
 
-### 7.4 Riesgos de la fase
+### 7.4 Phase risks
 
-Los importadores cubren la traducción del contrato, no la lógica de negocio. El riesgo es generar expectativas exageradas. La mitigación es documentación honesta sobre lo que se importa y lo que no.
+The importers cover the translation of the contract, not the business logic. The risk is generating exaggerated expectations. The mitigation is honest documentation about what is imported and what is not.
 
 ---
+

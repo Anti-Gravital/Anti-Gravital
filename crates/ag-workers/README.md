@@ -47,6 +47,12 @@ Implemented (S1-S5):
   (`list`, `run`, `enqueue`, `queues`, `dlq list|inspect|retry|purge`, `doctor`;
   durable-backend subcommands require `DATABASE_URL`); and the five runnable examples
   listed below.
+- DLQ recovery (RFC-0017): `dlq retry` and `dlq purge` take `--queue` (required for
+  bulk), optional `--kind`, a bounded `--limit`, and `--dry-run` to preview the
+  affected count and an id sample before acting. The single-ID `retry JOB_ID` and
+  the age-only `purge --older-than` paths are unchanged. The bulk API
+  (`preview_dead_letters`, `redrive_dead_letters`, `purge_dead_letters_filtered`)
+  is shared by the in-memory and PostgreSQL backends.
 
 Partial / tracked in Issues:
 

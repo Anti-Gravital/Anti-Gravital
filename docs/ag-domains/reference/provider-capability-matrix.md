@@ -15,10 +15,10 @@ claims automation that does not exist.
 |---|---|---|---|---|---|---|
 | manual | manual | no | no | no | yes | no |
 | cloudflare | read_apply | yes | yes | yes | yes | no |
-| route53 | manual | yes | no | no | yes | no |
-| google-cloud-dns | manual | no | no | no | yes | no |
-| azure-dns | manual | yes | no | no | yes | no |
-| namecheap | manual | no | no | no | yes | no |
+| route53 | read_apply | yes | no | yes | yes | no |
+| google-cloud-dns | read_apply | no | no | yes | yes | no |
+| azure-dns | read_apply | yes | no | yes | yes | no |
+| namecheap | read_apply | no | no | yes | yes | no |
 | hostinger | manual | no | no | no | yes | no |
 | squarespace | manual | no | no | no | yes | no |
 

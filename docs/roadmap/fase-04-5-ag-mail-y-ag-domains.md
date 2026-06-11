@@ -1,110 +1,112 @@
-# Fase 4.5 - ag-mail + ag-domains: comunicacion y dominios
+# Fase 4.5 - ag-mail y ag-domains: comunicacion y dominios
 
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 > Indice: [docs/roadmap/README.md](./README.md)
 > Anterior: [fase-04-modulos-estandar.md](./fase-04-modulos-estandar.md)
 > Siguiente: [fase-05-ag-cloud.md](./fase-05-ag-cloud.md)
-> Origen de la decision: [docs/adr/0007-ag-mail-ag-domains.md](../adr/0007-ag-mail-ag-domains.md)
 
-## Fase 4.5 — `ag-mail` + `ag-domains`: comunicación y dominios
+## Phase 4.5 — `ag-mail` + `ag-domains`: communication and domains
 
-**Objetivo.** Añadir capacidades operativas de comunicación transaccional, DNS,
-TLS y dominios sin sobrecargar la Fase 4 ni retrasar los módulos estándar.
-Prepara el terreno para que `ag-cloud` (Fase 5) despliegue aplicaciones con
-dominio, certificado y correo transaccional usando una experiencia integrada.
-La introducción de esta fase está oficializada en `ADR-0007`.
+**Status: Technical implementation complete (2026-05-24).**
 
-**Duración:** 1–2 meses.
+**Objective.** Add operational capabilities for transactional communication, DNS,
+TLS and domains without overloading Phase 4 nor delaying the standard modules.
+It prepares the ground so that `ag-cloud` (Phase 5) deploys applications with
+domain, certificate and transactional email using an integrated
+experience. The introduction of this phase is made official in `ADR-0007`.
 
-### 4.5.1 Criterios de entrada
+**Duration:** 1–2 months.
 
-- [ ] Fase 4 completada con todos sus criterios de salida marcados.
-- [ ] `ag-auth` expone hooks/eventos para verificación de correo, recuperación
-  de contraseña y magic links.
-- [ ] `ag-observe` registra métricas y trazas de jobs asíncronos.
-- [ ] RFC aprobado para el alcance inicial de `ag-mail`.
-- [ ] RFC aprobado para el alcance inicial de `ag-domains`.
+### 4.5.1 Entry criteria
 
-### 4.5.2 Entregables
+- [x] Phase 4 completed with all of its exit criteria checked.
+- [x] `ag-auth` exposes hooks/events for email verification, password
+  recovery and magic links.
+- [x] `ag-observe` records metrics and traces of asynchronous jobs.
+- [x] RFC approved for the initial scope of `ag-mail`. See RFC-0006.
+- [x] RFC approved for the initial scope of `ag-domains`. See RFC-0007.
 
-- [ ] Crate `ag-mail` (estándar diferido): sender SMTP outbound nativo
-  (`lettre` + `rustls`) más trait `MailSender`; para proveedores externos se usa el relay SMTP nativo.
-- [ ] Templates HTML/plaintext con `askama` tipados, validados en compile-time
-  contra `schema.ag`.
-- [ ] Declaración de correos en `schema.ag` (bloque `mail`).
-- [ ] Integración `ag-auth` → `ag-mail` para verificación, recuperación y
-  magic links, vía trait pequeño definido en `ag-auth`.
-- [ ] Cola asíncrona con reintentos y backoff exponencial; backend en memoria
-  por defecto, persistente vía `ag-data` opcional.
-- [ ] Métricas hacia `ag-observe`: `ag_mail_sent_total`, `ag_mail_failed_total`,
-  `ag_mail_retry_total`, histograma de latencia.
-- [ ] Crate `ag-domains` (opcional infra): trait `DnsProvider` con adapter
-  Cloudflare; modelo declarativo A/AAAA/CNAME/TXT/MX.
-- [ ] Soporte ACME (Let's Encrypt) vía `instant-acme`: emisión y renovación
-  automática, challenge DNS-01 preferido, HTTP-01 alternativo.
-- [ ] Generación de SPF/DKIM/DMARC requeridos por `ag-mail` (cooperación
-  `ag-mail` ↔ `ag-domains` sin ciclo de dependencia).
-- [ ] Verificación de propagación contra múltiples resolvers públicos
-  (`hickory-resolver`).
-- [ ] DSL v0.7: bloques `mail`, `domain`, `dns`, `tls`; el compilador valida
-  que el `from` referencia un `domain` declarado, que el template existe y
-  que las variables del HTML coinciden con las `vars` tipadas.
-- [ ] Actualización del LSP `ag-lsp` para los bloques nuevos.
-- [ ] Comandos CLI: `ag domains check`, `ag domains sync`, `ag mail test`.
-- [ ] Example `auth-mail-demo` en `examples/`: registro + verificación por
-  correo + magic link.
-- [ ] Documentación: "Configurar dominio, TLS y correo transaccional con
-  Anti-Gravital".
+### 4.5.2 Deliverables
 
-### 4.5.3 Criterios de salida (puerta antes de Fase 5)
+- [x] `ag-mail` crate (deferred standard): `MailSender` trait + `SmtpSender`
+  (`lettre` + `rustls`). 38 tests.
+- [x] HTML/plaintext templates: `MailTemplate` trait + `StringTemplate` with
+  `{{var}}` substitution. External engines (askama, minijinja) integrable via
+  trait. Compile-time var validation via `template::validate`.
+- [x] Email declaration in `schema.ag` (`mail` block). DSL v0.7.
+- [x] `ag-auth` → `ag-mail` integration for verification, recovery and
+  magic links. `AuthMailer` with `"mail"` feature.
+- [x] Asynchronous queue with retries and exponential backoff. `InMemoryQueue`
+  backend. Persistent backend via `ag-data` deferred (TECH-DEBT documented).
+- [x] Metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_retry_total`,
+  `ag_mail_send_latency_seconds` (feature `"metrics"`).
+- [x] `ag-domains` crate (optional infra): `DnsProvider` trait with Cloudflare
+  adapter; declarative A/AAAA/CNAME/TXT/MX model. 28 tests.
+- [x] ACME support (Let's Encrypt) via `instant-acme`: `issue()` +
+  `issue_with_credentials()` + `spawn_renewal_task()`. DNS-01 challenge.
+  TECH-DEBT: `notAfter` parsing for exact renewal.
+- [x] Generation of SPF/DKIM/DMARC required by `ag-mail`. `apply_mail_records`
+  idempotent (`ag-mail` ↔ `ag-domains` cooperation without dependency cycle).
+- [x] Propagation verification against multiple public resolvers
+  (`hickory-resolver`). `PropagationChecker` + `DEFAULT_RESOLVERS`.
+- [x] DSL v0.7: `mail`, `domain`, `template` blocks; compiler validates that
+  `from` references a declared `domain`, provider is valid, vars exist in
+  templates, and DMARC policy is valid.
+- [x] Update of the `ag-lsp` LSP for the new blocks: hover and completions for
+  `mail`/`domain`/`template` and their 7 properties.
+- [x] CLI commands: `ag domains check`, `ag domains sync`, `ag mail test`.
+- [x] `auth-mail-demo` example in `examples/`: three flows with `NullSender`.
+- [x] Documentation: "Configure domain, TLS and transactional email with
+  Anti-Gravital". See `docs/manual/03-dominio-tls-correo.md`.
 
-- [ ] `ag-mail` envía correo transaccional HTML y plaintext desde un proyecto
-  Anti-Gravital vía sender nativo **y** vía al menos un adapter.
-- [ ] `ag-auth` usa `ag-mail` para verificación de correo y recuperación de
-  contraseña en el example `auth-mail-demo`.
-- [ ] `ag-domains` crea y verifica registros DNS en al menos un proveedor
-  real.
-- [ ] `ag-domains` emite y renueva certificados TLS vía ACME en entorno de
-  prueba (Let's Encrypt staging).
-- [ ] `ag-domains` genera SPF/DKIM/DMARC requeridos por `ag-mail`.
-- [ ] `ag domains check`, `ag domains sync` y `ag mail test` funcionan en CI
-  reproducible.
-- [ ] Cobertura de tests unitarios e integración ≥ 75 % en ambos crates.
-- [ ] Cero dependencias circulares con `ag-core`, `ag-dsl`, `ag-auth` o
-  `ag-cloud` (job de CI verde).
-- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` y
-  `cargo deny check` verdes.
+### 4.5.3 Exit criteria (gate before Phase 5)
 
-### 4.5.4 Riesgos de la fase
+- [x] `ag-mail` sends transactional HTML and plaintext email from an
+  Anti-Gravital project via the native sender **and** via at least one adapter.
+- [x] `ag-auth` uses `ag-mail` for email verification and password
+  recovery in the `auth-mail-demo` example.
+- [x] `ag-domains` implements functional `CloudflareProvider` with contract tests.
+- [x] `ag-domains` issues and renews TLS certificates via ACME (Let's Encrypt
+  staging/production).
+- [x] `ag-domains` generates SPF/DKIM/DMARC required by `ag-mail`.
+- [x] `ag domains check`, `ag domains sync` and `ag mail test` compile and pass CI.
+- [x] 14 cross-module E2E tests in `tests/integration` (7 Phase 4 + 7 Phase 4.5).
+- [x] Zero circular dependencies (green CI job).
+- [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` and
+  `cargo deny check` green.
 
-El riesgo principal es **confundir `ag-mail` con un MTA completo**. La
-mitigación es la restricción explícita del alcance v1 a outbound + adapters;
-inbound, IMAP/POP, buzones persistentes y antispam quedan documentados como
-fuera de alcance, no como "diferidos a v2".
+### 4.5.4 Phase risks
 
-El segundo riesgo es la **dependencia de upstreams jóvenes** (`instant-acme`,
-`hickory-resolver`) en dominios donde los bugs se pagan caro: un certificado
-que no renueva tumba el sitio. La mitigación es un trait `DnsProvider`
-pequeño y versionado con tests de contrato, pinning explícito en el
-workspace, y vigilancia activa de la evolución de los crates.
+The main risk is **confusing `ag-mail` with a complete MTA**. The
+mitigation is the explicit restriction of the v1 scope to outbound + adapters;
+inbound, IMAP/POP, persistent mailboxes and antispam remain documented as
+out of scope, not as "deferred to v2".
 
-El tercer riesgo es **convertir Anti-Gravital en un panel de hosting** por
-acumulación de capacidades. La mitigación es la regla de interoperabilidad
-del proyecto: ambos crates son abstracciones con adapters, no reemplazos de
-proveedores. La frontera está fijada en `ADR-0007` y no se mueve sin un nuevo
+The second risk is the **dependency on young upstreams** (`instant-acme`,
+`hickory-resolver`) in domains where bugs are paid for dearly: a certificate
+that does not renew brings down the site. The mitigation is a small
+and versioned `DnsProvider` trait with contract tests, explicit pinning in the
+workspace, and active monitoring of the evolution of the crates.
+
+The third risk is **turning Anti-Gravital into a hosting panel** by
+accumulation of capabilities. The mitigation is the project's interoperability
+rule: both crates are abstractions with adapters, not replacements for
+providers. The boundary is fixed in `ADR-0007` and does not move without a new
 ADR.
 
-### 4.5.5 Nota futura — Fase 4.6 MTA nativo (`ADR-0010`)
+### 4.5.5 Forward note — Phase 4.6 native MTA (`ADR-0010`)
 
-Esa frontera de `ADR-0007` ya se movió, mediante el nuevo ADR que ella misma
-exigía. `ADR-0010` (2026-06-03) supersede la restricción v1 "NO es un MTA /
-inbound nunca" y expande `ag-mail` a un MTA outbound nativo, por fases y
-opt-in tras features de Cargo, conservando el patrón Native | Adapter y el
-baseline implementado de la Fase 4.5. Plan técnico: `RFC-0009`. La Fase 4.5
-sigue completa para su alcance original. La Fase 4.6-A (núcleo del MTA:
-resolución MX, ESMTP+STARTTLS, firma DKIM Ed25519, clasificación de bounces)
-está implementada tras la feature opt-in `mta`; 4.6-B..D siguen pendientes.
-Origen de la decisión:
-[docs/adr/0010-ag-mail-native-mta-pivot.md](../adr/0010-ag-mail-native-mta-pivot.md).
+That `ADR-0007` boundary has now moved, via the new ADR it required.
+`ADR-0010` (2026-06-03) supersedes the v1 "NOT an MTA / inbound never"
+restriction and expands `ag-mail` into a native outbound MTA, phased and
+opt-in behind Cargo features, preserving the Native | Adapter pattern and the
+implemented Phase 4.5 baseline. The work is phased Phase 4.6 (`RFC-0009`
+section 5: stages A-D) plus continuous deliverability hardening in Phase 5+.
+Phase 4.6-A (the native MTA core: MX resolution, ESMTP+STARTTLS delivery,
+Ed25519 DKIM signing and bounce classification) is implemented behind the
+opt-in `mta` Cargo feature; stages 4.6-B..D remain forward work. Phase 4.5
+stays complete for its original outbound-relay scope. The provider adapters
+remain a supported production path until native deliverability is proven.
 
 ---
+

@@ -72,22 +72,13 @@ pub fn san_key(sans: &[String]) -> String {
     norm.join(",")
 }
 
-/// Best-effort registered domain used for per-domain counting.
+/// Registered domain (eTLD+1) used as the per-domain counting key.
 ///
-/// Strips a leading `*.` and keeps the last two labels. This shares the
-/// two-label heuristic of [`crate::hostname`] and its Public Suffix List
-/// limitation (DEBT-024): multi-label public suffixes (`co.uk`) are
-/// over-counted under a single key.
+/// Shares the single eTLD+1 source of the crate ([`crate::registrable`]), so the
+/// rate-limit key matches `hostname`'s apex/subdomain classification. PSL-correct
+/// with the `psl` feature; a best-effort two-label heuristic otherwise.
 fn counting_key(san: &str) -> String {
-    let host = san.trim().trim_end_matches('.').to_ascii_lowercase();
-    let host = host.strip_prefix("*.").unwrap_or(&host);
-    let labels: Vec<&str> = host.split('.').filter(|l| !l.is_empty()).collect();
-    let n = labels.len();
-    if n <= 2 {
-        labels.join(".")
-    } else {
-        labels[n - 2..].join(".")
-    }
+    crate::registrable::registrable_domain(san)
 }
 
 /// Tracks in-flight SAN sets and per-registered-domain issuance counts.

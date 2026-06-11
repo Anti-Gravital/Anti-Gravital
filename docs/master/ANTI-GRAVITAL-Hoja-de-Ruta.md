@@ -30,14 +30,21 @@ The main rule is: **a phase is not considered concluded until all of its exit cr
 
 ## Phase summary
 
+Status uses explicit evidence-based labels, not a binary "complete". A phase is
+not called complete while a blocking technical criterion is still open; external
+adoption criteria (stars, contributors, blog posts) are tracked separately and do
+not block technical advancement. The per-phase remaining gate work is in the
+README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`.
+
 | Phase | Name                                       | Estimated duration | Status    |
 |-------|--------------------------------------------|--------------------|-----------|
 | 0     | Foundations and governance                 | 1–2 months         | In progress (external deliverables pending) |
-| 1     | The Shield MVP                             | 2–3 months         | Technical implementation complete |
-| 2     | The Core MVP + roundtrip                   | 2 months           | Technical implementation complete |
-| 3     | Anti-DSL alpha (v0.1–v0.4)                 | 3 months           | Technical implementation complete |
-| 4     | Standard modules (auth, data, realtime)    | 3 months           | Technical implementation complete |
-| 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Technical implementation complete |
+| 1     | The Shield MVP                             | 2–3 months         | Implemented and tested; reference performance/coverage gate open |
+| 2     | The Core MVP + roundtrip                   | 2 months           | Implemented; published benchmarks below the 40K req/s and p99 targets |
+| 3     | Anti-DSL alpha (v0.1–v0.4)                 | 3 months           | Implemented; 24h fuzz and generated-vs-manual benchmark gates open (issue #70) |
+| 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
+| 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
+| 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -49,15 +56,15 @@ The main rule is: **a phase is not considered concluded until all of its exit cr
 **Public beta version milestone (0.5):** end of phase 5 (~15 months).
 **Stable version 1.0 milestone:** end of phase 10 (~30 months).
 
-**Status at the close of Phase 4.5 (2026-05-24).** Phases 1 through 4.5 have their
-technical implementation complete and merged to `main`. "Technical implementation
-complete" means that the deliverables of code, tests, fmt, clippy, audit and
-deny are fulfilled; the exit criteria of community adoption (stars,
-external contributors, blog posts) are external metrics that are tracked
-separately and do not block technical advancement. The granular detail of each box
-lives in `docs/roadmap/STATUS.md`, which is the operational dashboard. The
-Phase 0 remains in progress due to external deliverables (Discord, landing, domain).
-Phase 5 (`ag-cloud`) is next.
+**Status at the close of Phase 4.5 (2026-05-24), updated for the pre-Phase-5
+gate (2026-06-11).** Phases 1 through 4.5 are technically implemented and merged
+to `main` (code, tests, fmt, clippy, audit and deny deliverables fulfilled), but
+none is declared formally complete while the pre-Phase-5 release gate
+(`docs/audits/PRE_FASE5_RELEASE_GATE.md`) is OPEN: the 24-hour fuzz, stabilized
+benchmark and open-debt rows remain pending. The granular detail of each box
+lives in `docs/roadmap/STATUS.md`, the operational dashboard. Phase 0 remains in
+progress due to external deliverables (Discord, landing, domain). Phase 5
+(`ag-cloud`) is next and may not start until every blocking gate row passes.
 
 **Note on Phase 4.5.** Phase 4.5 is an **additive** phase introduced by
 `ADR-0007` after closing Phase 4. It does not modify the scope nor the
@@ -67,9 +74,10 @@ crates with the incorporation of `ag-mail` and `ag-domains`, and grows
 additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
 (`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard).
 
-> Phases 0-4.5 are technically implemented. Outstanding tech debt that must be
-> closed before Phase 5 is tracked in `docs/DEBT.md` (persistent mail queue,
-> native cache L2, notAfter renewal, realtime scalability proof).
+> Phases 0-4.5 are technically implemented; formal completion is gated by the
+> pre-Phase-5 release gate. Outstanding technical debt that must be closed before
+> Phase 5 is tracked as GitHub Issues (label `tech-debt`, CLAUDE.md rule 29);
+> `docs/DEBT.md` is a frozen historical record.
 
 ---
 
@@ -675,14 +683,22 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 
 ## Resumen de fases
 
+El estado usa etiquetas explícitas basadas en evidencia, no un binario
+"completa". Una fase no se declara completa mientras un criterio técnico
+bloqueante siga abierto; los criterios de adopción externa (stars, contribuidores,
+blog posts) se rastrean aparte y no bloquean el avance técnico. El trabajo de
+gate pendiente por fase está en la tabla "Evidence-based roadmap" del README y en
+el gate formal `PRE_FASE5_RELEASE_GATE.md`.
+
 | Fase | Nombre                                     | Duración estimada | Estado    |
 |------|--------------------------------------------|-------------------|-----------|
 | 0    | Fundaciones y gobernanza                   | 1–2 meses         | En curso (entregables externos pendientes) |
-| 1    | The Shield MVP                             | 2–3 meses         | Implementación técnica completa |
-| 2    | The Core MVP + roundtrip                   | 2 meses           | Implementación técnica completa |
-| 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Implementación técnica completa |
-| 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementación técnica completa |
-| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementación técnica completa |
+| 1    | The Shield MVP                             | 2–3 meses         | Implementada y probada; gate de rendimiento/cobertura de referencia abierto |
+| 2    | The Core MVP + roundtrip                   | 2 meses           | Implementada; benchmarks publicados por debajo de los objetivos 40K req/s y p99 |
+| 3    | Anti-DSL alpha (v0.1–v0.4)                 | 3 meses           | Implementada; gates de fuzz 24h y benchmark generado-vs-manual abiertos (issue #70) |
+| 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementada y probada; evidencia de escala y deuda documentada abiertas |
+| 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementada; `ag-domains` activo, evidencia de release/doc abierta |
+| 4.6  | Endurecimiento aditivo pre-Fase 5 (`ag-mail` MTA, `ag-workers`) | — | Implementada y verificada en CI; paridad live-DB y wiring de producer abiertos (issues #108/#109/#103/#112) |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
@@ -694,15 +710,16 @@ La regla principal es: **una fase no se da por concluida hasta que todas sus cas
 **Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
 **Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
 
-**Estado al cierre de la Fase 4.5 (2026-05-24).** Las fases 1 a 4.5 tienen su
-implementación técnica completa y mergeada a `main`. "Implementación técnica
-completa" significa que los entregables de código, tests, fmt, clippy, audit y
-deny están cumplidos; los criterios de salida de adopción comunitaria (stars,
-contribuidores externos, blog posts) son métricas externas que se rastrean
-aparte y no bloquean el avance técnico. El detalle granular de cada casilla
-vive en `docs/roadmap/STATUS.md`, que es el tablero de mando operativo. La
-Fase 0 permanece en curso por entregables externos (Discord, landing, dominio).
-La Fase 5 (`ag-cloud`) es la próxima.
+**Estado al cierre de la Fase 4.5 (2026-05-24), actualizado para el gate
+pre-Fase 5 (2026-06-11).** Las fases 1 a 4.5 están técnicamente implementadas y
+mergeadas a `main` (entregables de código, tests, fmt, clippy, audit y deny
+cumplidos), pero ninguna se declara formalmente completa mientras el gate de
+release pre-Fase 5 (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) esté ABIERTO: las
+filas de fuzz 24 horas, benchmark estabilizado y deuda abierta siguen pendientes.
+El detalle granular de cada casilla vive en `docs/roadmap/STATUS.md`, el tablero
+de mando operativo. La Fase 0 permanece en curso por entregables externos
+(Discord, landing, dominio). La Fase 5 (`ag-cloud`) es la próxima y no puede
+iniciar hasta que cada fila bloqueante del gate pase.
 
 **Nota sobre la Fase 4.5.** La Fase 4.5 es una fase **aditiva** introducida por
 `ADR-0007` después de cerrar la Fase 4. No modifica el alcance ni los
@@ -711,6 +728,12 @@ permanece al final de la Fase 5. La cuenta del ecosistema pasa de 15 a 17
 crates con la incorporación de `ag-mail` y `ag-domains`, y crece de forma
 aditiva a 20 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
 (`ADR-0012`) y `ag-workers` (`ADR-0013`, el segundo estándar diferido).
+
+> Las fases 0-4.5 están técnicamente implementadas; la completitud formal está
+> sujeta al gate de release pre-Fase 5. La deuda técnica pendiente que debe
+> cerrarse antes de la Fase 5 se rastrea como GitHub Issues (etiqueta
+> `tech-debt`, regla 29 de CLAUDE.md); `docs/DEBT.md` es un registro histórico
+> congelado.
 
 ---
 

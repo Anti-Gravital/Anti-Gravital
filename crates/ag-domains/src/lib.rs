@@ -59,6 +59,7 @@ pub mod hostname;
 pub mod instructions;
 pub mod issuance;
 pub mod ownership;
+pub mod registrable;
 pub mod store;
 
 #[cfg(feature = "api")]

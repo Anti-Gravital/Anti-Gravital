@@ -5,38 +5,39 @@
 > Anterior: [fase-05-ag-cloud.md](./fase-05-ag-cloud.md)
 > Siguiente: [fase-07-ag-migrate.md](./fase-07-ag-migrate.md)
 
-## Fase 6 — `ag-ai` y Knowledge Graph
+## Phase 6 — `ag-ai` and Knowledge Graph
 
-**Objetivo.** Construir el módulo de IA con el knowledge graph y las capacidades asistidas.
+**Objective.** Build the AI module with the knowledge graph and the assisted capabilities.
 
-### 6.1 Criterios de entrada
+### 6.1 Entry criteria
 
-- [ ] Versión 0.5 (beta pública) liberada.
-- [ ] Retroalimentación de los primeros usuarios incorporada en backlog.
+- [ ] Version 0.5 (public beta) released.
+- [ ] Feedback from the first users incorporated into the backlog.
 
-### 6.2 Entregables
+### 6.2 Deliverables
 
-- [ ] Generador del knowledge graph desde el AST del DSL.
-- [ ] Persistencia del graph en `.ag/knowledge-graph.json`.
-- [ ] Generador de documentación arquitectónica Markdown desde el graph.
-- [ ] Generador de diagramas C4 (Context, Container, Component) en Mermaid.
-- [ ] Dashboard interactivo del graph en el dev server (`ag dev`).
-- [ ] Comando `ag ai suggest-schema` con integración a proveedor configurable.
-- [ ] Comando `ag ai review-migration`.
-- [ ] Comando `ag ai analyze-architecture`.
-- [ ] Soporte para proveedores: Anthropic Claude, OpenAI, Ollama local, vLLM local.
-- [ ] Modo offline donde las funciones AI están deshabilitadas pero el framework funciona.
-- [ ] Documentación: "Anti-Gravital + agentes IA: el flujo schema-first" con ejemplos completos.
+- [ ] Knowledge graph generator from the DSL AST.
+- [ ] Persistence of the graph in `.ag/knowledge-graph.json`.
+- [ ] Markdown architectural documentation generator from the graph.
+- [ ] C4 diagram generator (Context, Container, Component) in Mermaid.
+- [ ] Interactive graph dashboard in the dev server (`ag dev`).
+- [ ] `ag ai suggest-schema` command with integration to a configurable provider.
+- [ ] `ag ai review-migration` command.
+- [ ] `ag ai analyze-architecture` command.
+- [ ] Support for providers: Anthropic Claude, OpenAI, local Ollama, local vLLM.
+- [ ] Offline mode where the AI functions are disabled but the framework works.
+- [ ] Documentation: "Anti-Gravital + AI agents: the schema-first flow" with complete examples.
 
-### 6.3 Criterios de salida (puerta antes de Fase 7)
+### 6.3 Exit criteria (gate before Phase 7)
 
-- [ ] El knowledge graph se regenera correctamente con cada `ag generate`.
-- [ ] La documentación arquitectónica generada es legible y útil (revisada por tres personas externas al equipo).
-- [ ] Al menos una organización usuaria reporta que ha integrado `ag ai` en su flujo de trabajo.
-- [ ] Al menos 2 500 stars en el repositorio.
+- [ ] The knowledge graph regenerates correctly with each `ag generate`.
+- [ ] The generated architectural documentation is readable and useful (reviewed by three people external to the team).
+- [ ] At least one user organization reports that it has integrated `ag ai` into its workflow.
+- [ ] At least 2 500 stars on the repository.
 
-### 6.4 Riesgos de la fase
+### 6.4 Phase risks
 
-El riesgo principal es la dependencia de proveedores externos de IA. La mitigación es la abstracción del proveedor y el modo offline.
+The main risk is the dependency on external AI providers. The mitigation is provider abstraction and offline mode.
 
 ---
+

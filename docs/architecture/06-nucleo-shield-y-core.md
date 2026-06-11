@@ -5,11 +5,11 @@
 > Anterior: [05-ecosistema-modulos.md](./05-ecosistema-modulos.md)
 > Siguiente: [07-anti-dsl.md](./07-anti-dsl.md)
 
-## 6. Arquitectura del núcleo (`ag-core`): Shield y Core
+## 6. Core architecture (`ag-core`): Shield and Core
 
-El núcleo de Anti-Gravital se organiza en dos capas conceptuales dentro de un único proceso Rust. La separación no es física: no hay IPC, no hay FFI, no hay shared memory entre runtimes. Las dos capas se comunican mediante llamadas de función Rust ordinarias, con cero overhead medible. La separación es lógica y existe por dos razones: claridad arquitectónica para el desarrollador, y posibilidad futura de extraer la Shield como gateway independiente si un caso de uso lo justifica.
+The core of Anti-Gravital is organized into two conceptual layers within a single Rust process. The separation is not physical: there is no IPC, no FFI, no shared memory between runtimes. The two layers communicate through ordinary Rust function calls, with zero measurable overhead. The separation is logical and exists for two reasons: architectural clarity for the developer, and the future possibility of extracting the Shield as an independent gateway if a use case justifies it.
 
-### 6.1 Diagrama del núcleo
+### 6.1 Core diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -58,31 +58,31 @@ El núcleo de Anti-Gravital se organiza en dos capas conceptuales dentro de un �
                 └────────────────────────┘
 ```
 
-### 6.2 The Shield: la capa de confianza
+### 6.2 The Shield: the trust layer
 
-La Shield es responsable de todo lo que ocurre antes de que un request sea considerado confiable y entregado al código de negocio. Está implementada como una pipeline de capas Tower, el mismo modelo composable que Axum usa internamente. Cada capa es opcional y se configura desde el `schema.ag` del proyecto.
+The Shield is responsible for everything that happens before a request is considered trusted and delivered to the business code. It is implemented as a pipeline of Tower layers, the same composable model that Axum uses internally. Each layer is optional and is configured from the project's `schema.ag`.
 
-El stack técnico de la Shield es: Tokio como runtime async M:N (multiplexa millones de tareas sobre un thread pool fijo de tamaño igual a CPUs disponibles), Tower como modelo de middleware composable, rustls para TLS 1.3 sin dependencia de OpenSSL, serde y serde_json para serialización zero-copy donde es posible, ring para primitivas criptográficas de bajo nivel, governor para rate limiting con algoritmo token bucket sin locks contenciosos.
+The technical stack of the Shield is: Tokio as the M:N async runtime (it multiplexes millions of tasks over a fixed thread pool of size equal to available CPUs), Tower as the composable middleware model, rustls for TLS 1.3 without an OpenSSL dependency, serde and serde_json for zero-copy serialization where possible, ring for low-level cryptographic primitives, governor for rate limiting with a lock-free token bucket algorithm.
 
-Las capas estándar de la Shield, en orden de ejecución sobre un request entrante:
+The standard layers of the Shield, in execution order over an incoming request:
 
-La primera capa es la terminación TLS, gestionada por rustls. Soporta TLS 1.3 con cipher suites modernas, OCSP stapling y ALPN para negociación HTTP/1.1 vs HTTP/2. Para entornos donde la terminación TLS la realiza un balanceador externo (Cloudflare, AWS ALB, Nginx), esta capa se desactiva con una opción en el schema.
+The first layer is TLS termination, managed by rustls. It supports TLS 1.3 with modern cipher suites, OCSP stapling, and ALPN for HTTP/1.1 vs HTTP/2 negotiation. For environments where TLS termination is performed by an external load balancer (Cloudflare, AWS ALB, Nginx), this layer is disabled with an option in the schema.
 
-La segunda capa es la deserialización y validación del payload. Para requests con body, se aplica el contrato definido en el `.ag`: tipos, restricciones de longitud, formato de email, regex, rangos numéricos. Una violación produce un error 422 con detalle estructurado de qué campo falló y por qué.
+The second layer is payload deserialization and validation. For requests with a body, the contract defined in the `.ag` is applied: types, length constraints, email format, regex, numeric ranges. A violation produces a 422 error with structured detail about which field failed and why.
 
-La tercera capa es la autenticación. Soporta JWT firmado con Ed25519 (curva Edwards25519, más rápida y segura que RS256), Passkeys/WebAuthn (FIDO2), API keys, y sesiones cookie-based. La verificación es eager para endpoints marcados como `auth required`.
+The third layer is authentication. It supports JWT signed with Ed25519 (Edwards25519 curve, faster and more secure than RS256), Passkeys/WebAuthn (FIDO2), API keys, and cookie-based sessions. Verification is eager for endpoints marked as `auth required`.
 
-La cuarta capa es el rate limiting. Implementado con governor sobre algoritmo token bucket, soporta límites por IP, por usuario autenticado, por endpoint, y por combinaciones. Los límites se declaran en el schema.
+The fourth layer is rate limiting. Implemented with governor over a token bucket algorithm, it supports limits per IP, per authenticated user, per endpoint, and per combinations. The limits are declared in the schema.
 
-La quinta capa es la autorización RBAC. Las políticas se declaran en el `.ag` como expresiones que se evalúan contra los claims del JWT y los parámetros del request. Por ejemplo: `policy "user.role == ADMIN || user.id == params.id"`.
+The fifth layer is RBAC authorization. The policies are declared in the `.ag` as expressions that are evaluated against the JWT claims and the request parameters. For example: `policy "user.role == ADMIN || user.id == params.id"`.
 
-La sexta capa es CORS y CSRF. Configurada por defecto con valores seguros (no wildcard); cualquier desviación requiere declaración explícita.
+The sixth layer is CORS and CSRF. Configured by default with secure values (no wildcard); any deviation requires explicit declaration.
 
-### 6.3 The Core: la capa de lógica de negocio
+### 6.3 The Core: the business logic layer
 
-The Core es donde vive el 80% del código de aplicación que el desarrollador escribe. Es Axum con una capa fina de convenciones encima.
+The Core is where 80% of the application code that the developer writes lives. It is Axum with a thin layer of conventions on top.
 
-Los handlers tienen una firma generada por el compilador del DSL a partir del endpoint declarado:
+The handlers have a signature generated by the DSL compiler from the declared endpoint:
 
 ```rust
 // Generado automáticamente por `ag generate` desde schema.ag
@@ -106,17 +106,17 @@ pub async fn create_user(
 }
 ```
 
-El tipo `ValidatedBody<T>` garantiza que el body ya pasó la validación de la Shield. El tipo `Claims<T>` garantiza que el JWT ya fue verificado. El tipo `AgError` es un enum que cubre todos los errores declarados en el endpoint, y la conversión a respuesta HTTP es automática vía `IntoResponse`.
+The type `ValidatedBody<T>` guarantees that the body already passed the Shield's validation. The type `Claims<T>` guarantees that the JWT was already verified. The type `AgError` is an enum that covers all the errors declared in the endpoint, and the conversion to an HTTP response is automatic via `IntoResponse`.
 
-El estado de la aplicación (`AppState`) es un struct generado que contiene clientes a los recursos del proyecto: el pool de base de datos, el cliente NATS, el cliente Redis, el cliente S3. Se construye en el arranque del binario y se comparte por referencia (clones baratos de `Arc`) entre todos los handlers.
+The application state (`AppState`) is a generated struct that contains clients to the project's resources: the database pool, the NATS client, the Redis client, the S3 client. It is built at binary startup and shared by reference (cheap `Arc` clones) among all handlers.
 
-### 6.4 Manejo de errores
+### 6.4 Error handling
 
-El sistema de errores de Anti-Gravital sigue tres principios. El primero: cada endpoint declara explícitamente qué errores puede producir en su definición `.ag`. Esto produce un enum `EndpointError` tipado del que cada variante es un error específico. El segundo: los errores se propagan con el operador `?` de Rust, y la conversión a respuesta HTTP es automática y consistente. El tercero: ningún error se descarta silenciosamente. Los errores no esperados producen un 500 estructurado con un correlation ID que se enlaza al stack trace en el sistema de tracing.
+The Anti-Gravital error system follows three principles. The first: each endpoint explicitly declares which errors it can produce in its `.ag` definition. This produces a typed `EndpointError` enum in which each variant is a specific error. The second: errors propagate with Rust's `?` operator, and the conversion to an HTTP response is automatic and consistent. The third: no error is silently discarded. Unexpected errors produce a structured 500 with a correlation ID that is linked to the stack trace in the tracing system.
 
-### 6.5 Runtime y configuración Tokio
+### 6.5 Runtime and Tokio configuration
 
-Anti-Gravital usa Tokio en modo multi-thread con configuración por defecto: un worker por CPU disponible, blocking pool de 512 threads. Para cargas IO-bound estándar esta configuración es óptima. El schema permite ajustes:
+Anti-Gravital uses Tokio in multi-thread mode with default configuration: one worker per available CPU, a blocking pool of 512 threads. For standard IO-bound workloads this configuration is optimal. The schema allows adjustments:
 
 ```yaml
 runtime:

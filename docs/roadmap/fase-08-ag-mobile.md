@@ -5,37 +5,38 @@
 > Anterior: [fase-07-ag-migrate.md](./fase-07-ag-migrate.md)
 > Siguiente: [fase-09-plugins-wasi.md](./fase-09-plugins-wasi.md)
 
-## Fase 8 — `ag-mobile` Flutter bridge
+## Phase 8 — `ag-mobile` Flutter bridge
 
-**Objetivo.** Construir la integración con Flutter como objetivo prioritario móvil. Generación de SDK Dart completo, auth nativo, realtime.
+**Objective.** Build the integration with Flutter as the priority mobile target. Generation of complete Dart SDK, native auth, realtime.
 
-### 8.1 Criterios de entrada
+### 8.1 Entry criteria
 
-- [ ] Fase 7 completada.
-- [ ] Al menos un colaborador con experiencia significativa en Flutter se ha unido al proyecto.
+- [ ] Phase 7 completed.
+- [ ] At least one collaborator with significant Flutter experience has joined the project.
 
-### 8.2 Entregables
+### 8.2 Deliverables
 
-- [ ] Crate `ag-mobile` con generador Dart.
-- [ ] Paquete pub `anti_gravital` publicado en pub.dev:
-  - [ ] Tipos generados con freezed.
-  - [ ] Cliente HTTP con dio + interceptores.
-  - [ ] Cliente WebSocket.
-  - [ ] Cliente SSE.
-  - [ ] Mocks para tests.
-- [ ] Widgets de autenticación: registro y login con WebAuthn nativo (Android Credential Manager, iOS Passkeys), OAuth2.
-- [ ] Example `flutter-fullstack` en `examples/`: app Flutter completa con backend Anti-Gravital.
-- [ ] Documentación: guía de usuario Flutter.
+- [ ] `ag-mobile` crate with Dart generator.
+- [ ] `anti_gravital` pub package published on pub.dev:
+  - [ ] Types generated with freezed.
+  - [ ] HTTP client with dio + interceptors.
+  - [ ] WebSocket client.
+  - [ ] SSE client.
+  - [ ] Mocks for tests.
+- [ ] Authentication widgets: registration and login with native WebAuthn (Android Credential Manager, iOS Passkeys), OAuth2.
+- [ ] `flutter-fullstack` example in `examples/`: complete Flutter app with Anti-Gravital backend.
+- [ ] Documentation: Flutter user guide.
 
-### 8.3 Criterios de salida (puerta antes de Fase 9)
+### 8.3 Exit criteria (gate before Phase 9)
 
-- [ ] El paquete `anti_gravital` en pub.dev tiene al menos 50 likes.
-- [ ] El example `flutter-fullstack` corre en Android, iOS y web.
-- [ ] Al menos una aplicación Flutter externa usa Anti-Gravital en staging o producción.
-- [ ] Al menos 4 500 stars en el repositorio.
+- [ ] The `anti_gravital` package on pub.dev has at least 50 likes.
+- [ ] The `flutter-fullstack` example runs on Android, iOS and web.
+- [ ] At least one external Flutter application uses Anti-Gravital in staging or production.
+- [ ] At least 4 500 stars on the repository.
 
-### 8.4 Riesgos de la fase
+### 8.4 Phase risks
 
-El riesgo principal es que el cambio de contexto Rust → Dart tenga fricciones imprevistas. La mitigación es comenzar con el caso más simple (CRUD) y construir incrementalmente.
+The main risk is that the Rust → Dart context switch has unforeseen frictions. The mitigation is to start with the simplest case (CRUD) and build incrementally.
 
 ---
+

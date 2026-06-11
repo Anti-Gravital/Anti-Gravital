@@ -5,27 +5,27 @@
 > Anterior: [08-modulos-batteries-included.md](./08-modulos-batteries-included.md)
 > Siguiente: [10-despliegue-ag-cloud.md](./10-despliegue-ag-cloud.md)
 
-## 9. Sistema de plugins WASI (`ag-wasm-host`)
+## 9. WASI plugin system (`ag-wasm-host`)
 
-La extensibilidad de Anti-Gravital se construye sobre WebAssembly System Interface (WASI), no sobre el ecosistema de crates Rust nativos. Esta decisión tiene tres razones que la hacen no negociable.
+The extensibility of Anti-Gravital is built on the WebAssembly System Interface (WASI), not on the ecosystem of native Rust crates. This decision has three reasons that make it non-negotiable.
 
-La primera razón es seguridad. Los plugins son código de terceros que el operador del servidor ejecuta. Si fueran código nativo, un plugin malicioso o defectuoso podría corromper memoria del proceso, escapar a syscalls arbitrarias, o filtrar secretos. Los módulos WASI ejecutan en una sandbox con permisos explícitos declarados en el manifest del plugin; el plugin no puede acceder al filesystem, a la red, ni a syscalls que no estén declarados.
+The first reason is security. Plugins are third-party code that the server operator runs. If they were native code, a malicious or defective plugin could corrupt the process memory, escape to arbitrary syscalls, or leak secrets. WASI modules run in a sandbox with explicit permissions declared in the plugin manifest; the plugin cannot access the filesystem, the network, or syscalls that are not declared.
 
-La segunda razón es multilenguaje. Un plugin WASI puede escribirse en Rust, Go (TinyGo), C, C++, AssemblyScript, Zig o cualquier lenguaje que compile a WebAssembly. Esto democratiza el ecosistema: un experto en seguridad que escribe en Go puede contribuir un exportador para Datadog sin tener que aprender Rust.
+The second reason is multi-language. A WASI plugin can be written in Rust, Go (TinyGo), C, C++, AssemblyScript, Zig, or any language that compiles to WebAssembly. This democratizes the ecosystem: a security expert who writes in Go can contribute an exporter for Datadog without having to learn Rust.
 
-La tercera razón es estabilidad de ABI. La interfaz entre el host y el plugin se define con `wit-bindgen` y el Component Model, lo que permite que un plugin compilado para una versión de Anti-Gravital siga funcionando con versiones futuras sin recompilación, siempre que la ABI no cambie.
+The third reason is ABI stability. The interface between the host and the plugin is defined with `wit-bindgen` and the Component Model, which allows a plugin compiled for one version of Anti-Gravital to keep working with future versions without recompilation, as long as the ABI does not change.
 
-### 9.1 Runtime de plugins
+### 9.1 Plugin runtime
 
-El runtime es `wasmtime`, embebido como crate Rust. Cada plugin se carga en un store aislado con límites de memoria (256 MB por defecto, configurable), límites de fuel (consumo de instrucciones), y timeout de ejecución.
+The runtime is `wasmtime`, embedded as a Rust crate. Each plugin is loaded into an isolated store with memory limits (256 MB by default, configurable), fuel limits (instruction consumption), and execution timeout.
 
-### 9.2 Ciclo de vida de un plugin
+### 9.2 Plugin lifecycle
 
-El ciclo de vida de un plugin tiene cinco estados. El primero es **descubierto**: el archivo `.wasm` está en el directorio de plugins del proyecto y aparece en el manifest. El segundo es **validado**: el host inspecciona el binario, verifica que el component model sea compatible, lee el manifest y confirma que los permisos solicitados están autorizados. El tercero es **cargado**: el módulo se compila ahead-of-time con Cranelift y se almacena en memoria. El cuarto es **activo**: el plugin recibe eventos y responde a invocaciones. El quinto es **descargado**: el plugin se libera, sea por shutdown del servidor o por reload dinámico.
+The lifecycle of a plugin has five states. The first is **discovered**: the `.wasm` file is in the project's plugins directory and appears in the manifest. The second is **validated**: the host inspects the binary, verifies that the component model is compatible, reads the manifest, and confirms that the requested permissions are authorized. The third is **loaded**: the module is compiled ahead-of-time with Cranelift and stored in memory. The fourth is **active**: the plugin receives events and responds to invocations. The fifth is **unloaded**: the plugin is released, whether by server shutdown or by dynamic reload.
 
-### 9.3 Manifest del plugin
+### 9.3 Plugin manifest
 
-Cada plugin trae un archivo `plugin.toml` con sus metadatos y permisos solicitados:
+Each plugin brings a `plugin.toml` file with its metadata and requested permissions:
 
 ```toml
 [plugin]
@@ -55,21 +55,21 @@ max_execution_time = "5s"
 fuel = 100_000_000
 ```
 
-### 9.4 API de host expuesta a plugins
+### 9.4 Host API exposed to plugins
 
-El host expone un conjunto reducido de capacidades a los plugins, definidas en interfaces WIT (WebAssembly Interface Types). Las principales son: logger (escribir mensajes al sistema de tracing del host), clock (obtener tiempo actual y medir intervalos), metrics (registrar métricas adicionales), KV (almacenamiento clave-valor persistente por plugin), HTTP client (con allowlist de hosts del manifest), y events (subscripción al bus interno).
+The host exposes a reduced set of capabilities to plugins, defined in WIT (WebAssembly Interface Types) interfaces. The main ones are: logger (write messages to the host's tracing system), clock (get the current time and measure intervals), metrics (register additional metrics), KV (persistent key-value storage per plugin), HTTP client (with an allowlist of hosts from the manifest), and events (subscription to the internal bus).
 
-### 9.5 Puntos de extensión del framework
+### 9.5 Framework extension points
 
-Los plugins pueden extender Anti-Gravital en cinco puntos: middleware adicional en la Shield (request hooks), handlers personalizados registrados en el router, exporters de observabilidad (métricas, traces, logs), processors de eventos (subscriptores al bus interno), y comandos personalizados de la CLI (`ag <plugin-cmd>`).
+Plugins can extend Anti-Gravital at five points: additional middleware in the Shield (request hooks), custom handlers registered in the router, observability exporters (metrics, traces, logs), event processors (subscribers to the internal bus), and custom CLI commands (`ag <plugin-cmd>`).
 
-### 9.6 Plugins oficiales
+### 9.6 Official plugins
 
-El repositorio mantiene un conjunto de plugins oficiales bajo `plugins/`, cada uno con su propio crate y release cycle: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`. La existencia de plugins oficiales sirve como referencia técnica y como ejemplo de implementación para terceros.
+The repository maintains a set of official plugins under `plugins/`, each with its own crate and release cycle: `prometheus-exporter`, `datadog-exporter`, `sentry`, `honeycomb-exporter`, `slack-notifier`, `discord-webhook`. The existence of official plugins serves as a technical reference and as an implementation example for third parties.
 
-### 9.7 Registro de plugins
+### 9.7 Plugin registry
 
-A partir de la versión 1.0 del framework, se publica un registro oficial en `plugins.antigravital.dev`. El registro indexa plugins con metadatos verificados, escaneo de seguridad básico, y reviews de la comunidad. La instalación se hace con `ag plugin add <nombre>`. Los plugins se descargan, validan, y registran en el manifest del proyecto.
+Starting from version 1.0 of the framework, an official registry is published at `plugins.antigravital.dev`. The registry indexes plugins with verified metadata, basic security scanning, and community reviews. Installation is done with `ag plugin add <name>`. Plugins are downloaded, validated, and registered in the project manifest.
 
 ---
 

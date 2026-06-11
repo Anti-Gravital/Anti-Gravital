@@ -5,27 +5,27 @@
 > Anterior: [13-mobile-ag-mobile.md](./13-mobile-ag-mobile.md)
 > Siguiente: [15-seguridad.md](./15-seguridad.md)
 
-## 14. Observabilidad (`ag-observe`)
+## 14. Observability (`ag-observe`)
 
-Aunque ya cubierta brevemente como módulo estándar, la observabilidad merece una sección propia porque es probablemente la diferencia más visible entre un framework juguete y un framework de producción.
+Although already covered briefly as a standard module, observability deserves its own section because it is probably the most visible difference between a toy framework and a production framework.
 
-### 14.1 Tres pilares
+### 14.1 Three pillars
 
-`ag-observe` cubre los tres pilares clásicos: métricas, traces y logs. El stack es OpenTelemetry como capa de abstracción, con exporters configurables.
+`ag-observe` covers the three classic pillars: metrics, traces, and logs. The stack is OpenTelemetry as the abstraction layer, with configurable exporters.
 
-Las métricas se exponen en `/metrics` en formato Prometheus por defecto. Incluyen latencia por endpoint (p50, p95, p99, p999), throughput, tasa de errores por código HTTP, uso de pool de base de datos, uso de pool de Redis, conexiones WebSocket activas, y métricas custom registradas por la aplicación.
+Metrics are exposed at `/metrics` in Prometheus format by default. They include latency per endpoint (p50, p95, p99, p999), throughput, error rate per HTTP code, database pool usage, Redis pool usage, active WebSocket connections, and custom metrics registered by the application.
 
-Los traces se exportan vía OTLP a cualquier backend compatible (Tempo, Jaeger, Datadog, Honeycomb, Lightstep). Cada request genera un trace con spans para la Shield, los handlers, las queries SQL, las llamadas externas, y la emisión de eventos.
+Traces are exported via OTLP to any compatible backend (Tempo, Jaeger, Datadog, Honeycomb, Lightstep). Each request generates a trace with spans for the Shield, the handlers, the SQL queries, the external calls, and the event emission.
 
-Los logs son estructurados (JSON por defecto) e incluyen siempre el correlation ID. Se exportan a stdout (estándar para entornos cloud-native) y opcionalmente a backends como Loki o Datadog.
+Logs are structured (JSON by default) and always include the correlation ID. They are exported to stdout (standard for cloud-native environments) and optionally to backends such as Loki or Datadog.
 
-### 14.2 Dashboards Grafana incluidos
+### 14.2 Included Grafana dashboards
 
-El repositorio incluye dashboards Grafana pre-configurados en JSON que el operador importa directamente. Cubren: overview del servicio, latencia y throughput por endpoint, errores y excepciones, salud de la base de datos, salud del caché, y métricas de runtime Rust (uso de memoria, número de tasks Tokio, GC pauses — que siempre serán cero, pero el dashboard lo confirma).
+The repository includes pre-configured Grafana dashboards in JSON that the operator imports directly. They cover: service overview, latency and throughput per endpoint, errors and exceptions, database health, cache health, and Rust runtime metrics (memory usage, number of Tokio tasks, GC pauses — which will always be zero, but the dashboard confirms it).
 
-### 14.3 Inspección en vivo con tokio-console
+### 14.3 Live inspection with tokio-console
 
-En modo desarrollo, `tokio-console` se habilita automáticamente. Permite al desarrollador conectarse al proceso y ver en tiempo real qué tasks están ejecutándose, cuáles están bloqueadas, dónde se están consumiendo los recursos. Es una herramienta de debugging tremendamente útil que existe solo en Rust con Tokio.
+In development mode, `tokio-console` is enabled automatically. It allows the developer to connect to the process and see in real time which tasks are running, which are blocked, where resources are being consumed. It is a tremendously useful debugging tool that exists only in Rust with Tokio.
 
 ---
 

@@ -27,7 +27,7 @@ desde el origen autorizado antes de continuar.
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
 | `ANTI-GRAVITAL-Blueprint-v4.1.md` | 10693 | `be7c175f133580a007864d5740ebebe8da762468c5b564650a6f0bd33f355cbb` |
 | `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 206984 | `e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 70021 | `32b36442ec47f304a1bdf43ef1fee2b02df6886307d93a101d20d37f96157ba0` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 72131 | `405f0319f0fcbb91d9db4c3464cfd21309b3c87c1c038746ac0929a768552859` |
 
 ### Deuda explícita — Blueprint PDF v4.1
 
@@ -61,6 +61,7 @@ nueva del historial de revisiones.
 | 2026-06-03 | Implementacion Fase 4.6-A (motor MTA nativo opt-in, feature `mta`): Hoja-de-Ruta §4.5.5 (EN+ES) actualizada para reflejar el nucleo 4.6-A implementado (resolucion MX, ESMTP+STARTTLS, DKIM Ed25519, clasificacion de bounces). Hoja-de-Ruta → `07d0ad40ac7f19a169e9507ba7a581f770b72e38115c526563614bca2c434b4b` (69789 bytes). | Implementacion RFC-0009 Fase 4.6-A. |
 | 2026-06-04 | Politica de marcas comerciales (`ADR-0011`/`RFC-0010`): retirados los adaptadores con nombre de marca de `ag-mail`; saneo de las menciones de marca en ambos maestros (relay SMTP nativo / MTA nativo). Arquitectura → `34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6` (204762 bytes); Hoja-de-Ruta → `02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424` (69719 bytes). | Decision del BDFL vía ADR-0011. |
 | 2026-06-10 | Roster de crates sincronizado con la realidad (`ADR-0012`/`ADR-0013`): anadidos `ag-workers` (estandar diferido), `ag-edge` (opcional infra) y `ag-lsp` (nucleo) en §5.1/§5.2 (EN+ES) de Arquitectura, en la seccion 4 del Blueprint (EN+ES) y en la nota de conteo de la Hoja-de-Ruta (EN+ES); conteo 17→20. Blueprint-v4.1 → `be7c175f133580a007864d5740ebebe8da762468c5b564650a6f0bd33f355cbb` (10693 bytes); Arquitectura → `e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5` (206984 bytes); Hoja-de-Ruta → `32b36442ec47f304a1bdf43ef1fee2b02df6886307d93a101d20d37f96157ba0` (70021 bytes). | Sincronizacion de decisiones ya aprobadas (ADR-0012/0013). |
+| 2026-06-11 | Honestidad de estado pre-Fase 5 (issue #71, Stage 10 del gate; `ADR-0008`/`ADR-0009`): la Hoja-de-Ruta sustituye "implementacion tecnica completa" por estados explicitos basados en evidencia (tabla de resumen y nota de cierre, EN+ES), anade la fila de Fase 4.6 y apunta la deuda a GitHub Issues. Sin cambios en Arquitectura ni Blueprint. Hoja-de-Ruta → `405f0319f0fcbb91d9db4c3464cfd21309b3c87c1c038746ac0929a768552859` (72131 bytes). | Reconciliacion de honestidad documental (issue #71). |
 
 ## Verificación local
 

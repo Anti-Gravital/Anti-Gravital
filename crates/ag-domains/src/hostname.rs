@@ -138,7 +138,7 @@ impl Hostname {
             return Err(HostnameError::TooFewLabels(trimmed.to_owned()));
         }
 
-        let registered_domain = registrable_domain(&ascii_domain);
+        let registered_domain = crate::registrable::registrable_domain(&ascii_domain);
 
         let (ascii, unicode, kind) = if is_wildcard {
             (
@@ -179,7 +179,10 @@ impl Hostname {
         self.kind
     }
 
-    /// Best-effort registrable domain (eTLD+1).
+    /// Registrable domain (eTLD+1).
+    ///
+    /// PSL-correct with the `psl` feature; a best-effort two-label heuristic
+    /// otherwise (see [`crate::registrable`]).
     pub fn registered_domain(&self) -> &str {
         &self.registered_domain
     }
@@ -200,26 +203,6 @@ impl Hostname {
 impl std::fmt::Display for Hostname {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.ascii)
-    }
-}
-
-/// Best-effort registrable domain (eTLD+1) by taking the last two labels.
-///
-/// TECH-DEBT:
-/// motivo: a correct eTLD+1 requires the Public Suffix List; multi-label
-///   public suffixes (e.g. `co.uk`, `com.br`) are misclassified by this
-///   heuristic.
-/// impacto: apex vs subdomain classification is wrong for those TLDs, which
-///   affects generated DNS instructions for such domains.
-/// eliminacion esperada: a PSL-backed implementation gated behind a dependency
-///   RFC (see DEBT.md). Tracked, not hidden.
-fn registrable_domain(ascii_domain: &str) -> String {
-    let labels: Vec<&str> = ascii_domain.split('.').filter(|l| !l.is_empty()).collect();
-    let n = labels.len();
-    if n <= 2 {
-        labels.join(".")
-    } else {
-        labels[n - 2..].join(".")
     }
 }
 

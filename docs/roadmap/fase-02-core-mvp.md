@@ -5,42 +5,43 @@
 > Anterior: [fase-01-shield-mvp.md](./fase-01-shield-mvp.md)
 > Siguiente: [fase-03-anti-dsl-alpha.md](./fase-03-anti-dsl-alpha.md)
 
-## Fase 2 — The Core MVP y roundtrip completo
+## Phase 2 — The Core MVP and complete roundtrip
 
-**Objetivo.** Completar el núcleo con la capa Core: router Axum, extractores tipados, sistema de errores, estado compartido. Implementar el roundtrip completo Request → Shield → Core → Handler → Respuesta. Conectar a PostgreSQL real para un CRUD mínimo. El producto es un binario que sirve una API real, aunque escrita manualmente sin DSL.
+**Objective.** Complete the core with the Core layer: Axum router, typed extractors, error system, shared state. Implement the complete roundtrip Request → Shield → Core → Handler → Response. Connect to real PostgreSQL for a minimal CRUD. The product is a binary that serves a real API, although written manually without DSL.
 
-### 2.1 Criterios de entrada
+### 2.1 Entry criteria
 
-- [ ] Fase 1 completada con todos sus criterios de salida marcados.
-- [ ] El crate `ag-data` ha sido iniciado con sqlx como dependencia.
+- [ ] Phase 1 completed with all of its exit criteria checked.
+- [ ] The `ag-data` crate has been started with sqlx as a dependency.
 
-### 2.2 Entregables
+### 2.2 Deliverables
 
-- [ ] Crate `ag-core` con módulo `core` operativo.
-- [ ] Router Axum integrado con la Shield.
-- [ ] Extractores: `State<T>`, `ValidatedBody<T>`, `Claims<T>`, `Path<T>`, `Query<T>`.
-- [ ] Sistema de errores `AgError` con conversión automática a respuesta HTTP.
-- [ ] Sistema de respuestas: JSON, plaintext, streams.
-- [ ] Crate `ag-data` con pool de conexiones PostgreSQL vía sqlx.
-- [ ] Sistema de migraciones embebido con `sqlx::migrate!`.
-- [ ] Example app `todo-api` en `examples/` con CRUD completo.
-- [ ] Benchmark CRUD + DB ejecutable.
-- [ ] Crate `ag-cli` con comandos `new` (crea proyecto desde template), `dev` (arranca servidor con hot reload vía `cargo-watch`), `build` (compila release).
-- [ ] Tres templates: `rest`, `realtime`, `fullstack`.
+- [ ] `ag-core` crate with operational `core` module.
+- [ ] Axum router integrated with the Shield.
+- [ ] Extractors: `State<T>`, `ValidatedBody<T>`, `Claims<T>`, `Path<T>`, `Query<T>`.
+- [ ] `AgError` error system with automatic conversion to HTTP response.
+- [ ] Response system: JSON, plaintext, streams.
+- [ ] `ag-data` crate with PostgreSQL connection pool via sqlx.
+- [ ] Embedded migrations system with `sqlx::migrate!`.
+- [ ] Example app `todo-api` in `examples/` with complete CRUD.
+- [ ] Executable CRUD + DB benchmark.
+- [ ] `ag-cli` crate with commands `new` (creates project from template), `dev` (starts server with hot reload via `cargo-watch`), `build` (compiles release).
+- [ ] Three templates: `rest`, `realtime`, `fullstack`.
 
-### 2.3 Criterios de salida (puerta antes de Fase 3)
+### 2.3 Exit criteria (gate before Phase 3)
 
-- [ ] Benchmark CRUD + PostgreSQL alcanza ≥ 40 K req/s en hardware de referencia.
-- [ ] Latencia p99 del CRUD ≤ 5 ms.
-- [ ] La app `todo-api` corre exitosamente con `ag new` + `ag dev`.
-- [ ] La app `todo-api` se despliega como binario único (`FROM scratch` Docker).
-- [ ] El binario release del `todo-api` ocupa ≤ 20 MB.
-- [ ] Documentación: "Tu primera API con Anti-Gravital" publicada.
-- [ ] Al menos 50 stars en el repositorio.
-- [ ] Al menos tres contribuidores externos con PRs merged.
+- [ ] CRUD + PostgreSQL benchmark reaches ≥ 40 K req/s on reference hardware.
+- [ ] CRUD p99 latency ≤ 5 ms.
+- [ ] The `todo-api` app runs successfully with `ag new` + `ag dev`.
+- [ ] The `todo-api` app deploys as a single binary (`FROM scratch` Docker).
+- [ ] The release binary of `todo-api` occupies ≤ 20 MB.
+- [ ] Documentation: "Your first API with Anti-Gravital" published.
+- [ ] At least 50 stars on the repository.
+- [ ] At least three external contributors with merged PRs.
 
-### 2.4 Riesgos de la fase
+### 2.4 Phase risks
 
-El riesgo principal es la deriva de scope: querer añadir features no estrictamente necesarias para el MVP del Core. La mitigación es una declaración explícita de scope en el ticket de la fase: el Core de esta fase no incluye autorización RBAC compleja, no incluye eventos, no incluye caché, no incluye observabilidad completa. Esos llegan en fases posteriores.
+The main risk is scope drift: wanting to add features not strictly necessary for the Core MVP. The mitigation is an explicit scope declaration in the phase ticket: the Core of this phase does not include complex RBAC authorization, does not include events, does not include cache, does not include complete observability. Those arrive in later phases.
 
 ---
+

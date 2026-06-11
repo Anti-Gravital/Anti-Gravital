@@ -2,44 +2,45 @@
 
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 > Indice: [docs/roadmap/README.md](./README.md)
-> Anterior: [fase-04-modulos-estandar.md](./fase-04-modulos-estandar.md)
+> Anterior: [fase-04-5-ag-mail-y-ag-domains.md](./fase-04-5-ag-mail-y-ag-domains.md)
 > Siguiente: [fase-06-ag-ai-knowledge-graph.md](./fase-06-ag-ai-knowledge-graph.md)
 
-## Fase 5 — `ag-cloud` despliegue simplificado
+## Phase 5 — `ag-cloud` simplified deployment
 
-**Objetivo.** Construir el subsistema de despliegue al estilo Railway/Fly.io. Soporte para los cuatro targets: docker-compose, fly, railway, k8s. Este es el hito de **versión beta pública (0.5)**.
+**Objective.** Build the deployment subsystem in the style of Railway/Fly.io. Support for the four targets: docker-compose, fly, railway, k8s. This is the **public beta version (0.5)** milestone.
 
-### 5.1 Criterios de entrada
+### 5.1 Entry criteria
 
-- [ ] Fase 4 completada.
-- [ ] Decisión RFC sobre los targets de despliegue soportados en la 1.0.
+- [ ] Phase 4 completed.
+- [ ] RFC decision on the deployment targets supported in 1.0.
 
-### 5.2 Entregables
+### 5.2 Deliverables
 
-- [ ] Crate `ag-cloud` con módulos para cada target.
-- [ ] Especificación del archivo `deploy.ag`.
-- [ ] Generador de Dockerfile multi-stage optimizado para imagen mínima.
-- [ ] Target docker-compose: generación completa de stack con Caddy como reverse proxy y TLS automático.
-- [ ] Target fly: integración con flyctl.
-- [ ] Target railway: integración con su API.
-- [ ] Target k8s: generación de manifests estándar.
-- [ ] Comando `ag deploy`.
-- [ ] Comando `ag rollback`.
-- [ ] Pipeline de migraciones de base de datos integrado al despliegue.
-- [ ] Documentación: "Desde cero a producción en 15 minutos" con cada target.
+- [ ] `ag-cloud` crate with modules for each target.
+- [ ] Specification of the `deploy.ag` file.
+- [ ] Multi-stage Dockerfile generator optimized for minimal image.
+- [ ] docker-compose target: complete stack generation with Caddy as reverse proxy and automatic TLS.
+- [ ] fly target: integration with flyctl.
+- [ ] railway target: integration with its API.
+- [ ] k8s target: generation of standard manifests.
+- [ ] `ag deploy` command.
+- [ ] `ag rollback` command.
+- [ ] Database migrations pipeline integrated into the deployment.
+- [ ] Documentation: "From zero to production in 15 minutes" with each target.
 
-### 5.3 Criterios de salida (puerta antes de Fase 6 y versión 0.5)
+### 5.3 Exit criteria (gate before Phase 6 and version 0.5)
 
-- [ ] El example `todo-api` se despliega exitosamente a Fly.io con `ag deploy`.
-- [ ] El example `ecommerce-api` se despliega exitosamente con docker-compose a un VPS y se accede vía dominio con TLS.
-- [ ] El example `realtime-chat` se despliega exitosamente a Railway.
-- [ ] Versión 0.5 (beta pública) liberada en GitHub Releases.
-- [ ] Anuncio público en Hacker News, Reddit `/r/rust`, Twitter/X, Bluesky, LinkedIn.
-- [ ] Al menos diez proyectos externos reportan que han desplegado Anti-Gravital en producción o staging.
-- [ ] Al menos 1 500 stars en el repositorio.
+- [ ] The `todo-api` example deploys successfully to Fly.io with `ag deploy`.
+- [ ] The `ecommerce-api` example deploys successfully with docker-compose to a VPS and is accessed via domain with TLS.
+- [ ] The `realtime-chat` example deploys successfully to Railway.
+- [ ] Version 0.5 (public beta) released on GitHub Releases.
+- [ ] Public announcement on Hacker News, Reddit `/r/rust`, Twitter/X, Bluesky, LinkedIn.
+- [ ] At least ten external projects report that they have deployed Anti-Gravital in production or staging.
+- [ ] At least 1 500 stars on the repository.
 
-### 5.4 Riesgos de la fase
+### 5.4 Phase risks
 
-El riesgo principal es la dependencia de APIs externas (Fly, Railway) que pueden cambiar. La mitigación es estructurar cada target como un módulo desacoplado con tests de contrato.
+The main risk is the dependency on external APIs (Fly, Railway) that can change. The mitigation is to structure each target as a decoupled module with contract tests.
 
 ---
+

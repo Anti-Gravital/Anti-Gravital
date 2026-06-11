@@ -5,50 +5,51 @@
 > Anterior: [fase-02-core-mvp.md](./fase-02-core-mvp.md)
 > Siguiente: [fase-04-modulos-estandar.md](./fase-04-modulos-estandar.md)
 
-## Fase 3 — Anti-DSL alpha (versiones 0.1 a 0.4 del DSL)
+## Phase 3 — Anti-DSL alpha (versions 0.1 to 0.4 of the DSL)
 
-**Objetivo.** Construir el compilador del DSL con un subconjunto entregable de la gramática. Esta fase entrega el primer codegen funcional: modelos, endpoints básicos, validaciones y relaciones. Sin auth declarativa todavía, sin eventos todavía. El producto es la primera versión del flujo "definir → generar → implementar".
+**Objective.** Build the DSL compiler with a deliverable subset of the grammar. This phase delivers the first functional codegen: models, basic endpoints, validations and relations. No declarative auth yet, no events yet. The product is the first version of the "define → generate → implement" flow.
 
-### 3.1 Criterios de entrada
+### 3.1 Entry criteria
 
-- [ ] Fase 2 completada con todos sus criterios de salida marcados.
-- [ ] Crate `ag-dsl` iniciado.
-- [ ] Decisión final sobre librerías base del compilador (logos para lexer, chumsky para parser, askama y quote para codegen). Documentada en RFC.
+- [ ] Phase 2 completed with all of its exit criteria checked.
+- [ ] `ag-dsl` crate started.
+- [ ] Final decision on the compiler's base libraries (logos for lexer, chumsky for parser, askama and quote for codegen). Documented in RFC.
 
-### 3.2 Entregables
+### 3.2 Deliverables
 
-- [ ] DSL versión 0.1: modelos básicos con anotaciones primitivas (`@primary`, `@unique`, `@auto`).
-- [ ] DSL versión 0.2: endpoints (método, path, body, response).
-- [ ] DSL versión 0.3: validaciones (`@min`, `@max`, `@email`, `@regex`, `@length`).
-- [ ] DSL versión 0.4: relaciones entre modelos (`1:1`, `1:N`, `N:M`).
-- [ ] Generador Rust: structs con serde, validators, query builders sqlx.
-- [ ] Generador SQL: migraciones idempotentes.
-- [ ] Generador TypeScript: tipos y cliente HTTP.
-- [ ] Generador OpenAPI 3.1.
-- [ ] Comando `ag generate` que lee `schema.ag` y produce todos los artefactos.
-- [ ] Comando `ag schema lint` que reporta warnings de mejores prácticas.
-- [ ] Comando `ag schema diff <ref>` que reporta cambios breaking vs no-breaking.
-- [ ] Diagnostics legibles para errores comunes del DSL (modelo no encontrado, tipo desconocido, anotación inválida).
-- [ ] Servidor LSP básico (`ag-lsp`) con autocompletado y diagnostics.
-- [ ] Plugin VS Code publicado en el marketplace.
-- [ ] Suite de tests del compilador con cobertura ≥ 85%.
-- [ ] Fuzzing del parser con `cargo-fuzz`: 24 horas sin crashes.
-- [ ] Documentación de referencia del DSL versión por versión.
+- [ ] DSL version 0.1: basic models with primitive annotations (`@primary`, `@unique`, `@auto`).
+- [ ] DSL version 0.2: endpoints (method, path, body, response).
+- [ ] DSL version 0.3: validations (`@min`, `@max`, `@email`, `@regex`, `@length`).
+- [ ] DSL version 0.4: relations between models (`1:1`, `1:N`, `N:M`).
+- [ ] Rust generator: structs with serde, validators, sqlx query builders.
+- [ ] SQL generator: idempotent migrations.
+- [ ] TypeScript generator: types and HTTP client.
+- [ ] OpenAPI 3.1 generator.
+- [ ] `ag generate` command that reads `schema.ag` and produces all the artifacts.
+- [ ] `ag schema lint` command that reports best-practices warnings.
+- [ ] `ag schema diff <ref>` command that reports breaking vs non-breaking changes.
+- [ ] Readable diagnostics for common DSL errors (model not found, unknown type, invalid annotation).
+- [ ] Basic LSP server (`ag-lsp`) with autocompletion and diagnostics.
+- [ ] VS Code plugin published on the marketplace.
+- [ ] Compiler test suite with coverage ≥ 85%.
+- [ ] Parser fuzzing with `cargo-fuzz`: 24 hours without crashes.
+- [ ] DSL reference documentation version by version.
 
-### 3.3 Criterios de salida (puerta antes de Fase 4)
+### 3.3 Exit criteria (gate before Phase 4)
 
-- [ ] Un proyecto completo se puede crear, definir en `schema.ag`, generar, y ejecutar usando solo la CLI.
-- [ ] El example `ecommerce-api` se reescribe completamente con DSL y funciona.
-- [ ] Los benchmarks se mantienen: CRUD generado por DSL no es más lento que CRUD escrito a mano.
-- [ ] El plugin VS Code tiene ≥ 100 instalaciones.
-- [ ] Al menos un colaborador externo ha contribuido al compilador.
-- [ ] La documentación del DSL es completa y revisada por al menos dos personas.
-- [ ] Al menos 200 stars en el repositorio.
+- [ ] A complete project can be created, defined in `schema.ag`, generated, and executed using only the CLI.
+- [ ] The `ecommerce-api` example is completely rewritten with DSL and works.
+- [ ] The benchmarks are maintained: DSL-generated CRUD is not slower than hand-written CRUD.
+- [ ] The VS Code plugin has ≥ 100 installations.
+- [ ] At least one external collaborator has contributed to the compiler.
+- [ ] The DSL documentation is complete and reviewed by at least two people.
+- [ ] At least 200 stars on the repository.
 
-### 3.4 Riesgos de la fase
+### 3.4 Phase risks
 
-El compilador del DSL es el componente técnicamente más complejo del proyecto. El riesgo principal es subestimar el esfuerzo y exceder el cronograma. La mitigación es la implementación incremental por subversiones: si la fase corre largo, la subversión 0.4 (relaciones) puede postergarse a la fase 4 sin bloquear el avance.
+The DSL compiler is the technically most complex component of the project. The main risk is underestimating the effort and exceeding the schedule. The mitigation is incremental implementation by subversions: if the phase runs long, subversion 0.4 (relations) can be postponed to phase 4 without blocking advancement.
 
-El riesgo secundario son los mensajes de error del compilador. Un compilador con mensajes incomprensibles arruina la experiencia. La mitigación es priorizar diagnostics legibles desde el día uno, con tests específicos que verifiquen que los mensajes son útiles.
+The secondary risk is the compiler's error messages. A compiler with incomprehensible messages ruins the experience. The mitigation is to prioritize readable diagnostics from day one, with specific tests that verify that the messages are useful.
 
 ---
+

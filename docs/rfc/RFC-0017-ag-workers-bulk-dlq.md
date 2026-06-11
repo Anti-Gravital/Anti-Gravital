@@ -1,13 +1,15 @@
 # RFC-0017 - ag-workers: bulk DLQ re-drive and purge-by-filter
 
-- Status: proposed (pending review and approval)
-- Author: Gravital Labs - Nereira Technology and Business Solutions
+- Status: accepted
+- Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-06-11
+- Decision date: 2026-06-11
 - Target phase: maintenance of Phase 4.6-D ag-workers (CLI surface extension)
 - Affected modules/crates: `ag-cli` (`Dlq` subcommands), `ag-workers` (DLQ query
   /re-drive API)
 - Predecessor RFC: RFC-0012 (ag-workers)
-- Comment period: minimum seven calendar days
+- Comment period: waived by BDFL decision. The change is additive (single-ID
+  behaviour unchanged) and bounded by `--limit` plus a `--dry-run` safety rail.
 
 ## 1. Motivation
 
@@ -92,11 +94,13 @@ state migration is involved.
 
 ## 9. Decision
 
-To be completed after the comment period.
-
-- Decider: BDFL or technical committee.
-- Decision date: YYYY-MM-DD.
-- Outcome: accepted / rejected / deferred.
+- Decider: Angel Nereira (BDFL).
+- Decision date: 2026-06-11.
+- Outcome: accepted (comment period waived by BDFL).
+- Rationale: a common day-2 DLQ recovery operation, added additively behind the
+  existing `workers-runtime` feature; the single-ID path is unchanged, bulk
+  actions require an explicit `--queue`, are bounded by `--limit`, and have a
+  `--dry-run` preview before any destructive action.
 
 ## 10. References
 

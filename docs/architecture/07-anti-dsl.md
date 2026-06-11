@@ -5,34 +5,35 @@
 > Anterior: [06-nucleo-shield-y-core.md](./06-nucleo-shield-y-core.md)
 > Siguiente: [08-modulos-batteries-included.md](./08-modulos-batteries-included.md)
 
-## 7. El lenguaje Anti-DSL (`ag-dsl`): especificación e implementación incremental
+## 7. The Anti-DSL language (`ag-dsl`): specification and incremental implementation
 
-El compilador del DSL es, junto con el runtime, el componente técnicamente más exigente del proyecto. Es esencialmente un compilador completo: lexer, parser, análisis semántico, sistema de tipos, generación de código a múltiples targets, formatter, linter, y servidor LSP. Esta sección define la especificación del lenguaje y la estrategia de implementación incremental.
+The DSL compiler is, together with the runtime, the technically most demanding component of the project. It is essentially a complete compiler: lexer, parser, semantic analysis, type system, code generation to multiple targets, formatter, linter, and LSP server. This section defines the language specification and the incremental implementation strategy.
 
-### 7.1 Filosofía del lenguaje
+### 7.1 Language philosophy
 
-El Anti-DSL es declarativo, no imperativo. Describe contratos, no flujos. La premisa es que la mayor parte del valor de un framework backend reside en la consistencia de su contrato externo: qué modelos existen, qué endpoints los exponen, qué reglas se aplican, qué errores se devuelven. La lógica interna queda en Rust puro.
+The Anti-DSL is declarative, not imperative. It describes contracts, not flows. The premise is that most of the value of a backend framework resides in the consistency of its external contract: which models exist, which endpoints expose them, which rules apply, which errors are returned. The internal logic stays in pure Rust.
 
-El lenguaje se inspira en Prisma para la sintaxis de modelos, en GraphQL SDL para la claridad de las definiciones, en sqlc para la integración con SQL y en protobuf para el codegen multi-target. No es un lenguaje Turing-completo y no pretende serlo.
+The language draws inspiration from Prisma for the model syntax, from GraphQL SDL for the clarity of definitions, from sqlc for the integration with SQL, and from protobuf for the multi-target codegen. It is not a Turing-complete language and does not intend to be.
 
-### 7.2 Implementación incremental por versiones del DSL
+### 7.2 Incremental implementation by DSL versions
 
-Probablemente la decisión más importante para que el compilador sea viable es admitir que no se puede entregar el lenguaje completo en la primera versión. La especificación se entrega en fases incrementales, cada una con una gramática estable que no rompe la anterior. Las versiones del DSL son independientes de las versiones del framework y siguen su propio semver.
+Probably the most important decision for making the compiler viable is to admit that the complete language cannot be delivered in the first version. The specification is delivered in incremental phases, each with a stable grammar that does not break the previous one. The DSL versions are independent of the framework versions and follow their own semver.
 
-| Versión DSL | Capacidad gramatical                                                                                              |
-|-------------|-------------------------------------------------------------------------------------------------------------------|
-| v0.1        | Modelos básicos: campos, tipos primitivos, anotaciones `@primary`, `@unique`, `@auto`                              |
-| v0.2        | Endpoints: método, path, body, response, errors                                                                    |
-| v0.3        | Validaciones: `@min`, `@max`, `@email`, `@regex`, `@length`                                                        |
-| v0.4        | Relaciones entre modelos: `1:1`, `1:N`, `N:M`, cascadas                                                           |
-| v0.5        | Autenticación y autorización: `auth required`, `policy "..."`                                                      |
-| v0.6        | Eventos: declaración de eventos emitidos por endpoint, suscriptores                                                |
-| v0.7        | Plugins: declaración de extensiones WASI usadas por el proyecto                                                    |
-| v0.8        | Multi-tenancy: schema-per-tenant, row-level security                                                              |
-| v0.9        | Migración de datos: snapshots, diff, generación de migraciones SQL versionadas                                    |
-| v1.0        | Gramática estable. Cualquier extensión posterior será aditiva.                                                    |
+| DSL version | Grammatical capability                                                                                              | Milestone                  |
+|-------------|-------------------------------------------------------------------------------------------------------------------|----------------------------|
+| v0.1        | Basic models: fields, primitive types, annotations `@primary`, `@unique`, `@auto`                                  | End of Phase 3 (delivered) |
+| v0.2        | Endpoints: method, path, body, response, errors                                                                    | End of Phase 3 (delivered) |
+| v0.3        | Validations: `@min`, `@max`, `@email`, `@regex`, `@length`                                                         | End of Phase 3 (delivered) |
+| v0.4        | Relationships between models: `1:1`, `1:N`, `N:M`, cascades                                                        | End of Phase 3 (delivered) |
+| v0.5        | Authentication and authorization: `auth required`, `policy "..."`                                                  | End of Phase 4 (delivered) |
+| v0.6        | Events: declaration of events emitted per endpoint, subscribers                                                    | End of Phase 4 (delivered) |
+| v0.7        | Mail and declarative domains: `mail`, `domain`, `dns`, `tls`                                                       | End of Phase 4.5           |
+| v0.8        | Plugin hooks (lifecycle, decorators)                                                                               | End of Phase 9             |
+| v1.0        | Stable grammar, frozen under semver. Any subsequent extension will be additive.                                    | End of Phase 10            |
 
-### 7.3 Ejemplo completo de schema (v1.0 target)
+This table is realigned by `ADR-0007` (Phase 4.5). The multi-tenancy and data migration capabilities planned for intermediate versions of the DSL in earlier revisions are deferred: they will be specified in their own RFCs when the scope justifies it, without occupying a fixed numbered slot until then. This avoids promising features that do not have verified traction.
+
+### 7.3 Complete schema example (v1.0 target)
 
 ```ag
 # schema.ag — Ejemplo completo objetivo de la v1.0
@@ -121,51 +122,51 @@ event account.debited {
 }
 ```
 
-### 7.4 Artefactos generados desde un solo schema
+### 7.4 Artifacts generated from a single schema
 
-Un único `schema.ag` produce, mediante `ag generate`:
+A single `schema.ag` produces, via `ag generate`:
 
-| Artefacto                          | Ruta                                | Propósito                                    |
+| Artifact                           | Path                                | Purpose                                      |
 |------------------------------------|-------------------------------------|----------------------------------------------|
-| Structs Rust con serde y validators | `src/models.rs`                     | Tipos del dominio                            |
-| Stubs de handlers tipados          | `src/handlers/*.rs`                 | Firmas listas; el dev escribe el cuerpo      |
-| Queries sqlx compile-time checked  | `src/db/queries.rs`                 | Acceso a base de datos type-safe             |
-| Migraciones SQL versionadas        | `migrations/NNNN_*.sql`             | Esquema de base de datos                     |
-| Tipos TypeScript                   | `clients/typescript/types.ts`       | Tipos compartidos con frontend               |
-| Cliente TypeScript HTTP            | `clients/typescript/client.ts`      | SDK tipado para frontend                     |
-| Tipos Dart                         | `clients/dart/lib/types.dart`       | Tipos compartidos con aplicaciones Flutter   |
-| Cliente Dart con Dio               | `clients/dart/lib/client.dart`      | SDK tipado para Flutter                      |
-| Documentación OpenAPI 3.1          | `openapi.yaml`                      | Documentación interactiva (Swagger UI)       |
-| Especificación AsyncAPI            | `asyncapi.yaml`                     | Documentación de eventos                     |
-| Grafo de conocimiento JSON         | `.ag/knowledge-graph.json`          | Insumo para `ag-ai` y dashboards             |
+| Rust structs with serde and validators | `src/models.rs`                 | Domain types                                 |
+| Typed handler stubs                | `src/handlers/*.rs`                 | Ready signatures; the dev writes the body    |
+| Compile-time checked sqlx queries  | `src/db/queries.rs`                 | Type-safe database access                    |
+| Versioned SQL migrations           | `migrations/NNNN_*.sql`             | Database schema                              |
+| TypeScript types                   | `clients/typescript/types.ts`       | Types shared with the frontend               |
+| TypeScript HTTP client             | `clients/typescript/client.ts`      | Typed SDK for the frontend                   |
+| Dart types                         | `clients/dart/lib/types.dart`       | Types shared with Flutter applications       |
+| Dart client with Dio               | `clients/dart/lib/client.dart`      | Typed SDK for Flutter                        |
+| OpenAPI 3.1 documentation          | `openapi.yaml`                      | Interactive documentation (Swagger UI)       |
+| AsyncAPI specification             | `asyncapi.yaml`                     | Event documentation                          |
+| JSON knowledge graph               | `.ag/knowledge-graph.json`          | Input for `ag-ai` and dashboards             |
 
-### 7.5 Arquitectura del compilador
+### 7.5 Compiler architecture
 
-El compilador del DSL se organiza en pipeline tradicional con etapas bien definidas:
+The DSL compiler is organized in a traditional pipeline with well-defined stages:
 
-La fase de **lexer** tokeniza la entrada en `.ag`. Está implementada con `logos` (crate Rust que genera tokenizers a partir de definiciones declarativas con derive macros). Produce un stream de tokens posicionales para reporte de errores con líneas y columnas.
+The **lexer** phase tokenizes the `.ag` input. It is implemented with `logos` (a Rust crate that generates tokenizers from declarative definitions with derive macros). It produces a stream of positional tokens for error reporting with lines and columns.
 
-La fase de **parser** consume tokens y produce un AST. Está implementada con `chumsky` (parser combinator library con soporte de recuperación de errores), elegida sobre `nom` por su mejor manejo de errores legibles para el usuario final.
+The **parser** phase consumes tokens and produces an AST. It is implemented with `chumsky` (a parser combinator library with error recovery support), chosen over `nom` for its better handling of error messages readable by the end user.
 
-La fase de **análisis semántico** valida el AST: comprueba que las referencias entre modelos existan, que los tipos sean consistentes, que las políticas RBAC se refieran a campos válidos, que no haya ciclos en las relaciones, que los nombres no colisionen con palabras reservadas de Rust o SQL. Produce diagnósticos estructurados con sugerencias.
+The **semantic analysis** phase validates the AST: it checks that the references between models exist, that the types are consistent, that the RBAC policies refer to valid fields, that there are no cycles in the relationships, that the names do not collide with reserved words of Rust or SQL. It produces structured diagnostics with suggestions.
 
-La fase de **codegen** toma el AST validado y emite código a múltiples targets. Cada target (Rust, TypeScript, Dart, OpenAPI, SQL) es un módulo independiente. La emisión se hace con templates de `askama` para los outputs textuales y con `quote` para el código Rust (que se beneficia de tener un AST nativo Rust para emisión).
+The **codegen** phase takes the validated AST and emits code to multiple targets. Each target (Rust, TypeScript, Dart, OpenAPI, SQL) is an independent module. The emission is done with `askama` templates for the textual outputs and with `quote` for the Rust code (which benefits from having a native Rust AST for emission).
 
-### 7.6 Servidor de lenguaje (LSP)
+### 7.6 Language server (LSP)
 
-Desde la versión 0.3 del DSL se incluye un servidor LSP que ofrece autocompletado, diagnostics en vivo, go-to-definition, find-references, hover types y rename. Se distribuye como un binario `ag-lsp` y se integra con cualquier editor compatible con el protocolo (VS Code, Neovim, Helix, Zed, IntelliJ vía plugin).
+From version 0.3 of the DSL, an LSP server is included that offers autocompletion, live diagnostics, go-to-definition, find-references, hover types, and rename. It is distributed as an `ag-lsp` binary and integrates with any editor compatible with the protocol (VS Code, Neovim, Helix, Zed, IntelliJ via plugin).
 
-El plugin oficial para VS Code se publica en el marketplace bajo el nombre `Anti-Gravital`.
+The official plugin for VS Code is published in the marketplace under the name `Anti-Gravital`.
 
-### 7.7 Herramientas del DSL
+### 7.7 DSL tooling
 
-La CLI ofrece tres comandos específicos para el DSL:
+The CLI offers three specific commands for the DSL:
 
-`ag schema lint` revisa el archivo `.ag` y reporta warnings sobre malas prácticas (modelos sin índices en campos foreign key, endpoints sin rate limit, políticas tautológicas, errores no manejados).
+`ag schema lint` reviews the `.ag` file and reports warnings about bad practices (models without indexes on foreign key fields, endpoints without rate limit, tautological policies, unhandled errors).
 
-`ag schema diff <ref>` compara el schema actual contra una referencia (commit git, tag, archivo) y reporta cambios breaking vs no-breaking. Esencial para revisiones de pull request.
+`ag schema diff <ref>` compares the current schema against a reference (git commit, tag, file) and reports breaking vs non-breaking changes. Essential for pull request reviews.
 
-`ag schema migrate` genera la migración SQL necesaria para llevar la base de datos del estado actual al estado del schema. Incluye análisis de seguridad: detecta operaciones destructivas (drop column, drop table) y exige confirmación explícita.
+`ag schema migrate` generates the SQL migration needed to bring the database from the current state to the schema state. It includes a safety analysis: it detects destructive operations (drop column, drop table) and demands explicit confirmation.
 
 ---
 

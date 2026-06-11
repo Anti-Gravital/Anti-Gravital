@@ -10,11 +10,11 @@ exige una fecha externa."
 | Fase | Hito | Duracion estimada | Estado |
 | --- | --- | --- | --- |
 | 0 | Fundaciones y gobernanza | 1-2 meses | En curso (criterios externos pendientes; implementacion bajo RFC-0001) |
-| 1 | The Shield MVP | 2-3 meses | Implementacion tecnica completa |
-| 2 | The Core MVP | 2 meses | Implementacion tecnica completa |
-| 3 | Anti-DSL alpha (v0.1 a v0.8) | 3 meses | Implementacion tecnica disponible |
-| 4 | Modulos estandar | 3 meses | Implementacion tecnica disponible |
-| 4.5 | ag-mail + ag-domains: comunicacion y dominios | 1-2 meses | Implementacion tecnica disponible |
+| 1 | The Shield MVP | 2-3 meses | Implementada y probada; gate de rendimiento/cobertura de referencia abierto |
+| 2 | The Core MVP | 2 meses | Implementada; benchmarks publicados por debajo de 40K req/s y p99 |
+| 3 | Anti-DSL alpha (v0.1 a v0.8) | 3 meses | Implementada; fuzz 24h y benchmark generado-vs-manual abiertos (issue #70) |
+| 4 | Modulos estandar | 3 meses | Implementada y probada; evidencia de escala y deuda documentada abiertas |
+| 4.5 | ag-mail + ag-domains: comunicacion y dominios | 1-2 meses | Implementada; ag-domains activo, evidencia de release/doc abierta |
 | 4.6 | MTA nativo de ag-mail (A/B/C) y motor ag-workers (D) | Aditiva | ag-workers S1-S5 disponible y verificado en CI; paridad PostgreSQL viva en Issues #108/#109/#103 |
 | 5 | ag-cloud y version 0.5 beta publica | 2 meses | Pendiente |
 | 6 | ag-ai y Knowledge Graph | 2 meses | Pendiente |

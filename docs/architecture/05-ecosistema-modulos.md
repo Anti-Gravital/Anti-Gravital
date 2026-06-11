@@ -5,38 +5,38 @@
 > Anterior: [04-estado-del-arte.md](./04-estado-del-arte.md)
 > Siguiente: [06-nucleo-shield-y-core.md](./06-nucleo-shield-y-core.md)
 
-## 5. Arquitectura del ecosistema: módulos y responsabilidades
+## 5. Ecosystem architecture: modules and responsibilities
 
-La decisión arquitectónica más importante derivada del análisis crítico del v3.0 fue separar el núcleo de los ecosistemas. El v3.0 intentaba ser simultáneamente framework backend, motor SSR, plataforma DevOps, orquestador AI, capa de observabilidad, framework móvil y sistema de plugins. Esto es inmanejable. La v4.0 reorganiza el proyecto como un ecosistema de crates Rust independientes, cada uno con un dominio propio, un mantenedor responsable, versionado semántico independiente y una superficie de API mínima.
+The most important architectural decision derived from the critical analysis of v3.0 was to separate the core from the ecosystems. The v3.0 tried to be simultaneously a backend framework, an SSR engine, a DevOps platform, an AI orchestrator, an observability layer, a mobile framework, and a plugin system. This is unmanageable. The v4.0 reorganizes the project as an ecosystem of independent Rust crates, each with its own domain, a responsible maintainer, independent semantic versioning, and a minimal API surface.
 
-### 5.1 Mapa del ecosistema
+### 5.1 Ecosystem map
 
-| Crate              | Dominio                                                          | Estado de criticidad |
+| Crate              | Domain                                                           | Criticality status |
 |--------------------|------------------------------------------------------------------|----------------------|
-| `ag-core`          | Runtime HTTP, router, extractores, error types, Shield/Core      | Núcleo               |
-| `ag-dsl`           | Lexer, parser, AST, análisis semántico y codegen del Anti-DSL    | Núcleo               |
-| `ag-cli`           | Binario `ag`: new, generate, dev, build, deploy, migrate         | Núcleo               |
-| `ag-lsp`           | Language Server del Anti-DSL (diagnostics, autocompletado, hover) para archivos `.ag` | Núcleo      |
-| `ag-auth`          | WebAuthn, JWT Ed25519, OAuth2, RBAC, rate limiting               | Estándar             |
-| `ag-data`          | sqlx con verificación compile-time, migraciones, ORM tipado      | Estándar             |
-| `ag-realtime`      | WebSocket, SSE, NATS embebido, pub/sub                           | Estándar             |
-| `ag-cache`         | moka en memoria, adaptador Redis, invalidación por evento        | Estándar             |
-| `ag-storage`       | S3, MinIO, filesystem local, URLs firmadas, procesamiento imagen | Estándar             |
-| `ag-observe`       | tracing, OpenTelemetry, Prometheus, dashboards Grafana           | Estándar             |
-| `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, relay SMTP nativo, helpers SPF/DKIM/DMARC | Estándar diferido |
-| `ag-workers`       | Motor de ejecución en segundo plano: jobs tipados, reintentos, DLQ, scheduling, worker pools | Estándar diferido |
-| `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
-| `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
-| `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
-| `ag-edge`          | Plano de datos edge en tiempo de request: routing por hostname, selección de certificado por SNI, política canónica/redirect | Opcional infra |
-| `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Opcional             |
-| `ag-mobile`        | Generación SDK Dart, auth nativo Flutter, offline sync           | Opcional             |
-| `ag-migrate`       | Importadores OpenAPI, Prisma, Django, FastAPI, Sequelize         | Opcional             |
-| `ag-wasm-host`     | Runtime de plugins WASI sobre wasmtime                           | Núcleo               |
+| `ag-core`          | HTTP runtime, router, extractors, error types, Shield/Core       | Core                 |
+| `ag-dsl`           | Lexer, parser, AST, semantic analysis and codegen of the Anti-DSL | Core                |
+| `ag-cli`           | `ag` binary: new, generate, dev, build, deploy, migrate          | Core                 |
+| `ag-auth`          | WebAuthn, JWT Ed25519, OAuth2, RBAC, rate limiting               | Standard             |
+| `ag-data`          | sqlx with compile-time verification, migrations, typed ORM       | Standard             |
+| `ag-realtime`      | WebSocket, SSE, embedded NATS, pub/sub                           | Standard             |
+| `ag-cache`         | in-memory moka, Redis adapter, event-based invalidation          | Standard             |
+| `ag-storage`       | S3, MinIO, local filesystem, signed URLs, image processing       | Standard             |
+| `ag-observe`       | tracing, OpenTelemetry, Prometheus, Grafana dashboards           | Standard             |
+| `ag-lsp`           | Anti-DSL Language Server (diagnostics, completion, hover) for `.ag` files | Core         |
+| `ag-mail`          | outbound SMTP, typed templates, send queues with retries, relay SMTP nativo, SPF/DKIM/DMARC helpers | Deferred standard |
+| `ag-workers`       | background execution engine: typed jobs, retries, DLQ, scheduling, worker pools | Deferred standard |
+| `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
+| `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
+| `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
+| `ag-edge`          | request-time edge data plane: hostname routing, SNI certificate selection, canonical/redirect policy | Optional infra |
+| `ag-ai`            | Doc generation, schema suggestions, knowledge graph              | Optional             |
+| `ag-mobile`        | Dart SDK generation, native Flutter auth, offline sync           | Optional             |
+| `ag-migrate`       | OpenAPI, Prisma, Django, FastAPI, Sequelize importers            | Optional             |
+| `ag-wasm-host`     | WASI plugin runtime on wasmtime                                  | Core                 |
 
-La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. `ag-workers` (introducido por `RFC-0012`/`ADR-0013` en la Fase 4.6-D) es el segundo crate estándar diferido: la mayoría de los backends acaba necesitando ejecución en segundo plano (jobs, reintentos, scheduling), pero no todo proyecto la usa desde el primer día, así que tiene madurez de estándar sin instalarse por defecto en los templates. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema arrancó en **17 crates** con la introducción de la Fase 4.5 y ha crecido de forma aditiva hasta **20** con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge` (`ADR-0012`) y `ag-workers` (`ADR-0013`); el conteo canónico vive en `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`.
+The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **20** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`).
 
-### 5.2 Diagrama del ecosistema
+### 5.2 Ecosystem diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -83,38 +83,25 @@ La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opci
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 Reglas de dependencia entre crates
+### 5.3 Dependency rules between crates
 
-Para mantener el ecosistema sano se aplican reglas estrictas de dependencia:
+To keep the ecosystem healthy, strict dependency rules apply:
 
-Primera regla: `ag-core` no depende de ningún otro crate del ecosistema Anti-Gravital. Es la base sobre la que todo lo demás se construye. Cualquier funcionalidad considerada genérica suficientemente que necesite otro módulo debe extraerse a `ag-core` o convertirse en un trait que el módulo implementa.
+First rule: `ag-core` does not depend on any other crate of the Anti-Gravital ecosystem. It is the base on which everything else is built. Any functionality considered sufficiently generic that needs another module must be extracted to `ag-core` or turned into a trait that the module implements.
 
-Segunda regla: los módulos estándar pueden depender de `ag-core` y de otros módulos estándar siempre que no haya ciclos. Por ejemplo, `ag-auth` puede depender de `ag-data` para persistencia de sesiones, pero `ag-data` no puede depender de `ag-auth`.
+Second rule: the standard modules can depend on `ag-core` and on other standard modules as long as there are no cycles. For example, `ag-auth` can depend on `ag-data` for session persistence, but `ag-data` cannot depend on `ag-auth`.
 
-Tercera regla: los módulos opcionales pueden depender de cualquier crate núcleo o estándar. No pueden depender entre sí salvo casos explícitamente justificados (por ejemplo, `ag-mobile` puede depender de `ag-ai` para generación de código asistida).
+Third rule: the optional modules can depend on any core or standard crate. They cannot depend on each other except in explicitly justified cases (for example, `ag-mobile` can depend on `ag-ai` for assisted code generation).
 
-Cuarta regla: `ag-cli` depende de todos los demás crates (es el orquestador), pero solo a través de features Cargo, de modo que el binario `ag` puede compilarse con un subconjunto reducido.
+Fourth rule: `ag-cli` depends on all the other crates (it is the orchestrator), but only through Cargo features, so that the `ag` binary can be compiled with a reduced subset.
 
-Quinta regla: todos los crates publican versiones semánticas independientes. Una breaking change en `ag-cache` no fuerza a `ag-core` a subir mayor. Esto es esencial para la sostenibilidad de un proyecto open source.
+Fifth rule: all crates publish independent semantic versions. A breaking change in `ag-cache` does not force `ag-core` to bump major. This is essential for the sustainability of an open source project.
 
-Sexta regla (introducida por `ADR-0007`, Fase 4.5): la dirección de la
-dependencia `ag-auth ↔ ag-mail` es estrictamente unidireccional. `ag-auth`
-**consume** `ag-mail` para enviar correos de verificación, recuperación de
-contraseña y magic links, definiendo un trait pequeño que `ag-auth` invoca.
-`ag-mail` **NO** depende de `ag-auth`. Esta direccionalidad preserva la
-segunda regla (no ciclos) y mantiene a `ag-mail` reusable de forma aislada
-en cualquier proyecto Rust. La cooperación `ag-mail ↔ ag-domains` (para
-materializar SPF/DKIM/DMARC) es opcional, vía feature de Cargo: si un
-proyecto usa `ag-mail` con un proveedor externo (via SMTP) y no administra
-DNS propio, `ag-domains` no es necesario.
+Sixth rule (introduced by `ADR-0007`, Phase 4.5): the direction of the `ag-auth <-> ag-mail` dependency is strictly unidirectional. `ag-auth` **consumes** `ag-mail` to send verification, password recovery, and magic link emails, defining a small trait that `ag-auth` invokes. `ag-mail` does **NOT** depend on `ag-auth`. This directionality preserves the second rule (no cycles) and keeps `ag-mail` reusable in isolation in any Rust project. The `ag-mail <-> ag-domains` cooperation (to materialize SPF/DKIM/DMARC) is optional, via a Cargo feature: if a project uses `ag-mail` with a external provider (via SMTP) and does not administer its own DNS, `ag-domains` is not necessary.
 
-Séptima regla (introducida por `ADR-0007`, Fase 4.5): el módulo opcional
-`ag-cloud` **consume** `ag-domains` durante `ag deploy` para configurar DNS
-y TLS, sin que la dependencia sea rígida en todos los targets. Si el
-proyecto no declara dominios en su `schema.ag`, el flujo se omite.
-`ag-domains` puede usarse de forma independiente desde la CLI sin `ag-cloud`.
+Seventh rule (introduced by `ADR-0007`, Phase 4.5): the optional module `ag-cloud` **consumes** `ag-domains` during `ag deploy` to configure DNS and TLS, without the dependency being rigid in all targets. If the project does not declare domains in its `schema.ag`, the flow is omitted. `ag-domains` can be used independently from the CLI without `ag-cloud`.
 
-### 5.4 Estructura del monorepo
+### 5.4 Monorepo structure
 
 ```
 anti-gravital/
@@ -157,6 +144,7 @@ anti-gravital/
 │   │           ├── openapi_gen.rs
 │   │           └── sql_gen.rs
 │   ├── ag-cli/
+│   ├── ag-lsp/                 # Fase 3 — tooling DSL (núcleo)
 │   ├── ag-auth/
 │   ├── ag-data/
 │   ├── ag-realtime/
@@ -164,9 +152,11 @@ anti-gravital/
 │   ├── ag-storage/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
+│   ├── ag-workers/             # Fase 4.6-D — estándar diferido
 │   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
+│   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)
 │   ├── ag-ai/
 │   ├── ag-mobile/
 │   ├── ag-migrate/

@@ -4,19 +4,19 @@
 > Indice: [docs/architecture/README.md](./README.md)
 > Siguiente: [02-manifiesto-y-posicionamiento.md](./02-manifiesto-y-posicionamiento.md)
 
-## 1. Resumen ejecutivo
+## 1. Executive summary
 
-Anti-Gravital es un ecosistema de software libre para construir aplicaciones backend de alto rendimiento, escrito en Rust puro, con tres propiedades fundamentales que lo distinguen del resto del mercado de frameworks web actuales.
+Anti-Gravital is a free software ecosystem for building high-performance backend applications, written in pure Rust, with three fundamental properties that distinguish it from the rest of the current web framework market.
 
-La primera es la ausencia total de runtime externo: el resultado de un proyecto Anti-Gravital es un binario estático autocontenido que se ejecuta sobre el sistema operativo sin intérprete ni máquina virtual de por medio. Esto elimina la JVM, CPython, Node.js y CLR del path de ejecución y, con ellos, las pausas de recolección de basura, los segundos de arranque en frío y los cientos de megabytes de memoria base que esos runtimes consumen antes de procesar la primera petición.
+The first is the total absence of an external runtime: the result of an Anti-Gravital project is a self-contained static binary that runs on the operating system without an interpreter or virtual machine in between. This eliminates the JVM, CPython, Node.js, and the CLR from the execution path and, with them, the garbage collection pauses, the cold-start seconds, and the hundreds of megabytes of base memory that those runtimes consume before processing the first request.
 
-La segunda es el enfoque schema-first apoyado en un lenguaje de definición de dominio llamado Anti-DSL, archivos con extensión `.ag`. Un único archivo describe modelos, endpoints, políticas, validaciones, errores y relaciones; el compilador del DSL deriva de allí el código Rust, los clientes tipados para frontend y aplicaciones móviles, la documentación OpenAPI, y las migraciones de base de datos. El contrato es una sola fuente de verdad, y la deriva de esquema (schema drift) deja de ser una clase de problema posible por construcción.
+The second is the schema-first approach supported by a domain definition language called Anti-DSL, files with the `.ag` extension. A single file describes models, endpoints, policies, validations, errors, and relationships; the DSL compiler derives from there the Rust code, the typed clients for frontend and mobile applications, the OpenAPI documentation, and the database migrations. The contract is a single source of truth, and schema drift ceases to be a possible class of problem by construction.
 
-La tercera es una arquitectura modular pensada como un ecosistema, no como un framework monolítico. El núcleo es deliberadamente pequeño y se compone con módulos publicados de forma independiente. Cada módulo (`ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`) tiene un dominio propio, versionado propio, y puede usarse de forma aislada en cualquier proyecto Rust. Esta separación hace al ecosistema sostenible a escala de comunidad y elimina el síndrome del "framework que intenta resolverlo todo".
+The third is a modular architecture conceived as an ecosystem, not as a monolithic framework. The core is deliberately small and is composed with independently published modules. Each module (`ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`) has its own domain, its own versioning, and can be used in isolation in any Rust project. This separation makes the ecosystem sustainable at community scale and eliminates the "framework that tries to solve everything" syndrome.
 
-El proyecto nace desde Panamá, con documentación bilingüe español/inglés desde el día cero. El primer foco de adopción es Latinoamérica; el horizonte es global. La licencia Apache 2.0 garantiza que no existirá nunca una versión Enterprise cerrada ni features reservadas para clientes pagos: la totalidad del ecosistema es y será código abierto.
+The project is born in Panama, with bilingual Spanish/English documentation from day zero. The first adoption focus is Latin America; the horizon is global. The Apache 2.0 license guarantees that there will never be a closed Enterprise version or features reserved for paying customers: the entirety of the ecosystem is and will be open source.
 
-Este documento describe en detalle cada componente, cada decisión arquitectónica, y los compromisos técnicos que sustentan el proyecto. El documento complementario *Hoja de Ruta y Puertas de Verificación* define la secuencia temporal de entregables y los criterios de bloqueo entre fases.
+This document describes in detail each component, each architectural decision, and the technical commitments that underpin the project. The complementary document *Roadmap and Verification Gates* defines the temporal sequence of deliverables and the blocking criteria between phases.
 
 ---
 

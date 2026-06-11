@@ -1,23 +1,23 @@
-# Capitulo 10. Subsistema de despliegue (ag-cloud + ag-domains)
+# Capitulo 10. Subsistema de despliegue (ag-cloud)
 
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md, seccion 10
 > Indice: [docs/architecture/README.md](./README.md)
 > Anterior: [09-plugins-wasi.md](./09-plugins-wasi.md)
 > Siguiente: [11-ai-knowledge-graph.md](./11-ai-knowledge-graph.md)
 
-## 10. Subsistema de despliegue (`ag-cloud` + `ag-domains`)
+## 10. Deployment subsystem (`ag-cloud` + `ag-domains`)
 
-Una de las correcciones estructurales más importantes derivadas del análisis crítico es que `ag-cloud` no es un competidor de Terraform ni de Kubernetes. Su rango objetivo es el mismo que cubren Railway, Fly.io, Render y Coolify: simplificar el despliegue de aplicaciones backend a entornos típicos sin obligar al equipo a operar infraestructura completa. Desde la Fase 4.5 (`ADR-0007`), `ag-cloud` coopera con `ag-domains` para resolver dominio, TLS y registros de correo dentro del propio flujo de `ag deploy`, sin reemplazar a los proveedores dominantes (Let's Encrypt, Cloudflare) y sin convertirse en un panel de hosting.
+One of the most important structural corrections derived from the critical analysis is that `ag-cloud` is not a competitor of Terraform or of Kubernetes. Its target range is the same one covered by Railway, Fly.io, Render, and Coolify: simplify the deployment of backend applications to typical environments without forcing the team to operate complete infrastructure. Since Phase 4.5 (`ADR-0007`), `ag-cloud` cooperates with `ag-domains` to resolve domain, TLS, and mail records within the `ag deploy` flow itself, without replacing the dominant providers (Let's Encrypt, Cloudflare) and without becoming a hosting panel.
 
-### 10.1 Filosofía de `ag-cloud`
+### 10.1 Philosophy of `ag-cloud`
 
-El operador típico de un proyecto Anti-Gravital, especialmente en sus primeros años de vida, no necesita ni quiere operar un clúster Kubernetes. Necesita levantar su API en un VPS, conectarla a una base de datos, ponerla detrás de TLS, y olvidarse. `ag-cloud` resuelve este caso.
+The typical operator of an Anti-Gravital project, especially in its first years of life, does not need or want to operate a Kubernetes cluster. They need to bring up their API on a VPS, connect it to a database, put it behind TLS, and forget about it. `ag-cloud` solves this case.
 
-Para casos más complejos (despliegues multi-región, alta disponibilidad, gestión de secrets centralizada, políticas IAM, infraestructura compartida entre múltiples aplicaciones), `ag-cloud` no es la herramienta correcta y el proyecto debe declararlo abiertamente: usa Terraform, Pulumi o Helm.
+For more complex cases (multi-region deployments, high availability, centralized secret management, IAM policies, infrastructure shared between multiple applications), `ag-cloud` is not the correct tool and the project must declare it openly: use Terraform, Pulumi, or Helm.
 
-### 10.2 El archivo `deploy.ag`
+### 10.2 The `deploy.ag` file
 
-El subsistema de despliegue se controla con un archivo declarativo `deploy.ag` separado del schema del proyecto:
+The deployment subsystem is controlled with a declarative `deploy.ag` file separate from the project schema:
 
 ```yaml
 app:
@@ -63,53 +63,38 @@ deployment:
   max_unavailable: 0
 ```
 
-### 10.3 Targets de despliegue soportados
+### 10.3 Supported deployment targets
 
-`ag-cloud` soporta cuatro targets de despliegue, cada uno con un nivel de abstracción distinto.
+`ag-cloud` supports four deployment targets, each with a different level of abstraction.
 
-El target **docker-compose** genera un `docker-compose.yml` completo con servicios, redes, volúmenes, healthchecks, secrets cargados de archivos `.env` o de un secret manager, reverse proxy (Caddy por defecto) con TLS automático vía Let's Encrypt, y backup scripts para la base de datos. Es el target recomendado para self-hosting en un VPS único.
+The **docker-compose** target generates a complete `docker-compose.yml` with services, networks, volumes, healthchecks, secrets loaded from `.env` files or from a secret manager, a reverse proxy (Caddy by default) with automatic TLS via Let's Encrypt, and backup scripts for the database. It is the recommended target for self-hosting on a single VPS.
 
-El target **fly** genera un `fly.toml` y ejecuta los comandos `flyctl` necesarios para desplegar a Fly.io. Es el target recomendado para edge computing global con bajo overhead operacional.
+The **fly** target generates a `fly.toml` and runs the `flyctl` commands needed to deploy to Fly.io. It is the recommended target for global edge computing with low operational overhead.
 
-El target **railway** genera la configuración para Railway y triggerea el despliegue vía su API. Es el target recomendado para equipos que prefieren PaaS sin operación.
+The **railway** target generates the configuration for Railway and triggers the deployment via its API. It is the recommended target for teams that prefer PaaS without operation.
 
-El target **k8s** genera manifests Kubernetes estándar (Deployment, Service, Ingress, ConfigMap, Secret, HorizontalPodAutoscaler) con valores razonables. Para configuraciones avanzadas, este target es un punto de partida que el equipo customiza, no una solución completa.
+The **k8s** target generates standard Kubernetes manifests (Deployment, Service, Ingress, ConfigMap, Secret, HorizontalPodAutoscaler) with reasonable values. For advanced configurations, this target is a starting point that the team customizes, not a complete solution.
 
-### 10.4 Pipeline de despliegue
+### 10.4 Deployment pipeline
 
-El comando `ag deploy` ejecuta un pipeline estandarizado: validación del schema, compilación con `cargo build --release --target <target>`, construcción de la imagen Docker desde una base `scratch` o `distroless`, ejecución de tests de smoke, push de la imagen a un registro, aplicación de migraciones de base de datos en orden, despliegue rolling con healthchecks, y verificación post-despliegue.
+The `ag deploy` command runs a standardized pipeline: schema validation, compilation with `cargo build --release --target <target>`, construction of the Docker image from a `scratch` or `distroless` base, execution of smoke tests, push of the image to a registry, application of database migrations in order, rolling deployment with healthchecks, and post-deployment verification.
 
-### 10.5 Reverse proxy y TLS
+### 10.5 Reverse proxy and TLS
 
-Para despliegues docker-compose, `ag-cloud` configura Caddy como reverse proxy con TLS automático. Caddy obtiene y renueva certificados Let's Encrypt sin configuración explícita. Para entornos donde TLS lo gestiona un balanceador externo (Cloudflare, AWS ALB), Caddy se desactiva.
+For docker-compose deployments, `ag-cloud` configures Caddy as a reverse proxy with automatic TLS. Caddy obtains and renews Let's Encrypt certificates without explicit configuration. For environments where TLS is managed by an external load balancer (Cloudflare, AWS ALB), Caddy is disabled.
 
-### 10.6 Integración con `ag-domains`
+### 10.6 Integration with `ag-domains`
 
-Introducida por `ADR-0007`. Cuando un proyecto declara dominios en su contrato
-`.ag` (bloque `domain` del DSL v0.7), `ag deploy` resuelve un flujo de seis
-pasos coordinado con `ag-domains`:
+Introduced by `ADR-0007`. When a project declares domains in its `.ag` contract (`domain` block of DSL v0.7), `ag deploy` resolves a six-step flow coordinated with `ag-domains`:
 
-1. **Validar control del dominio.** Inserción de un registro TXT de verificación
-   vía el `DnsProvider` configurado y confirmación de su presencia.
-2. **Configurar DNS de aplicación.** `upsert_record` para apuntar el dominio al
-   target del despliegue (CNAME al host de Fly/Railway, o registros A/AAAA en
-   docker-compose).
-3. **Emitir o renovar TLS.** Cliente ACME contra Let's Encrypt (DNS-01
-   preferido). El certificado se almacena en filesystem o `ag-storage`.
-4. **Asociar el dominio al target.** Configurar el reverse proxy (Caddy en
-   docker-compose, fly cert en Fly, etc.) para servir el dominio con el
-   certificado emitido.
-5. **Materializar SPF/DKIM/DMARC** que `ag-mail` haya declarado en sus
-   `MailSender::dns_requirements`.
-6. **Verificar propagación** contra múltiples resolvers públicos antes de
-   marcar el despliegue como exitoso.
+1. **Validate domain control.** Insertion of a verification TXT record via the configured `DnsProvider` and confirmation of its presence.
+2. **Configure application DNS.** `upsert_record` to point the domain to the deployment target (CNAME to the Fly/Railway host, or A/AAAA records in docker-compose).
+3. **Issue or renew TLS.** ACME client against Let's Encrypt (DNS-01 preferred). The certificate is stored in filesystem or `ag-storage`.
+4. **Associate the domain to the target.** Configure the reverse proxy (Caddy in docker-compose, fly cert in Fly, etc.) to serve the domain with the issued certificate.
+5. **Materialize SPF/DKIM/DMARC** that `ag-mail` has declared in its `MailSender::dns_requirements`.
+6. **Verify propagation** against multiple public resolvers before marking the deployment as successful.
 
-`ag-cloud` **NO depende rígidamente** de `ag-domains` en todos los targets:
-si el proyecto no declara dominios, el flujo se omite. Si el target es uno
-donde el TLS lo gestiona un balanceador externo (Cloudflare en frente,
-AWS ALB), `ag-cloud` puede saltarse el paso 3 sin afectar el resto del
-pipeline. Esta flexibilidad es lo que mantiene a `ag-domains` como módulo
-opcional, no como pieza obligatoria del runtime.
+`ag-cloud` does **NOT depend rigidly** on `ag-domains` in all targets: if the project does not declare domains, the flow is omitted. If the target is one where TLS is managed by an external load balancer (Cloudflare in front, AWS ALB), `ag-cloud` can skip step 3 without affecting the rest of the pipeline. This flexibility is what keeps `ag-domains` as an optional module, not as a mandatory piece of the runtime.
 
 ---
 

@@ -5,45 +5,46 @@
 > Anterior: [fase-09-plugins-wasi.md](./fase-09-plugins-wasi.md)
 > Siguiente: [mas-alla-de-1.0.md](./mas-alla-de-1.0.md)
 
-## Fase 10 — Endurecimiento y hito 1.0
+## Phase 10 — Hardening and 1.0 milestone
 
-**Objetivo.** Llevar el proyecto a versión 1.0 estable. Es la fase de auditorías, hardening, optimización final, y declaración pública de estabilidad.
+**Objective.** Bring the project to stable version 1.0. It is the phase of audits, hardening, final optimization, and public declaration of stability.
 
-### 10.1 Criterios de entrada
+### 10.1 Entry criteria
 
-- [ ] Fase 9 completada.
-- [ ] DSL versión 1.0 (gramática estable) lista para freeze.
-- [ ] El comité técnico está activo y operativo.
+- [ ] Phase 9 completed.
+- [ ] DSL version 1.0 (stable grammar) ready for freeze.
+- [ ] The technical committee is active and operational.
 
-### 10.2 Entregables
+### 10.2 Deliverables
 
-- [ ] DSL versión 1.0 (gramática estable, congelada).
-- [ ] Cobertura de tests ≥ 85% en todos los crates del workspace.
-- [ ] Fuzzing de 72 horas sobre el parser DSL sin crashes.
-- [ ] Fuzzing de 72 horas sobre el parser HTTP sin crashes.
-- [ ] Auditoría externa de seguridad del componente Shield, contratada con empresa especializada (Trail of Bits, NCC Group o equivalente). Reporte público.
-- [ ] Resolución de todos los findings críticos y altos de la auditoría.
-- [ ] Load test: 500 K req/s sostenidos por 30 minutos con degradación ≤ 5%.
-- [ ] Memory leak test: 24 horas de carga continua sin crecimiento de memoria detectable.
-- [ ] Compilación verificada en: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
-- [ ] Compilación a `wasm32-wasi` para servir Anti-Gravital en edge functions.
-- [ ] Manual oficial publicado: "The Anti-Gravital Book" en español e inglés.
-- [ ] Curso de introducción al framework en YouTube (mínimo seis videos).
-- [ ] Posición en TechEmpower Framework Benchmarks: top 10 en categorías Plaintext y JSON Serialization.
+- [ ] DSL version 1.0 (stable grammar, frozen).
+- [ ] Test coverage ≥ 85% in all workspace crates.
+- [ ] 72-hour fuzzing over the DSL parser without crashes.
+- [ ] 72-hour fuzzing over the HTTP parser without crashes.
+- [ ] External security audit of the Shield component, contracted with a specialized company (Trail of Bits, NCC Group or equivalent). Public report.
+- [ ] Resolution of all critical and high findings of the audit.
+- [ ] Load test: 500 K req/s sustained for 30 minutes with degradation ≤ 5%.
+- [ ] Memory leak test: 24 hours of continuous load without detectable memory growth.
+- [ ] Compilation verified on: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
+- [ ] Compilation to `wasm32-wasi` to serve Anti-Gravital in edge functions.
+- [ ] Official manual published: "The Anti-Gravital Book" in Spanish and English.
+- [ ] Framework introduction course on YouTube (minimum six videos).
+- [ ] Position in TechEmpower Framework Benchmarks: top 10 in Plaintext and JSON Serialization categories.
 
-### 10.3 Criterios de salida (versión 1.0)
+### 10.3 Exit criteria (version 1.0)
 
-- [ ] Al menos tres proyectos externos usando Anti-Gravital en producción por al menos 30 días sin incidentes críticos.
-- [ ] Al menos un servicio interno de Gravital Cloud usando Anti-Gravital en producción por 30 días sin incidentes críticos.
-- [ ] Anuncio público de versión 1.0 con changelog completo.
-- [ ] Compromiso de semver estricto desde la 1.0.
-- [ ] Anuncio del calendario de versiones LTS.
-- [ ] Charla en al menos una conferencia internacional (RustConf, EuroRust, RustNation o equivalente).
-- [ ] Al menos 10 000 stars en el repositorio.
-- [ ] El comité técnico ratifica la promoción a versión 1.0 por unanimidad.
+- [ ] At least three external projects using Anti-Gravital in production for at least 30 days without critical incidents.
+- [ ] At least one internal Gravital Cloud service using Anti-Gravital in production for 30 days without critical incidents.
+- [ ] Public announcement of version 1.0 with complete changelog.
+- [ ] Commitment to strict semver from 1.0.
+- [ ] Announcement of the LTS version calendar.
+- [ ] Talk at at least one international conference (RustConf, EuroRust, RustNation or equivalent).
+- [ ] At least 10 000 stars on the repository.
+- [ ] The technical committee ratifies the promotion to version 1.0 unanimously.
 
-### 10.4 Riesgos de la fase
+### 10.4 Phase risks
 
-El riesgo principal es la presión por liberar 1.0 antes de tiempo. La mitigación es la regla más estricta del proyecto: los criterios de salida son no negociables. Si no se cumplen, no se libera 1.0. Se libera 0.9.5, 0.9.6, hasta que se cumplen.
+The main risk is the pressure to release 1.0 before time. The mitigation is the project's strictest rule: the exit criteria are non-negotiable. If they are not met, 1.0 is not released. 0.9.5, 0.9.6 are released, until they are met.
 
 ---
+

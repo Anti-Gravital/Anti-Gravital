@@ -15,7 +15,7 @@ use chrono::Utc;
 use crate::ids::{JobId, QueueName, WorkerId};
 use crate::job::{JobEnvelope, JobStatus, NewJob};
 use crate::outcome::DeadLetterReason;
-use crate::queue::dlq::DeadLetter;
+use crate::queue::dlq::{BulkDlqOutcome, DeadLetter, DlqFilter, BULK_DLQ_SAMPLE_CAP};
 use crate::queue::{QueueBackend, QueueDepth, QueueError, RetryDecision};
 
 /// Default maximum number of non-terminal jobs per queue before enqueue is rejected.
@@ -90,6 +90,100 @@ impl MemoryQueue {
     /// Returns the number of non-terminal jobs currently held.
     pub fn job_count(&self) -> usize {
         self.inner.lock().expect("queue mutex poisoned").jobs.len()
+    }
+
+    // -- Bulk dead-letter operations (RFC-0017) -----------------------------------
+    // Mirror PostgresQueue's filtered re-drive / purge so the same operator surface
+    // works on the in-memory backend and the logic is unit-testable without a DB.
+
+    /// Indices of dead-letters matching `filter`, newest first, capped to `limit`.
+    fn picked_dead(inner: &Inner, filter: &DlqFilter) -> Vec<usize> {
+        let now = Utc::now();
+        let mut matched: Vec<usize> = inner
+            .dead
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| d.envelope.queue.as_str() == filter.queue)
+            .filter(|(_, d)| {
+                filter
+                    .kind
+                    .as_deref()
+                    .is_none_or(|k| d.envelope.kind.as_str() == k)
+            })
+            .filter(|(_, d)| {
+                filter.older_than.is_none_or(|age| {
+                    now - d.dead_lettered_at >= chrono::Duration::from_std(age).unwrap_or_default()
+                })
+            })
+            .map(|(i, d)| (i, d.dead_lettered_at))
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|(i, _)| i)
+            .collect();
+        // Newest first.
+        matched.sort_by_key(|&i| std::cmp::Reverse(inner.dead[i].dead_lettered_at));
+        matched.truncate(filter.limit.max(0) as usize);
+        matched
+    }
+
+    fn outcome_for(inner: &Inner, picked: &[usize]) -> BulkDlqOutcome {
+        BulkDlqOutcome {
+            affected: picked.len() as u64,
+            sample: picked
+                .iter()
+                .take(BULK_DLQ_SAMPLE_CAP)
+                .map(|&i| inner.dead[i].envelope.id)
+                .collect(),
+        }
+    }
+
+    /// Counts the entries a filter would affect and returns a bounded id sample,
+    /// without mutating anything. Backs the CLI `--dry-run` preview.
+    pub fn preview_dead_letters(&self, filter: &DlqFilter) -> BulkDlqOutcome {
+        let inner = self.inner.lock().expect("queue mutex poisoned");
+        let picked = Self::picked_dead(&inner, filter);
+        Self::outcome_for(&inner, &picked)
+    }
+
+    /// Re-enqueues up to `filter.limit` dead-letters matching `queue` (and optional
+    /// `kind`), newest first, resetting status to `queued` and attempts to 0.
+    /// `older_than` is ignored for re-drive.
+    pub fn redrive_dead_letters(&self, filter: &DlqFilter) -> BulkDlqOutcome {
+        let redrive_filter = DlqFilter {
+            older_than: None,
+            ..filter.clone()
+        };
+        let mut inner = self.inner.lock().expect("queue mutex poisoned");
+        let mut picked = Self::picked_dead(&inner, &redrive_filter);
+        let outcome = Self::outcome_for(&inner, &picked);
+        let now = Utc::now();
+        // Remove highest indices first so earlier indices stay valid.
+        picked.sort_unstable_by(|a, b| b.cmp(a));
+        for i in picked {
+            let mut envelope = inner.dead.remove(i).envelope;
+            envelope.status = JobStatus::Queued;
+            envelope.attempts = 0;
+            envelope.scheduled_at = None;
+            envelope.available_at = now;
+            envelope.updated_at = now;
+            envelope.locked_by = None;
+            envelope.lock_until = None;
+            inner.jobs.insert(envelope.id, envelope);
+        }
+        outcome
+    }
+
+    /// Deletes up to `filter.limit` dead-letters matching `queue` (and optional
+    /// `kind` and `older_than`), newest first.
+    pub fn purge_dead_letters_filtered(&self, filter: &DlqFilter) -> BulkDlqOutcome {
+        let mut inner = self.inner.lock().expect("queue mutex poisoned");
+        let mut picked = Self::picked_dead(&inner, filter);
+        let outcome = Self::outcome_for(&inner, &picked);
+        picked.sort_unstable_by(|a, b| b.cmp(a));
+        for i in picked {
+            inner.dead.remove(i);
+        }
+        outcome
     }
 
     fn count_for_queue(inner: &Inner, queue: &QueueName) -> usize {
@@ -356,5 +450,102 @@ mod tests {
         let d1 = q.depth(&queue).await.unwrap();
         assert_eq!(d1.ready, 1);
         assert_eq!(d1.leased, 1);
+    }
+
+    /// Enqueues a job of `kind` on `queue`, leases it, and dead-letters it.
+    async fn dead_one(q: &MemoryQueue, kind: &str, queue: &str) -> JobId {
+        let id = q
+            .enqueue(NewJob::new(
+                kind,
+                queue,
+                PayloadBytes::from_vec(vec![1, 2, 3]),
+                1,
+            ))
+            .await
+            .unwrap();
+        let worker = WorkerId::generate();
+        q.lease(&QueueName::new(queue), &worker, 10).await.unwrap();
+        q.dead_letter(id, DeadLetterReason::PoisonGuard)
+            .await
+            .unwrap();
+        id
+    }
+
+    #[tokio::test]
+    async fn bulk_preview_does_not_mutate() {
+        let q = MemoryQueue::new();
+        dead_one(&q, "send_receipt", "mail").await;
+        dead_one(&q, "send_receipt", "mail").await;
+        dead_one(&q, "send_welcome", "mail").await;
+
+        let filter = DlqFilter::new("mail", 100).with_kind(Some("send_receipt".to_owned()));
+        let preview = q.preview_dead_letters(&filter);
+        assert_eq!(preview.affected, 2, "only send_receipt entries match");
+        assert_eq!(preview.sample.len(), 2);
+        assert_eq!(
+            q.dead_letters().len(),
+            3,
+            "preview must not remove anything"
+        );
+        assert_eq!(q.job_count(), 0, "preview must not re-enqueue anything");
+    }
+
+    #[tokio::test]
+    async fn bulk_redrive_by_queue_and_kind() {
+        let q = MemoryQueue::new();
+        dead_one(&q, "send_receipt", "mail").await;
+        dead_one(&q, "send_receipt", "mail").await;
+        dead_one(&q, "send_welcome", "mail").await;
+
+        let filter = DlqFilter::new("mail", 100).with_kind(Some("send_receipt".to_owned()));
+        let outcome = q.redrive_dead_letters(&filter);
+        assert_eq!(outcome.affected, 2);
+        assert_eq!(q.dead_letters().len(), 1, "only send_welcome remains dead");
+        assert_eq!(q.job_count(), 2, "re-driven jobs are back on the queue");
+        // Re-driven jobs are leasable again with reset attempts.
+        let leased = q
+            .lease(&QueueName::new("mail"), &WorkerId::generate(), 10)
+            .await
+            .unwrap();
+        assert_eq!(leased.len(), 2);
+        assert!(
+            leased.iter().all(|j| j.attempts == 1),
+            "attempt reset to 0, then +1 at lease"
+        );
+    }
+
+    #[tokio::test]
+    async fn bulk_redrive_respects_limit() {
+        let q = MemoryQueue::new();
+        for _ in 0..5 {
+            dead_one(&q, "k", "mail").await;
+        }
+        let outcome = q.redrive_dead_letters(&DlqFilter::new("mail", 2));
+        assert_eq!(outcome.affected, 2);
+        assert_eq!(q.dead_letters().len(), 3, "limit bounds the re-drive");
+        assert_eq!(q.job_count(), 2);
+    }
+
+    #[tokio::test]
+    async fn bulk_purge_by_filter_only_removes() {
+        let q = MemoryQueue::new();
+        dead_one(&q, "k", "mail").await;
+        dead_one(&q, "k", "mail").await;
+        dead_one(&q, "k", "sms").await;
+
+        let outcome = q.purge_dead_letters_filtered(&DlqFilter::new("mail", 100));
+        assert_eq!(outcome.affected, 2);
+        assert_eq!(q.dead_letters().len(), 1, "sms entry is untouched");
+        assert_eq!(q.dead_letters()[0].envelope.queue.as_str(), "sms");
+        assert_eq!(q.job_count(), 0, "purge never re-enqueues");
+    }
+
+    #[tokio::test]
+    async fn bulk_filter_other_queue_matches_nothing() {
+        let q = MemoryQueue::new();
+        dead_one(&q, "k", "mail").await;
+        let outcome = q.preview_dead_letters(&DlqFilter::new("other", 100));
+        assert_eq!(outcome.affected, 0);
+        assert!(outcome.sample.is_empty());
     }
 }

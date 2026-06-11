@@ -55,7 +55,7 @@ implementation begins in a later phase.
   are placeholder crates whose implementation starts in later phases.)
 - Transactional mail and the implemented domain-management surface from Phase 4.5.
 - The opt-in native outbound MTA and signed webhooks in `ag-mail` (Phase 4.6-A/B/C features `mta`/`api`).
-- Background jobs through `ag-workers` (Phase 4.6-D): typed jobs, retries, DLQ, scheduling and worker pools on the in-memory backend by default, durable PostgreSQL backend opt-in. Live-database parity verification is tracked in GitHub Issues #108/#109/#103.
+- Background jobs through `ag-workers` (Phase 4.6-D): typed jobs, retries, DLQ, scheduling and worker pools on the in-memory backend by default, durable PostgreSQL backend opt-in. The PostgreSQL backend and the `ag-mail` delivery migration were verified against a live PostgreSQL 16 (Issues #108/#109/#103 resolved); the integration tests stay `#[ignore]` since default CI has no database.
 
 Every crate remains independently selectable. Later roadmap phases are additive and are not required to use the capabilities above.
 
@@ -140,7 +140,7 @@ capabilities. Durations are planning estimates, not release promises.
 | 3 | DSL v0.1-v0.4, generators, LSP and VS Code extension | Broad parser/generator coverage; consolidation issue #70 open | 24-hour fuzz gate, direct generated-vs-manual benchmark and generator completeness |
 | 4 | Standard auth/cache/realtime/storage/observe modules | Modules and tests available; realtime/cache hardening included in this audit. UI/AI/mobile/WASM crates remain placeholders for Phases 4+/6/8/9 | Manual scale/performance evidence and remaining documented debt |
 | 4.5 | Transactional mail plus implemented DNS/TLS/domain management surface | Code and cross-module tests exist; `ag-domains` is under active development | Reconcile active domain work, release evidence and documentation before claiming completion |
-| 4.6 | Additive pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C) and the `ag-workers` background engine (D) | S1-S5 of `ag-workers` implemented and CI-verified (DSL `worker`, CLI, 5 examples, benchmarks, fuzz target, coverage gate green); MTA implemented behind `mta`/`api` features | Live-PostgreSQL parity and integration runs (Issues #108/#109/#103), `ag-edge` producer wiring (#112), MTA durable spool and live-delivery evidence |
+| 4.6 | Additive pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C) and the `ag-workers` background engine (D) | S1-S5 of `ag-workers` implemented and CI-verified (DSL `worker`, CLI, 5 examples, benchmarks, fuzz target, coverage gate green); MTA implemented behind `mta`/`api` features; S7 `ag-mail` migration complete and the PostgreSQL backend verified against a live database (Issues #108/#109/#103) | `ag-edge` producer wiring (#112), MTA durable spool and live-delivery evidence |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains and TLS | Pending; not required for Phase 0-4.5 usage | Pre-Phase 5 gate; public beta v0.5 milestone |
 | 6 | `ag-ai` and Knowledge Graph: providers/models, retrieval and graph-assisted backend workflows | Pending roadmap phase; existing crate work is not phase completion | Phase 5 completion and beta feedback |
 | 7 | `ag-migrate`: importers and assisted migration from existing backend frameworks | Pending roadmap phase | Phase 6 completion and importer acceptance tests |
@@ -212,7 +212,7 @@ cuya implementacion comienza en una fase posterior.
 - Modulos estandar de autenticacion, cache, realtime, storage y observabilidad.
 - Correo transaccional y la superficie de dominios ya implementada en Fase 4.5.
 - MTA outbound nativo y webhooks firmados de `ag-mail` (features `mta`/`api`, Fase 4.6-A/B/C).
-- Jobs en segundo plano con `ag-workers` (Fase 4.6-D): jobs tipados, reintentos, DLQ, scheduling y pools sobre el backend en memoria por defecto; backend PostgreSQL durable opt-in. La verificacion contra base de datos viva se rastrea en los Issues #108/#109/#103.
+- Jobs en segundo plano con `ag-workers` (Fase 4.6-D): jobs tipados, reintentos, DLQ, scheduling y pools sobre el backend en memoria por defecto; backend PostgreSQL durable opt-in. El backend PostgreSQL y la migracion de entrega de `ag-mail` se verificaron contra una PostgreSQL 16 viva (Issues #108/#109/#103 resueltos); los tests de integracion siguen `#[ignore]` porque el CI por defecto no tiene base de datos.
 
 Las fases posteriores son aditivas: no son requisito para usar lo anterior.
 
@@ -270,7 +270,7 @@ duraciones son estimaciones, no promesas de fecha.
 | 3 | Anti-DSL v0.1-v0.4, generadores, LSP y VS Code | 3 meses | Implementacion amplia; faltan fuzzing/adopcion y gaps del generador |
 | 4 | Modulos estandar auth, cache, realtime, storage y observabilidad | 3 meses | Modulos disponibles; UI/IA/mobile/WASM siguen como placeholders de fases posteriores; quedan escala y deuda documentada |
 | 4.5 | Correo transaccional, DNS, dominios, TLS/ACME y attachments | Aditiva | Capacidades disponibles; `ag-domains` tiene trabajo activo |
-| 4.6 | Endurecimiento aditivo pre-Fase 5: MTA nativo + webhooks en `ag-mail` (A/B/C) y motor `ag-workers` (D) | Aditiva | S1-S5 de `ag-workers` implementadas y verificadas en CI; paridad PostgreSQL viva en Issues #108/#109/#103 |
+| 4.6 | Endurecimiento aditivo pre-Fase 5: MTA nativo + webhooks en `ag-mail` (A/B/C) y motor `ag-workers` (D) | Aditiva | S1-S5 de `ag-workers` implementadas y verificadas en CI; migracion S7 de `ag-mail` completa y backend PostgreSQL verificado contra base viva (Issues #108/#109/#103 resueltos) |
 | 5 | `ag-cloud`: deploy, secretos, logs, rollback, dominios y TLS simplificados | 3 meses | Pendiente; hito beta publica v0.5 |
 | 6 | `ag-ai` y Knowledge Graph: providers, retrieval y flujos asistidos | 3 meses | Pendiente; el crate existente no implica cierre de fase |
 | 7 | `ag-migrate`: importadores y migracion asistida desde otros frameworks | 2 meses | Pendiente |

@@ -339,10 +339,11 @@ secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
 S1-S5 estan implementadas y verificadas con CI verde (codigo + tests sobre el
 backend nativo en memoria). S6 esta parcial (patron y ejemplos listos; falta el
-wiring dedicado del feature `producer`). S7 tiene M0-M2 hechos; M3/M4 dependen de
-verificar la paridad contra una base PostgreSQL viva, lo que el CI por defecto no
-ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
-#109 (S7/M3) y #103 (S7/M4).
+wiring dedicado del feature `producer`). S7 esta completa: M0-M2 entregados y
+M3/M4 verificados contra una base PostgreSQL viva (paridad probada, cola generica
+duplicada eliminada). El CI por defecto no ejerce los tests `#[ignore]` que lo
+prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
+(S7/M3) y #103 (S7/M4).
 
 ### Criterios de entrada (4.6-D.1)
 
@@ -384,33 +385,33 @@ ejerce (tests `#[ignore]`): seguimiento en los Issues #108 (verificacion PG),
   dedicado del feature `producer` desde `ag-edge` (consumidor enqueue-only segun
   seccion 7); seguimiento en el Issue #112 (diferido hasta que exista un
   consumidor concreto).
-- [/] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
+- [x] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
   M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
   M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,
   clasificacion retriable/permanente) + `WorkersMailQueue` (impl `MailQueue`
   enrutando la entrega a `ag-workers`); la logica de correo permanece en `ag-mail`;
   43 tests verdes. M3: tests de paridad Postgres (`tests/workers_postgres.rs`,
-  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) que prueban
-  persistencia como `kind=mail.delivery`, entrega y supervivencia a reinicio.
-  M4: la cola generica duplicada (`queue::store::PersistentQueue`,
-  `queue-persistent`) queda marcada `#[deprecated]` hacia el feature `workers`; su
-  eliminacion se difiere hasta verificar la paridad contra una base de datos viva
-  (seguimiento en GitHub Issue #103, no en `docs/DEBT.md`).
+  feature `workers-postgres`, `#[ignore]` + `TEST_DATABASE_URL`) verificados contra
+  una base viva: persistencia como `kind=mail.delivery`, entrega y supervivencia a
+  reinicio (Issue #109). M4: la cola generica duplicada
+  (`queue::store::PersistentQueue`, feature `queue-persistent`, migracion
+  `0001_mail_queue.sql`) fue eliminada tras probar la paridad; el unico camino
+  durable es ahora el backend compartido de `ag-workers` (Issue #103).
 
 ### Criterios de salida (4.6-D.3)
 
 - [x] Jobs tipados se ejecutan sobre el backend en memoria (`ag dev`) con retry,
   backoff y DLQ (`tests/runtime_outcomes.rs`, `tests/retry_policy.rs`).
-- [/] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
+- [x] Backend PostgreSQL leasea con `FOR UPDATE SKIP LOCKED`, sobrevive reinicio, y
   `enqueue_in_tx` commitea job + escrituras del llamador de forma atomica (test de
-  rollback). El codigo y los tests existen (`tests/postgres_queue.rs`), pero son
-  `#[ignore]` y exigen `DATABASE_URL`; su ejecucion contra una base viva esta
-  bloqueada por el entorno y se rastrea en el Issue #108.
+  rollback). Verificado contra una PostgreSQL 16 viva: las 6 pruebas `#[ignore]` de
+  `tests/postgres_queue.rs` pasan con `--test-threads=1` (Issue #108). El CI por
+  defecto sigue sin levantar Postgres, asi que permanecen `#[ignore]`.
 - [x] El poison guard convierte un job en crash-loop en una entrada acotada del DLQ
   (`tests/poison_guard.rs`).
 - [x] Los jobs por intervalo disparan una sola vez (claim singleton) sobre el backend
-  en memoria (`tests/scheduler_dynamic.rs`). La verificacion cross-proceso sobre
-  PostgreSQL forma parte del Issue #108.
+  en memoria (`tests/scheduler_dynamic.rs`); la concurrencia con `SKIP LOCKED` se
+  verifico ademas contra PostgreSQL viva (`skip_locked_no_double_lease`, Issue #108).
 - [x] La declaracion `worker` del DSL compila y genera payloads + stubs de handler
   (`ag-dsl` v0.8, `codegen/worker_gen.rs`).
 - [x] El grupo de comandos `ag workers ...` compila y pasa CI (feature-gated

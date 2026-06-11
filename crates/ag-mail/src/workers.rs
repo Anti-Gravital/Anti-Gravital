@@ -7,9 +7,10 @@
 //! [`MailSender`]; this module merely binds an [`Email`] to the worker payload
 //! contract and adapts a [`MailSender`] to the [`JobHandler`] contract.
 //!
-//! This is the migration that retires the duplication between `ag-mail`'s own
-//! persistent queue (`crate::queue::store`, feature `queue-persistent`) and
-//! `ag-workers`' PostgreSQL backend (see RFC-0012 S7/M3-M4).
+//! This is the migration that retired `ag-mail`'s own duplicated persistent
+//! queue in favour of `ag-workers`' PostgreSQL backend (RFC-0012 S7/M2-M4,
+//! complete): generic mail delivery now persists as `kind = mail.delivery` on
+//! the shared `ag_worker_jobs` table.
 //!
 //! ```no_run
 //! # #[cfg(feature = "workers")]

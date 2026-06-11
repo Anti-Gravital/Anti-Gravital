@@ -238,11 +238,10 @@ name = "ag-mail"
 version = "0.0.0"
 dependencies = [
  "ag-core",
- "ag-data",
+ "ag-mail",
  "ag-workers",
  "async-trait",
  "base64 0.22.1",
- "chrono",
  "hickory-resolver",
  "hmac",
  "lettre",
@@ -259,7 +258,6 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]

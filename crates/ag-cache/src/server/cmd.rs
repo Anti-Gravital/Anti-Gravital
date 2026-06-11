@@ -260,7 +260,7 @@ pub async fn cmd_mset(
     w: &mut Writer,
 ) {
     // MSET key value [key value ...]
-    if args.len() < 3 || (args.len() - 1) % 2 != 0 {
+    if args.len() < 3 || !(args.len() - 1).is_multiple_of(2) {
         write_error(w, "wrong number of arguments for MSET").await;
         return;
     }

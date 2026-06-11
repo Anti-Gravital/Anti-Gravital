@@ -1,86 +1,64 @@
-# Resolve open issues: RFC approvals, docs honesty, PSL, bulk DLQ, DNS adapters
+# fix(ag-workers,ag-cache): qualify RETURNING columns in lease() and fix manual_is_multiple_of lint
 
 ## Summary
 
-Resolves the open, in-environment-reproducible issues, one commit per issue, in
-priority then precedence order. The maintainer (BDFL) approved RFC-0015, RFC-0016
-and RFC-0017 with the comment period waived (as for RFC-0011/0012), unblocking
-the RFC-gated work. Issues blocked on external infrastructure (live PostgreSQL,
-real-domain ACME) are left untouched, and the design-deferred edge wiring is left
-as documented.
+Fixes two open issues in priority order. Both are resolvable without external
+infrastructure. Issues requiring a live database (#108, #109, #103), a real
+domain (#87) or a concrete consumer use case (#112) remain untouched and
+correctly documented as blocked/deferred.
 
-- **#93 ag-registrars design RFC:** RFC-0015 accepted (design only, Phase F; no
-  code until that phase). Provider- and registrar-agnostic core preserved.
-- **#71 docs honesty (Stage 10 gate):** phase status across the master roadmap,
-  `STATUS.md` and the README is reconciled to explicit evidence-based states;
-  Stage 10 reconciliation report added; the gate's "Docs honesty" row flips to
-  pass while fuzz-24h, benchmarks and open-debt stay pending (gate remains OPEN).
-- **#117 split-masters reconciliation:** derived `docs/architecture/*` and
-  `docs/roadmap/*` regenerated in English from the bilingual masters, byte-for-byte
-  minus breadcrumbs; no Spanish-only content lost.
-- **#78 (p2) eTLD+1 via PSL:** RFC-0016 accepted; a single shared
-  `registrable_domain` becomes the only eTLD+1 source, PSL-correct behind the
-  optional `psl` feature, two-label heuristic as the offline default; hostname and
-  issuance counting share it. DEBT-024 resolved.
-- **#114 (p3) bulk DLQ:** RFC-0017 accepted; `ag workers dlq retry|purge` gain
-  `--queue/--kind/--limit/--dry-run` filtered bulk operations over the existing
-  `workers-runtime` feature, single-ID behaviour unchanged.
-- **#80/#81/#82/#83 (p3) DNS adapters:** Route 53, Google Cloud DNS, Azure DNS and
-  Namecheap `DnsProvider` adapters, each behind its own Cargo feature, mock/contract
-  tested, real-credential tests `#[ignore]`; capability matrix flipped to read/apply.
+- **#121 (p1, bug) ag-workers PostgreSQL RETURNING ambiguity:** `PostgresQueue::lease`
+  used bare `RETURNING id, ...` inside an `UPDATE … FROM due` where both the target
+  table alias `j` and the `due` CTE expose `id`, causing PostgreSQL to reject every
+  lease attempt with `column reference "id" is ambiguous`. The `RETURNING` list is
+  now qualified with `j.` through a new `SELECT_COLUMNS_QUALIFIED_J` constant.
+  The unused, now-redundant `SELECT_COLUMNS` constant is removed. Column output
+  names are unchanged so `row_to_envelope` is unaffected.
+- **#119 (p3, lint) ag-cache clippy manual_is_multiple_of:** The Rust 1.95
+  `clippy::manual_is_multiple_of` default lint flagged `(args.len() - 1) % 2 != 0`
+  in `cmd_mset`. Replaced with `!(args.len() - 1).is_multiple_of(2)` (stable since
+  1.87, within MSRV 1.95). This clears the last workspace-wide clippy error, making
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings` fully green.
 
 ## Phase affected
 
-Phase 4.5 (ag-domains) and additive Phase 4.6 (ag-workers); plus documentation
-honesty (pre-Phase-5 gate Stage 10). No phase transition; work is additive and
-feature-gated where applicable.
+Phase 4.6-D (ag-workers durable backend) and Phase 4.5 (ag-cache correctness).
+No phase transition; changes are corrective and additive.
 
 ## Type of change
 
 - [ ] Security fix
-- [ ] Bug fix
-- [x] Tests
-- [x] Documentation
-- [x] New feature
+- [x] Bug fix
+- [ ] Tests
+- [ ] Documentation
+- [ ] New feature
 - [ ] Breaking public API change
 
 ## Related documents
 
-- `docs/rfc/RFC-0015-ag-registrars-design.md`, `RFC-0016-eldp1-public-suffix-list.md`,
-  `RFC-0017-ag-workers-bulk-dlq.md` (accepted)
-- `docs/audits/PRE_FASE5_RELEASE_GATE.md`, `docs/audits/pre-fase5-docs-reconciliation.md`
-- `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`, `docs/roadmap/STATUS.md`, `README.md`
-- `docs/architecture/*`, `docs/roadmap/*` (regenerated), `tools/split-masters.sh`
-- `docs/modules/ag-domains*`, `docs/modules/ag-workers*`,
-  `docs/ag-domains/reference/provider-capability-matrix.md`
+- `docs/rfc/RFC-0012-ag-workers-background-jobs.md` (PostgreSQL backend, §13)
+- `crates/ag-workers/tests/postgres_queue.rs` (integration tests, #[ignore])
+- `docs/roadmap/STATUS.md`
 
 ## Test plan
 
-- [x] `cargo fmt --all --check` — no diffs.
-- [x] `cargo test --workspace --all-features` — 77 suites, 0 failures (exit 0).
-- [x] `cargo clippy` clean on the changed crates (`ag-domains`, `ag-workers`,
-      `ag-cli`) with all their features.
-- [x] `cargo test -p ag-domains --all-features --lib` — 168 passed (psl + the four
-      adapters). SigV4 verified vs AWS `get-vanilla`; RS256 JWT sign/verify checked.
-- [x] `bash tools/split-masters.sh` + `git diff --stat docs/architecture docs/roadmap`
-      — derived chapters English, no Spanish-section bleed, no content lost.
-- Note: `cargo clippy --workspace ... -- -D warnings` reports one pre-existing
-  1.95-toolchain lint in `ag-cache` (`crates/ag-cache/src/server/cmd.rs`),
-  unrelated to this batch and tracked in #119.
-- Real-credential / live-database paths are `#[ignore]` (ADR-0009 convention);
-  their verification is delegated to a credentialed environment.
+- [x] `cargo fmt --check` — no diffs.
+- [x] `cargo clippy --workspace --all-targets --all-features -- -D warnings` — exit 0.
+- [x] `cargo test -p ag-workers --all-features` — all in-memory tests pass; Postgres
+      `#[ignore]` tests unchanged (still require live DB, tracked in #108).
+- [x] `cargo test -p ag-cache --all-features` — 13 lib tests + 2 doc tests pass.
+- Note: Postgres integration tests (#108) are not run here (no live DB); the SQL fix
+  is structurally correct and mirrors the qualified `s.` pattern already used by
+  `scheduler.rs` in the same crate.
 
 ## Exit criteria advanced
 
-- #76 ag-domains remaining work: #78, #80, #81, #82, #83 resolved; #93 RFC accepted.
-- ag-workers: #114 resolved.
-- Pre-Phase-5 gate: Stage 10 (docs honesty, #71) closed; gate remains OPEN
-  (fuzz-24h, benchmarks, open-debt still pending).
-- Still blocked on external infrastructure (untouched, documented): #108, #109,
-  #103 (live PostgreSQL), #87 (real-domain ACME staging).
+- #121 (p1) closed: `lease()` RETURNING ambiguity resolved.
+- #119 (p3) closed: workspace clippy gate fully green.
+- Still blocked on external infrastructure (untouched): #108, #109, #103 (live
+  PostgreSQL), #87 (real-domain ACME staging).
 - Design-deferred (untouched): #112 (ag-edge producer wiring, no consumer yet).
-- Found while running the workspace gate, filed not fixed here: #119 (ag-cache
-  clippy `manual_is_multiple_of`, pre-existing, out of this batch's scope).
+- Tracking: #76 (ag-domains remaining work) unaffected.
 
 ## Final checklist
 
@@ -90,9 +68,9 @@ feature-gated where applicable.
 - [x] No unnecessary complexity added
 - [x] No circular dependencies
 - [x] Compiles (full workspace, all features)
-- [x] Tests pass (`cargo test --workspace --all-features`, exit 0)
+- [x] Tests pass (`cargo test -p ag-workers --all-features`, `cargo test -p ag-cache --all-features`)
 - [x] `cargo fmt` passes
-- [x] `cargo clippy` passes on changed crates (workspace: pre-existing #119 only)
+- [x] `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes
 - [x] Documentation updated in same PR
 - [x] No emojis
 - [x] No AI attribution

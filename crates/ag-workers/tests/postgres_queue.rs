@@ -3,9 +3,13 @@
 //! Require a live PostgreSQL instance via `DATABASE_URL`. Ignored by default so CI
 //! without a database stays green (repository convention; see ag-domains/ag-mail).
 //!
+//! They share one database and reset the schema in `fresh_backend`, so run them
+//! serially with `--test-threads=1`:
+//!
 //! ```text
 //! DATABASE_URL=postgres://user:pass@localhost/ag_workers_test \
-//!   cargo test -p ag-workers --features postgres -- --ignored
+//!   cargo test -p ag-workers --features postgres --test postgres_queue \
+//!   -- --ignored --test-threads=1
 //! ```
 #![cfg(feature = "postgres")]
 
@@ -21,9 +25,11 @@ use common::unit_job;
 async fn fresh_backend() -> PostgresQueue {
     let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for postgres tests");
     let pool = sqlx::PgPool::connect(&url).await.unwrap();
-    // Clean slate so repeated runs are deterministic.
+    // Clean slate so repeated runs are deterministic. Dropping `_sqlx_migrations`
+    // too is required: otherwise sqlx sees the migrations as already applied and
+    // skips recreating the worker tables on the next run.
     let _ = sqlx::query(
-        "DROP TABLE IF EXISTS ag_worker_jobs, ag_worker_dead_letters, ag_worker_schedules CASCADE",
+        "DROP TABLE IF EXISTS ag_worker_jobs, ag_worker_dead_letters, ag_worker_schedules, _sqlx_migrations CASCADE",
     )
     .execute(&pool)
     .await;
@@ -187,9 +193,11 @@ async fn bulk_dlq_filtered_redrive_and_purge() {
 async fn enqueue_in_tx_rolls_back_with_caller() {
     let url = std::env::var("DATABASE_URL").unwrap();
     let pool = sqlx::PgPool::connect(&url).await.unwrap();
-    let _ = sqlx::query("DROP TABLE IF EXISTS ag_worker_jobs, ag_worker_dead_letters CASCADE")
-        .execute(&pool)
-        .await;
+    let _ = sqlx::query(
+        "DROP TABLE IF EXISTS ag_worker_jobs, ag_worker_dead_letters, ag_worker_schedules, _sqlx_migrations CASCADE",
+    )
+    .execute(&pool)
+    .await;
     let backend = PostgresQueue::new(pool.clone());
     backend.run_migrations().await.unwrap();
     let queue = QueueName::new("mail");

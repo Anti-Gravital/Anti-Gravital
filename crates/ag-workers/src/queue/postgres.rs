@@ -28,9 +28,12 @@ const INSERT_SQL: &str = "INSERT INTO ag_worker_jobs \
      dedup_key, tenant_id, trace_id, last_error) \
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)";
 
-const SELECT_COLUMNS: &str = "id, kind, queue, payload, payload_version, priority, status, \
-    attempts, max_attempts, timeout_ms, scheduled_at, available_at, created_at, updated_at, \
-    locked_by, lock_until, dedup_key, tenant_id, trace_id, last_error";
+// Qualified form for UPDATE … FROM … RETURNING where both the target table alias `j`
+// and the `due` CTE expose an `id` column, making the bare name ambiguous in PostgreSQL.
+const SELECT_COLUMNS_QUALIFIED_J: &str =
+    "j.id, j.kind, j.queue, j.payload, j.payload_version, j.priority, j.status, \
+    j.attempts, j.max_attempts, j.timeout_ms, j.scheduled_at, j.available_at, j.created_at, \
+    j.updated_at, j.locked_by, j.lock_until, j.dedup_key, j.tenant_id, j.trace_id, j.last_error";
 
 const DLQ_COLUMNS: &str =
     "id, kind, queue, attempts, max_attempts, reason, last_error, created_at, dead_lettered_at";
@@ -372,7 +375,7 @@ impl QueueBackend for PostgresQueue {
              SET status = 'leased', attempts = j.attempts + 1, locked_by = $3, \
                  lock_until = now() + ($4::bigint * interval '1 millisecond'), updated_at = now() \
              FROM due WHERE j.id = due.id \
-             RETURNING {SELECT_COLUMNS}"
+             RETURNING {SELECT_COLUMNS_QUALIFIED_J}"
         );
         let rows = sqlx::query(&sql)
             .bind(queue.as_str())

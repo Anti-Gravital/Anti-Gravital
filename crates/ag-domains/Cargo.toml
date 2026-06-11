@@ -28,6 +28,8 @@ propagation = ["dep:hickory-resolver"]
 psl = ["dep:psl"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
+# Amazon Route 53 adapter (AWS SigV4 + REST/XML). RFC-0011 phase E.
+route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:chrono"]
 # REST API surface for the control plane (RFC-0011 phase C), backed by the
 # native attachment store. Optional: the library and CLI work without it.
 api = ["dep:axum"]
@@ -63,6 +65,13 @@ hickory-resolver = { version = "0.26.1", default-features = false, features = ["
 # Public Suffix List for PSL-correct eTLD+1 (feature "psl"). Pure-Rust, embedded
 # list, no network; permissively licensed (RFC-0016).
 psl = { version = "2", optional = true }
+
+# DNS provider adapter auth/serialization (feature-gated). All already present in
+# the workspace dependency tree; used here behind adapter features (RFC-0011 E).
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+hex = { version = "0.4", optional = true }
+quick-xml = { version = "0.37", features = ["serialize"], optional = true }
 
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }

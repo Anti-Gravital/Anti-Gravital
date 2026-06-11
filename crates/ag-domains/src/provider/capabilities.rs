@@ -81,8 +81,16 @@ pub fn known_provider_capabilities() -> Vec<ProviderCapabilities> {
             zone_export: true,
             domain_purchase: false,
         },
-        // Route 53: provider-specific Alias at apex; no Anti-Gravital adapter yet.
-        ProviderCapabilities::manual("route53", true, false),
+        // Route 53: read/apply adapter (feature `route53`) + provider Alias at apex.
+        ProviderCapabilities {
+            provider: "route53",
+            adapter: AdapterSupport::ReadApply,
+            apex_alias: true,
+            cname_flattening: false,
+            dns01_automation: true,
+            zone_export: true,
+            domain_purchase: false,
+        },
         // Google Cloud DNS: record-set changes; no apex alias; no adapter yet.
         ProviderCapabilities::manual("google-cloud-dns", false, false),
         // Azure DNS: record-set operations + apex alias records; no adapter yet.

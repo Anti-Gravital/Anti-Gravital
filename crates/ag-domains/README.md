@@ -36,6 +36,9 @@ rigida en todos los targets (septima regla de dependencias en
   dos etiquetas mantiene el build nativo offline (ADR-0009).
 - `cloudflare`: adapter Cloudflare (DnsProvider). Otros adapters se añaden
   en iteraciones futuras detras de su propia feature.
+- `route53`: adapter Amazon Route 53 (AWS SigV4 + REST/XML). El firmador SigV4 se
+  verifica contra el vector `get-vanilla` publicado por AWS; la ruta real va con
+  test `#[ignore]` de credencial.
 
 ## Control plane (ADR-0012 / RFC-0011, phase A)
 

@@ -18,6 +18,9 @@ pub mod sdk;
 #[cfg(feature = "cloudflare")]
 pub mod cloudflare;
 
+#[cfg(feature = "route53")]
+pub mod route53;
+
 /// Abstraction over any DNS provider.
 ///
 /// Adapters implement this trait. The ecosystem consumes it via

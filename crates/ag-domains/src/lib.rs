@@ -50,6 +50,7 @@ pub mod metrics;
 // native persistence.
 pub mod attachment;
 pub mod caa;
+pub mod dangling;
 pub mod diagnostics;
 pub mod events;
 pub mod hostname;

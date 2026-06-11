@@ -41,6 +41,13 @@ pub enum DomainEvent {
         /// Canonical hostname.
         hostname: String,
     },
+    /// A hostname still points at the edge but is no longer attached
+    /// (subdomain-takeover hygiene, blueprint section 15.3). It has no
+    /// attachment id because, by definition, no attachment owns it.
+    DanglingDnsDetected {
+        /// Canonical hostname pointing at the edge without an attachment.
+        hostname: String,
+    },
 }
 
 impl DomainEvent {
@@ -50,6 +57,7 @@ impl DomainEvent {
             DomainEvent::AttachmentCreated { .. } => "domain.attachment.created",
             DomainEvent::OwnershipVerified { .. } => "domain.ownership.verified",
             DomainEvent::Detached { .. } => "domain.detached",
+            DomainEvent::DanglingDnsDetected { .. } => "domain.dangling_dns_detected",
         }
     }
 
@@ -58,7 +66,8 @@ impl DomainEvent {
         match self {
             DomainEvent::AttachmentCreated { hostname, .. }
             | DomainEvent::OwnershipVerified { hostname, .. }
-            | DomainEvent::Detached { hostname, .. } => hostname,
+            | DomainEvent::Detached { hostname, .. }
+            | DomainEvent::DanglingDnsDetected { hostname } => hostname,
         }
     }
 }

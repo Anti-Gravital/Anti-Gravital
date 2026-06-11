@@ -11,15 +11,20 @@ discards events (`NullEventSink`); use `InMemoryEventSink` (native, ordered) or
 | `domain.attachment.created` | `AttachmentCreated { id, hostname }` | REST API create |
 | `domain.ownership.verified` | `OwnershipVerified { id, hostname }` | REST verify endpoint (`POST /attachments/{id}/verify`) |
 | `domain.detached` | `Detached { id, hostname }` | REST API detach |
+| `domain.dangling_dns_detected` | `DanglingDnsDetected { hostname }` | `dangling::scan_dangling` worker (no `id`: no attachment owns it) |
 
 Wire a sink into the REST API with `ApiState::new(store, edge).with_events(sink)`.
 Events serialize to JSON with a `event` tag, e.g.
 `{"event":"detached","id":"dom_...","hostname":"example.com"}`.
 
+The dangling-DNS worker (`ag_domains::dangling`) detects hostnames that still
+point at the edge but are no longer attached (subdomain-takeover hygiene,
+blueprint §15.3) and emits `domain.dangling_dns_detected`. The edge itself keeps
+failing closed for such hostnames, so they never serve another tenant's content.
+
 Additional blueprint events (`domain.dns.routable`, `domain.tls.active`,
-`domain.activated`, `domain.tombstoned`, `domain.dangling_dns_detected`) are
-emitted as their operations land (DEBT-018); they are intentionally not modelled
-before they can fire.
+`domain.activated`, `domain.tombstoned`) are emitted as their operations land;
+they are intentionally not modelled before they can fire.
 
 ## Metrics (`ag_domains::metrics`)
 

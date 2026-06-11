@@ -106,7 +106,7 @@ Available templates: `rest`, `realtime`, `fullstack`.
 | `ag workers run` | Run a standalone worker process against the configured backend |
 | `ag workers enqueue KIND --payload FILE` | Enqueue a job onto the durable backend (needs `DATABASE_URL`) |
 | `ag workers queues` | Show queue depths on the durable backend |
-| `ag workers dlq list\|inspect\|retry\|purge` | Inspect and manage the dead-letter queue |
+| `ag workers dlq list\|inspect\|retry\|purge` | Inspect and manage the dead-letter queue; `retry`/`purge` accept `--queue/--kind/--limit/--dry-run` for bounded bulk operations (RFC-0017) |
 | `ag workers doctor` | Check workers config and durable-backend connectivity |
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.

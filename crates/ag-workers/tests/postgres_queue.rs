@@ -105,6 +105,85 @@ async fn dead_letter_preserves_and_removes() {
 
 #[tokio::test]
 #[ignore = "requires DATABASE_URL to a Postgres instance"]
+async fn bulk_dlq_filtered_redrive_and_purge() {
+    let backend = fresh_backend().await;
+    let mail = QueueName::new("mail");
+    let worker = WorkerId::generate();
+
+    // Dead-letter 3 mail jobs (2 of kind "send_receipt", 1 "send_welcome") and 1 sms job.
+    for (kind, queue) in [
+        ("send_receipt", "mail"),
+        ("send_receipt", "mail"),
+        ("send_welcome", "mail"),
+        ("notify", "sms"),
+    ] {
+        let id = backend.enqueue(unit_job(kind, queue)).await.unwrap();
+        backend
+            .lease(&QueueName::new(queue), &worker, 10)
+            .await
+            .unwrap();
+        backend
+            .dead_letter(id, DeadLetterReason::Permanent("boom".into()))
+            .await
+            .unwrap();
+    }
+
+    // Dry-run: preview the send_receipt entries without mutating.
+    let filter = ag_workers::DlqFilter::new("mail", 100).with_kind(Some("send_receipt".to_owned()));
+    let preview = backend.preview_dead_letters(&filter).await.unwrap();
+    assert_eq!(preview.affected, 2);
+    assert_eq!(
+        backend
+            .list_dead_letters(Some("mail"), 100)
+            .await
+            .unwrap()
+            .len(),
+        3,
+        "preview must not remove anything"
+    );
+
+    // Bulk re-drive the send_receipt entries back onto the mail queue.
+    let outcome = backend.redrive_dead_letters(&filter).await.unwrap();
+    assert_eq!(outcome.affected, 2);
+    assert_eq!(
+        backend.depth(&mail).await.unwrap().total(),
+        2,
+        "re-driven jobs are back"
+    );
+    assert_eq!(
+        backend
+            .list_dead_letters(Some("mail"), 100)
+            .await
+            .unwrap()
+            .len(),
+        1,
+        "only send_welcome remains dead on mail"
+    );
+
+    // Filtered purge of the remaining mail dead-letters leaves sms untouched.
+    let purged = backend
+        .purge_dead_letters_filtered(&ag_workers::DlqFilter::new("mail", 100))
+        .await
+        .unwrap();
+    assert_eq!(purged.affected, 1);
+    assert!(backend
+        .list_dead_letters(Some("mail"), 100)
+        .await
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        backend
+            .list_dead_letters(Some("sms"), 100)
+            .await
+            .unwrap()
+            .len(),
+        1,
+        "sms dead-letter is untouched"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires DATABASE_URL to a Postgres instance"]
 async fn enqueue_in_tx_rolls_back_with_caller() {
     let url = std::env::var("DATABASE_URL").unwrap();
     let pool = sqlx::PgPool::connect(&url).await.unwrap();

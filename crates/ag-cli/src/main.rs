@@ -211,16 +211,46 @@ enum DlqCommands {
         /// Job id (UUID).
         job_id: String,
     },
-    /// Re-enqueues a dead-letter back onto its queue (resets attempts).
+    /// Re-enqueues dead-letters onto their queue (resets attempts).
+    ///
+    /// Single mode: pass a JOB_ID. Bulk mode: pass `--queue` (with optional
+    /// `--kind`/`--limit`) to re-drive many entries of one queue at once.
     Retry {
-        /// Job id (UUID).
-        job_id: String,
+        /// Job id (UUID) for a single re-drive. Omit when using `--queue`.
+        job_id: Option<String>,
+        /// Bulk re-drive: re-enqueue dead-letters of this queue.
+        #[arg(long)]
+        queue: Option<String>,
+        /// Narrow a bulk re-drive to a single job kind.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Maximum entries a bulk re-drive affects.
+        #[arg(long, default_value = "100")]
+        limit: i64,
+        /// Preview what a bulk re-drive would affect without changing anything.
+        #[arg(long)]
+        dry_run: bool,
     },
-    /// Deletes dead-letters older than a duration (e.g. 30d, 12h).
+    /// Deletes dead-letters by age and/or filter.
+    ///
+    /// Age mode: `--older-than` purges across all queues. Filter mode: add
+    /// `--queue` (with optional `--kind`) to purge one queue; age composes.
     Purge {
         /// Age threshold; entries older than this are removed.
         #[arg(long, default_value = "30d")]
         older_than: String,
+        /// Bulk purge restricted to this queue (composes with `--older-than`).
+        #[arg(long)]
+        queue: Option<String>,
+        /// Narrow a bulk purge to a single job kind.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Maximum entries a bulk purge affects.
+        #[arg(long, default_value = "1000")]
+        limit: i64,
+        /// Preview what a bulk purge would affect without changing anything.
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
@@ -879,25 +909,110 @@ async fn cmd_workers_dlq(command: DlqCommands) -> Result<(), String> {
                 None => Err(format!("no dead-letter entry with id {job_id}")),
             }
         }
-        DlqCommands::Retry { job_id } => {
-            let id =
-                ag_workers::JobId::parse(&job_id).map_err(|e| format!("invalid job id: {e}"))?;
-            backend
-                .redrive_dead_letter(id)
-                .await
-                .map_err(|e| e.to_string())?;
-            println!("re-enqueued {job_id} from the dead-letter queue");
-            Ok(())
-        }
-        DlqCommands::Purge { older_than } => {
-            let dur = ag_workers::parse_duration(&older_than).map_err(|e| e.to_string())?;
-            let n = backend
-                .purge_dead_letters(dur)
-                .await
-                .map_err(|e| e.to_string())?;
-            let plural = if n == 1 { "entry" } else { "entries" };
-            println!("purged {n} dead-letter {plural} older than {older_than}");
-            Ok(())
+        DlqCommands::Retry {
+            job_id,
+            queue,
+            kind,
+            limit,
+            dry_run,
+        } => match (job_id, queue) {
+            (Some(_), Some(_)) => {
+                Err("pass either a JOB_ID or --queue for a bulk re-drive, not both".to_owned())
+            }
+            (None, None) => Err("provide a JOB_ID, or --queue for a bulk re-drive".to_owned()),
+            (Some(job_id), None) => {
+                let id = ag_workers::JobId::parse(&job_id)
+                    .map_err(|e| format!("invalid job id: {e}"))?;
+                backend
+                    .redrive_dead_letter(id)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                println!("re-enqueued {job_id} from the dead-letter queue");
+                Ok(())
+            }
+            (None, Some(queue)) => {
+                let filter = ag_workers::DlqFilter::new(&queue, limit).with_kind(kind);
+                if dry_run {
+                    let preview = backend
+                        .preview_dead_letters(&filter)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    print_dry_run("re-drive", &filter, &preview);
+                    return Ok(());
+                }
+                let outcome = backend
+                    .redrive_dead_letters(&filter)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                println!(
+                    "re-enqueued {} dead-letter entries from {queue}",
+                    outcome.affected
+                );
+                Ok(())
+            }
+        },
+        DlqCommands::Purge {
+            older_than,
+            queue,
+            kind,
+            limit,
+            dry_run,
+        } => match queue {
+            // Age-only purge across all queues (backward compatible).
+            None => {
+                let dur = ag_workers::parse_duration(&older_than).map_err(|e| e.to_string())?;
+                let n = backend
+                    .purge_dead_letters(dur)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let plural = if n == 1 { "entry" } else { "entries" };
+                println!("purged {n} dead-letter {plural} older than {older_than}");
+                Ok(())
+            }
+            // Filtered bulk purge; age composes with the queue/kind filter.
+            Some(queue) => {
+                let dur = ag_workers::parse_duration(&older_than).map_err(|e| e.to_string())?;
+                let filter = ag_workers::DlqFilter::new(&queue, limit)
+                    .with_kind(kind)
+                    .with_older_than(Some(dur));
+                if dry_run {
+                    let preview = backend
+                        .preview_dead_letters(&filter)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    print_dry_run("purge", &filter, &preview);
+                    return Ok(());
+                }
+                let outcome = backend
+                    .purge_dead_letters_filtered(&filter)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                println!(
+                    "purged {} dead-letter entries from {queue}",
+                    outcome.affected
+                );
+                Ok(())
+            }
+        },
+    }
+}
+
+/// Prints what a bulk `re-drive`/`purge` would affect, without changing anything.
+#[cfg(feature = "workers-runtime")]
+fn print_dry_run(
+    action: &str,
+    filter: &ag_workers::DlqFilter,
+    preview: &ag_workers::BulkDlqOutcome,
+) {
+    let kind = filter.kind.as_deref().unwrap_or("*");
+    println!(
+        "dry-run: {action} would affect {} dead-letter entries (queue={}, kind={}, limit={})",
+        preview.affected, filter.queue, kind, filter.limit
+    );
+    if !preview.sample.is_empty() {
+        println!("sample (up to {}):", preview.sample.len());
+        for id in &preview.sample {
+            println!("  {id}");
         }
     }
 }

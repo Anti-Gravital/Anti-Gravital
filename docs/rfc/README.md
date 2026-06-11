@@ -80,4 +80,4 @@ como `superseded`.
 | 0014 | Validacion @regex ejecutable en Rust (generador DSL) | aceptada | `RFC-0014-regex-runtime-validation.md` |
 | 0015 | ag-registrars: compra/transferencia/renovacion de dominios (Fase F) | aceptada | `RFC-0015-ag-registrars-design.md` |
 | 0016 | eTLD+1 via Public Suffix List en ag-domains (DEBT-024) | aceptada | `RFC-0016-eldp1-public-suffix-list.md` |
-| 0017 | ag-workers: re-drive/purga masiva de DLQ por filtro | propuesta | `RFC-0017-ag-workers-bulk-dlq.md` |
+| 0017 | ag-workers: re-drive/purga masiva de DLQ por filtro | aceptada | `RFC-0017-ag-workers-bulk-dlq.md` |

@@ -346,6 +346,7 @@ async fn create_attachment(
     let dto = AttachmentDto::from(&attachment);
     state.store.create(attachment).await?;
     metrics::record_attachment_created();
+    refresh_fleet_gauges_from_store(&state).await;
     state
         .events
         .emit(DomainEvent::AttachmentCreated {
@@ -360,7 +361,29 @@ async fn list_attachments(
     State(state): State<ApiState>,
 ) -> Result<Json<Vec<AttachmentDto>>, ApiError> {
     let all = state.store.list().await?;
+    refresh_fleet_gauges(&all);
     Ok(Json(all.iter().map(AttachmentDto::from).collect()))
+}
+
+/// Sets the fleet-level control-plane gauges (blueprint section 16.1) from a
+/// snapshot of attachments: the active count and the number of certificates in
+/// the renewal window. Called after control-plane mutations and on list.
+fn refresh_fleet_gauges(attachments: &[DomainAttachment]) {
+    let active = attachments.iter().filter(|a| a.is_active()).count();
+    let expiring_soon = attachments
+        .iter()
+        .filter(|a| a.tls_status == TlsStatus::RenewalDue)
+        .count();
+    metrics::set_active_attachments(active as u64);
+    metrics::set_certs_expiring_soon(expiring_soon as u64);
+}
+
+/// Re-reads the store and refreshes the fleet gauges; best-effort, never fails
+/// the surrounding control-plane operation.
+async fn refresh_fleet_gauges_from_store(state: &ApiState) {
+    if let Ok(all) = state.store.list().await {
+        refresh_fleet_gauges(&all);
+    }
 }
 
 async fn get_attachment(
@@ -420,6 +443,7 @@ async fn detach_attachment(
         .detach(attachment.hostname.ascii(), DEFAULT_TOMBSTONE_SECS)
         .await?;
     metrics::record_attachment_detached();
+    refresh_fleet_gauges_from_store(&state).await;
     state
         .events
         .emit(DomainEvent::Detached {
@@ -444,6 +468,7 @@ async fn verify_attachment(
         attachment.ownership_status = OwnershipStatus::Verified;
         attachment.recompute_lifecycle();
         state.store.update(attachment.clone()).await?;
+        refresh_fleet_gauges_from_store(&state).await;
         state
             .events
             .emit(DomainEvent::OwnershipVerified {

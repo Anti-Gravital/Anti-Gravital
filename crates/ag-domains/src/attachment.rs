@@ -198,7 +198,21 @@ impl DomainAttachment {
         if self.lifecycle == AttachmentLifecycle::Detached {
             return;
         }
-        self.lifecycle = self.derive_lifecycle();
+        let previous = self.lifecycle;
+        let next = self.derive_lifecycle();
+        // Count only the transition into a DNS-caused misconfiguration, so the
+        // counter reflects events rather than the number of recomputations
+        // (blueprint section 16.1).
+        if next == AttachmentLifecycle::Misconfigured
+            && previous != AttachmentLifecycle::Misconfigured
+            && matches!(
+                self.dns_status,
+                DnsStatus::WrongTarget | DnsStatus::ConflictingRecords | DnsStatus::Failed
+            )
+        {
+            crate::metrics::record_dns_misconfigured();
+        }
+        self.lifecycle = next;
     }
 
     fn derive_lifecycle(&self) -> AttachmentLifecycle {

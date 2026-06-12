@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### README raiz reestructurado (2026-06-12)
+
+Cambiado:
+
+- `README.md`: reestructuracion completa de la ventana publica del proyecto.
+  Anade tabla "de un vistazo" con el estado real (pre-release, puerta
+  pre-Fase 5 abierta), secciones explicitas "que se puede hacer hoy" y "que
+  no se puede hacer todavia", extracto real del Anti-DSL, diagrama Mermaid
+  de arquitectura, arbol del repositorio, principios de ingenieria, modelo
+  de fases explicado (bloqueantes vs aditivas, implementada vs cerrada),
+  tabla de fases con evidencia y bloqueadores, mapa de documentacion con
+  orden de lectura para humanos y agentes automatizados, y espejo completo
+  en espanol (ADR-0008). Sin cambios de comportamiento del codigo.
+
 ### Correctivo pre-Fase 5 - Observabilidad y toolchain (2026-06-10)
 
 Corregido:

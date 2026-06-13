@@ -1005,6 +1005,26 @@ que aparece cuando el autofill no encuentra descriptor.
 Si un agente o colaborador commitea sin crear o actualizar el
 descriptor correspondiente, la PR no se acepta.
 
+#### Cierre automatico de issues (obligatorio)
+
+El autofill copia el descriptor al cuerpo de la PR, y GitHub cierra un
+issue al fusionar SOLO si el cuerpo de la PR contiene una palabra clave
+de cierre (`Closes #NNN`, `Fixes #NNN`, `Resolves #NNN`). Una referencia
+suelta (`#NNN`, `(#NNN)`) enlaza pero NO cierra.
+
+Por eso todo descriptor incluye una seccion `## Cierre de issues` con una
+linea por cada issue:
+
+- `Closes #NNN` por cada issue que la PR resuelve por completo (se cierra
+  solo al fusionar).
+- `Refs #NNN` por cada issue que la PR solo avanza sin cerrar.
+- `Closes: none` (literal) cuando la PR no resuelve ningun issue.
+
+El job `descriptor closing-keywords` de `.github/workflows/docs.yml`
+rechaza cualquier descriptor (salvo `README.md`) que no tenga esa seccion
+con al menos una de esas formas. Asi un issue resuelto nunca queda abierto
+por olvidar la palabra clave.
+
 #### Ciclo de vida del descriptor
 
 Un descriptor existe solo mientras su PR esta abierto. Regla unica:

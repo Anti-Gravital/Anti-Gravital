@@ -64,6 +64,14 @@ El workflow busca dos rutas, en este orden:
 - **Plan de prueba**: comandos exactos que el revisor puede ejecutar.
 - **Criterios de salida que avanza**: casillas concretas de
   `docs/roadmap/STATUS.md` que esta unidad de cambio marca.
+- **Cierre de issues** (`## Cierre de issues`): obligatorio. Una linea por
+  issue con palabra clave de cierre, porque GitHub solo auto-cierra desde
+  el cuerpo de la PR con `Closes`/`Fixes`/`Resolves`:
+  - `Closes #NNN` por cada issue que la PR resuelve por completo.
+  - `Refs #NNN` por cada issue que solo avanza sin cerrar.
+  - `Closes: none` si la PR no resuelve ningun issue.
+  Una referencia suelta (`#NNN`, `(#NNN)`) enlaza pero NO cierra. El job
+  `descriptor closing-keywords` de CI rechaza descriptores sin esta seccion.
 - **Checklist**: las cinco casillas siempre, marcadas o explicitas.
 
 ## Ciclo de vida

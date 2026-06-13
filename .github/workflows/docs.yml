@@ -125,3 +125,30 @@ jobs:
             exit 1
           fi
           echo "Sin marcas comerciales de terceros prohibidas."
+
+  descriptor-closing:
+    name: descriptor closing-keywords
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require an issue-closing section in every PR descriptor
+        run: |
+          set -euo pipefail
+          # GitHub solo auto-cierra issues al fusionar si el cuerpo de la PR
+          # (que es el descriptor via pr-autofill) usa una palabra clave de
+          # cierre. Todo descriptor debe declarar explicitamente sus cierres:
+          # `Closes #NNN` / `Fixes #NNN` / `Resolves #NNN`, o `Closes: none`.
+          missing=0
+          shopt -s nullglob
+          for f in docs/pr-drafts/*.md; do
+            [ "$(basename "$f")" = "README.md" ] && continue
+            if ! grep -qiE "^[[:space:]>*-]*(closes|fixes|resolves)[[:space:]:]+(#[0-9]+|none|ninguno)\b" "$f"; then
+              echo "Descriptor sin seccion de cierre de issues (Closes #NNN / Closes: none): $f"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Cada descriptor debe declarar sus cierres con palabra clave; ver docs/pr-drafts/README.md."
+            exit 1
+          fi
+          echo "Todos los descriptores declaran cierre de issues."

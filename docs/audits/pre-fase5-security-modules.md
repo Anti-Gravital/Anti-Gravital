@@ -58,7 +58,8 @@
   Medium, opt-in feature).
 - 50k-connection scalability is the manual load gate (Stage 6/7, DEBT-007 test
   exists, `#[ignore]`).
-- Verdict: **pass** for security; scalability proof pending (Stage 6).
+- Verdict: **pass** for security; scalability/performance proof is the Stage 6
+  gate, tracked in issue #157 (the `#[ignore]` load test already exists).
 
 ## ag-storage
 - **Path traversal:** `validate_key` rejects `..`/`//`/leading-trailing `/`/null/

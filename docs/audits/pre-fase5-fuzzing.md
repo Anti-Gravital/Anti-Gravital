@@ -94,4 +94,4 @@ regression test, per the plan.
 ## Gate rows advanced
 
 - **Fuzz smoke:** pass (existing DSL targets + 3 new targets, 0 crashes).
-- **Fuzz 24h:** pending (manual gate, command documented above).
+- **Fuzz 24h:** pending (manual gate, command documented above); tracked in issue #156.

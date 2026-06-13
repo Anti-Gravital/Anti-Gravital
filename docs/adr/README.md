@@ -38,3 +38,4 @@ Consecuencias, Alternativas, Estado.
 | 0012 | ag-domains plano de control de attachment y serving | aceptado | `0012-ag-domains-control-plane.md` |
 | 0013 | ag-workers: modelo de ejecucion y autorizacion (Fase 4.6-D) | aceptado | `0013-ag-workers-execution-model.md` |
 | 0014 | Politica `#[non_exhaustive]` para enums de error publicos | aceptado | `0014-non-exhaustive-public-error-enums.md` |
+| 0015 | `docs/audits/` como contrato de release-gate y evidencia | aceptado | `0015-release-gate-audit-records.md` |

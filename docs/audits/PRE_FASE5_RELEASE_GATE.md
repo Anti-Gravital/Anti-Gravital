@@ -9,6 +9,10 @@
 - **Created:** 2026-05-29 (PR 1, skeleton).
 - **Status:** OPEN — gate not yet evaluated. No row may be marked `pass` without
   a reproducible command, a date, and (where applicable) a commit.
+- **Authorization:** `docs/adr/0015-release-gate-audit-records.md` authorizes
+  this gate and the `docs/audits/` stage records as architectural contract.
+  Every `pending`/`fail` row links a tracking GitHub Issue; open work lives on
+  the Issues board (label `tech-debt`), not in prose here.
 
 ## Gate table
 
@@ -24,14 +28,14 @@ means a `fail` or `pending` on that row forbids advancing.
 | Audit | pass | `cargo audit` exit 0, 0 vulnerabilities / 591 deps, 2026-05-29 | yes | 3 |
 | Deny | pass | `cargo deny check` exit 0 (advisories/bans/licenses/sources ok), 2026-05-29 | yes | 3 |
 | Fuzz smoke | pass | 6 targets (3 DSL + fuzz_resp/storage_key/signed_url), ~9.3M runs, 0 crashes, 2026-05-29 | yes | 4 |
-| Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md` | yes | 4 |
+| Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md`; tracked in issue #156 | yes | 4 |
 | Coverage | pass | `cargo tarpaulin --workspace --fail-under 80` (excludes test files + binary mains): 80.05%, 3210/4010 lines, exit 0, 2026-05-30 | yes | 5 |
-| Benchmarks | pending | docs | yes | 6 |
+| Benchmarks | pending | `docs/benchmarks/pre-fase5-performance.md`; tracked in issue #157 | yes | 6 |
 | Examples | pass | Stage 9 (`pre-fase5-examples.md`): 4 binaries build, self-contained ones run as documented, `ecommerce-api` regen reproducible (`diff -rq` identical), 3 `ag new` templates scaffold clean, docs honest, 2026-05-29 | yes | 9 |
 | Security | pass | Stage 3 (`pre-fase5-security.md`) + Stage 8 per-module (`pre-fase5-security-modules.md`): all 10 functional crates pass, 2026-05-29 | yes | 3/8 |
 | API/DX | pass | Stage 2 architecture (`pre-fase5-architecture.md`) + module API review (Stage 8); footguns documented, 2026-05-29 | yes | 2 |
 | Docs honesty | pass | `pre-fase5-docs-reconciliation.md`: evidence-based phase states across README/master/calendar; no completion claim against an open gate, 2026-06-11 | yes | 10 |
-| Open debt | pending | `docs/DEBT.md` | yes | all |
+| Open debt | pending | tracked on the GitHub Issues board (label `tech-debt`); `docs/DEBT.md` is a frozen historical record | yes | all |
 
 ## Findings severity classification
 
@@ -68,7 +72,7 @@ the plan's final checklist):
 - [ ] `cargo deny` passes.
 - [ ] No known productive panics on external input.
 - [ ] Fuzz smoke passes.
-- [ ] Long manual fuzz executed or documented as a blocking pending item.
+- [ ] Long manual fuzz executed or documented as a blocking pending item (issue #156).
 - [ ] Minimum coverage verified.
 - [ ] Primary examples work.
 - [x] README claims are backed by evidence (Stage 10, 2026-06-11).
@@ -96,7 +100,7 @@ gate rows are unchanged — only the execution sequence is:
 | 3 | `docs/audits/pre-fase5-security.md` | done (PR 3) |
 | 4 | `docs/audits/pre-fase5-fuzzing.md` | done (PR 4) |
 | 5 | `docs/audits/pre-fase5-properties.md` | done (PR 5) |
-| 6 | `docs/benchmarks/pre-fase5-performance.md` | pending |
+| 6 | `docs/benchmarks/pre-fase5-performance.md` (issue #157) | pending |
 | 7 | `docs/audits/pre-fase5-concurrency.md` | done (PR 5) |
 | 8 | `docs/audits/pre-fase5-security-modules.md` | done (PR 5) |
 | 9 | `docs/audits/pre-fase5-examples.md` | done (PR 6) |

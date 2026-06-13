@@ -40,11 +40,19 @@ NO se escribe codigo.
 
 Los siguientes documentos son obligatorios y deben existir exactamente con estos nombres:
 
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf`
+- `ANTI-GRAVITAL-Blueprint-v4.1.md` (Blueprint canonico vigente)
+- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` (artefacto historico de presentacion)
 - `ANTI-GRAVITAL-Arquitectura-Tecnica.md`
 - `ANTI-GRAVITAL-Hoja-de-Ruta.md`
 
 Estos documentos son la fuente de verdad oficial del proyecto.
+
+El Blueprint canonico es `ANTI-GRAVITAL-Blueprint-v4.1.md` (markdown
+versionable y auditable). El `ANTI-GRAVITAL-Blueprint-v4.0.pdf` se conserva
+como artefacto historico de presentacion: esta desfasado y, cuando difiera
+del markdown, gobierna `v4.1.md` (ver `docs/master/VERSION.md`, politica #4).
+El PDF no se elimina para preservar trazabilidad, y se re-exportara a
+`v4.1.pdf` cuando exista el tooling de exportacion.
 
 Jamas deben:
 

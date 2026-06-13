@@ -31,16 +31,16 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum StorageError {
     /// No object found with the given key.
-    #[error("objeto no encontrado: {0}")]
+    #[error("object not found: {0}")]
     NotFound(String),
     /// Invalid object key (forbidden characters, path traversal, etc.).
-    #[error("clave invalida: {0}")]
+    #[error("invalid key: {0}")]
     InvalidKey(String),
     /// Attempt to escape the store root directory.
-    #[error("acceso fuera del store denegado")]
+    #[error("access outside the store denied")]
     PathEscape(String),
     /// Payload exceeds the configured limit.
-    #[error("objeto demasiado grande: {size} bytes (limite: {limit} bytes)")]
+    #[error("object too large: {size} bytes (limit: {limit} bytes)")]
     TooLarge {
         /// Size of the received object in bytes.
         size: usize,
@@ -48,17 +48,17 @@ pub enum StorageError {
         limit: usize,
     },
     /// Operating system I/O error.
-    #[error("error de I/O: {0}")]
+    #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     /// Image processing error.
-    #[error("error de imagen: {0}")]
+    #[error("image error: {0}")]
     Image(String),
     /// Invalid configuration.
-    #[error("error de configuracion: {0}")]
+    #[error("configuration error: {0}")]
     Config(String),
     #[cfg(feature = "s3")]
     /// S3/MinIO backend error.
-    #[error("error S3: {0}")]
+    #[error("S3 error: {0}")]
     S3(#[from] object_store::Error),
 }
 
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn storage_error_not_found_display() {
         let e = StorageError::NotFound("avatars/user.jpg".into());
-        assert_eq!(e.to_string(), "objeto no encontrado: avatars/user.jpg");
+        assert_eq!(e.to_string(), "object not found: avatars/user.jpg");
     }
 
     #[test]
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn storage_error_invalid_key_display() {
         let e = StorageError::InvalidKey("../secret".into());
-        assert!(e.to_string().contains("invalida"));
+        assert!(e.to_string().contains("invalid"));
     }
 
     #[tokio::test]
@@ -257,7 +257,7 @@ mod tests {
         let (_dir, config) = temp_config();
         let storage = AgStorage::new(config).await.unwrap();
         let url = storage.object_url("docs/readme.txt").unwrap();
-        assert!(url.starts_with("file://"), "URL nativa debe ser file://");
+        assert!(url.starts_with("file://"), "native URL must be file://");
     }
 
     #[tokio::test]
@@ -271,7 +271,7 @@ mod tests {
         };
         let storage = AgStorage::new(config).await.unwrap();
         let url = storage.object_url("docs/readme.txt").unwrap();
-        assert!(url.contains("14280"), "URL server debe contener el puerto");
+        assert!(url.contains("14280"), "server URL must contain the port");
         assert!(url.starts_with("http://"));
     }
 }

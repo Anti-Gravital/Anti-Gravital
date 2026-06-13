@@ -7,6 +7,17 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-storage: English docs and display strings (ADR-0008)
+
+Changed:
+
+- `ag-storage`: `crates/ag-storage/src/signed.rs` doc comments, `Display`
+  messages and test messages are now English. The `Display` strings of
+  `StorageError` (observable in logs and error payloads) were translated as
+  well. No variant, field or public API changed. The remaining non-ASCII
+  bytes in `ag-storage` source are deliberate Unicode test fixtures, not
+  Spanish text.
+
 ### ag-auth: English residual comments and messages (ADR-0008)
 
 Changed:

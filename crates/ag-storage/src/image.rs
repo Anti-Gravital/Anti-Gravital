@@ -60,14 +60,35 @@ impl ImageProcessor {
         encode(thumb, fmt)
     }
 
-    /// Converts the image to lossless WebP.
+    /// Converts the image to WebP.
     ///
-    /// `_quality` is ignored: `image` 0.25 only exposes lossless WebP.
+    /// Without the `webp-lossy` feature, emits lossless WebP via the `image`
+    /// crate and `quality` is ignored (`image` 0.25 only exposes lossless WebP).
     ///
-    /// TECH-DEBT (issue #146): lossy WebP with configurable quality pending.
-    pub fn to_webp(&self, data: impl AsRef<[u8]>, _quality: u8) -> Result<Bytes, StorageError> {
+    /// With the `webp-lossy` feature, emits lossy WebP at the given `quality`
+    /// (0..=100) via the native `webp` encoder; higher means better quality and
+    /// a larger file. A `quality` of 100 is treated as lossless.
+    pub fn to_webp(&self, data: impl AsRef<[u8]>, quality: u8) -> Result<Bytes, StorageError> {
         let img = load(data.as_ref())?;
-        encode(img, ImageFormat::WebP)
+
+        #[cfg(feature = "webp-lossy")]
+        {
+            let rgba = img.to_rgba8();
+            let (width, height) = rgba.dimensions();
+            let encoder = webp::Encoder::from_rgba(rgba.as_raw(), width, height);
+            let memory = if quality >= 100 {
+                encoder.encode_lossless()
+            } else {
+                encoder.encode(f32::from(quality))
+            };
+            Ok(Bytes::copy_from_slice(&memory))
+        }
+
+        #[cfg(not(feature = "webp-lossy"))]
+        {
+            let _ = quality;
+            encode(img, ImageFormat::WebP)
+        }
     }
 }
 
@@ -96,6 +117,33 @@ mod tests {
         let mut buf = Cursor::new(Vec::new());
         img.write_to(&mut buf, ImageFormat::Jpeg).unwrap();
         buf.into_inner()
+    }
+
+    #[cfg(feature = "webp-lossy")]
+    #[test]
+    fn webp_lossy_quality_changes_size() {
+        // A noisy source so quality has a measurable effect on encoded size.
+        let mut rgba = image::RgbaImage::new(64, 64);
+        for (x, y, px) in rgba.enumerate_pixels_mut() {
+            let v = ((x * 7 + y * 13) % 256) as u8;
+            *px = image::Rgba([v, v.wrapping_mul(3), v.wrapping_add(40), 255]);
+        }
+        let mut buf = Cursor::new(Vec::new());
+        DynamicImage::ImageRgba8(rgba)
+            .write_to(&mut buf, ImageFormat::Png)
+            .unwrap();
+        let png = buf.into_inner();
+
+        let processor = ImageProcessor::new();
+        let low = processor.to_webp(&png, 10).unwrap();
+        let high = processor.to_webp(&png, 90).unwrap();
+        assert!(!low.is_empty() && !high.is_empty());
+        assert!(
+            low.len() < high.len(),
+            "lower quality should be smaller: {} vs {}",
+            low.len(),
+            high.len()
+        );
     }
 
     #[test]

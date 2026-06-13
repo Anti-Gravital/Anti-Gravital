@@ -7,6 +7,17 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-storage: lossy WebP encoding with configurable quality (`webp-lossy`)
+
+Added:
+
+- `ag-storage`: the new opt-in `webp-lossy` feature makes `ImageProcessor::to_webp`
+  honor its `quality` argument (0..=100; 100 = lossless) via the native `webp`
+  encoder (bundled libwebp, built from source with `cc`; no system library
+  required). Without the feature the default stays lossless via the `image`
+  crate and `quality` is ignored. Note: `--all-features` builds now compile
+  libwebp.
+
 ### ag-storage: implement the `auth` feature (JWT Ed25519 via ag-auth)
 
 Added:

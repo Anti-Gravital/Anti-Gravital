@@ -117,6 +117,13 @@ no puede, marquela como pendiente de traduccion y abra un issue.
 - Para los componentes criticos (Shield, parser DSL): fuzzing
   obligatorio antes de tag de release.
 
+## Mantenimiento de GitHub Actions
+
+Las acciones de terceros en `.github/workflows/` se fijan a un SHA completo.
+Revise sus releases y changelogs al menos una vez por trimestre y abra un pull
+request dedicado para actualizar cada pin, conservando el tag de referencia en
+el comentario de la linea `uses:`. Valide todos los workflows despues del cambio.
+
 ## Seguridad
 
 Si descubre una vulnerabilidad, no abra un issue publico. Siga el

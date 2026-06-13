@@ -23,15 +23,15 @@ jobs:
     env:
       RUSTDOCFLAGS: "-D warnings"
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
       - run: cargo doc --workspace --no-deps
 
   masters-integrity:
     name: masters integrity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Verify SHA-256 of master documents
         run: |
           set -euo pipefail
@@ -61,7 +61,7 @@ jobs:
     name: prohibited content scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Reject AI tool evidence outside allowed files
         run: |
           set -euo pipefail
@@ -130,7 +130,7 @@ jobs:
     name: descriptor closing-keywords
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Require an issue-closing section in every PR descriptor
         run: |
           set -euo pipefail

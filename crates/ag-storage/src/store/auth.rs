@@ -1,7 +1,7 @@
 //! Bearer token authentication middleware for the HTTP server.
 //!
 //! Without feature `auth`: compares the token against `STORE_TOKEN` (static string).
-//! With feature `auth`: validates the Bearer as JWT Ed25519 via `ag-auth` (TECH-DEBT).
+//! With feature `auth`: validates the Bearer as JWT Ed25519 via `ag-auth` (pending, issue #148).
 //!
 //! If the configured token is empty, the server accepts all requests
 //! without authentication (development mode).

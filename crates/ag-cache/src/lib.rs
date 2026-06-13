@@ -8,7 +8,7 @@
 //! # Status
 //!
 //! L1 fully operational. Native RESP2 server (RFC-0005) implemented under
-//! the `native-server` feature. External Redis L2 remains deferred (TECH-DEBT).
+//! the `native-server` feature. External Redis L2 remains deferred (issue #144).
 //!
 //! # Minimal usage (L1 only)
 //!
@@ -77,12 +77,7 @@ impl std::error::Error for CacheError {}
 /// Multilevel cache with L1 (moka) and optional native RESP2 server.
 pub struct AgCache {
     l1: Arc<L1Cache>,
-    // TECH-DEBT:
-    // reason: L2 Redis requires fred with a real connection; the fred v10 API
-    //         does not expose the documented features (tokio-runtime, codec).
-    //         Integrated in the second iteration of ag-cache in Phase 4.
-    // impact: without L2, distributed invalidation across instances does not work.
-    // expected removal: second iteration of ag-cache, Phase 4.
+    // TECH-DEBT (issue #144): external Redis L2 distributed layer deferred.
 }
 
 impl AgCache {
@@ -96,7 +91,7 @@ impl AgCache {
 
         if config.redis_url.is_some() {
             tracing::warn!(
-                "REDIS_URL set but external Redis L2 is not active in this version (TECH-DEBT)"
+                "REDIS_URL set but external Redis L2 is not active in this version (issue #144)"
             );
         }
 

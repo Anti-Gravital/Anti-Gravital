@@ -1,3 +1,294 @@
+English | Espanol
+
+---
+
+# Configure domain, TLS and transactional email with Anti-Gravital
+
+This guide shows how to integrate `ag-domains` and `ag-mail` in an
+Anti-Gravital project to manage DNS records, issue TLS certificates via
+ACME and send transactional email from the DSL.
+
+---
+
+## Prerequisites
+
+- Rust 1.78 or newer.
+- A registered domain with its nameservers pointing at the DNS provider.
+- An account with a DNS provider that has an implemented adapter.
+- An API token for that provider with `Zone:DNS:Edit` permissions.
+
+---
+
+## 1. Declare domain and email in the DSL
+
+DSL v0.7 introduces the `domain`, `mail` and `template` blocks. Create or
+edit the project's `schema.ag` file:
+
+```ag
+domain mi_dominio {
+    name "ejemplo.com"
+    provider cloudflare
+    dkim_selector "s1"
+    dmarc_policy quarantine
+    dmarc_rua "reportes@ejemplo.com"
+}
+
+mail transaccional {
+    provider smtp
+    from "noreply@ejemplo.com"
+
+    template bienvenida {
+        subject "Bienvenido {{nombre}}"
+        vars [nombre, token]
+    }
+
+    template recuperacion {
+        subject "Recupera tu contrasena"
+        vars [enlace]
+    }
+}
+```
+
+The DSL compiler (`ag_dsl::compile`) validates that:
+- The `from` of the `mail` block references a declared domain.
+- Each `vars` of a `template` matches the `{{var}}` placeholders in the HTML.
+
+---
+
+## 2. Apply DNS records (SPF, DKIM, DMARC)
+
+`ag-domains` generates and applies the three records required for email
+deliverability in an idempotent upsert: if the record already exists with
+the same content, it is left unchanged.
+
+```rust
+use ag_domains::{
+    mail_records::{DkimConfig, MailRecordsConfig, apply_mail_records},
+    provider::cloudflare::CloudflareProvider,
+};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let provider = CloudflareProvider::new("CF_TOKEN_AQUI");
+    let zone_id = provider.zone_id("ejemplo.com").await?;
+
+    let config = MailRecordsConfig {
+        spf_includes: vec!["include:_spf.proveedor.example".to_owned()],
+        dkim: Some(DkimConfig {
+            selector: "s1".to_owned(),
+            public_key_base64: "MIIBIjANBgkq...".to_owned(),
+        }),
+        dmarc_policy: ag_domains::mail_records::DmarcPolicy::Quarantine,
+        dmarc_rua: Some("reportes@ejemplo.com".to_owned()),
+    };
+
+    apply_mail_records(&provider, &zone_id, "ejemplo.com", &config).await?;
+    println!("SPF/DKIM/DMARC records applied.");
+    Ok(())
+}
+```
+
+CLI equivalent:
+
+```sh
+ag domains sync --schema schema.ag --zone-id <ZONE_ID> --token <CF_TOKEN>
+```
+
+---
+
+## 3. Verify DNS propagation
+
+Propagation can take anywhere from seconds to 48 hours depending on the
+previous TTL and the provider. Anti-Gravital queries several public
+resolvers to give a realistic view of the state:
+
+```rust
+use ag_domains::propagation::{PropagationChecker, DEFAULT_RESOLVERS};
+
+let checker = PropagationChecker::new(DEFAULT_RESOLVERS);
+let result = checker.check_txt("_dmarc.ejemplo.com", "v=DMARC1").await;
+
+println!(
+    "Propagation: {}/{} resolvers confirmed",
+    result.confirmed, result.total
+);
+```
+
+CLI equivalent:
+
+```sh
+ag domains check --domain ejemplo.com --expected "v=DMARC1" --min-confirmed 3
+```
+
+---
+
+## 4. Issue a TLS certificate via ACME
+
+`ag-domains` integrates `instant-acme` to issue Let's Encrypt certificates
+using the DNS-01 challenge (the DNS provider creates and removes the TXT
+record automatically):
+
+```rust
+use ag_domains::{
+    acme::renewal::{CertConfig, issue},
+    provider::cloudflare::CloudflareProvider,
+};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let provider = CloudflareProvider::new("CF_TOKEN_AQUI");
+    let zone_id = provider.zone_id("ejemplo.com").await?;
+
+    let config = CertConfig {
+        domain: "ejemplo.com".to_owned(),
+        zone_id,
+        contact_email: "admin@ejemplo.com".to_owned(),
+        staging: true, // use false in production
+    };
+
+    let (cert, credentials) = issue(&config, &provider).await?;
+
+    // Save the certificate PEM and the private key.
+    std::fs::write("cert.pem", &cert.cert_chain_pem)?;
+    std::fs::write("key.pem", &cert.private_key_pem)?;
+
+    // Save the credentials for future renewals.
+    let creds_json = serde_json::to_string(&credentials)?;
+    std::fs::write("acme-credentials.json", creds_json)?;
+
+    println!("Certificate issued and saved to cert.pem / key.pem");
+    Ok(())
+}
+```
+
+For automatic renewal with a background task:
+
+```rust
+use ag_domains::acme::renewal::spawn_renewal_task;
+
+let handle = spawn_renewal_task(
+    config,
+    credentials,
+    provider,
+    30, // renew 30 days before expiry
+    |new_cert| {
+        // Callback when the certificate is renewed.
+        std::fs::write("cert.pem", &new_cert.cert_chain_pem).ok();
+        std::fs::write("key.pem", &new_cert.private_key_pem).ok();
+    },
+);
+
+// handle.abort() to stop the task.
+```
+
+---
+
+## 5. Send transactional email
+
+### Via SMTP (lettre + rustls)
+
+```rust
+use ag_mail::{
+    message::{Address, EmailBuilder},
+    sender::{smtp::{SmtpConfig, SmtpSender}, MailSender},
+};
+
+let config = SmtpConfig::new("smtp.ejemplo.com", 587, "user", "pass");
+let sender = SmtpSender::new(config).await?;
+
+let email = EmailBuilder::new()
+    .from(Address::with_name("Ejemplo", "noreply@ejemplo.com"))
+    .to(Address::new("usuario@ejemplo.com"))
+    .subject("Bienvenido")
+    .html_body("<h1>Hola</h1>")
+    .text_body("Hola")
+    .build()?;
+
+sender.send(&email).await?;
+```
+
+### Via an external provider (SMTP)
+
+To send through an external provider, point the native `SmtpSender` at its
+SMTP endpoint. There are no brand-named adapters (see `ADR-0011`); the
+third-party-free path is the native `MtaSender` (feature `mta`).
+
+```rust
+use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
+
+let config = SmtpConfig::new("smtp.proveedor.example", 587, "usuario", "clave");
+let sender = SmtpSender::new(config)?;
+sender.send(&email).await?;
+```
+
+### Via a queue with retries
+
+```rust
+use std::sync::Arc;
+use ag_mail::queue::{InMemoryQueue, RetryPolicy};
+
+let policy = RetryPolicy::default(); // 3 retries, exponential backoff
+let queue = InMemoryQueue::new(Arc::new(sender), policy, 64);
+let worker = queue.spawn_worker();
+
+queue.enqueue(email).await?;
+// worker.abort() to stop the worker.
+```
+
+---
+
+## 6. ag-auth -> ag-mail integration
+
+`ag-auth` can send verification, password-recovery and magic-link emails
+through `AuthMailer`:
+
+```rust
+use std::sync::Arc;
+use ag_auth::{AgAuth, AuthConfig, AuthMailer};
+use ag_mail::sender::smtp::{SmtpConfig, SmtpSender};
+
+let sender: Arc<dyn ag_mail::sender::MailSender> =
+    Arc::new(SmtpSender::new(SmtpConfig::new("smtp.proveedor.example", 587, "usuario", "clave"))?);
+
+let mailer = Arc::new(AuthMailer::new(
+    sender,
+    "noreply@ejemplo.com",
+    "Mi Proyecto",
+));
+
+let auth = AgAuth::new(config, reqwest::Client::new())?.with_mail(mailer);
+
+// Send a verification email:
+auth.mailer.as_ref().unwrap()
+    .send_verification("usuario@ejemplo.com", "TOKEN", "https://ejemplo.com")
+    .await?;
+```
+
+See also: `examples/auth-mail-demo` for a complete runnable example that
+demonstrates the three flows without needing a real SMTP server.
+
+---
+
+## Quick CLI command reference
+
+| Command | Description |
+|---|---|
+| `ag domains check --domain ejemplo.com --expected "v=TXT"` | Verify DNS propagation |
+| `ag domains sync --schema schema.ag --zone-id Z --token T` | Apply SPF/DKIM/DMARC from the DSL |
+| `ag mail test --to user@e.com --from no@e.com --smtp-host smtp.e.com` | Send a test email |
+
+---
+
+## Related documents
+
+- `docs/adr/0007-ag-mail-ag-domains.md` — architectural decision
+- `docs/modules/ag-mail/` — module specification
+- `docs/modules/ag-domains/` — module specification
+- `docs/rfc/RFC-0006-ag-mail-alcance.md` — ag-mail v1 scope
+- `docs/rfc/RFC-0007-ag-domains-alcance.md` — ag-domains v1 scope
+
+---
+
 # Configurar dominio, TLS y correo transaccional con Anti-Gravital
 
 Esta guia muestra como integrar `ag-domains` y `ag-mail` en un proyecto

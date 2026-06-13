@@ -1,3 +1,358 @@
+English | Espanol
+
+---
+
+# Chapter 1. The `ag-core` Shield as a library
+
+> Architectural source: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`
+> chapter 6 (Core architecture) and RFC-0002 (Shield MVP design).
+
+This chapter describes how to use `ag-core::Shield` as a library from an
+existing Rust application, without going through the `ag` CLI or the DSL
+codegen. It covers everything from the minimal example to the full
+configuration with TLS, JWT, CSRF, CORS, rate-limit and validation.
+
+## 1.1 What the Shield is
+
+The Shield is the first layer of the Anti-Gravital core: a Tower
+middleware pipeline that processes every HTTP request before it reaches
+the business handler. Its single responsibility is to decide whether a
+request is **trustworthy** enough to hand to the application code.
+
+The standard layers (outermost to innermost: logging, rate-limit, CORS,
+auth-jwt, CSRF) compose over any `axum::Router` and operate at the
+process level, with no IPC or FFI. The Shield is the mandatory piece of
+the ecosystem; the remaining layers (Core, standard modules, optional
+modules) are built on top of it or beside it.
+
+## 1.2 Add `ag-core` to your project
+
+`ag-core` is not published on crates.io during Phase 1. The way to
+consume it is as a git dependency:
+
+```toml
+[dependencies]
+ag-core = { git = "https://github.com/anti-gravital/anti-gravital", branch = "main" }
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+```
+
+If you only need a subset of layers, you can disable features
+explicitly:
+
+```toml
+[dependencies]
+ag-core = { git = "https://github.com/anti-gravital/anti-gravital", branch = "main", default-features = false, features = ["validation", "cors"] }
+```
+
+Available features: `validation`, `cors`, `csrf`, `logging`,
+`rate-limit`, `auth-jwt`, `tls`. All enabled by default.
+
+## 1.3 Minimal server in five lines
+
+The smallest use applies a Shield with the default configuration over a
+trivial Axum router. Only the logging layer stays active; the rest expect
+an explicit declaration in the configuration.
+
+```rust,no_run
+use ag_core::{Shield, ShieldConfig};
+use axum::routing::get;
+use axum::Router;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let shield = Shield::try_new(ShieldConfig::default())?;
+    let app = shield.apply(
+        Router::new().route("/", get(|| async { "hello, shield" })),
+    );
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    shield.serve(listener, app).await?;
+    Ok(())
+}
+```
+
+This example is exactly what `crates/ag-core/examples/hello_world.rs`
+ships. To run it locally:
+
+```sh
+cargo run --release -p ag-core --example hello_world
+curl -i http://127.0.0.1:8080/
+```
+
+## 1.4 Load configuration from TOML
+
+For production environments the configuration lives in a declarative
+file. `ShieldConfig::from_path` loads it and applies
+`#[serde(deny_unknown_fields)]`: any typo produces `AgError::Config` with
+the exact name of the unknown field.
+
+```rust,no_run
+use ag_core::{Shield, ShieldConfig};
+
+# async fn run() -> Result<(), ag_core::AgError> {
+let config = ShieldConfig::from_path("config.toml")?;
+let shield = Shield::try_new(config)?;
+# let _ = shield;
+# Ok(())
+# }
+```
+
+The reference file with every section documented is at
+`crates/ag-core/config.example.toml`. Section summary:
+
+```toml
+bind = "0.0.0.0:8080"
+
+[runtime]
+blocking_threads = 512
+
+[cors]
+enabled = false
+allow_origins = []
+allow_methods = ["GET", "POST"]
+allow_headers = ["content-type", "authorization"]
+allow_credentials = false
+
+[csrf]
+enabled = false
+token_header = "x-csrf-token"
+token_cookie = "ag_csrf"
+
+[rate_limit]
+enabled = false
+per_ip_rps = 100
+burst = 200
+
+[auth]
+enabled = false
+# public_key_pem = "..."
+# public_key_path = "/etc/anti-gravital/jwt.public.pem"
+# expected_issuer = "https://auth.example.com/"
+# expected_audience = "anti-gravital"
+
+[tls]
+enabled = false
+# cert_path = "/etc/anti-gravital/tls.cert.pem"
+# key_path = "/etc/anti-gravital/tls.key.pem"
+```
+
+The layers stay disabled by default. Activation is declarative and
+explicit.
+
+## 1.5 Layers by order of application
+
+`Shield::apply(router)` wraps the router from the inside out. What
+appears as the last `.layer()` is what the request sees first. For
+operational safety, the current order is:
+
+1. **Logging** (outermost): traces with method, path, status and
+   latency. Active whenever the `logging` feature is present.
+2. **Rate limit**: per-IP token bucket. Rejects before spending CPU on
+   cryptographic validation.
+3. **CORS**: responses for preflight and allowed-origin headers.
+4. **Auth-JWT**: verifies `Authorization: Bearer <token>` (Ed25519) and
+   injects `AuthContext` into the request extensions.
+5. **CSRF** (innermost): double-submit cookie over mutating methods. It
+   only runs once auth has passed, so an attacker without a token does
+   not consume the CSRF cycle.
+
+The **validation** layer is not Tower middleware; it is an extractor
+(`ValidatedJson<T>`) used per handler.
+
+## 1.6 Enable TLS with a self-signed cert in development
+
+For local development with HTTPS, generate a self-signed certificate and
+configure `[tls]`:
+
+```sh
+# Once, with openssl or mkcert.
+mkcert -install
+mkcert -cert-file dev-cert.pem -key-file dev-key.pem localhost 127.0.0.1
+```
+
+```toml
+[tls]
+enabled = true
+cert_path = "dev-cert.pem"
+key_path = "dev-key.pem"
+```
+
+When `[tls].enabled = true`, `Shield::serve` wraps each accepted TCP
+connection with `tokio_rustls::TlsAcceptor`. It also injects the peer's
+`ConnectInfo<SocketAddr>` into every request so the rate-limit layer can
+identify the client.
+
+In production behind a load balancer that already terminates TLS
+(Cloudflare, AWS ALB, Nginx, Caddy), leave `[tls].enabled = false`. The
+balancer does the termination and the Shield only serves plaintext
+locally.
+
+## 1.7 Enable JWT Ed25519 authentication
+
+Generate the Ed25519 key pair outside Anti-Gravital (a separate
+authentication service issues tokens) and configure the public key:
+
+```toml
+[auth]
+enabled = true
+public_key_path = "/etc/anti-gravital/jwt.public.pem"
+expected_issuer = "https://auth.example.com/"
+expected_audience = "anti-gravital"
+```
+
+In a handler, consume the claims via the `Claims<T>` extractor where `T`
+is the struct describing your claims:
+
+```rust
+use ag_core::shield::Claims;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct AppClaims {
+    sub: String,
+    exp: u64,
+    role: String,
+}
+
+async fn me_handler(Claims(c): Claims<AppClaims>) -> String {
+    format!("hello {} (role: {})", c.sub, c.role)
+}
+```
+
+`Claims<T>` fails with `AgError::Auth` if the `auth-jwt` layer is not
+active or if the JWT claims cannot be deserialized to the type `T`. The
+cryptographic verification happens in the layer, not in the extractor.
+
+The `leeway` for `exp` and `nbf` is forced to 0 seconds to avoid silent
+tolerance to clock drift. If your system needs a margin, open an RFC.
+
+## 1.8 Per-handler payload validation
+
+To validate a request body, implement the `Validate` trait on the
+request type and use the `ValidatedJson<T>` extractor:
+
+```rust
+use ag_core::shield::{Validate, ValidatedJson, ValidationErrors};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct CreatePost {
+    title: String,
+}
+
+impl Validate for CreatePost {
+    fn validate(&self, errors: &mut ValidationErrors) {
+        if self.title.is_empty() {
+            errors.add("title", "must not be empty");
+        }
+        if self.title.len() > 200 {
+            errors.add("title", "too long, max 200 chars");
+        }
+    }
+}
+
+async fn create_post(ValidatedJson(post): ValidatedJson<CreatePost>) -> String {
+    format!("created \"{}\"", post.title)
+}
+```
+
+A failure produces `AgError::Validation` with status 422 and a JSON body
+that lists the per-field errors. From Phase 3 on, the DSL codegen
+generates these `impl Validate` automatically from the annotations in
+`schema.ag`.
+
+## 1.9 Enable rate-limit and CSRF
+
+Per-IP token-bucket rate limit:
+
+```toml
+[rate_limit]
+enabled = true
+per_ip_rps = 100
+burst = 200
+```
+
+CSRF double-submit cookie (issuing the cookie is the project's
+responsibility, typically a dedicated endpoint):
+
+```toml
+[csrf]
+enabled = true
+token_header = "x-csrf-token"
+token_cookie = "ag_csrf"
+```
+
+CSRF is applied only to state-mutating methods (POST, PUT, PATCH,
+DELETE). GET, HEAD, OPTIONS and TRACE pass without verification.
+
+## 1.10 Errors and observability
+
+Every error the pipeline produces implements
+`axum::response::IntoResponse` via `AgError`. The JSON body has a stable
+shape:
+
+```json
+{
+  "code": "auth_error",
+  "message": "invalid token: ExpiredSignature"
+}
+```
+
+The `code` field is a stable `snake_case` identifier. Current codes:
+`config_error`, `tls_error`, `auth_error`, `rate_limit_exceeded`,
+`validation_error`, `cors_error`, `csrf_error`, `io_error`,
+`internal_error`.
+
+The logging layer emits one `tracing` event per request with `method`,
+`path`, `status` and `latency_ms`. For full observability, the
+`ag-observe` module (Phase 4) adds OpenTelemetry and Prometheus metrics.
+
+## 1.11 Deployment
+
+Recommendations for a production deployment:
+
+- Use `cargo build --release` with the workspace profile (LTO `fat`,
+  `codegen-units = 1`, `panic = abort`, `strip = symbols`,
+  `opt-level = 3`).
+- If you are behind a load balancer that terminates TLS, leave
+  `[tls].enabled = false`.
+- Set `RUST_LOG` to control tracing verbosity. Example:
+  `RUST_LOG=info,ag_core=debug`.
+- For HTTP/2, no special change: Axum negotiates HTTP/1.1 or HTTP/2 via
+  ALPN when TLS is active, and supports both over plaintext via upgrade.
+- To measure production, see `docs/benchmarks/measurement-template.md`
+  and use `oha` or `wrk` against the release binary.
+
+## 1.12 What the Shield is NOT
+
+The Shield is not an application router. The router is Axum, composed
+separately and passed to `Shield::apply`. It is also not a complete auth
+system: the Shield verifies tokens issued by third parties, it does not
+issue them. It does not handle sessions, stateful cookies, multi-tenancy
+or complex RBAC: that belongs to the `ag-auth` module in Phase 4.
+
+## 1.13 Cross references
+
+- Code: `crates/ag-core/`.
+- API documentation: run `cargo doc --workspace --no-deps --open`.
+- Binary example: `crates/ag-core/examples/hello_world.rs`.
+- TOML config example: `crates/ag-core/config.example.toml`.
+- E2E tests that serve as practical reference:
+  `crates/ag-core/tests/shield_full_pipeline.rs`,
+  `crates/ag-core/tests/shield_tls.rs`,
+  `crates/ag-core/tests/shield_auth.rs`,
+  `crates/ag-core/tests/shield_csrf.rs`,
+  `crates/ag-core/tests/shield_cors.rs`,
+  `crates/ag-core/tests/shield_rate_limit.rs`,
+  `crates/ag-core/tests/shield_validation.rs`.
+- RFC: `docs/rfc/RFC-0002-diseno-shield-mvp.md`.
+- Master: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`
+  chapter 6.
+- Roadmap: `docs/roadmap/fase-01-shield-mvp.md`.
+
+---
+
 # Capitulo 1. La Shield de `ag-core` como libreria
 
 > Fuente arquitectonica: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md`

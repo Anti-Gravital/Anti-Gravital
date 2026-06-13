@@ -20,6 +20,7 @@ workspace = true
 [features]
 default = []
 auth = ["dep:ag-auth"]
+lossy-webp = ["dep:webp"]
 s3   = ["dep:object_store"]
 
 [dependencies]
@@ -33,6 +34,7 @@ getrandom     = { workspace = true }
 governor      = { workspace = true }
 http          = { workspace = true }
 image         = { workspace = true }
+webp          = { version = "0.3.1", optional = true, default-features = false }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
 thiserror     = { workspace = true }

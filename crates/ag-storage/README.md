@@ -97,7 +97,8 @@ Variable de entorno: `STORAGE_SIGN_SECRET` (string arbitrario).
 
 ## Features
 
-- `auth` -- Valida JWT via `ag-auth` en el servidor HTTP.
+- `auth` -- Reserva la integracion futura con `ag-auth`; el servidor usa hoy el token estatico `STORE_TOKEN`.
+- `lossy-webp` -- Codificacion WebP con calidad configurable via `libwebp`; sin este feature, WebP permanece lossless.
 - `s3` -- Adaptadores AWS S3 y MinIO via `object_store 0.11`.
 
 ## Seguridad

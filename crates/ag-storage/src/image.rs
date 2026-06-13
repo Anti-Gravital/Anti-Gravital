@@ -60,15 +60,31 @@ impl ImageProcessor {
         encode(thumb, fmt)
     }
 
-    /// Converts the image to lossless WebP.
+    /// Converts the image to WebP.
     ///
-    /// `_quality` is ignored: `image` 0.25 only exposes lossless WebP.
-    ///
-    /// TECH-DEBT (issue #146): lossy WebP with configurable quality pending.
-    pub fn to_webp(&self, data: impl AsRef<[u8]>, _quality: u8) -> Result<Bytes, StorageError> {
+    /// With the `lossy-webp` feature, `quality` controls lossy encoding from 0
+    /// (smallest) to 100 (highest quality). Without it, encoding remains
+    /// lossless and the quality value has no effect.
+    pub fn to_webp(&self, data: impl AsRef<[u8]>, quality: u8) -> Result<Bytes, StorageError> {
         let img = load(data.as_ref())?;
-        encode(img, ImageFormat::WebP)
+        #[cfg(feature = "lossy-webp")]
+        {
+            encode_webp_lossy(img, quality)
+        }
+        #[cfg(not(feature = "lossy-webp"))]
+        {
+            let _ = quality;
+            encode(img, ImageFormat::WebP)
+        }
     }
+}
+
+#[cfg(feature = "lossy-webp")]
+fn encode_webp_lossy(img: DynamicImage, quality: u8) -> Result<Bytes, StorageError> {
+    let rgba = img.to_rgba8();
+    let encoder = webp::Encoder::from_rgba(rgba.as_raw(), rgba.width(), rgba.height());
+    let encoded = encoder.encode(f32::from(quality));
+    Ok(Bytes::copy_from_slice(&encoded))
 }
 
 fn load(data: &[u8]) -> Result<DynamicImage, StorageError> {
@@ -95,6 +111,18 @@ mod tests {
         let img = DynamicImage::new_rgb8(100, 100);
         let mut buf = Cursor::new(Vec::new());
         img.write_to(&mut buf, ImageFormat::Jpeg).unwrap();
+        buf.into_inner()
+    }
+
+    #[cfg(feature = "lossy-webp")]
+    fn test_gradient_png() -> Vec<u8> {
+        let img = image::ImageBuffer::from_fn(128, 128, |x, y| {
+            image::Rgba([(x * 2) as u8, (y * 2) as u8, (x ^ y) as u8, 255])
+        });
+        let mut buf = Cursor::new(Vec::new());
+        DynamicImage::ImageRgba8(img)
+            .write_to(&mut buf, ImageFormat::Png)
+            .unwrap();
         buf.into_inner()
     }
 
@@ -132,6 +160,19 @@ mod tests {
             "alto esperado <= 30, obtenido: {}",
             thumb.height()
         );
+    }
+
+    #[cfg(feature = "lossy-webp")]
+    #[test]
+    fn image_to_webp_quality_changes_encoded_size() {
+        let processor = ImageProcessor::new();
+        let src = test_gradient_png();
+        let low = processor.to_webp(&src, 10).unwrap();
+        let high = processor.to_webp(&src, 90).unwrap();
+
+        assert_ne!(low.len(), high.len());
+        assert!(image::load_from_memory(&low).is_ok());
+        assert!(image::load_from_memory(&high).is_ok());
     }
 
     #[test]

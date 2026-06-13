@@ -7,6 +7,21 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-auth: remove panic paths from the public WebAuthn API
+
+Changed:
+
+- `ag-auth`: `WebAuthnRp::start_registration` and `start_authentication` now
+  return `Result<_, WebAuthnError>` and propagate a new `WebAuthnError::Entropy`
+  variant instead of panicking when the system entropy source fails. This is a
+  pre-1.0 breaking change to those two signatures.
+- `ag-auth`: `parse_raw_auth_data` reads its fixed-size header via
+  `split_first_chunk`, so the length invariant is proven by the type system and
+  no slice `unwrap` panic is reachable; a short buffer returns a typed error
+  (covered by a new test).
+- `ag-auth`: the `RefreshBlacklist` lock-poisoning policy (fail fast on a
+  poisoned lock for a security control) is documented once at module level.
+
 ### ag-storage: English docs and display strings (ADR-0008)
 
 Changed:

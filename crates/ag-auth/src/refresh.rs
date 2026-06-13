@@ -4,6 +4,14 @@
 //! until `clear` is called to free memory.
 //! Not persistent across restarts — compatible with stateless architectures
 //! where the same pod handles active sessions.
+//!
+//! Lock-poisoning policy: the methods below `expect` on the internal `RwLock`.
+//! A poisoned lock means another thread panicked while holding it, which can
+//! only leave the revocation set in an undefined state. For a security
+//! control, continuing with a possibly inconsistent blacklist is worse than
+//! failing fast, so propagating the panic (process abort under `panic = abort`,
+//! or unwinding otherwise) is the deliberate, documented policy rather than
+//! silently recovering the poisoned guard.
 
 use std::collections::HashSet;
 use std::sync::RwLock;

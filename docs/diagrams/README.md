@@ -27,7 +27,13 @@ auditabilidad por diff.
 - Los diagramas reemplazan a un fragmento textual cuando el grafo es
   mas claro que la prosa, nunca como adorno.
 
-## Estado
+## Diagramas disponibles
 
-Fase 0: vacia salvo este README. Los primeros diagramas tecnicos
-llegan con la Fase 1 (Shield) y la Fase 2 (Core).
+- `workspace-dependencies.md` — mapa de dependencias entre crates.
+- `request-flow-shield.md` — flujo de un request a traves del Shield.
+- `dsl-pipeline.md` — pipeline de compilacion del Anti-DSL.
+- `mail-workers-dataflow.md` — flujo de correo y jobs (`ag-mail`/`ag-workers`).
+
+Las fuentes Mermaid van embebidas en su `.md` (bloque ```mermaid```), que
+GitHub renderiza y que se audita por diff. Se anaden mas diagramas a medida
+que crecen las fases.

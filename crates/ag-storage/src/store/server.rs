@@ -140,9 +140,7 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 }
 
 fn etag_for(data: &Bytes) -> String {
-    // TECH-DEBT (issue #147): strong ETag truncated to 64 bits; full hash pending.
-    let hash = blake3::hash(data);
-    format!("\"{}\"", &hash.to_hex()[..16])
+    format!("\"{}\"", blake3::hash(data).to_hex())
 }
 
 // ---------------------------------------------------------------------------
@@ -432,6 +430,16 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         // The untrusted byte is percent-encoded in the echoed header.
         assert_eq!(resp.headers()["X-AG-Store-Key"], "a%7Fb.txt");
+    }
+
+    #[test]
+    fn etag_uses_full_digest_and_distinguishes_content() {
+        let first = etag_for(&Bytes::from_static(b"first"));
+        let second = etag_for(&Bytes::from_static(b"second"));
+
+        assert_eq!(first, format!("\"{}\"", blake3::hash(b"first").to_hex()));
+        assert_eq!(first.len(), 66);
+        assert_ne!(first, second);
     }
 
     #[test]

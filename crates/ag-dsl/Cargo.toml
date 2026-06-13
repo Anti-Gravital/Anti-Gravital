@@ -24,3 +24,6 @@ chumsky = { workspace = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
 regex = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

@@ -87,6 +87,7 @@ x509-parser = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 tokio = { workspace = true, features = ["test-util", "rt-multi-thread", "macros", "net"] }
 wiremock = { workspace = true }
 reqwest = { workspace = true }

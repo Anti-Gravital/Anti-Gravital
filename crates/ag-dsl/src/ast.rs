@@ -496,8 +496,9 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         if ch.is_uppercase() && i > 0 {
             result.push('_');
         }
-        // TECH-DEBT (issue #150): unwrap() on char::to_lowercase().next() is provably safe but should be removed.
-        result.push(ch.to_lowercase().next().unwrap());
+        // `to_lowercase()` yields the full Unicode lowercase mapping (1..N
+        // chars); `extend` appends all of them with no `unwrap` panic path.
+        result.extend(ch.to_lowercase());
     }
     result
 }
@@ -610,6 +611,16 @@ mod ast_v05_v06_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn to_snake_case_converts_pascal_and_camel() {
+        assert_eq!(to_snake_case("UserProfile"), "user_profile");
+        assert_eq!(to_snake_case("getUserById"), "get_user_by_id");
+        assert_eq!(to_snake_case("HTTPServer"), "h_t_t_p_server");
+        assert_eq!(to_snake_case("already_snake"), "already_snake");
+        assert_eq!(to_snake_case(""), "");
+        assert_eq!(to_snake_case("X"), "x");
+    }
 
     #[test]
     fn model_ref_rust_type_single() {

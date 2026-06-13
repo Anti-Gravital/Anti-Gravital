@@ -33,6 +33,14 @@ pub struct StorageConfig {
     pub allow_insecure_public: bool,
     /// Static Bearer token. Empty = no authentication (loopback development only).
     pub store_token: String,
+    /// PEM Ed25519 public key for JWT Bearer validation (feature `auth`).
+    ///
+    /// When set and the `auth` feature is enabled, the server validates the
+    /// Bearer as a JWT (Ed25519) via `ag-auth` instead of comparing the static
+    /// `store_token`. `None` keeps static-token mode (the default).
+    /// Variables: `STORAGE_JWT_PUBLIC_KEY` (inline PEM) or
+    /// `STORAGE_JWT_PUBLIC_KEY_PATH` (file).
+    pub jwt_public_key_pem: Option<String>,
     /// Maximum object size in MB. Default: 100.
     pub max_object_size_mb: u64,
     /// HTTP server request rate limit per second. Default: 100.
@@ -62,6 +70,7 @@ impl Default for StorageConfig {
             server_port: 4280,
             allow_insecure_public: false,
             store_token: String::new(),
+            jwt_public_key_pem: None,
             max_object_size_mb: 100,
             rate_limit_rps: 100,
             region: "us-east-1".into(),
@@ -132,6 +141,11 @@ impl StorageConfig {
                 .map(|value| value.eq_ignore_ascii_case("true"))
                 .unwrap_or(false),
             store_token: std::env::var("STORE_TOKEN").unwrap_or_default(),
+            jwt_public_key_pem: std::env::var("STORAGE_JWT_PUBLIC_KEY").ok().or_else(|| {
+                std::env::var("STORAGE_JWT_PUBLIC_KEY_PATH")
+                    .ok()
+                    .and_then(|path| std::fs::read_to_string(path).ok())
+            }),
             max_object_size_mb: std::env::var("STORAGE_MAX_OBJECT_SIZE_MB")
                 .ok()
                 .and_then(|v| v.parse().ok())
@@ -149,11 +163,28 @@ impl StorageConfig {
         }
     }
 
+    /// True when an authentication method is configured (static token, or a
+    /// JWT public key when the `auth` feature is enabled).
+    pub fn is_authenticated(&self) -> bool {
+        if !self.store_token.is_empty() {
+            return true;
+        }
+        #[cfg(feature = "auth")]
+        if self
+            .jwt_public_key_pem
+            .as_ref()
+            .is_some_and(|pem| !pem.trim().is_empty())
+        {
+            return true;
+        }
+        false
+    }
+
     /// Validates that server exposure is authenticated or deliberately local.
     pub fn validate_server_security(&self) -> Result<(), StorageError> {
         if self.server_mode
             && !self.server_bind.is_loopback()
-            && self.store_token.is_empty()
+            && !self.is_authenticated()
             && !self.allow_insecure_public
         {
             return Err(StorageError::Config(

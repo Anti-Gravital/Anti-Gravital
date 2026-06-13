@@ -97,6 +97,7 @@ sha2 = { workspace = true, optional = true }
 base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 # Self dev-dependency so integration tests in `tests/` compile the library with
 # `test-utils` on, exposing `NullSender`. Without this the `#[ignore]` Postgres

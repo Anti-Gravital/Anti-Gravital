@@ -17,4 +17,9 @@
 
   El titulo de la pull request es la linea `Resumen` del descriptor,
   con un maximo de 256 caracteres.
+
+  El descriptor DEBE incluir una seccion `## Cierre de issues` con
+  `Closes #NNN` por cada issue que la PR resuelve (o `Closes: none`).
+  GitHub solo auto-cierra issues al fusionar si el cuerpo de la PR usa
+  esas palabras clave; una referencia suelta `#NNN` no cierra.
 -->

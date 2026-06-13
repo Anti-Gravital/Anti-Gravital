@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Capa de datos sqlx con verificacion compile-time y migraciones"
+description = "sqlx data layer with compile-time verification and migrations"
 keywords.workspace = true
 categories.workspace = true
 publish = false
@@ -24,3 +24,6 @@ sqlx = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

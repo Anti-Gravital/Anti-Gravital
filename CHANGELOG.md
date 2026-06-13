@@ -7,6 +7,17 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-mail: English error display strings (ADR-0008)
+
+Changed:
+
+- `ag-mail`: the `#[error(...)]` display strings of `AgMailError`
+  (`crates/ag-mail/src/error.rs`) are now English. These strings are
+  user-visible: they surface in logs, traces and REST error payloads.
+  `SendExhausted`, `InvalidAddress`, `Template`, `VarMismatch`, `Config`,
+  `Provider`, `Dns`, `NoMailHost` and `Dkim` changed their rendered text;
+  no variant, field or public API changed.
+
 ### README raiz reestructurado (2026-06-12)
 
 Cambiado:

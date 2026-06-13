@@ -67,9 +67,9 @@ minijinja = { version = "2", optional = true }
 # Metricas
 metrics = { workspace = true, optional = true }
 
-# Backend PostgreSQL compartido de ag-workers (feature "workers-postgres"): sqlx
-# da acceso al pool en la suite de paridad. ag-data/chrono/uuid se retiraron con
-# la cola generica duplicada (RFC-0012 S7/M4).
+# Shared ag-workers PostgreSQL backend (feature "workers-postgres"): sqlx gives
+# the parity suite access to the pool. ag-data/chrono/uuid were dropped together
+# with the duplicated generic queue (RFC-0012 S7/M4).
 sqlx = { workspace = true, optional = true }
 
 # Motor de ejecucion en segundo plano compartido (features "workers" /

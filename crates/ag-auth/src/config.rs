@@ -53,6 +53,7 @@ impl AuthConfig {
 
 /// Authentication configuration error.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum AuthConfigError {
     /// Required environment variable not defined.
     MissingVar(&'static str),

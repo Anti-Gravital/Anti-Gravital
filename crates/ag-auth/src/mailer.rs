@@ -23,6 +23,7 @@ use ag_mail::{
 
 /// Error that an authentication email operation can produce.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AuthMailerError {
     /// The underlying sender rejected or failed to send.
     #[error("send failure: {0}")]

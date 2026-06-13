@@ -8,6 +8,7 @@ use thiserror::Error;
 
 /// Errors produced by `ag-mail` operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AgMailError {
     /// The email could not be sent after exhausting the retries.
     #[error("mail send exhausted after retries: {0}")]

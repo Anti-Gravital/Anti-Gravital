@@ -27,6 +27,7 @@ pub struct IssuedCertificate {
 
 /// Errors from the issuance orchestration.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum IssuanceError {
     /// The SAN set was empty.
     #[error("empty SAN set")]

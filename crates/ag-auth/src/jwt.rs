@@ -81,6 +81,7 @@ impl JwtSigner {
 
 /// Errors of the JWT module.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum JwtError {
     /// Signing error: invalid key or internal failure.
     #[error("JWT signing error: {0}")]

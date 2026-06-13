@@ -8,6 +8,7 @@ use thiserror::Error;
 
 /// Errors produced by `ag-domains` operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AgDomainsError {
     /// The requested DNS zone does not exist in the provider.
     #[error("zona DNS no encontrada: {0}")]

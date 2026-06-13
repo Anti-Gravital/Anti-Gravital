@@ -20,6 +20,7 @@ use crate::payload::{decode_versioned, PayloadBytes};
 
 /// Error building a registry.
 #[derive(Debug, Error, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RegistryError {
     /// Two handlers claimed the same kind.
     #[error("duplicate handler kind: {0}")]

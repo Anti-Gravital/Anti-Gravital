@@ -65,6 +65,7 @@ pub struct AuthenticationChallenge {
 
 /// WebAuthn subsystem error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum WebAuthnError {
     /// Challenge not found or expired.
     #[error("challenge not found or expired")]

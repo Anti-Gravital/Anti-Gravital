@@ -53,6 +53,7 @@ use std::time::Duration;
 
 /// Error from the cache subsystem.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum CacheError {
     /// Connection or communication error with Redis.
     Redis(String),

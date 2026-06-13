@@ -21,6 +21,7 @@ use crate::outcome::DeadLetterReason;
 
 /// Errors produced by a queue backend.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum QueueError {
     /// The queue is at capacity; the enqueue was rejected (backpressure).
     #[error("queue '{0}' is full")]

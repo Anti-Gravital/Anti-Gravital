@@ -47,6 +47,7 @@ pub struct OAuthUser {
 
 /// OAuth2 client error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum OAuthError {
     /// Provider not configured.
     #[error("provider {0} not configured")]

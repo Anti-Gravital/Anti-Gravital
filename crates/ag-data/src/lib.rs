@@ -113,6 +113,7 @@ impl AgTx {
 
 /// Data layer error.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum DataError {
     /// Error originating in sqlx (connection, query, protocol).
     #[error("sqlx error: {0}")]

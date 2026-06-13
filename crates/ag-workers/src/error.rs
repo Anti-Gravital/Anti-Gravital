@@ -12,6 +12,7 @@ use crate::payload::PayloadError;
 
 /// Classification of a handler failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum WorkerErrorKind {
     /// Transient failure; obey the backoff policy and retry.
     Retriable,

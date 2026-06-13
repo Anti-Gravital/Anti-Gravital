@@ -15,6 +15,7 @@ use tokio_stream::wrappers::ReceiverStream;
 
 /// External NATS client error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum NatsError {
     /// Connection error to the NATS server.
     #[error("error de conexion NATS: {0}")]

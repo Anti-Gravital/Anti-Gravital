@@ -29,6 +29,7 @@ use thiserror::Error;
 
 /// Storage subsystem error.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum StorageError {
     /// No object found with the given key.
     #[error("object not found: {0}")]

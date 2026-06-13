@@ -15,6 +15,7 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Error returned when verifying a signed URL.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum SignedUrlError {
     /// The signature does not match (possible tampering).
     InvalidSignature,

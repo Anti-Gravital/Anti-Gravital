@@ -50,3 +50,6 @@ futures-util  = { workspace = true }
 tempfile = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 proptest = { workspace = true }
+# Generate Ed25519 PKCS#8 PEM keypairs for the JWT auth-feature tests.
+ed25519-dalek = { workspace = true }
+rand_core = { workspace = true }

@@ -7,6 +7,17 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-storage: implement the `auth` feature (JWT Ed25519 via ag-auth)
+
+Added:
+
+- `ag-storage`: with the `auth` feature, the HTTP server validates the Bearer
+  as an Ed25519 JWT through `ag-auth` when a PEM public key is configured
+  (`StorageConfig::jwt_public_key_pem`, env `STORAGE_JWT_PUBLIC_KEY` /
+  `STORAGE_JWT_PUBLIC_KEY_PATH`). Static-token mode remains the default; the
+  public-bind security check now treats a configured JWT key as authenticated.
+  The middleware state changed from `Arc<String>` to `AuthState`.
+
 ### ag-auth: remove panic paths from the public WebAuthn API
 
 Changed:

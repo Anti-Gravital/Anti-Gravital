@@ -61,7 +61,7 @@ pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
     let rps = NonZeroU32::new(config.rate_limit_rps).unwrap_or(NonZeroU32::MIN);
     let limiter: Arc<DefaultDirectRateLimiter> =
         Arc::new(RateLimiter::direct(Quota::per_second(rps)));
-    let token = Arc::new(config.store_token.clone());
+    let auth_state = super::auth::AuthState::from_config(config);
     let max_body = config.max_object_size_mb as usize * 1024 * 1024;
 
     let protected = Router::new()
@@ -79,7 +79,7 @@ pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
                     rate_limit_middleware,
                 ))
                 .layer(axum::middleware::from_fn_with_state(
-                    token,
+                    auth_state,
                     bearer_auth_middleware,
                 )),
         );

@@ -2,10 +2,11 @@
 
 > Regla 33 de `CLAUDE.md`.
 
-Esta carpeta alojara el knowledge graph autogenerado del proyecto a
-partir de la Fase 6. El graph se deriva del AST del DSL y se persiste
-en `.ag/knowledge-graph.json` dentro de cada proyecto usuario; la
-version curada del proyecto general vive aqui.
+Esta carpeta aloja el knowledge graph curado del proyecto. El graph
+autogenerado por-proyecto se deriva del AST del DSL y se persiste en
+`.ag/knowledge-graph.json` dentro de cada proyecto usuario (entregable de la
+Fase 6); la version curada del proyecto general vive aqui y se mantiene a
+mano a partir de los manifiestos, la CLI y el pipeline del DSL.
 
 Componentes previstos:
 
@@ -22,7 +23,13 @@ Formatos preferidos:
 - OpenAPI cuando aplique.
 - Mermaid embebido en Markdown para visualizacion.
 
-## Estado
+## Contenido disponible
 
-Fase 0: placeholder. La generacion automatica se implementa en el
-crate `ag-ai` durante la Fase 6.
+- `knowledge-graph.json` — graph curado, legible por maquina: crates con su
+  clasificacion, relaciones de dependencia, reglas de dependencia, comandos
+  de la CLI y artefactos del DSL.
+- `crates.md` — espejo legible por humanos del mismo contenido.
+
+Los diagramas Mermaid asociados viven en `docs/diagrams/`. La generacion
+automatica del graph por-proyecto se implementa en el crate `ag-ai` durante
+la Fase 6 y no reemplaza a estos archivos curados.

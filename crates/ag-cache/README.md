@@ -5,7 +5,7 @@ and optional native L2 RESP2 server compatible with any Redis client.
 
 > Status: Phase 4 — L1 implemented (in-process, tag-based invalidation, moka).
 > Native RESP2 L2 server implemented under feature `native-server` (RFC-0005).
-> External Redis L2 remains deferred (TECH-DEBT).
+> External Redis L2 remains deferred (issue #144).
 
 ## Minimal usage (L1 only)
 

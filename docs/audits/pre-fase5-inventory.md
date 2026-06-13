@@ -68,7 +68,7 @@ skeleton. LOC is `src/` only. "Tests" counts `#[test]`/`#[tokio::test]` in
 - **Cargo features:** none.
 - **Main deps:** logos (lexer), chumsky (parser).
 - **Open debt:** none crate-specific.
-- **Risks:** 24h fuzz gate pending (STATUS.md Phase 3, `- [/]`); a lexer panic
+- **Risks:** 24h fuzz gate pending (STATUS.md Phase 3, `- [/]`; issue #156); a lexer panic
   on integers > i64::MAX was found and fixed (commit ff85c6f). LOC ~6829 (largest
   crate).
 

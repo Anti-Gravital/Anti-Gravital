@@ -19,6 +19,7 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Errors from signing-secret parsing or signature verification.
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum WebhookError {
     /// The signing secret could not be decoded or was empty.
     #[error("invalid webhook signing secret")]

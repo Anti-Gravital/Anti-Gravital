@@ -46,6 +46,7 @@ impl PayloadBytes {
 
 /// Errors produced while encoding, decoding or migrating a payload.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum PayloadError {
     /// The typed payload could not be serialized.
     #[error("payload encode failed: {0}")]

@@ -7,6 +7,52 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-auth: remove panic paths from the public WebAuthn API
+
+Changed:
+
+- `ag-auth`: `WebAuthnRp::start_registration` and `start_authentication` now
+  return `Result<_, WebAuthnError>` and propagate a new `WebAuthnError::Entropy`
+  variant instead of panicking when the system entropy source fails. This is a
+  pre-1.0 breaking change to those two signatures.
+- `ag-auth`: `parse_raw_auth_data` reads its fixed-size header via
+  `split_first_chunk`, so the length invariant is proven by the type system and
+  no slice `unwrap` panic is reachable; a short buffer returns a typed error
+  (covered by a new test).
+- `ag-auth`: the `RefreshBlacklist` lock-poisoning policy (fail fast on a
+  poisoned lock for a security control) is documented once at module level.
+
+### ag-storage: English docs and display strings (ADR-0008)
+
+Changed:
+
+- `ag-storage`: `crates/ag-storage/src/signed.rs` doc comments, `Display`
+  messages and test messages are now English. The `Display` strings of
+  `StorageError` (observable in logs and error payloads) were translated as
+  well. No variant, field or public API changed. The remaining non-ASCII
+  bytes in `ag-storage` source are deliberate Unicode test fixtures, not
+  Spanish text.
+
+### ag-auth: English residual comments and messages (ADR-0008)
+
+Changed:
+
+- `ag-auth`: residual Spanish comments and `expect`/`assert`/panic messages in
+  `crates/ag-auth/src` are now English. The `Display` strings of `JwtError`,
+  `AuthMailerError` and `AuthConfigError` (observable in logs and error
+  payloads) were translated as well. No variant, field or public API changed.
+
+### ag-mail: English error display strings (ADR-0008)
+
+Changed:
+
+- `ag-mail`: the `#[error(...)]` display strings of `AgMailError`
+  (`crates/ag-mail/src/error.rs`) are now English. These strings are
+  user-visible: they surface in logs, traces and REST error payloads.
+  `SendExhausted`, `InvalidAddress`, `Template`, `VarMismatch`, `Config`,
+  `Provider`, `Dns`, `NoMailHost` and `Dkim` changed their rendered text;
+  no variant, field or public API changed.
+
 ### README raiz reestructurado (2026-06-12)
 
 Cambiado:

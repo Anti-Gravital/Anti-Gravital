@@ -53,6 +53,7 @@ impl AuthConfig {
 
 /// Authentication configuration error.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum AuthConfigError {
     /// Required environment variable not defined.
     MissingVar(&'static str),
@@ -62,7 +63,7 @@ impl std::fmt::Display for AuthConfigError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AuthConfigError::MissingVar(v) => {
-                write!(f, "variable de entorno requerida no definida: {v}")
+                write!(f, "required environment variable not set: {v}")
             }
         }
     }
@@ -91,8 +92,8 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("JWT_PRIVATE_KEY", "fake-private");
         std::env::set_var("JWT_PUBLIC_KEY", "fake-public");
-        let config = AuthConfig::from_env()
-            .expect("debe construirse con JWT_PRIVATE_KEY y JWT_PUBLIC_KEY definidas");
+        let config =
+            AuthConfig::from_env().expect("must build with JWT_PRIVATE_KEY and JWT_PUBLIC_KEY set");
         assert_eq!(config.jwt_private_key_pem, "fake-private");
         assert_eq!(config.jwt_public_key_pem, "fake-public");
         std::env::remove_var("JWT_PRIVATE_KEY");

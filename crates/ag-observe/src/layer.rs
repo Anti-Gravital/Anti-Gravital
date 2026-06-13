@@ -6,6 +6,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 /// Initialization error for the observability subsystem.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum ObserveError {
     /// The global subscriber was already initialized.
     AlreadyInitialized,

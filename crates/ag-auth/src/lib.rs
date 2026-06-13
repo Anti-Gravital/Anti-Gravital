@@ -143,10 +143,16 @@ mod tests {
 
     #[test]
     fn new_succeeds_with_valid_config() {
-        let auth = AgAuth::new(fake_config(), http()).expect("debe construirse con config valida");
+        let auth = AgAuth::new(fake_config(), http()).expect("must build with a valid config");
         let _ = &auth.jwt;
-        assert!(auth.webauthn.is_none(), "sin rp_id, webauthn debe ser None");
-        assert!(auth.oauth.is_none(), "sin providers, oauth debe ser None");
+        assert!(
+            auth.webauthn.is_none(),
+            "without rp_id, webauthn must be None"
+        );
+        assert!(
+            auth.oauth.is_none(),
+            "without providers, oauth must be None"
+        );
     }
 
     #[test]
@@ -171,10 +177,7 @@ mod tests {
     fn create_api_key_uses_prefix() {
         let auth = AgAuth::new(fake_config(), http()).unwrap();
         let (raw, _hash) = auth.create_api_key("sk");
-        assert!(
-            raw.starts_with("sk_"),
-            "raw key debe iniciar con el prefijo"
-        );
+        assert!(raw.starts_with("sk_"), "raw key must start with the prefix");
     }
 
     #[test]
@@ -183,7 +186,7 @@ mod tests {
         let (raw, hash) = auth.create_api_key("test");
         assert!(
             auth.verify_api_key(&raw, &hash),
-            "la key generada debe verificar"
+            "the generated key must verify"
         );
     }
 

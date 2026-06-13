@@ -19,6 +19,7 @@ use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 
 /// Errors building or loading a certificate.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum TlsError {
     /// PEM could not be parsed.
     #[error("invalid PEM: {0}")]

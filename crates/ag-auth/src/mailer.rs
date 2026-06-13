@@ -23,9 +23,10 @@ use ag_mail::{
 
 /// Error that an authentication email operation can produce.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AuthMailerError {
     /// The underlying sender rejected or failed to send.
-    #[error("fallo de envio: {0}")]
+    #[error("send failure: {0}")]
     Send(#[from] AgMailError),
 }
 
@@ -267,26 +268,24 @@ mod tests {
             .send_verification("u@e.com", "TOKEN", "https://base.com")
             .await
             .unwrap();
-        let email = null
-            .last_email()
-            .expect("debe haber un email en NullSender");
+        let email = null.last_email().expect("NullSender must hold an email");
         let html = email.html_body.unwrap_or_default();
         assert!(
             html.contains("https://base.com/verify?token=TOKEN"),
-            "html debe contener el enlace completo"
+            "html must contain the full link"
         );
         assert!(
             html.contains("Proyecto"),
-            "html debe contener el nombre del proyecto"
+            "html must contain the project name"
         );
     }
 
     #[test]
     fn render_html_substitutes_vars() {
         let result = render_html(
-            "Hola {{name}}, enlace: {{link}}",
+            "Hello {{name}}, link: {{link}}",
             &[("name", "Angel"), ("link", "https://x.com")],
         );
-        assert_eq!(result, "Hola Angel, enlace: https://x.com");
+        assert_eq!(result, "Hello Angel, link: https://x.com");
     }
 }

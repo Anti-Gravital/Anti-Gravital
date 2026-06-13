@@ -8,31 +8,32 @@ use thiserror::Error;
 
 /// Errors produced by `ag-mail` operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AgMailError {
     /// The email could not be sent after exhausting the retries.
-    #[error("envio de correo agotado tras reintentos: {0}")]
+    #[error("mail send exhausted after retries: {0}")]
     SendExhausted(String),
 
     /// The source or destination address is not valid.
-    #[error("direccion de correo invalida: {0}")]
+    #[error("invalid mail address: {0}")]
     InvalidAddress(String),
 
     /// The template does not exist or could not be rendered.
-    #[error("error de template: {0}")]
+    #[error("template error: {0}")]
     Template(String),
 
     /// The variables declared in the DSL `mail` block do not match the ones
     /// in the template HTML.
-    #[error("incoherencia entre variables declaradas y template: {0}")]
+    #[error("mismatch between declared variables and template: {0}")]
     VarMismatch(String),
 
     /// Generic configuration error (missing environment variable, invalid
     /// credential, etc).
-    #[error("configuracion invalida: {0}")]
+    #[error("invalid configuration: {0}")]
     Config(String),
 
     /// Generic provider error (native SMTP or adapter).
-    #[error("error del proveedor de correo ({provider}): {message}")]
+    #[error("mail provider error ({provider}): {message}")]
     Provider {
         /// Name of the provider reporting the failure.
         provider: &'static str,
@@ -45,15 +46,15 @@ pub enum AgMailError {
     Queue(String),
 
     /// MX resolution failure for a destination domain (native MTA).
-    #[error("error de resolucion DNS/MX: {0}")]
+    #[error("DNS/MX resolution error: {0}")]
     Dns(String),
 
     /// The destination domain exposes no usable mail host (native MTA).
-    #[error("el dominio destino no expone host de correo: {0}")]
+    #[error("destination domain exposes no mail host: {0}")]
     NoMailHost(String),
 
     /// DKIM signing key or signer construction failure (native MTA).
-    #[error("error de firma DKIM: {0}")]
+    #[error("DKIM signing error: {0}")]
     Dkim(String),
 }
 
@@ -89,10 +90,10 @@ mod tests {
         assert!(AgMailError::Dns("mx".into()).to_string().contains("DNS/MX"));
         assert!(AgMailError::NoMailHost("d".into())
             .to_string()
-            .contains("host de correo"));
+            .contains("mail host"));
         assert!(AgMailError::Dkim("k".into())
             .to_string()
-            .contains("firma DKIM"));
+            .contains("DKIM signing"));
         assert!(AgMailError::Provider {
             provider: "mta",
             message: "boom".into(),

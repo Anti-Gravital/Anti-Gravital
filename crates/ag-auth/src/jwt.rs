@@ -81,15 +81,16 @@ impl JwtSigner {
 
 /// Errors of the JWT module.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum JwtError {
     /// Signing error: invalid key or internal failure.
-    #[error("error de firma JWT: {0}")]
+    #[error("JWT signing error: {0}")]
     Signing(String),
     /// Token with an incorrect signature, expired, or another verification problem.
-    #[error("verificacion JWT fallida: {0}")]
+    #[error("JWT verification failed: {0}")]
     Verification(String),
     /// Incorrect token format (not a valid JWT).
-    #[error("formato de token JWT invalido")]
+    #[error("invalid JWT token format")]
     InvalidToken,
 }
 
@@ -97,9 +98,9 @@ pub enum JwtError {
 mod tests {
     use super::*;
 
-    /// Genera un par de claves Ed25519 PKCS#8 en PEM para uso en tests.
+    /// Generates an Ed25519 PKCS#8 PEM keypair for use in tests.
     ///
-    /// Usa `ed25519-dalek` con `pkcs8` y `pem` features (disponibles en
+    /// Uses `ed25519-dalek` with the `pkcs8` and `pem` features (available in
     /// `[workspace.dependencies]`).
     fn generate_test_keypair() -> (String, String) {
         use ed25519_dalek::pkcs8::spki::der::pem::LineEnding;
@@ -112,11 +113,11 @@ mod tests {
 
         let private_pem = signing_key
             .to_pkcs8_pem(LineEnding::LF)
-            .expect("fallo al codificar clave privada en PKCS8 PEM")
+            .expect("failed to encode private key as PKCS8 PEM")
             .to_string();
         let public_pem = verifying_key
             .to_public_key_pem(LineEnding::LF)
-            .expect("fallo al codificar clave publica en SPKI PEM");
+            .expect("failed to encode public key as SPKI PEM");
 
         (private_pem, public_pem)
     }
@@ -125,7 +126,7 @@ mod tests {
         use std::time::{SystemTime, UNIX_EPOCH};
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("reloj del sistema invalido")
+            .expect("invalid system clock")
             .as_secs();
         let exp = if exp_offset_secs >= 0 {
             now + exp_offset_secs as u64
@@ -146,10 +147,8 @@ mod tests {
         let (priv_pem, pub_pem) = generate_test_keypair();
         let signer = JwtSigner::new(priv_pem, pub_pem);
         let claims = make_claims(3600);
-        let token = signer.sign(&claims).expect("firma debe tener exito");
-        let verified = signer
-            .verify(&token)
-            .expect("verificacion debe tener exito");
+        let token = signer.sign(&claims).expect("signing must succeed");
+        let verified = signer.verify(&token).expect("verification must succeed");
         assert_eq!(verified.sub, claims.sub);
         assert_eq!(verified.role, claims.role);
         assert_eq!(verified.jti, claims.jti);
@@ -159,11 +158,11 @@ mod tests {
     fn jwt_expired_token_returns_error() {
         let (priv_pem, pub_pem) = generate_test_keypair();
         let signer = JwtSigner::new(priv_pem, pub_pem);
-        // Crear token con exp en el pasado.
+        // Create a token with exp in the past.
         let claims = make_claims(-3600);
-        let token = signer.sign(&claims).expect("firma debe tener exito");
+        let token = signer.sign(&claims).expect("signing must succeed");
         let result = signer.verify(&token);
-        assert!(result.is_err(), "token expirado debe retornar Err");
+        assert!(result.is_err(), "expired token must return Err");
     }
 
     #[test]
@@ -171,13 +170,13 @@ mod tests {
         let (priv_pem, pub_pem) = generate_test_keypair();
         let signer = JwtSigner::new(priv_pem, pub_pem);
         let claims = make_claims(3600);
-        let token = signer.sign(&claims).expect("firma debe tener exito");
-        // Modificar el ultimo byte de la firma para invalidar el token.
+        let token = signer.sign(&claims).expect("signing must succeed");
+        // Flip the last byte of the signature to invalidate the token.
         let mut tampered = token.clone();
         tampered.pop();
         tampered.push(if token.ends_with('A') { 'B' } else { 'A' });
         let result = signer.verify(&tampered);
-        assert!(result.is_err(), "token manipulado debe retornar Err");
+        assert!(result.is_err(), "tampered token must return Err");
     }
 
     #[test]
@@ -185,9 +184,6 @@ mod tests {
         let signer = JwtSigner::new("not-a-pem-key".to_string(), "not-a-pem-key".to_string());
         let claims = make_claims(3600);
         let result = signer.sign(&claims);
-        assert!(
-            result.is_err(),
-            "clave PEM malformada debe retornar Err en sign"
-        );
+        assert!(result.is_err(), "malformed PEM key must return Err on sign");
     }
 }

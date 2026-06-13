@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 // ---------------------------------------------------------------------------
-// Tipos publicos
+// Public types
 // ---------------------------------------------------------------------------
 
 /// Credential stored after successful passkey registration.
@@ -65,6 +65,7 @@ pub struct AuthenticationChallenge {
 
 /// WebAuthn subsystem error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum WebAuthnError {
     /// Challenge not found or expired.
     #[error("challenge not found or expired")]
@@ -95,6 +96,9 @@ pub enum WebAuthnError {
     /// Unsupported COSE algorithm.
     #[error("unsupported COSE algorithm: {0}")]
     UnsupportedAlgorithm(i64),
+    /// The system entropy source failed while generating a challenge.
+    #[error("system entropy unavailable: {0}")]
+    Entropy(String),
 }
 
 // ---------------------------------------------------------------------------
@@ -143,9 +147,10 @@ impl WebAuthnRp {
         &mut self,
         user_handle: &str,
         display_name: &str,
-    ) -> RegistrationChallenge {
+    ) -> Result<RegistrationChallenge, WebAuthnError> {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes).expect("system entropy");
+        getrandom::getrandom(&mut challenge_bytes)
+            .map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -172,10 +177,10 @@ impl WebAuthnRp {
             "attestation": "none",
         });
 
-        RegistrationChallenge {
+        Ok(RegistrationChallenge {
             challenge_b64,
             options_json,
-        }
+        })
     }
 
     /// Finalizes registration by verifying the authenticator response.
@@ -214,9 +219,10 @@ impl WebAuthnRp {
         &mut self,
         user_handle: &str,
         creds: &[StoredCredential],
-    ) -> AuthenticationChallenge {
+    ) -> Result<AuthenticationChallenge, WebAuthnError> {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes).expect("system entropy");
+        getrandom::getrandom(&mut challenge_bytes)
+            .map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -244,10 +250,10 @@ impl WebAuthnRp {
             "timeout": 300000,
         });
 
-        AuthenticationChallenge {
+        Ok(AuthenticationChallenge {
             challenge_b64,
             options_json,
-        }
+        })
     }
 
     /// Verifies the authentication response and returns the user_handle if valid.
@@ -358,7 +364,7 @@ fn verify_challenge(
     Ok(())
 }
 
-/// Parsea el attestationObject CBOR y extrae authData.
+/// Parses the CBOR attestationObject and extracts authData.
 fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnError> {
     let value: ciborium::value::Value = ciborium::from_reader(bytes)
         .map_err(|e| WebAuthnError::Format(format!("attestationObject CBOR: {e}")))?;
@@ -381,16 +387,22 @@ fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnErro
     parse_raw_auth_data(&auth_data_bytes)
 }
 
-/// Parsea authData binario (37+ bytes).
+/// Parses the binary authData (37+ bytes).
+///
+/// The leading fixed-size fields are read with `split_first_chunk`, so the
+/// length invariant is proven by the type system: a buffer shorter than the
+/// header yields a typed `Format` error instead of an unchecked slice panic.
 fn parse_raw_auth_data(auth_data: &[u8]) -> Result<ParsedAuthData, WebAuthnError> {
-    if auth_data.len() < 37 {
-        return Err(WebAuthnError::Format("authData too short".into()));
-    }
-    let rp_id_hash: [u8; 32] = auth_data[0..32].try_into().unwrap();
-    let flags = auth_data[32];
+    // authData layout: rpIdHash[32] || flags[1] || signCount[4] || rest.
+    let too_short = || WebAuthnError::Format("authData too short".into());
+    let (rp_id_hash, after_hash) = auth_data.split_first_chunk::<32>().ok_or_else(too_short)?;
+    let rp_id_hash: [u8; 32] = *rp_id_hash;
+    let (flags, after_flags) = after_hash.split_first().ok_or_else(too_short)?;
+    let flags = *flags;
     let up = (flags & 0x01) != 0;
     let at = (flags & 0x40) != 0; // attested credential data present
-    let sign_count = u32::from_be_bytes(auth_data[33..37].try_into().unwrap());
+    let (sign_count_bytes, _) = after_flags.split_first_chunk::<4>().ok_or_else(too_short)?;
+    let sign_count = u32::from_be_bytes(*sign_count_bytes);
 
     let (cred_id, cose_public_key) = if at && auth_data.len() > 37 {
         let rest = &auth_data[37..];
@@ -506,10 +518,23 @@ mod tests {
     }
 
     #[test]
+    fn parse_raw_auth_data_rejects_short_buffer_without_panicking() {
+        // A buffer shorter than the 37-byte header must return a typed error,
+        // never panic on a slice conversion.
+        for len in [0usize, 1, 32, 33, 36] {
+            let buf = vec![0u8; len];
+            assert!(matches!(
+                parse_raw_auth_data(&buf),
+                Err(WebAuthnError::Format(_))
+            ));
+        }
+    }
+
+    #[test]
     fn start_registration_generates_unique_challenges() {
         let mut rp = make_rp();
-        let c1 = rp.start_registration("user1", "User One");
-        let c2 = rp.start_registration("user2", "User Two");
+        let c1 = rp.start_registration("user1", "User One").unwrap();
+        let c2 = rp.start_registration("user2", "User Two").unwrap();
         assert_ne!(
             c1.challenge_b64, c2.challenge_b64,
             "challenges must be unique"
@@ -519,7 +544,7 @@ mod tests {
     #[test]
     fn start_registration_options_contain_rp_and_user() {
         let mut rp = make_rp();
-        let ch = rp.start_registration("alice", "Alice");
+        let ch = rp.start_registration("alice", "Alice").unwrap();
         let opts = &ch.options_json;
         assert_eq!(opts["rp"]["id"], "localhost");
         assert!(opts["challenge"].as_str().is_some());
@@ -528,7 +553,7 @@ mod tests {
     #[test]
     fn finish_registration_fails_with_wrong_challenge() {
         let mut rp = make_rp();
-        rp.start_registration("bob", "Bob");
+        rp.start_registration("bob", "Bob").unwrap();
 
         // wrong challenge in clientDataJSON
         let client_data = serde_json::json!({
@@ -551,7 +576,7 @@ mod tests {
     #[test]
     fn finish_registration_fails_with_wrong_origin() {
         let mut rp = make_rp();
-        let ch = rp.start_registration("carol", "Carol");
+        let ch = rp.start_registration("carol", "Carol").unwrap();
 
         let client_data = serde_json::json!({
             "type": "webauthn.create",
@@ -572,7 +597,7 @@ mod tests {
     #[test]
     fn expired_challenge_rejected() {
         let mut rp = WebAuthnRp::new("localhost".into(), "http://localhost".into());
-        rp.start_registration("dave", "Dave");
+        rp.start_registration("dave", "Dave").unwrap();
         // Purge immediately with TTL of 0 seconds
         rp.purge_expired_challenges(0);
 

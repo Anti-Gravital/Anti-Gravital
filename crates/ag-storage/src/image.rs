@@ -1,6 +1,6 @@
 //! Image processing for the Anti-Gravital ecosystem.
 //!
-//! Supports JPEG, PNG and WebP. AVIF pending as TECH-DEBT.
+//! Supports JPEG, PNG and WebP. AVIF pending (issue #145).
 //!
 //! # Usage
 //!
@@ -62,14 +62,9 @@ impl ImageProcessor {
 
     /// Converts the image to lossless WebP.
     ///
-    /// # TECH-DEBT
+    /// `_quality` is ignored: `image` 0.25 only exposes lossless WebP.
     ///
-    /// `_quality` is ignored — `image` 0.25 only exposes lossless WebP.
-    /// For lossy with quality control use the `webp` crate in the second
-    /// iteration of ag-storage.
-    /// - reason: lossy WebP with configurable quality requires a separate `webp` crate.
-    /// - impact: WebP files are lossless (may be larger than equivalent JPEG).
-    /// - expected removal: second ag-storage iteration in Phase 4.
+    /// TECH-DEBT (issue #146): lossy WebP with configurable quality pending.
     pub fn to_webp(&self, data: impl AsRef<[u8]>, _quality: u8) -> Result<Bytes, StorageError> {
         let img = load(data.as_ref())?;
         encode(img, ImageFormat::WebP)

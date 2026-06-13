@@ -12,10 +12,16 @@ bajo `docs/` son derivados verbatim de los maestros.
 
 | Documento maestro | Archivo |
 | --- | --- |
-| Vision, posicionamiento y alcance | `docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf` |
+| Vision, posicionamiento y alcance (canonico) | `docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md` |
+| Vision, posicionamiento y alcance (PDF historico, desfasado) | `docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf` |
 | Arquitectura tecnica e implementacion | `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` |
 | Hoja de ruta y puertas de verificacion | `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md` |
 | Registro de integridad de los maestros | `docs/master/VERSION.md` |
+
+El Blueprint canonico es `ANTI-GRAVITAL-Blueprint-v4.1.md`. El PDF v4.0 se
+conserva como artefacto historico de presentacion y esta desfasado: cuando
+difiera del markdown, gobierna `v4.1.md` (`docs/master/VERSION.md`, politica
+#4).
 
 ## Como leer la documentacion
 

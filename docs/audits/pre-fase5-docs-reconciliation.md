@@ -65,7 +65,7 @@ documents diverged.
 
 The "Docs honesty" row of `PRE_FASE5_RELEASE_GATE.md` is marked `pass` with this
 report as evidence. The gate as a whole remains OPEN: the "Fuzz 24h",
-"Benchmarks" and "Open debt" rows are still `pending` and are tracked separately.
+"Benchmarks" (issue #157) and "Open debt" (GitHub Issues, label `tech-debt`) rows are still `pending` and are tracked there.
 Marking docs honesty complete does not advance Phase 5.
 
 ## Verification

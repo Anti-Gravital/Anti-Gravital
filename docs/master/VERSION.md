@@ -12,6 +12,10 @@ desde el origen autorizado antes de continuar.
 ## Versión vigente
 
 - Versión documental: 4.1 (markdown) — Blueprint PDF pendiente de re-export
+- Blueprint canónico: `ANTI-GRAVITAL-Blueprint-v4.1.md`. El PDF
+  `ANTI-GRAVITAL-Blueprint-v4.0.pdf` es un artefacto histórico de
+  presentación y está desfasado; cuando difiera, gobierna el markdown
+  (política #4). CLAUDE.md §2 y `docs/INDEX.md` declaran lo mismo.
 - Fecha de la versión documental: 2026-05-26 (cierre documental Fase 4.0-4.5)
 - Fecha de instalación en el repositorio: 2026-05-19 (v4.0 inicial)
 - Origen: aporte directo de Gravital Labs (Nereira Technology and

@@ -40,11 +40,19 @@ NO se escribe codigo.
 
 Los siguientes documentos son obligatorios y deben existir exactamente con estos nombres:
 
-- `ANTI-GRAVITAL-Blueprint-v4.0.pdf`
+- `ANTI-GRAVITAL-Blueprint-v4.1.md` (Blueprint canonico vigente)
+- `ANTI-GRAVITAL-Blueprint-v4.0.pdf` (artefacto historico de presentacion)
 - `ANTI-GRAVITAL-Arquitectura-Tecnica.md`
 - `ANTI-GRAVITAL-Hoja-de-Ruta.md`
 
 Estos documentos son la fuente de verdad oficial del proyecto.
+
+El Blueprint canonico es `ANTI-GRAVITAL-Blueprint-v4.1.md` (markdown
+versionable y auditable). El `ANTI-GRAVITAL-Blueprint-v4.0.pdf` se conserva
+como artefacto historico de presentacion: esta desfasado y, cuando difiera
+del markdown, gobierna `v4.1.md` (ver `docs/master/VERSION.md`, politica #4).
+El PDF no se elimina para preservar trazabilidad, y se re-exportara a
+`v4.1.pdf` cuando exista el tooling de exportacion.
 
 Jamas deben:
 
@@ -996,6 +1004,23 @@ que aparece cuando el autofill no encuentra descriptor.
 
 Si un agente o colaborador commitea sin crear o actualizar el
 descriptor correspondiente, la PR no se acepta.
+
+#### Ciclo de vida del descriptor
+
+Un descriptor existe solo mientras su PR esta abierto. Regla unica:
+**el descriptor se elimina cuando su PR se fusiona o se cierra** —
+preferentemente en la misma PR de merge; si el merge fue squash o no lo
+incluyo, se elimina en la siguiente barrida de mantenimiento. En
+`docs/pr-drafts/` solo permanecen el `README.md` y los descriptores de
+PRs/ramas actualmente abiertos. No se archivan descriptores historicos:
+la trazabilidad del trabajo fusionado vive en el historial de git, el
+CHANGELOG y los Issues, no en esta carpeta.
+
+Ademas, ningun descriptor (ni ningun otro archivo versionado) puede
+llevar en su nombre un prefijo de rama de herramienta IA (`claude-`,
+`gpt-`, `ai-`, `copilot-`); el job `prohibited content scan` de
+`.github/workflows/docs.yml` rechaza cualquier ruta versionada que lo
+incumpla.
 
 ### Politica de idioma (ADR-0008)
 

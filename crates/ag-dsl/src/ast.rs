@@ -496,11 +496,7 @@ pub fn to_snake_case(s: &str) -> std::string::String {
         if ch.is_uppercase() && i > 0 {
             result.push('_');
         }
-        // TECH-DEBT:
-        // reason: char::to_lowercase() guarantees at least 1 character; unwrap() is safe but violates
-        //         the project rule of not using unwrap() outside tests.
-        // impact: low (cannot panic in practice)
-        // expected removal: cleanup PR post-Phase 4
+        // TECH-DEBT (issue #150): unwrap() on char::to_lowercase().next() is provably safe but should be removed.
         result.push(ch.to_lowercase().next().unwrap());
     }
     result

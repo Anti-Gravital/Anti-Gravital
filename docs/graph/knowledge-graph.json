@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Anti-Gravital knowledge graph (curated, manual)",
+  "description": "Initial machine-readable knowledge graph for the workspace, per CLAUDE.md rule 33. Curated by hand from the Cargo manifests, the CLI and the DSL pipeline. The auto-generated per-project graph (derived from the DSL AST, persisted to .ag/knowledge-graph.json) is a separate Phase 6 deliverable and does not replace this file.",
+  "generated": "manual",
+  "updated": "2026-06-13",
+  "source_of_truth": "docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md and CLAUDE.md sections 14, 15, 20",
+  "crate_classifications": {
+    "nucleo": ["ag-core", "ag-dsl", "ag-cli", "ag-lsp", "ag-wasm-host"],
+    "estandar": ["ag-auth", "ag-data", "ag-realtime", "ag-cache", "ag-storage", "ag-observe"],
+    "estandar_diferido": ["ag-mail", "ag-workers"],
+    "opcionales": ["ag-ui", "ag-cloud", "ag-ai", "ag-mobile", "ag-migrate"],
+    "opcionales_infraestructura": ["ag-domains", "ag-edge"]
+  },
+  "crates": [
+    { "name": "ag-core", "class": "nucleo", "depends_on": [], "role": "Shield middleware pipeline (logging, rate-limit, CORS, auth-jwt, CSRF), core router/extractors, AgError." },
+    { "name": "ag-dsl", "class": "nucleo", "depends_on": [], "role": "Anti-DSL compiler: lexer, parser, AST, semantic analysis, diagnostics, codegen." },
+    { "name": "ag-cli", "class": "nucleo", "depends_on": ["ag-dsl", "ag-domains", "ag-mail", "ag-workers"], "role": "The `ag` binary: scaffolding, dev server, build, DSL codegen, domains/mail/workers operations." },
+    { "name": "ag-lsp", "class": "nucleo", "depends_on": ["ag-dsl"], "role": "Language Server Protocol tooling for the DSL (Phase 3)." },
+    { "name": "ag-wasm-host", "class": "nucleo", "depends_on": [], "role": "WASM host/runtime surface." },
+    { "name": "ag-auth", "class": "estandar", "depends_on": ["ag-data", "ag-mail"], "role": "Authentication: JWT Ed25519, WebAuthn, OAuth, API keys, refresh blacklist. Consumes ag-mail for verification/recovery/magic-links (sixth dependency rule)." },
+    { "name": "ag-data", "class": "estandar", "depends_on": ["ag-core"], "role": "Shared PostgreSQL pool, configuration, embedded migrations, the sanctioned sqlx boundary (AgTx)." },
+    { "name": "ag-realtime", "class": "estandar", "depends_on": [], "role": "Event bus / realtime; optional event persistence and external NATS adapter." },
+    { "name": "ag-cache", "class": "estandar", "depends_on": ["ag-core"], "role": "Multilevel cache: L1 (moka) + optional native RESP2 server. External Redis L2 deferred (issue #144)." },
+    { "name": "ag-storage", "class": "estandar", "depends_on": ["ag-auth"], "role": "Object store: filesystem default, embedded HTTP server, optional S3 adapter, image processing, signed URLs." },
+    { "name": "ag-observe", "class": "estandar", "depends_on": [], "role": "Observability: tracing, Prometheus metrics. OTLP exporter deferred (issue #149)." },
+    { "name": "ag-mail", "class": "estandar_diferido", "depends_on": ["ag-core", "ag-workers"], "role": "Outbound transactional email + native MTA (feature mta). NOT a full mail server. ag-mail does NOT depend on ag-auth." },
+    { "name": "ag-workers", "class": "estandar_diferido", "depends_on": ["ag-data"], "role": "Background job execution: typed jobs, retries, DLQ, scheduling, worker pools. In-memory default, durable PostgreSQL opt-in via ag-data." },
+    { "name": "ag-ui", "class": "opcionales", "depends_on": [], "role": "UI surface (optional)." },
+    { "name": "ag-cloud", "class": "opcionales", "depends_on": [], "role": "Deployment / cloud surface (Phase 5). Consumes ag-domains during `ag deploy` (seventh dependency rule)." },
+    { "name": "ag-ai", "class": "opcionales", "depends_on": [], "role": "AI integration surface (Phase 6); future knowledge-graph generation." },
+    { "name": "ag-mobile", "class": "opcionales", "depends_on": [], "role": "Mobile client surface (optional)." },
+    { "name": "ag-migrate", "class": "opcionales", "depends_on": [], "role": "Migration tooling (optional)." },
+    { "name": "ag-domains", "class": "opcionales_infraestructura", "depends_on": ["ag-core"], "role": "DNS management (DnsProvider trait + adapters), ACME certificates, SPF/DKIM/DMARC. NOT a registrar; does not replace Terraform." },
+    { "name": "ag-edge", "class": "opcionales_infraestructura", "depends_on": ["ag-domains"], "role": "Edge data plane: hostname routing, SNI certificate selection, canonical/redirect policy (ADR-0012/RFC-0011)." }
+  ],
+  "dependency_rules": [
+    "ag-core depends on no other Anti-Gravital crate.",
+    "No circular dependencies.",
+    "ag-mail does NOT depend on ag-auth (sixth rule); ag-auth consumes ag-mail.",
+    "ag-workers does NOT depend on ag-edge; the allowed producer direction is ag-edge -> ag-workers behind the `producer` feature (issue #112).",
+    "ag-domains is consumed by ag-cloud during `ag deploy` (seventh rule); ag-domains does not depend on ag-cloud."
+  ],
+  "cli_commands": [
+    { "command": "ag new <name> [--template rest|realtime|fullstack]", "effect": "Scaffold a new project from a template." },
+    { "command": "ag dev", "effect": "Run the development server with optional hot reload." },
+    { "command": "ag build", "effect": "Build the project for production." },
+    { "command": "ag generate", "effect": "Run the DSL codegen over schema.ag." },
+    { "command": "ag schema lint", "effect": "Lint/validate the DSL schema." },
+    { "command": "ag run", "effect": "Run the built application." },
+    { "command": "ag domains <attach|instructions|export-zone|status|list|verify|detach|diagnose|check|sync>", "effect": "Domain control-plane and DNS operations (ag-domains)." },
+    { "command": "ag mail test", "effect": "Send a test email (ag-mail)." },
+    { "command": "ag workers <enqueue|queues|doctor>", "effect": "Enqueue jobs and inspect the durable backend (ag-workers, needs DATABASE_URL)." }
+  ],
+  "dsl": {
+    "pipeline": ["schema.ag", "lexer", "parser", "AST", "semantic analysis", "diagnostics", "codegen"],
+    "codegen_targets": ["Rust", "SQL", "OpenAPI", "TypeScript", "Dart", "migrations", "SDKs", "knowledge graph"]
+  },
+  "diagrams": [
+    "docs/diagrams/workspace-dependencies.md",
+    "docs/diagrams/request-flow-shield.md",
+    "docs/diagrams/dsl-pipeline.md",
+    "docs/diagrams/mail-workers-dataflow.md"
+  ]
+}

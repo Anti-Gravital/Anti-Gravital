@@ -26,6 +26,7 @@ use serde::{Deserialize, Serialize};
 
 /// Reasons a hostname input is rejected.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum HostnameError {
     /// Input was empty after trimming.
     Empty,

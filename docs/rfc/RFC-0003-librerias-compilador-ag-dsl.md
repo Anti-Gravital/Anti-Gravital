@@ -150,7 +150,9 @@ no como deuda tecnica accidental.
 
 Se decide **format! macros para v0.1**, con transicion a **askama**
 a partir de v0.2 si la complejidad de los templates justifica el cambio.
-Esta decision se revisara en RFC-0004.
+Esta decision se revisara en una RFC dedicada futura, cuyo numero se
+asignara cuando se proponga (la serie de RFC salta del 0003 al 0005; la
+migracion del codegen a librerias dedicadas todavia no tiene RFC propia).
 
 ### 3.4 Codegen Rust: format! texto vs quote + proc-macro2
 
@@ -299,7 +301,7 @@ fmt y clippy. Los PRs de Fase 3 van a la rama `fase-3`.
 
 - **chumsky 0.9 vs 0.10**: la API 0.9 es estable pero 0.10 se acerca
   a stable. Si 0.10 se publica antes de que terminemos Fase 3, se
-  evaluara la migracion en RFC-0004. No migramos durante Fase 3 para
+  evaluara la migracion en una RFC dedicada futura (numero por asignar). No migramos durante Fase 3 para
   evitar inestabilidad.
 
 - **logos y macros de expansion**: el build inicial puede ser lento en
@@ -312,7 +314,7 @@ fmt y clippy. Los PRs de Fase 3 van a la rama `fase-3`.
 
 - **Complejidad del codegen en v0.4**: las relaciones (1:N, N:M) generan
   JOINs, foreign keys y tipos adicionales. Puede justificar la migracion
-  a askama antes del fin de Fase 3. Se abre RFC-0004 si ocurre.
+  a askama antes del fin de Fase 3. Se abre una RFC dedicada (numero por asignar) si ocurre.
 
 ## 7. Impacto
 
@@ -329,10 +331,10 @@ Si logos o chumsky demuestran limitaciones concretas durante la
 implementacion (por ejemplo: rendimiento del lexer inaceptable, o
 mensajes de error de chumsky insuficientes para DX objetivo):
 
-1. Se abre RFC-0004 con la alternativa propuesta.
+1. Se abre una RFC dedicada (numero por asignar) con la alternativa propuesta.
 2. Se suspende la implementacion de ag-dsl en la rama `fase-3`.
 3. Se revierte al skeleton Fase 0 de ag-dsl.
-4. Se implementa la alternativa en una rama separada con PR de RFC-0004.
+4. Se implementa la alternativa en una rama separada con la PR de esa RFC dedicada.
 
 ## 9. Decision
 
@@ -343,8 +345,8 @@ Stack definitivo para Fase 3:
 - Lexer: logos 0.14
 - Parser: chumsky 0.9 con feature `label`
 - Codegen v0.1: format! macros
-- Codegen v0.2+: transicion a askama (evaluada en RFC-0004)
-- Codegen Rust v0.3+: transicion a quote + prettyplease (evaluada en RFC-0004)
+- Codegen v0.2+: transicion a askama (a evaluar en una RFC dedicada futura)
+- Codegen Rust v0.3+: transicion a quote + prettyplease (a evaluar en una RFC dedicada futura)
 
 ## 10. Referencias
 

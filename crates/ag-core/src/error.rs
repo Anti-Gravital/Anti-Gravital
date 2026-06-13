@@ -16,6 +16,7 @@ pub type AgResult<T> = Result<T, AgError>;
 
 /// Errors produced by the core and by the Shield pipeline.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AgError {
     /// Configuration load or validation error.
     #[error("config error: {0}")]

@@ -1,11 +1,17 @@
-# Technical Debt Register
+# Technical Debt Register (frozen historical record)
 
-Single source of truth for tracked technical debt across Anti-Gravital. Every
-"skeleton"/TODO/TECH-DEBT marker in the codebase must point here. Format per
-CLAUDE.md section 29.
+This file is a **frozen historical record**. Per CLAUDE.md rule 29, live
+technical debt lives in GitHub Issues (label `tech-debt`), which are the single
+honest view of project state. No new entries are added here; existing entries
+are migrated to Issues when touched and replaced by their issue reference. The
+file is not deleted, to preserve traceability.
 
-> Convention: each entry has reason, impact, expected removal, owning plan and
-> target. Dates are absolute. Close an entry only when the code and its plan agree.
+For current, actionable debt see the GitHub Issues board filtered by the
+`tech-debt` label.
+
+> Convention (historical): each entry had reason, impact, expected removal,
+> owning plan and target. Resolved or migrated entries below reference the
+> commit/PR or the GitHub Issue that supersedes them.
 
 ## ag-mail
 
@@ -85,14 +91,14 @@ CLAUDE.md section 29.
   dev image) and a self-hosted NATS/JetStream binary both run as ephemeral
   services / CI service containers; neither requires a third party. The debt is
   the unimplemented backend, not a missing environment.
-- Status: open. Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
+- Status: migrated to GitHub issue #151 (live tracking). Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
 
 ### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
 - Reason: the multi-tenant REST surface and the marketing objects
   (broadcasts/contacts/segments/topics, one-click unsubscribe) are not
   implemented.
 - Impact: no managed email-sending HTTP API yet.
-- Status: open (narrowed 2026-06-04). Signed webhooks are implemented:
+- Progress (narrowed 2026-06-04): Signed webhooks are implemented:
   `api::webhook` (feature `api`) signs/verifies HMAC-SHA256 over
   `{id}.{timestamp}.{payload}` with `whsec_` secrets, multi-signature headers
   and replay-window checks (constant-time verify). The HTTP routes, the
@@ -103,7 +109,7 @@ CLAUDE.md section 29.
   routes run against a local/ephemeral PostgreSQL (16 is present in the dev
   image) or a CI service container; no third party is involved. The debt is the
   unimplemented surface, not a missing environment.
-- Owning plan: RFC-0009. Target: Phase 4.6-C/D.
+- Status: migrated to GitHub issue #152 (live tracking). Owning plan: RFC-0009. Target: Phase 4.6-C/D.
 
 ### DEBT-022 — Native MTA: live-delivery integration test
 - Reason: the direct MX delivery path (`MtaSender::submit`, `resolve::resolve_mx`)
@@ -120,7 +126,7 @@ CLAUDE.md section 29.
 - Expected removal: add a CI service container acting as a sink MTA and a
   fixture resolver, then de-`ignore` the protocol-path delivery test. Real
   external-MX delivery remains a manual gate on a host with port 25 egress.
-- Status: open. Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
+- Status: migrated to GitHub issue #153 (live tracking). Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache
 
@@ -147,7 +153,9 @@ CLAUDE.md section 29.
 - Reason: only Cloudflare adapter exists.
 - Impact: limited provider choice (optional, not blocking).
 - Expected removal: future, as opt-in adapters behind features.
-- Status: open. Target: Phase 5+.
+- Status: closed (stale, 2026-06-13). Route 53, Google Cloud DNS, Azure DNS
+  and Namecheap adapters landed (issues #80-#83, tracking #76); see
+  `crates/ag-domains/src/provider/`. Cloudflare is no longer the only adapter.
 
 ## ag-realtime
 
@@ -172,7 +180,7 @@ CLAUDE.md section 29.
 - Reason: typed queries, row-level security and multi-tenancy come from the DSL.
 - Impact: advanced data features unavailable until generated.
 - Expected removal: later phases (Phase 3 ORM, later for RLS/multi-tenancy).
-- Status: open. Target: Phase 5+.
+- Status: migrated to GitHub issue #154 (live tracking). Target: Phase 5+.
 
 ## Tooling
 
@@ -229,14 +237,14 @@ findings were fixed in-branch and are not listed here.
   tests only).
 - Expected removal: add targets/properties per `pre-fase5-fuzzing.md` §4.6 and
   `pre-fase5-properties.md` § Recommended.
-- Status: open. Severity: Medium.
+- Status: migrated to GitHub issue #155 (live tracking). Severity: Medium.
 
 ### DEBT-015 — 24h fuzz manual gate not yet executed
 - Reason: only 60s smoke runs were executed in the audit; the 24h gate is manual.
 - Impact: deep fuzz assurance pending.
 - Expected removal: run `cargo +nightly fuzz run <target> -- -max_total_time=86400`
   per target on a Linux x86-64 host; record logs.
-- Status: open. Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
+- Status: migrated to GitHub issue #156 (live tracking). Severity: Medium. Source: `pre-fase5-fuzzing.md` §4.5.
 
 ### DEBT-016 — example READMEs still in Spanish
 - Reason: the five `examples/` READMEs predated ADR-0008 (English-canonical).
@@ -268,4 +276,4 @@ findings were fixed in-branch and are not listed here.
 - Expected removal: implement phases E-F per RFC-0011, each additive and
   feature-gated with a native default; service-backed tests use the repo's
   `#[ignore]` convention.
-- Status: open. Severity: Medium. Source: RFC-0011 §5.
+- Status: migrated to tracking issue #76 (live tracking). Severity: Medium. Source: RFC-0011 §5.

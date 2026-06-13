@@ -17,6 +17,7 @@ pub struct Event {
 
 /// Event bus error.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum BusError {
     /// The receiver fell behind and lost events (lagged).
     Lagged(u64),

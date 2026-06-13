@@ -38,6 +38,20 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Live integration tests
+//!
+//! The `#[ignore]` tests exercise [`connect`] and [`run_migrations`] against a
+//! real PostgreSQL. They are skipped by default and only run when a database is
+//! available:
+//!
+//! ```sh
+//! export DATABASE_URL="postgresql://user:password@localhost:5432/ag_data_test"
+//! cargo test -p ag-data -- --ignored
+//! ```
+//!
+//! `DATABASE_URL` is the only required variable; the migration applied by the
+//! live test is the fixture under `tests/migrations/`.
 
 use std::time::Duration;
 
@@ -99,6 +113,7 @@ impl AgTx {
 
 /// Data layer error.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum DataError {
     /// Error originating in sqlx (connection, query, protocol).
     #[error("sqlx error: {0}")]
@@ -120,7 +135,7 @@ impl From<DataError> for ag_core::AgError {
 pub struct DataConfig {
     /// PostgreSQL connection URL.
     ///
-    /// Format: `postgresql://usuario:contrasena@host:puerto/basedatos`
+    /// Format: `postgresql://user:password@host:port/database`
     pub url: String,
 
     /// Maximum number of simultaneous connections in the pool.
@@ -162,7 +177,7 @@ impl Default for DataConfig {
 /// Returns [`DataError::Sqlx`] if the URL is invalid or if the
 /// initial test connection cannot be established.
 pub async fn connect(config: &DataConfig) -> Result<DbPool, DataError> {
-    tracing::debug!(url = %sanitize_url(&config.url), "conectando al pool PostgreSQL");
+    tracing::debug!(url = %sanitize_url(&config.url), "connecting to the PostgreSQL pool");
 
     let pool = PgPoolOptions::new()
         .max_connections(config.max_connections)
@@ -172,7 +187,7 @@ pub async fn connect(config: &DataConfig) -> Result<DbPool, DataError> {
 
     tracing::info!(
         max_connections = config.max_connections,
-        "pool PostgreSQL listo"
+        "PostgreSQL pool ready"
     );
     Ok(pool)
 }
@@ -190,15 +205,15 @@ pub async fn run_migrations(
     pool: &DbPool,
     migrator: &sqlx::migrate::Migrator,
 ) -> Result<(), DataError> {
-    tracing::info!("aplicando migraciones pendientes");
+    tracing::info!("applying pending migrations");
     migrator.run(pool).await?;
-    tracing::info!("migraciones completadas");
+    tracing::info!("migrations completed");
     Ok(())
 }
 
 /// Strips credentials from the URL for safe logging.
 fn sanitize_url(url: &str) -> String {
-    // Hides usuario:contrasena@ to avoid leaking credentials in logs.
+    // Hides user:password@ to avoid leaking credentials in logs.
     if let Some(at) = url.find('@') {
         if let Some(proto) = url.find("://") {
             return format!("{}://<redacted>@{}", &url[..proto], &url[at + 1..]);
@@ -217,6 +232,47 @@ mod tests {
         assert_eq!(cfg.max_connections, 10);
         assert_eq!(cfg.acquire_timeout_secs, 30);
         assert!(cfg.url.starts_with("postgresql://"));
+    }
+
+    #[test]
+    fn data_config_deserializes_with_serde_defaults() {
+        // Only `url` is provided; the two pool knobs fall back to their
+        // `#[serde(default = ...)]` functions.
+        let cfg: DataConfig =
+            serde_json::from_str(r#"{"url":"postgresql://localhost/only_url"}"#).unwrap();
+        assert_eq!(cfg.url, "postgresql://localhost/only_url");
+        assert_eq!(cfg.max_connections, 10);
+        assert_eq!(cfg.acquire_timeout_secs, 30);
+    }
+
+    #[test]
+    fn data_config_deserializes_all_fields() {
+        let cfg: DataConfig = serde_json::from_str(
+            r#"{"url":"postgresql://h/db","max_connections":5,"acquire_timeout_secs":2}"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.max_connections, 5);
+        assert_eq!(cfg.acquire_timeout_secs, 2);
+    }
+
+    #[test]
+    fn data_config_requires_url() {
+        // `url` has no default, so an empty object must fail to deserialize.
+        let parsed: Result<DataConfig, _> = serde_json::from_str("{}");
+        assert!(parsed.is_err());
+    }
+
+    #[tokio::test]
+    async fn connect_with_invalid_url_returns_sqlx_error() {
+        // A malformed connection string fails at parse time, before any
+        // network I/O, so this stays a fast unit-level check (no timeout wait).
+        let config = DataConfig {
+            url: "not-a-valid-url".into(),
+            acquire_timeout_secs: 1,
+            ..DataConfig::default()
+        };
+        let err = connect(&config).await.expect_err("invalid URL must error");
+        assert!(matches!(err, DataError::Sqlx(_)));
     }
 
     #[test]
@@ -243,16 +299,45 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "requiere DATABASE_URL con PostgreSQL accesible"]
+    #[ignore = "requires DATABASE_URL pointing at a reachable PostgreSQL"]
     async fn connect_to_real_db() {
-        let url =
-            std::env::var("DATABASE_URL").expect("DATABASE_URL debe estar definida para este test");
+        let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for this test");
         let config = DataConfig {
             url,
             ..DataConfig::default()
         };
-        let pool = connect(&config).await.expect("conexion fallida");
+        let pool = connect(&config).await.expect("connection failed");
         let row: (i64,) = sqlx::query_as("SELECT 1").fetch_one(&pool).await.unwrap();
         assert_eq!(row.0, 1);
+    }
+
+    #[tokio::test]
+    #[ignore = "requires DATABASE_URL pointing at a reachable PostgreSQL"]
+    async fn connect_and_run_migrations() {
+        let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for this test");
+        let config = DataConfig {
+            url,
+            ..DataConfig::default()
+        };
+        let pool = connect(&config).await.expect("connection failed");
+
+        // Fixture migration lives under `tests/migrations/`.
+        static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("tests/migrations");
+        run_migrations(&pool, &MIGRATOR)
+            .await
+            .expect("migrations must apply");
+        // Re-running is idempotent: already-applied versions are skipped.
+        run_migrations(&pool, &MIGRATOR)
+            .await
+            .expect("re-running migrations must be idempotent");
+
+        let exists: (bool,) = sqlx::query_as(
+            "SELECT EXISTS (SELECT FROM information_schema.tables \
+             WHERE table_name = 'ag_data_smoke')",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(exists.0, "smoke migration must create ag_data_smoke");
     }
 }

@@ -112,6 +112,7 @@ impl Diagnostic {
 
 /// Fatal compiler error (not a per-position diagnostic).
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum CompilerError {
     /// The source text contains errors that prevent compilation.
     #[error("el schema contiene {0} error(es)")]

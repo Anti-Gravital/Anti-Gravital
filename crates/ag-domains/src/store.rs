@@ -48,6 +48,7 @@ pub struct Tombstone {
 
 /// Errors produced by an [`AttachmentStore`].
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum StoreError {
     /// An active attachment already exists for this hostname.
     #[error("hostname already attached: {0}")]

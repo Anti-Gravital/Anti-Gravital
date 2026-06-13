@@ -140,12 +140,7 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 }
 
 fn etag_for(data: &Bytes) -> String {
-    // TECH-DEBT:
-    // reason: ETag truncated to 16 hex chars (64 bits of blake3). RFC 7232
-    //         recommends a full hash for strong ETags; 64 bits can collide
-    //         at high scale.
-    // impact: possible false cache-hits with different objects.
-    // expected removal: second ag-storage iteration with a full ETag.
+    // TECH-DEBT (issue #147): strong ETag truncated to 64 bits; full hash pending.
     let hash = blake3::hash(data);
     format!("\"{}\"", &hash.to_hex()[..16])
 }

@@ -58,6 +58,7 @@ impl Default for RuntimeConfig {
 
 /// Errors produced while loading [`WorkersConfig`].
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ConfigError {
     /// The TOML document could not be parsed.
     #[error("invalid workers config TOML: {0}")]

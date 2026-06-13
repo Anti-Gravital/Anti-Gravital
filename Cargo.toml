@@ -98,8 +98,7 @@ opentelemetry_sdk        = { version = "0.27", features = ["rt-tokio"] }
 metrics                  = "0.24"
 metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
 console-subscriber       = "0.4"
-# TECH-DEBT: opentelemetry-otlp (grpc-tonic) requiere protoc en compilacion
-# (Windows CI). Eliminacion esperada: segunda iteracion Fase 4.
+# TECH-DEBT (issue #149): opentelemetry-otlp (grpc-tonic) needs protoc at build time (Windows CI).
 async-trait              = "0.1"
 blake3                   = "1"
 base64ct                 = { version = "1", features = ["alloc"] }
@@ -141,7 +140,7 @@ wiremock = "0.6"
 [workspace.lints.rust]
 # Cada bloque `unsafe` exige justificacion via RFC; por defecto se rechaza.
 # Para sobreescribir en un crate concreto, anada un `#[allow(unsafe_code)]`
-# con un comentario `// TECH-DEBT:` o un enlace a la RFC autorizadora.
+# con un comentario `// TECH-DEBT (issue #NNN):` o un enlace a la RFC autorizadora.
 unsafe_code = "deny"
 missing_docs = "warn"
 

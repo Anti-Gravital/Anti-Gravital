@@ -36,6 +36,7 @@ use external::{NatsError, NatsExternalClient};
 
 /// Real-time subsystem error.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum RealtimeError {
     /// Error in the internal bus.
     Bus(BusError),

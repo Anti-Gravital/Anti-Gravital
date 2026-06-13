@@ -22,7 +22,7 @@ use base64ct::{Base64Url, Encoding};
 /// ```
 pub fn generate(prefix: &str) -> (String, String) {
     let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).expect("fallo al obtener entropia del sistema operativo");
+    getrandom::getrandom(&mut bytes).expect("failed to obtain entropy from the operating system");
     let encoded = Base64Url::encode_string(&bytes);
     let raw_key = format!("{prefix}_{encoded}");
     let key_hash = hash_key(&raw_key);
@@ -69,7 +69,7 @@ mod tests {
         let (raw, _) = generate("sk");
         assert!(
             raw.starts_with("sk_"),
-            "key debe tener prefijo 'sk_': {raw}"
+            "key must have the 'sk_' prefix: {raw}"
         );
     }
 
@@ -79,7 +79,7 @@ mod tests {
         let hash2 = hash_key(&raw);
         assert_eq!(
             hash1, hash2,
-            "el hash debe ser deterministico para la misma clave"
+            "the hash must be deterministic for the same key"
         );
     }
 
@@ -88,7 +88,7 @@ mod tests {
         let (raw, hash) = generate("sk");
         assert!(
             verify(&raw, &hash),
-            "verify debe retornar true para la clave correcta"
+            "verify must return true for the correct key"
         );
     }
 
@@ -96,8 +96,8 @@ mod tests {
     fn verify_returns_false_for_wrong_key() {
         let (_, hash) = generate("sk");
         assert!(
-            !verify("sk_clave_incorrecta", &hash),
-            "verify debe retornar false para una clave incorrecta"
+            !verify("sk_wrong_key", &hash),
+            "verify must return false for an incorrect key"
         );
     }
 

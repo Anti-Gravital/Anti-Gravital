@@ -7,6 +7,15 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-auth: English residual comments and messages (ADR-0008)
+
+Changed:
+
+- `ag-auth`: residual Spanish comments and `expect`/`assert`/panic messages in
+  `crates/ag-auth/src` are now English. The `Display` strings of `JwtError`,
+  `AuthMailerError` and `AuthConfigError` (observable in logs and error
+  payloads) were translated as well. No variant, field or public API changed.
+
 ### ag-mail: English error display strings (ADR-0008)
 
 Changed:

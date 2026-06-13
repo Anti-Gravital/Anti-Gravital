@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 // ---------------------------------------------------------------------------
-// Tipos publicos
+// Public types
 // ---------------------------------------------------------------------------
 
 /// Credential stored after successful passkey registration.
@@ -358,7 +358,7 @@ fn verify_challenge(
     Ok(())
 }
 
-/// Parsea el attestationObject CBOR y extrae authData.
+/// Parses the CBOR attestationObject and extracts authData.
 fn parse_attestation_object(bytes: &[u8]) -> Result<ParsedAuthData, WebAuthnError> {
     let value: ciborium::value::Value = ciborium::from_reader(bytes)
         .map_err(|e| WebAuthnError::Format(format!("attestationObject CBOR: {e}")))?;

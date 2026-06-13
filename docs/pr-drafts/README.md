@@ -66,8 +66,21 @@ El workflow busca dos rutas, en este orden:
   `docs/roadmap/STATUS.md` que esta unidad de cambio marca.
 - **Checklist**: las cinco casillas siempre, marcadas o explicitas.
 
+## Ciclo de vida
+
+Un descriptor vive solo mientras su PR esta abierto. Cuando el PR se
+fusiona o se cierra, su descriptor se elimina (preferentemente en la
+misma PR de merge; si no, en la siguiente barrida de mantenimiento).
+Esta carpeta contiene unicamente este `README.md` y los descriptores
+de PRs/ramas actualmente abiertos; no se conservan descriptores
+historicos. La trazabilidad del trabajo fusionado vive en el historial
+de git, el CHANGELOG y los Issues. Regla fijada en CLAUDE.md, seccion
+"Descriptor pre-rellenado y autofill por PR".
+
+Ademas, el nombre de un descriptor nunca puede incluir un prefijo de
+rama de herramienta IA (`claude-`, `gpt-`, `ai-`, `copilot-`): el job
+`prohibited content scan` de CI rechaza esas rutas.
+
 ## Indice
 
-| Archivo | Rama | Resumen |
-| --- | --- | --- |
-| `phase-0-foundations-and-governance.md` | `phase-0/foundations-and-governance` | Setup Fase 0 completo (docs maestros, gobernanza, workspace de 15 crates, CI multiplataforma, plantillas) mas implementacion de Fase 1 PRs 1-7 (Shield bootstrap, validation, CORS, CSRF, rate-limit, JWT Ed25519, TLS 1.3). |
+No hay PRs abiertos con descriptor en este momento.

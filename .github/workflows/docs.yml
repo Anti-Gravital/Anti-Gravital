@@ -79,6 +79,22 @@ jobs:
           fi
           echo "Sin evidencia prohibida de herramientas IA."
 
+      - name: Reject descriptor names with prohibited AI branch prefixes
+        run: |
+          set -euo pipefail
+          # Los descriptores de docs/pr-drafts/ se nombran por la rama
+          # aplanada, asi que no pueden llevar un prefijo de rama de
+          # herramienta IA (claude-, gpt-, ai-, copilot-, chatgpt-, gemini-,
+          # bard-). El check se acota a esta carpeta para no marcar nombres
+          # legitimos que casualmente empiecen por esos tokens en otras rutas
+          # (p. ej. examples/ai-backend), que no derivan de un nombre de rama.
+          if git ls-files docs/pr-drafts \
+               | grep -InE "/(claude|gpt|ai|copilot|chatgpt|gemini|bard)-" ; then
+            echo "Descriptor con prefijo de rama IA prohibido en docs/pr-drafts/."
+            exit 1
+          fi
+          echo "Sin descriptores con prefijo de rama IA prohibido."
+
       - name: Reject emojis in tracked files
         run: |
           set -euo pipefail

@@ -1005,6 +1005,23 @@ que aparece cuando el autofill no encuentra descriptor.
 Si un agente o colaborador commitea sin crear o actualizar el
 descriptor correspondiente, la PR no se acepta.
 
+#### Ciclo de vida del descriptor
+
+Un descriptor existe solo mientras su PR esta abierto. Regla unica:
+**el descriptor se elimina cuando su PR se fusiona o se cierra** —
+preferentemente en la misma PR de merge; si el merge fue squash o no lo
+incluyo, se elimina en la siguiente barrida de mantenimiento. En
+`docs/pr-drafts/` solo permanecen el `README.md` y los descriptores de
+PRs/ramas actualmente abiertos. No se archivan descriptores historicos:
+la trazabilidad del trabajo fusionado vive en el historial de git, el
+CHANGELOG y los Issues, no en esta carpeta.
+
+Ademas, ningun descriptor (ni ningun otro archivo versionado) puede
+llevar en su nombre un prefijo de rama de herramienta IA (`claude-`,
+`gpt-`, `ai-`, `copilot-`); el job `prohibited content scan` de
+`.github/workflows/docs.yml` rechaza cualquier ruta versionada que lo
+incumpla.
+
 ### Politica de idioma (ADR-0008)
 
 El ingles es el idioma canonico del codigo y de la documentacion tecnica.

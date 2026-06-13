@@ -302,3 +302,33 @@ mod tests {
         assert_eq!(a.ascii(), b.ascii());
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based tests for hostname parsing/normalization.
+    use super::Hostname;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Parsing must never panic on arbitrary input.
+        #[test]
+        fn parse_never_panics(s in ".*") {
+            let _ = Hostname::parse(&s);
+        }
+
+        // A two-label lowercase ASCII hostname always parses.
+        #[test]
+        fn two_label_lowercase_parses(a in "[a-z0-9]{1,20}", b in "[a-z]{2,6}") {
+            let host = format!("{a}.{b}");
+            prop_assert!(Hostname::parse(&host).is_ok());
+        }
+
+        // The canonical ASCII identity is idempotent under re-parsing.
+        #[test]
+        fn ascii_identity_is_idempotent(a in "[a-z0-9]{1,20}", b in "[a-z]{2,6}") {
+            let h = Hostname::parse(&format!("{a}.{b}")).unwrap();
+            let again = Hostname::parse(h.ascii()).unwrap();
+            prop_assert_eq!(h.ascii(), again.ascii());
+        }
+    }
+}

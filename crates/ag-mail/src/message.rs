@@ -394,3 +394,37 @@ mod tests {
         assert_eq!(email.attachments[0].filename, "invoice.pdf");
     }
 }
+
+#[cfg(test)]
+mod address_prop_tests {
+    //! Property-based tests for address validation.
+    use super::Address;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Validation must never panic on arbitrary input.
+        #[test]
+        fn validate_never_panics(s in ".*") {
+            let _ = Address::new(s).validate();
+        }
+
+        // A well-formed `local@domain.tld` always validates.
+        #[test]
+        fn well_formed_address_validates(
+            local in "[a-z0-9]{1,20}", domain in "[a-z0-9]{1,20}", tld in "[a-z]{2,6}",
+        ) {
+            let email = format!("{local}@{domain}.{tld}");
+            prop_assert!(Address::new(email).validate().is_ok());
+        }
+
+        // An address with no `@`, or one bounded by `@`, never validates.
+        #[test]
+        fn malformed_address_is_rejected(s in "[a-z0-9.]{1,30}") {
+            let at_prefixed = format!("@{s}");
+            let at_suffixed = format!("{s}@");
+            prop_assert!(Address::new(s.clone()).validate().is_err());
+            prop_assert!(Address::new(at_prefixed).validate().is_err());
+            prop_assert!(Address::new(at_suffixed).validate().is_err());
+        }
+    }
+}

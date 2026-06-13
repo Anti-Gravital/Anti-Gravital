@@ -46,6 +46,7 @@ ed25519-dalek = { workspace = true }
 url           = { workspace = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 ag-mail = { path = "../ag-mail", version = "0.0.0", features = ["test-utils"] }
 tokio = { workspace = true }
 testcontainers = { workspace = true }

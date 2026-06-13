@@ -144,3 +144,25 @@ mod tests {
         assert!(check(&declared, "texto sin vars").is_ok());
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based tests for template variable extraction.
+    use super::extract_vars;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Extraction must never panic on arbitrary template text.
+        #[test]
+        fn extract_vars_never_panics(t in ".*") {
+            let _ = extract_vars(&t);
+        }
+
+        // A single `{{name}}` placeholder is extracted verbatim.
+        #[test]
+        fn single_placeholder_is_extracted(name in "[a-zA-Z_][a-zA-Z0-9_]{0,20}") {
+            let vars = extract_vars(&format!("Hello {{{{{name}}}}}!"));
+            prop_assert!(vars.contains(&name));
+        }
+    }
+}

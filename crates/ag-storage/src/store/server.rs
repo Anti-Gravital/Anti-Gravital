@@ -140,9 +140,10 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 }
 
 fn etag_for(data: &Bytes) -> String {
-    // TECH-DEBT (issue #147): strong ETag truncated to 64 bits; full hash pending.
+    // Strong validator (RFC 7232): the full 256-bit blake3 digest, so distinct
+    // contents cannot collide into the same ETag at scale.
     let hash = blake3::hash(data);
-    format!("\"{}\"", &hash.to_hex()[..16])
+    format!("\"{}\"", hash.to_hex())
 }
 
 // ---------------------------------------------------------------------------
@@ -344,6 +345,18 @@ mod tests {
     use super::*;
     use axum::http::Request;
     use tower::ServiceExt;
+
+    #[test]
+    fn etag_is_strong_full_blake3_and_collision_resistant() {
+        let a = etag_for(&Bytes::from_static(b"hello"));
+        let b = etag_for(&Bytes::from_static(b"hellp"));
+        // Strong validator: quoted, full 64 hex chars (256-bit blake3).
+        assert!(a.starts_with('"') && a.ends_with('"'));
+        assert_eq!(a.trim_matches('"').len(), 64);
+        // Distinct contents produce distinct ETags; identical contents match.
+        assert_ne!(a, b);
+        assert_eq!(a, etag_for(&Bytes::from_static(b"hello")));
+    }
 
     fn temp_store() -> (tempfile::TempDir, Arc<AgStore>) {
         let dir = tempfile::tempdir().unwrap();

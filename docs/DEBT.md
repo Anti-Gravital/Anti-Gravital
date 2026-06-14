@@ -91,7 +91,13 @@ For current, actionable debt see the GitHub Issues board filtered by the
   dev image) and a self-hosted NATS/JetStream binary both run as ephemeral
   services / CI service containers; neither requires a third party. The debt is
   the unimplemented backend, not a missing environment.
-- Status: migrated to GitHub issue #151 (live tracking). Owning plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
+- Status: migrated to GitHub issue #151 (live tracking). A durable PostgreSQL
+  spool now ships behind the `queue-postgres` feature
+  (`sender::mta::spool::PostgresSpool`), mirroring the scheduled queue so jobs
+  survive a restart; the in-memory tier stays the default (ADR-0009 rule 2). The
+  backend-agnostic recover mechanism is covered by in-process tests; the live
+  PostgreSQL round-trip is an `#[ignore]` test gated on `DATABASE_URL`. Owning
+  plan: RFC-0009 section 4.2. Target: Phase 4.6-B.
 
 ### DEBT-021 — Native MTA: REST API, webhooks, marketing (Phases 4.6-C/D)
 - Reason: the multi-tenant REST surface and the marketing objects

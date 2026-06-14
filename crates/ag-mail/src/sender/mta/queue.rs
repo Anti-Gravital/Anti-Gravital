@@ -10,24 +10,53 @@
 //!
 //! Delivery is abstracted behind [`DeliveryBackend`] so the scheduling logic is
 //! deterministic and unit-tested with a mock; [`super::MtaSender`] implements
-//! the trait for real delivery. This is the native, in-memory tier; a durable
-//! spool (JetStream / PostgreSQL) is a later, optional backing (see
-//! `docs/DEBT.md`).
+//! the trait for real delivery. This is the native, in-memory tier; an opt-in
+//! durable spool ([`super::spool`], PostgreSQL behind the `queue-postgres`
+//! feature) mirrors the scheduled set so jobs survive a restart, while the
+//! in-memory tier stays the default (ADR-0009 rule 2).
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 
 use super::shaping::Shaper;
+use super::spool::{PersistedJob, Spool, SpoolError};
 use super::suppress::{SuppressionList, SuppressionReason};
+
+/// Generates a stable, durable-unique job id (128 random bits, hex-encoded).
+///
+/// Uniqueness must hold across process restarts and across instances writing to
+/// a shared spool, so the id is random rather than a per-process counter. On the
+/// (essentially impossible) event that the OS RNG fails, it falls back to a
+/// wall-clock + counter mix, which is still unique within and across restarts.
+fn new_job_id() -> String {
+    static FALLBACK_SEQ: AtomicU64 = AtomicU64::new(0);
+    let mut bytes = [0u8; 16];
+    if getrandom::getrandom(&mut bytes).is_err() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let seq = u128::from(FALLBACK_SEQ.fetch_add(1, AtomicOrdering::Relaxed));
+        bytes = (nanos ^ (seq << 64)).to_be_bytes();
+    }
+    let mut id = String::with_capacity(32);
+    for b in bytes {
+        id.push_str(&format!("{b:02x}"));
+    }
+    id
+}
 
 /// A unit of work: one rendered message destined for one recipient domain.
 #[derive(Debug, Clone)]
 pub struct DeliveryJob {
+    /// Stable, durable-unique id. Assigned at construction and preserved across
+    /// reschedules; the durable spool keys rows on it.
+    pub id: String,
     /// Tenant that owns the message (part of the scheduled-queue key).
     pub tenant: String,
     /// Campaign / stream (part of the scheduled-queue key).
@@ -66,6 +95,7 @@ impl DeliveryJob {
         now: Instant,
     ) -> Self {
         Self {
+            id: new_job_id(),
             tenant: tenant.into(),
             campaign: campaign.into(),
             domain: domain.into(),
@@ -201,17 +231,24 @@ impl PartialOrd for Scheduled {
     }
 }
 
-/// Native in-memory two-tier delivery queue.
+/// Native in-memory two-tier delivery queue, with an optional durable spool.
 pub struct MtaQueue {
     scheduled: Mutex<BinaryHeap<Scheduled>>,
     seq: AtomicU64,
     config: QueueConfig,
     shaper: Shaper,
     suppress: SuppressionList,
+    /// Opt-in durable mirror. `None` keeps the pure in-memory behaviour.
+    spool: Option<Arc<dyn Spool>>,
+    /// Reference pair to convert this process's monotonic `Instant`s to
+    /// wall-clock for persistence (`Instant`s are meaningless across restarts).
+    base_instant: Instant,
+    base_wall: SystemTime,
 }
 
 impl MtaQueue {
-    /// Builds a queue with the given configuration and shaper.
+    /// Builds a queue with the given configuration and shaper. No durable spool:
+    /// the queue is purely in-memory (the native default, ADR-0009 rule 2).
     pub fn new(config: QueueConfig, shaper: Shaper) -> Self {
         Self {
             scheduled: Mutex::new(BinaryHeap::new()),
@@ -219,7 +256,22 @@ impl MtaQueue {
             config,
             shaper,
             suppress: SuppressionList::new(),
+            spool: None,
+            base_instant: Instant::now(),
+            base_wall: SystemTime::now(),
         }
+    }
+
+    /// Attaches a durable [`Spool`]. The queue then mirrors its scheduled set to
+    /// the spool (write-through) so jobs survive a restart; call [`recover`] on
+    /// startup to repopulate from it. The in-memory heap stays the runtime
+    /// source of truth.
+    ///
+    /// [`recover`]: MtaQueue::recover
+    #[must_use]
+    pub fn with_spool(mut self, spool: Arc<dyn Spool>) -> Self {
+        self.spool = Some(spool);
+        self
     }
 
     /// Access to the suppression list (shared by inbound DSN/FBL processing).
@@ -241,6 +293,94 @@ impl MtaQueue {
     pub fn enqueue(&self, job: DeliveryJob) {
         crate::metrics::queue_depth_inc();
         self.push(job);
+    }
+
+    /// Enqueues a job and persists it to the durable spool, if one is attached.
+    ///
+    /// Unlike the best-effort mirroring during a delivery cycle, the initial
+    /// persist is strict: a spool error is returned so the caller knows the job
+    /// is not yet durable. With no spool attached this behaves like [`enqueue`]
+    /// and never errors.
+    ///
+    /// [`enqueue`]: MtaQueue::enqueue
+    pub async fn enqueue_persistent(&self, job: DeliveryJob) -> Result<(), SpoolError> {
+        let persisted = self.to_persisted(&job);
+        crate::metrics::queue_depth_inc();
+        self.push(job);
+        if let Some(spool) = &self.spool {
+            spool.upsert(&persisted).await?;
+        }
+        Ok(())
+    }
+
+    /// Repopulates the scheduled queue from the durable spool. Call once on
+    /// startup, before the delivery loop runs. Returns the number of jobs
+    /// recovered (zero when no spool is attached).
+    pub async fn recover(&self) -> Result<usize, SpoolError> {
+        let Some(spool) = &self.spool else {
+            return Ok(0);
+        };
+        let jobs = spool.load_all().await?;
+        let now = Instant::now();
+        let now_wall_ms = now_wall_ms();
+        let count = jobs.len();
+        for persisted in jobs {
+            let job = persisted_to_job(persisted, now, now_wall_ms);
+            crate::metrics::queue_depth_inc();
+            self.push(job);
+        }
+        Ok(count)
+    }
+
+    /// Best-effort spool upsert during a delivery cycle: logs and swallows
+    /// errors, since the in-memory queue remains the source of truth.
+    async fn mirror_upsert(&self, persisted: &PersistedJob) {
+        if let Some(spool) = &self.spool {
+            if let Err(e) = spool.upsert(persisted).await {
+                tracing::warn!(error = %e, id = %persisted.id, "mta spool upsert failed");
+            }
+        }
+    }
+
+    /// Best-effort spool removal for a job that has left the queue.
+    async fn mirror_remove(&self, id: &str) {
+        if let Some(spool) = &self.spool {
+            if let Err(e) = spool.remove(id).await {
+                tracing::warn!(error = %e, id, "mta spool remove failed");
+            }
+        }
+    }
+
+    /// Converts a job's monotonic timing into the wall-clock representation the
+    /// spool stores, using this process's reference pair.
+    fn to_persisted(&self, job: &DeliveryJob) -> PersistedJob {
+        PersistedJob {
+            id: job.id.clone(),
+            tenant: job.tenant.clone(),
+            campaign: job.campaign.clone(),
+            domain: job.domain.clone(),
+            site_name: job.site_name.clone(),
+            recipients: job.recipients.clone(),
+            from: job.from.clone(),
+            content: job.content.clone(),
+            attempts: job.attempts,
+            enqueued_at_ms: self.instant_to_wall_ms(job.enqueued_at),
+            next_attempt_at_ms: self.instant_to_wall_ms(job.next_attempt_at),
+        }
+    }
+
+    /// Maps a monotonic `Instant` to wall-clock UNIX millis via the reference
+    /// pair captured when the queue was built.
+    fn instant_to_wall_ms(&self, i: Instant) -> i64 {
+        let wall = if i >= self.base_instant {
+            self.base_wall.checked_add(i - self.base_instant)
+        } else {
+            self.base_wall.checked_sub(self.base_instant - i)
+        };
+        let ms = wall
+            .and_then(|w| w.duration_since(UNIX_EPOCH).ok())
+            .map_or(0, |d| d.as_millis());
+        i64::try_from(ms).unwrap_or(i64::MAX)
     }
 
     fn push(&self, job: DeliveryJob) {
@@ -292,6 +432,7 @@ impl MtaQueue {
             if job.recipients.is_empty() {
                 report.skipped_suppressed += 1;
                 crate::metrics::queue_depth_dec();
+                self.mirror_remove(&job.id).await;
                 continue;
             }
 
@@ -299,7 +440,9 @@ impl MtaQueue {
             let wait = self.shaper.acquire_rate(&job.site_name, now);
             if wait > Duration::ZERO {
                 job.next_attempt_at = now + wait;
+                let persisted = self.to_persisted(&job);
                 self.push(job);
+                self.mirror_upsert(&persisted).await;
                 report.throttled += 1;
                 continue;
             }
@@ -311,6 +454,7 @@ impl MtaQueue {
                 DeliveryOutcome::Delivered => {
                     report.delivered += 1;
                     crate::metrics::queue_depth_dec();
+                    self.mirror_remove(&job.id).await;
                 }
                 DeliveryOutcome::Permanent(_) => {
                     for r in &job.recipients {
@@ -318,6 +462,7 @@ impl MtaQueue {
                     }
                     report.suppressed += 1;
                     crate::metrics::queue_depth_dec();
+                    self.mirror_remove(&job.id).await;
                 }
                 DeliveryOutcome::Transient(_) => {
                     job.attempts += 1;
@@ -331,9 +476,12 @@ impl MtaQueue {
                         }
                         report.expired += 1;
                         crate::metrics::queue_depth_dec();
+                        self.mirror_remove(&job.id).await;
                     } else {
                         job.next_attempt_at = now + self.config.retry.backoff(job.attempts);
+                        let persisted = self.to_persisted(&job);
                         self.push(job);
+                        self.mirror_upsert(&persisted).await;
                         report.retried += 1;
                     }
                 }
@@ -355,6 +503,46 @@ impl MtaQueue {
             };
             tokio::time::sleep(sleep).await;
         }
+    }
+}
+
+/// Current wall-clock time as UNIX milliseconds.
+fn now_wall_ms() -> i64 {
+    let ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis());
+    i64::try_from(ms).unwrap_or(i64::MAX)
+}
+
+/// Rebuilds a [`DeliveryJob`] from its persisted form, mapping wall-clock
+/// timestamps back to monotonic `Instant`s relative to `now`. A time already in
+/// the past becomes due immediately.
+fn persisted_to_job(p: PersistedJob, now: Instant, now_wall_ms: i64) -> DeliveryJob {
+    DeliveryJob {
+        id: p.id,
+        tenant: p.tenant,
+        campaign: p.campaign,
+        domain: p.domain,
+        site_name: p.site_name,
+        recipients: p.recipients,
+        from: p.from,
+        content: p.content,
+        attempts: p.attempts,
+        enqueued_at: wall_ms_to_instant(now, now_wall_ms, p.enqueued_at_ms),
+        next_attempt_at: wall_ms_to_instant(now, now_wall_ms, p.next_attempt_at_ms),
+    }
+}
+
+/// Maps a wall-clock UNIX-millis timestamp to a monotonic `Instant` relative to
+/// `now`/`now_wall_ms`. Past timestamps clamp to at-or-before `now` (due now).
+fn wall_ms_to_instant(now: Instant, now_wall_ms: i64, ms: i64) -> Instant {
+    if ms >= now_wall_ms {
+        now + Duration::from_millis(u64::try_from(ms - now_wall_ms).unwrap_or(0))
+    } else {
+        now.checked_sub(Duration::from_millis(
+            u64::try_from(now_wall_ms - ms).unwrap_or(0),
+        ))
+        .unwrap_or(now)
     }
 }
 
@@ -565,5 +753,81 @@ mod tests {
         let report = q.process_due(now, &backend).await;
         assert_eq!(report.delivered, 2);
         assert_eq!(q.len(), 3);
+    }
+
+    // ---- durable spool mechanism (backend-agnostic, in-process) -------------
+
+    use super::super::spool::InMemorySpool;
+
+    #[tokio::test]
+    async fn scheduled_jobs_survive_restart_via_spool() {
+        let spool = Arc::new(InMemorySpool::new());
+        let now = Instant::now();
+
+        // First process lifetime: enqueue two jobs due in the future.
+        {
+            let q =
+                MtaQueue::new(QueueConfig::default(), shaper_unlimited()).with_spool(spool.clone());
+            let mut j1 = job(now);
+            j1.next_attempt_at = now + Duration::from_secs(3600);
+            let mut j2 = job(now);
+            j2.next_attempt_at = now + Duration::from_secs(7200);
+            q.enqueue_persistent(j1).await.unwrap();
+            q.enqueue_persistent(j2).await.unwrap();
+            assert_eq!(q.len(), 2);
+            assert_eq!(spool.len(), 2);
+        } // queue dropped == process crash
+
+        // Second process lifetime: a fresh queue recovers from the same spool.
+        let q2 =
+            MtaQueue::new(QueueConfig::default(), shaper_unlimited()).with_spool(spool.clone());
+        assert_eq!(q2.len(), 0);
+        let recovered = q2.recover().await.unwrap();
+        assert_eq!(recovered, 2);
+        assert_eq!(q2.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn delivered_job_is_removed_from_spool() {
+        let spool = Arc::new(InMemorySpool::new());
+        let now = Instant::now();
+        let q = MtaQueue::new(QueueConfig::default(), shaper_unlimited()).with_spool(spool.clone());
+        q.enqueue_persistent(job(now)).await.unwrap();
+        assert_eq!(spool.len(), 1);
+
+        let backend =
+            ScriptBackend::new(vec![DeliveryOutcome::Delivered], DeliveryOutcome::Delivered);
+        q.process_due(now, &backend).await;
+
+        assert!(q.is_empty());
+        assert_eq!(spool.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn retried_job_is_updated_in_spool() {
+        let spool = Arc::new(InMemorySpool::new());
+        let now = Instant::now();
+        let q = MtaQueue::new(QueueConfig::default(), shaper_unlimited()).with_spool(spool.clone());
+        q.enqueue_persistent(job(now)).await.unwrap();
+
+        let backend = ScriptBackend::new(
+            vec![DeliveryOutcome::Transient("451 4.7.0".into())],
+            DeliveryOutcome::Delivered,
+        );
+        q.process_due(now, &backend).await;
+
+        // Rescheduled (not delivered): still persisted, attempts bumped to 1.
+        assert_eq!(spool.len(), 1);
+        let jobs = spool.load_all().await.unwrap();
+        assert_eq!(jobs[0].attempts, 1);
+    }
+
+    #[tokio::test]
+    async fn enqueue_persistent_without_spool_is_inmemory() {
+        let now = Instant::now();
+        let q = MtaQueue::new(QueueConfig::default(), shaper_unlimited());
+        q.enqueue_persistent(job(now)).await.unwrap();
+        assert_eq!(q.len(), 1);
+        assert_eq!(q.recover().await.unwrap(), 0);
     }
 }

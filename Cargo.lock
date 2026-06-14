@@ -246,6 +246,7 @@ dependencies = [
  "ag-workers",
  "async-trait",
  "base64 0.22.1",
+ "getrandom 0.2.17",
  "hickory-resolver",
  "hmac",
  "lettre",

@@ -383,7 +383,7 @@ Current state, phase by phase (evidence in
 | 3 | Anti-DSL v0.1-v0.4: parser, diagnostics, Rust/SQL/TypeScript/OpenAPI generators, LSP, VS Code extension | Implemented; gate open | 24-hour fuzz gate, direct generated-vs-manual benchmark, generator consolidation (issue #70), adoption criteria |
 | 4 | Standard modules: `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe`; DSL v0.5-v0.6 | Implemented; gate open | crates.io releases, scale benchmarks (50K WebSocket connections, 1M cache ops/s), community criteria |
 | 4.5 (additive) | `ag-mail` transactional email; `ag-domains` DNS/ACME/SPF-DKIM-DMARC; DSL v0.7 | Implemented; gate open | Gate re-run on the final consolidation commit; `ag-domains` has active ongoing work |
-| 4.6 (additive) | Pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C); `ag-workers` engine (D); DSL v0.8 | In progress | `ag-edge` producer wiring (issue #112); MTA durable spool and live-delivery evidence. Stages S1-S5 and the S7 `ag-mail` migration are done; the PostgreSQL backend was verified against a live database (issues #108/#109/#103) |
+| 4.6 (additive) | Pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C); `ag-workers` engine (D); DSL v0.8 | In progress | `ag-edge` producer wiring (issue #112); MTA live-delivery evidence (issue #153). The MTA durable spool now ships behind the `queue-postgres` feature (issue #151; its live PostgreSQL test is `#[ignore]`). Stages S1-S5 and the S7 `ag-mail` migration are done; the `ag-workers` PostgreSQL backend was verified against a live database (issues #108/#109/#103) |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains, TLS | Pending | Opens when the pre-Phase-5 gate closes. Milestone: public beta v0.5 |
 | 6 | `ag-ai` and Knowledge Graph: providers, retrieval, graph-assisted workflows | Pending | Phase 5 completion and beta feedback |
 | 7 | `ag-migrate`: importers and assisted migration from other backend frameworks | Pending | Phase 6 completion and importer acceptance tests |
@@ -410,9 +410,12 @@ Stated plainly, because hiding them would violate the project's own rules:
 - Generated Rust handlers are intentional stubs; the framework does not
   write your business logic.
 - `ag-domains` has active, ongoing development.
-- The durable PostgreSQL paths of `ag-workers` and `ag-mail` were verified
-  manually against a live PostgreSQL 16; their integration tests remain
-  `#[ignore]` because default CI provisions no database.
+- The durable PostgreSQL paths of `ag-workers` and `ag-mail`'s workers-backed
+  delivery were verified manually against a live PostgreSQL 16; their
+  integration tests remain `#[ignore]` because default CI provisions no
+  database. The native MTA scheduled-queue spool (feature `queue-postgres`,
+  issue #151) adds its own `#[ignore]` PostgreSQL test, pending a live run; its
+  in-memory durability mechanism is covered by passing tests.
 - Open technical debt is tracked as GitHub Issues (label `tech-debt`);
   [docs/DEBT.md](docs/DEBT.md) is a frozen historical record.
 - The release gate must be re-evaluated on the final consolidation commit
@@ -539,7 +542,10 @@ tests en CI:
   auth para verificacion/recuperacion/magic links) y gestionar registros DNS,
   certificados ACME/Let's Encrypt y SPF/DKIM/DMARC (`ag-domains`) (Fase 4.5).
 - Ejecutar el MTA outbound nativo opt-in y los webhooks firmados de `ag-mail`
-  (features `mta`/`api`, Fase 4.6-A/B/C).
+  (features `mta`/`api`, Fase 4.6-A/B/C). La cola de entrega del MTA admite un
+  spool durable opt-in en PostgreSQL (feature `queue-postgres`) para que los
+  jobs programados sobrevivan a un reinicio; el nivel en memoria sigue siendo el
+  default.
 - Ejecutar jobs en segundo plano con `ag-workers` (Fase 4.6-D): jobs tipados,
   reintentos con backoff, dead-letter queue, scheduling por intervalo y
   worker pools. El backend en memoria es el default; el backend PostgreSQL
@@ -811,9 +817,13 @@ proyecto:
 - Los handlers Rust generados son stubs intencionales; el framework no
   escribe la logica de negocio.
 - `ag-domains` tiene desarrollo activo en curso.
-- Los caminos durables PostgreSQL de `ag-workers` y `ag-mail` se verificaron
-  manualmente contra una PostgreSQL 16 viva; sus tests de integracion siguen
-  `#[ignore]` porque el CI por defecto no provisiona base de datos.
+- Los caminos durables PostgreSQL de `ag-workers` y de la entrega de `ag-mail`
+  respaldada por workers se verificaron manualmente contra una PostgreSQL 16
+  viva; sus tests de integracion siguen `#[ignore]` porque el CI por defecto no
+  provisiona base de datos. El spool de la cola programada del MTA nativo
+  (feature `queue-postgres`, issue #151) anade su propio test PostgreSQL
+  `#[ignore]`, pendiente de una ejecucion en vivo; su mecanismo de durabilidad
+  en memoria esta cubierto por tests que pasan.
 - La deuda tecnica abierta se rastrea como GitHub Issues (etiqueta
   `tech-debt`); [docs/DEBT.md](docs/DEBT.md) es un registro historico
   congelado.

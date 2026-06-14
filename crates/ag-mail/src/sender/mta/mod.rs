@@ -14,8 +14,9 @@
 //! ([`shaping`]), a two-tier scheduled/ready delivery queue with retry/backoff
 //! and automatic suppression ([`queue`], [`suppress`]), and `ag-observe`
 //! metrics. `MtaSender` is the direct sender and also a [`queue::DeliveryBackend`].
-//! A durable queue spool (JetStream / PostgreSQL) and asynchronous DSN/FBL
-//! intake are later, optional parts of Phase 4.6-B (`RFC-0009`, `docs/DEBT.md`).
+//! An opt-in durable queue spool ([`spool`], PostgreSQL behind the
+//! `queue-postgres` feature) lets scheduled jobs survive a restart while the
+//! in-memory tier stays the default (`RFC-0009` section 4.2, `ADR-0009`).
 //!
 //! Governing decision: `ADR-0010`; technical plan: `RFC-0009`.
 
@@ -26,6 +27,7 @@ pub mod egress;
 pub mod queue;
 pub mod resolve;
 pub mod shaping;
+pub mod spool;
 pub mod suppress;
 
 use std::collections::BTreeMap;
@@ -53,7 +55,11 @@ pub use queue::{
 };
 pub use resolve::ResolverConfigMta;
 pub use shaping::{Shaper, ShapingConfig, ShapingLimits};
+pub use spool::{InMemorySpool, PersistedJob, Spool, SpoolError};
 pub use suppress::{SuppressionList, SuppressionReason};
+
+#[cfg(feature = "queue-postgres")]
+pub use spool::PostgresSpool;
 
 /// Configuration for the native MTA sender.
 #[derive(Debug, Clone)]

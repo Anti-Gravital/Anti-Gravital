@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 readme = "README.md"
-description = "Cache multinivel L1 (moka) + L2 opcional (Redis/fred) con invalidacion por tags"
+description = "Cache multinivel L1 (moka) + L2 opcional (servidor RESP2 nativo o Redis externo) con invalidacion por tags"
 keywords.workspace = true
 categories.workspace = true
 publish = false
@@ -19,9 +19,13 @@ workspace = true
 
 [features]
 native-server = ["dep:dashmap"]
+# External Redis L2 backing for multi-instance deployments (RFC-0005 alt A as an
+# opt-in adapter; ADR-0009 rule 2). The in-process path stays the default.
+redis-l2 = ["dep:redis"]
 
 [dependencies]
 ag-core = { workspace = true }
+async-trait = { workspace = true }
 moka = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -30,6 +34,11 @@ tracing = { workspace = true }
 
 # Native RESP2 server: per-key expiry tracking and key registry
 dashmap = { version = "6", optional = true }
+
+# External Redis L2 adapter (feature "redis-l2"). Mature MIT client; the
+# auto-reconnecting multiplexed ConnectionManager backs the L2 trait. The
+# crate's native default does not require it (ADR-0009 rule 2).
+redis = { version = "0.27", optional = true, default-features = false, features = ["tokio-comp", "connection-manager"] }
 
 [[test]]
 name = "resp2_compat"

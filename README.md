@@ -94,7 +94,8 @@ in CI:
 - Use the standard modules (Phase 4):
   - `ag-auth`: WebAuthn/FIDO2, OAuth2 PKCE, JWT Ed25519, API keys, refresh
     tokens.
-  - `ag-cache`: in-process L1 cache plus a native RESP2 L2 server.
+  - `ag-cache`: in-process L1 cache plus a native RESP2 L2 server, with an
+    optional external Redis L2 for multi-instance setups (feature `redis-l2`).
   - `ag-realtime`: in-process event bus, WebSocket/SSE helpers, optional
     external NATS client.
   - `ag-storage`: filesystem store, image processing, signed URLs, optional
@@ -529,7 +530,8 @@ tests en CI:
 - Usar los modulos estandar (Fase 4):
   - `ag-auth`: WebAuthn/FIDO2, OAuth2 PKCE, JWT Ed25519, API keys, refresh
     tokens.
-  - `ag-cache`: cache L1 en proceso mas un servidor L2 RESP2 nativo.
+  - `ag-cache`: cache L1 en proceso mas un servidor L2 RESP2 nativo, con un L2
+    Redis externo opcional para despliegues multi-instancia (feature `redis-l2`).
   - `ag-realtime`: bus de eventos en proceso, helpers WebSocket/SSE, cliente
     NATS externo opcional.
   - `ag-storage`: store de filesystem, procesamiento de imagenes, URLs

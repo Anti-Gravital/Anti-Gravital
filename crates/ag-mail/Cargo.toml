@@ -99,6 +99,11 @@ base64 = { version = "0.22", optional = true }
 [dev-dependencies]
 proptest = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
+# In-process STARTTLS SMTP sink for the native-MTA protocol-path tests: a
+# self-signed cert (rcgen) plus a rustls/tokio-rustls acceptor. Test-only.
+rcgen = { workspace = true }
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
 # Self dev-dependency so integration tests in `tests/` compile the library with
 # `test-utils` on, exposing `NullSender`. Without this the `#[ignore]` Postgres
 # parity suites (persistent_queue, workers_postgres) fail to compile under their

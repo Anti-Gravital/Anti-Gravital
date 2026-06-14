@@ -49,6 +49,23 @@ adaptador opt-in con el camino nativo por defecto. Esta rama lo anade:
 - `crates/ag-cache/tests/redis_l2.rs` (nuevo): test live `#[ignore]` con `REDIS_URL`.
 - README (raiz EN+ES) y `crates/ag-cache/README.md` sincronizados.
 
+### Issue #153 — Native MTA: protocol-path delivery test (DEBT-022)
+
+El camino de entrega directa por MX (`MtaSender::submit`) solo estaba cubierto
+por tests `#[ignore]` que requieren DNS real y egress por puerto 25. Esta rama
+ejercita el camino ESMTP/STARTTLS/DKIM de forma automatica en CI, sin servicios
+externos ni Docker:
+
+- `crates/ag-mail/src/sender/mta/mod.rs`: dos unit tests que levantan un sink
+  SMTP de una sesion en loopback que anuncia STARTTLS y hace upgrade con un
+  certificado self-signed (`rcgen` + `rustls`/`tokio-rustls`), y conducen
+  `submit` por EHLO -> STARTTLS -> EHLO -> MAIL -> RCPT -> DATA. Un test afirma
+  el envelope/cuerpo; el otro afirma la cabecera `DKIM-Signature:` en el cable.
+- `crates/ag-mail/Cargo.toml`: dev-deps `rcgen`, `rustls`, `tokio-rustls` (solo
+  test) para el sink TLS.
+- `docs/DEBT.md`: DEBT-022 actualizado; la entrega real a un MX externo sigue
+  siendo una compuerta manual (puerto 25 bloqueado aqui y en CI hospedado).
+
 ## Plan de prueba
 
 ```sh
@@ -60,6 +77,11 @@ cargo test   -p ag-cache            # 24 tests, incluye los 4 de L2
 # Test live (requiere Redis):
 REDIS_URL=redis://localhost:6379 \
   cargo test -p ag-cache --features redis-l2 --test redis_l2 -- --ignored
+
+# Issue #153 (ag-mail MTA sink):
+cargo fmt --check -p ag-mail
+cargo clippy -p ag-mail --features mta --tests -- -D warnings
+cargo test   -p ag-mail --features mta   # 107 tests, incluye los 2 del sink STARTTLS
 ```
 
 ## Alcance de verificacion (honesto)
@@ -80,6 +102,7 @@ REDIS_URL=redis://localhost:6379 \
 ## Cierre de issues
 
 Closes #144
+Closes #153
 
 ## Checklist final
 

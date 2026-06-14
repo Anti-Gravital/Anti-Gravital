@@ -257,6 +257,8 @@ dependencies = [
  "metrics",
  "minijinja",
  "proptest",
+ "rcgen",
+ "rustls",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -264,6 +266,7 @@ dependencies = [
  "sqlx",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-rustls",
  "tracing",
 ]
 

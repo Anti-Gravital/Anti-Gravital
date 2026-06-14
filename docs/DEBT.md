@@ -126,7 +126,13 @@ For current, actionable debt see the GitHub Issues board filtered by the
 - Expected removal: add a CI service container acting as a sink MTA and a
   fixture resolver, then de-`ignore` the protocol-path delivery test. Real
   external-MX delivery remains a manual gate on a host with port 25 egress.
-- Status: migrated to GitHub issue #153 (live tracking). Owning plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
+- Status: migrated to GitHub issue #153 (live tracking). The ESMTP/STARTTLS/DKIM
+  protocol path is now exercised automatically: in-process unit tests stand up a
+  loopback SMTP sink that advertises STARTTLS and upgrades with a self-signed
+  cert, driving `MtaSender::submit` through EHLO -> STARTTLS -> MAIL -> RCPT ->
+  DATA (and asserting the DKIM-Signature on the wire). Real external-MX delivery
+  stays a manual gate (port 25 egress is blocked here and in hosted CI). Owning
+  plan: RFC-0009 section 4.8. Target: Phase 4.6-B.
 
 ## ag-cache
 

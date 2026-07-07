@@ -20,6 +20,7 @@ workspace = true
 [features]
 default = []
 auth = ["dep:ag-auth"]
+lossy-webp = ["dep:webp"]
 s3   = ["dep:object_store"]
 # Lossy WebP encoding with configurable quality via the native `webp` crate
 # (bundled libwebp). Default stays lossless via `image` (no native build).
@@ -36,6 +37,7 @@ getrandom     = { workspace = true }
 governor      = { workspace = true }
 http          = { workspace = true }
 image         = { workspace = true }
+webp          = { version = "0.3.1", optional = true, default-features = false }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
 thiserror     = { workspace = true }
@@ -44,10 +46,6 @@ tower         = { workspace = true }
 tower-http    = { workspace = true }
 tracing       = { workspace = true }
 object_store  = { version = "0.11", features = ["aws"], optional = true }
-# Lossy WebP encoder (feature "webp-lossy"). Bundles libwebp; built from source
-# via cc, no system library required. from_rgba is used so it does not couple to
-# the workspace `image` version.
-webp          = { version = "0.3", optional = true, default-features = false }
 hmac          = { workspace = true }
 sha2          = { workspace = true }
 base64ct      = { workspace = true }

@@ -13,6 +13,11 @@ ignore = [
     # RUSTSEC-2023-0071: Marvin Attack en rsa 0.9.x (transitivo de jsonwebtoken).
     # Anti-Gravital usa exclusivamente EdDSA; ningun codigo invoca RSA.
     { id = "RUSTSEC-2023-0071" },
+    # RUSTSEC-2024-0436: paste crate is unmaintained (transitivo via
+    # image/ravif/rav1e). rav1e upstream uses paste for macro concat; no
+    # alternative exists. Se ignora porque es una dependencia build-only y
+    # no afecta la seguridad del binario final.
+    { id = "RUSTSEC-2024-0436" },
 ]
 
 [licenses]

@@ -61,7 +61,7 @@ pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
     let rps = NonZeroU32::new(config.rate_limit_rps).unwrap_or(NonZeroU32::MIN);
     let limiter: Arc<DefaultDirectRateLimiter> =
         Arc::new(RateLimiter::direct(Quota::per_second(rps)));
-    let token = Arc::new(config.store_token.clone());
+    let auth_state = super::auth::AuthState::from_config(config);
     let max_body = config.max_object_size_mb as usize * 1024 * 1024;
 
     let protected = Router::new()
@@ -79,7 +79,7 @@ pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
                     rate_limit_middleware,
                 ))
                 .layer(axum::middleware::from_fn_with_state(
-                    token,
+                    auth_state,
                     bearer_auth_middleware,
                 )),
         );
@@ -140,7 +140,10 @@ fn content_type_for(key: &str) -> (&'static str, bool) {
 }
 
 fn etag_for(data: &Bytes) -> String {
-    format!("\"{}\"", blake3::hash(data).to_hex())
+    // Strong validator (RFC 7232): the full 256-bit blake3 digest, so distinct
+    // contents cannot collide into the same ETag at scale.
+    let hash = blake3::hash(data);
+    format!("\"{}\"", hash.to_hex())
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +346,18 @@ mod tests {
     use axum::http::Request;
     use tower::ServiceExt;
 
+    #[test]
+    fn etag_is_strong_full_blake3_and_collision_resistant() {
+        let a = etag_for(&Bytes::from_static(b"hello"));
+        let b = etag_for(&Bytes::from_static(b"hellp"));
+        // Strong validator: quoted, full 64 hex chars (256-bit blake3).
+        assert!(a.starts_with('"') && a.ends_with('"'));
+        assert_eq!(a.trim_matches('"').len(), 64);
+        // Distinct contents produce distinct ETags; identical contents match.
+        assert_ne!(a, b);
+        assert_eq!(a, etag_for(&Bytes::from_static(b"hello")));
+    }
+
     fn temp_store() -> (tempfile::TempDir, Arc<AgStore>) {
         let dir = tempfile::tempdir().unwrap();
         let cfg = crate::StorageConfig {
@@ -430,16 +445,6 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         // The untrusted byte is percent-encoded in the echoed header.
         assert_eq!(resp.headers()["X-AG-Store-Key"], "a%7Fb.txt");
-    }
-
-    #[test]
-    fn etag_uses_full_digest_and_distinguishes_content() {
-        let first = etag_for(&Bytes::from_static(b"first"));
-        let second = etag_for(&Bytes::from_static(b"second"));
-
-        assert_eq!(first, format!("\"{}\"", blake3::hash(b"first").to_hex()));
-        assert_eq!(first.len(), 66);
-        assert_ne!(first, second);
     }
 
     #[test]

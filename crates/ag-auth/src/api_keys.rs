@@ -108,3 +108,33 @@ mod tests {
         assert_ne!(raw1, raw2, "dos claves generadas no deben ser iguales");
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based tests for the API-key generate/verify invariants.
+    use super::{generate, verify};
+    use proptest::prelude::*;
+
+    proptest! {
+        // A freshly generated key always verifies against its own hash.
+        #[test]
+        fn generate_then_verify_roundtrips(prefix in "[A-Za-z0-9_]{0,16}") {
+            let (raw, hash) = generate(&prefix);
+            prop_assert!(verify(&raw, &hash));
+        }
+
+        // verify must never panic on arbitrary input and returns a bool.
+        #[test]
+        fn verify_never_panics(raw in ".*", hash in ".*") {
+            let _ = verify(&raw, &hash);
+        }
+
+        // A key different from the generated one must not verify.
+        #[test]
+        fn different_key_does_not_verify(prefix in "[A-Za-z0-9_]{0,16}", other in ".{0,48}") {
+            let (raw, hash) = generate(&prefix);
+            prop_assume!(other != raw);
+            prop_assert!(!verify(&other, &hash));
+        }
+    }
+}

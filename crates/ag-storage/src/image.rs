@@ -62,29 +62,34 @@ impl ImageProcessor {
 
     /// Converts the image to WebP.
     ///
-    /// With the `lossy-webp` feature, `quality` controls lossy encoding from 0
-    /// (smallest) to 100 (highest quality). Without it, encoding remains
-    /// lossless and the quality value has no effect.
+    /// Without the `webp-lossy` feature, emits lossless WebP via the `image`
+    /// crate and `quality` is ignored (`image` 0.25 only exposes lossless WebP).
+    ///
+    /// With the `webp-lossy` feature, emits lossy WebP at the given `quality`
+    /// (0..=100) via the native `webp` encoder; higher means better quality and
+    /// a larger file. A `quality` of 100 is treated as lossless.
     pub fn to_webp(&self, data: impl AsRef<[u8]>, quality: u8) -> Result<Bytes, StorageError> {
         let img = load(data.as_ref())?;
-        #[cfg(feature = "lossy-webp")]
+
+        #[cfg(feature = "webp-lossy")]
         {
-            encode_webp_lossy(img, quality)
+            let rgba = img.to_rgba8();
+            let (width, height) = rgba.dimensions();
+            let encoder = webp::Encoder::from_rgba(rgba.as_raw(), width, height);
+            let memory = if quality >= 100 {
+                encoder.encode_lossless()
+            } else {
+                encoder.encode(f32::from(quality))
+            };
+            Ok(Bytes::copy_from_slice(&memory))
         }
-        #[cfg(not(feature = "lossy-webp"))]
+
+        #[cfg(not(feature = "webp-lossy"))]
         {
             let _ = quality;
             encode(img, ImageFormat::WebP)
         }
     }
-}
-
-#[cfg(feature = "lossy-webp")]
-fn encode_webp_lossy(img: DynamicImage, quality: u8) -> Result<Bytes, StorageError> {
-    let rgba = img.to_rgba8();
-    let encoder = webp::Encoder::from_rgba(rgba.as_raw(), rgba.width(), rgba.height());
-    let encoded = encoder.encode(f32::from(quality));
-    Ok(Bytes::copy_from_slice(&encoded))
 }
 
 fn load(data: &[u8]) -> Result<DynamicImage, StorageError> {
@@ -114,16 +119,31 @@ mod tests {
         buf.into_inner()
     }
 
-    #[cfg(feature = "lossy-webp")]
-    fn test_gradient_png() -> Vec<u8> {
-        let img = image::ImageBuffer::from_fn(128, 128, |x, y| {
-            image::Rgba([(x * 2) as u8, (y * 2) as u8, (x ^ y) as u8, 255])
-        });
+    #[cfg(feature = "webp-lossy")]
+    #[test]
+    fn webp_lossy_quality_changes_size() {
+        // A noisy source so quality has a measurable effect on encoded size.
+        let mut rgba = image::RgbaImage::new(64, 64);
+        for (x, y, px) in rgba.enumerate_pixels_mut() {
+            let v = ((x * 7 + y * 13) % 256) as u8;
+            *px = image::Rgba([v, v.wrapping_mul(3), v.wrapping_add(40), 255]);
+        }
         let mut buf = Cursor::new(Vec::new());
-        DynamicImage::ImageRgba8(img)
+        DynamicImage::ImageRgba8(rgba)
             .write_to(&mut buf, ImageFormat::Png)
             .unwrap();
-        buf.into_inner()
+        let png = buf.into_inner();
+
+        let processor = ImageProcessor::new();
+        let low = processor.to_webp(&png, 10).unwrap();
+        let high = processor.to_webp(&png, 90).unwrap();
+        assert!(!low.is_empty() && !high.is_empty());
+        assert!(
+            low.len() < high.len(),
+            "lower quality should be smaller: {} vs {}",
+            low.len(),
+            high.len()
+        );
     }
 
     #[test]
@@ -160,19 +180,6 @@ mod tests {
             "alto esperado <= 30, obtenido: {}",
             thumb.height()
         );
-    }
-
-    #[cfg(feature = "lossy-webp")]
-    #[test]
-    fn image_to_webp_quality_changes_encoded_size() {
-        let processor = ImageProcessor::new();
-        let src = test_gradient_png();
-        let low = processor.to_webp(&src, 10).unwrap();
-        let high = processor.to_webp(&src, 90).unwrap();
-
-        assert_ne!(low.len(), high.len());
-        assert!(image::load_from_memory(&low).is_ok());
-        assert!(image::load_from_memory(&high).is_ok());
     }
 
     #[test]

@@ -33,7 +33,12 @@ metrics = ["dep:metrics"]
 # Motor MTA outbound nativo (Fase 4.6-A): resolucion MX, entrega ESMTP+STARTTLS
 # directa al MX destino, firma DKIM y clasificacion de bounces. Opt-in; el
 # sender por defecto sigue siendo SmtpSender (relay). Ver RFC-0009 / ADR-0010.
-mta = ["dep:mail-send", "dep:mail-auth", "dep:mail-parser", "dep:hickory-resolver", "dep:rustls-pki-types"]
+mta = ["dep:mail-send", "dep:mail-auth", "dep:mail-parser", "dep:hickory-resolver", "dep:rustls-pki-types", "dep:getrandom"]
+# Durable PostgreSQL spool for the native MTA scheduled queue (RFC-0009 section
+# 4.2). Opt-in mirror so scheduled jobs survive a restart; the in-memory tier
+# stays the default (ADR-0009 rule 2). Uses the runtime sqlx API (no DB needed
+# at build time). Implies `mta`.
+queue-postgres = ["mta", "dep:sqlx"]
 # Superficie de API gestionada (Fase 4.6-C). Por ahora: firma de webhooks
 # HMAC-SHA256. Opt-in; ver RFC-0009. Las rutas REST llegan en pasos posteriores.
 api = ["dep:hmac", "dep:sha2", "dep:base64"]
@@ -91,12 +96,16 @@ mail-parser = { version = "0.11", optional = true, default-features = false }
 hickory-resolver = { version = "0.26.1", optional = true, default-features = false, features = ["tokio"] }
 rustls-pki-types = { workspace = true, optional = true }
 
+# Random job ids for the MTA scheduled queue (feature "mta"). Tiny, no-std-friendly.
+getrandom = { workspace = true, optional = true }
+
 # Firma de webhooks (feature "api").
 hmac = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 # Self dev-dependency so integration tests in `tests/` compile the library with
 # `test-utils` on, exposing `NullSender`. Without this the `#[ignore]` Postgres

@@ -337,3 +337,31 @@ response UserResponse { id UUID }
         }
     }
 }
+
+#[cfg(test)]
+mod prop_tests {
+    //! Property-based tests: the DSL front-end never panics on arbitrary input.
+    use super::compile;
+    use crate::lexer::tokenize;
+    use proptest::prelude::*;
+
+    proptest! {
+        // Compiling arbitrary input returns Ok or diagnostics, never panics.
+        #[test]
+        fn compile_never_panics(src in ".*") {
+            let _ = compile(&src);
+        }
+
+        // Token-shaped input (identifiers, braces, punctuation) never panics.
+        #[test]
+        fn compile_never_panics_on_tokenish(src in "[A-Za-z0-9_{}:,()\\[\\] \\n\\t]{0,256}") {
+            let _ = compile(&src);
+        }
+
+        // The lexer never panics and always terminates on arbitrary input.
+        #[test]
+        fn tokenize_never_panics(src in ".*") {
+            let _ = tokenize(&src);
+        }
+    }
+}

@@ -54,7 +54,7 @@ pub trait L2Cache: Send + Sync {
 /// tests: two [`AgCache`](crate::AgCache) instances sharing one `InMemoryL2`
 /// behave like two instances sharing one Redis. It does not survive the process
 /// and is not distributed, so production multi-instance setups use
-/// [`RedisL2`] (feature `redis-l2`).
+/// `RedisL2` (feature `redis-l2`).
 #[derive(Debug, Default)]
 pub struct InMemoryL2 {
     store: std::sync::Mutex<std::collections::HashMap<String, Vec<u8>>>,

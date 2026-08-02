@@ -1,11 +1,14 @@
 # ag-cache
 
 Two-level cache for Anti-Gravital: in-process L1 with tag-based invalidation (moka),
-and optional native L2 RESP2 server compatible with any Redis client.
+an optional native L2 RESP2 server compatible with any Redis client, and an
+optional external Redis L2 for multi-instance deployments.
 
 > Status: Phase 4 — L1 implemented (in-process, tag-based invalidation, moka).
 > Native RESP2 L2 server implemented under feature `native-server` (RFC-0005).
-> External Redis L2 remains deferred (issue #144).
+> External Redis L2 implemented under feature `redis-l2`: read-through populates
+> L1, writes and invalidations go through the shared store, and the in-process
+> path stays the default (ADR-0009 rule 2).
 
 ## Minimal usage (L1 only)
 
@@ -58,6 +61,35 @@ PING, FLUSHDB, DBSIZE, COMMAND.
 - **No AUTH.** The server listens only on `127.0.0.1` (loopback) by default.
 - **No TLS.** Use a real Redis for encrypted connections.
 - **KEYS pattern** only supports `*` (all keys). Prefix patterns are not implemented.
+
+## External Redis L2 (multi-instance)
+
+Enable the `redis-l2` Cargo feature and set `redis_url` (or `REDIS_URL`) to back
+the cache with an external Redis shared across instances. The L2 is the shared
+source of truth: reads populate L1 on a miss (read-through), and writes, deletes
+and tag invalidations go through the shared store, so an invalidation on one
+instance propagates to the others on their next read-through. The L1 staleness
+window is bounded by `l1_ttl_secs`. The in-process path stays the default
+(ADR-0009 rule 2): without the feature, the cache is L1-only and a set
+`REDIS_URL` only logs a warning.
+
+```toml
+[dependencies]
+ag-cache = { version = "0.0.0", features = ["redis-l2"] }
+```
+
+```rust
+use ag_cache::{AgCache, CacheConfig};
+
+# async fn run() -> Result<(), Box<dyn std::error::Error>> {
+let mut cfg = CacheConfig::default();
+cfg.redis_url = Some("redis://localhost:6379".to_owned());
+
+let cache = AgCache::new(cfg).await?; // connects the external Redis L2
+cache.set("user:123", b"data".to_vec(), &["users"]).await;
+# Ok(())
+# }
+```
 
 ## Capabilities
 

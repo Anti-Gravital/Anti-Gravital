@@ -547,4 +547,209 @@ mod tests {
         assert!(!gmail.content.is_empty());
         assert_eq!(gmail.scheduled_key(), "tenant-a:welcome:gmail.com");
     }
+
+    // ---- ESMTP + STARTTLS protocol path against a local in-process sink -----
+    //
+    // The direct-MX submit path used to be exercised only by `#[ignore]` tests
+    // needing real DNS/port-25 egress. These tests stand up a minimal SMTP sink
+    // on loopback that advertises STARTTLS and upgrades with a self-signed
+    // certificate, then drive `MtaSender::submit` against it. So the EHLO ->
+    // STARTTLS -> EHLO -> MAIL -> RCPT -> DATA dialogue (and the DKIM-signed body
+    // on the wire) runs in CI with no external services. Real external-MX
+    // delivery stays a manual gate (the `#[ignore]` live resolver test), since
+    // port 25 egress is blocked here.
+
+    /// What the sink observed during one SMTP session (post-STARTTLS).
+    #[derive(Default)]
+    struct SinkCapture {
+        mail_from: String,
+        rcpts: Vec<String>,
+        data: Vec<u8>,
+    }
+
+    /// Builds a `tokio-rustls` acceptor with a throwaway self-signed cert for
+    /// `127.0.0.1`. The client accepts it via opportunistic TLS
+    /// (`allow_invalid_certs`).
+    fn test_tls_acceptor() -> tokio_rustls::TlsAcceptor {
+        use rustls::ServerConfig;
+        use rustls_pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
+        use std::sync::Arc;
+
+        let ck = rcgen::generate_simple_self_signed(vec!["127.0.0.1".to_owned()]).unwrap();
+        let cert = ck.cert.der().clone();
+        let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(ck.key_pair.serialize_der()));
+        let provider = Arc::new(rustls::crypto::ring::default_provider());
+        let config = ServerConfig::builder_with_provider(provider)
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert], key)
+            .unwrap();
+        tokio_rustls::TlsAcceptor::from(Arc::new(config))
+    }
+
+    /// Reads one CRLF-terminated line without buffering past it, so the raw
+    /// stream is left intact for the TLS handshake after `STARTTLS`.
+    async fn read_line<S: tokio::io::AsyncRead + Unpin>(stream: &mut S) -> Option<String> {
+        use tokio::io::AsyncReadExt;
+        let mut buf = Vec::new();
+        let mut byte = [0u8; 1];
+        loop {
+            match stream.read(&mut byte).await {
+                Ok(0) => {
+                    return (!buf.is_empty()).then(|| String::from_utf8_lossy(&buf).into_owned());
+                }
+                Ok(_) => {
+                    buf.push(byte[0]);
+                    if byte[0] == b'\n' {
+                        return Some(String::from_utf8_lossy(&buf).into_owned());
+                    }
+                }
+                Err(_) => return None,
+            }
+        }
+    }
+
+    /// Drives the post-STARTTLS SMTP dialogue over the (now TLS) stream.
+    async fn serve_smtp<S>(mut stream: S, capture: &mut SinkCapture)
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+    {
+        use tokio::io::AsyncWriteExt;
+        while let Some(line) = read_line(&mut stream).await {
+            let cmd = line.trim_end();
+            let upper = cmd.to_ascii_uppercase();
+            if upper.starts_with("EHLO") || upper.starts_with("HELO") {
+                stream.write_all(b"250-sink\r\n250 OK\r\n").await.unwrap();
+            } else if upper.starts_with("MAIL FROM") {
+                capture.mail_from = cmd.to_owned();
+                stream.write_all(b"250 OK\r\n").await.unwrap();
+            } else if upper.starts_with("RCPT TO") {
+                capture.rcpts.push(cmd.to_owned());
+                stream.write_all(b"250 OK\r\n").await.unwrap();
+            } else if upper.starts_with("DATA") {
+                stream
+                    .write_all(b"354 End data with <CR><LF>.<CR><LF>\r\n")
+                    .await
+                    .unwrap();
+                while let Some(dl) = read_line(&mut stream).await {
+                    if dl == ".\r\n" {
+                        break;
+                    }
+                    capture.data.extend_from_slice(dl.as_bytes());
+                }
+                stream.write_all(b"250 OK queued\r\n").await.unwrap();
+            } else if upper.starts_with("QUIT") {
+                stream.write_all(b"221 Bye\r\n").await.unwrap();
+                break;
+            } else {
+                stream.write_all(b"250 OK\r\n").await.unwrap();
+            }
+        }
+    }
+
+    /// One-session SMTP sink: greets, advertises STARTTLS, upgrades to TLS, then
+    /// accepts one message over the encrypted channel.
+    async fn run_smtp_sink(
+        listener: tokio::net::TcpListener,
+        acceptor: tokio_rustls::TlsAcceptor,
+    ) -> SinkCapture {
+        use tokio::io::AsyncWriteExt;
+
+        let (mut stream, _) = listener.accept().await.expect("sink accepts a connection");
+        let mut capture = SinkCapture::default();
+
+        stream.write_all(b"220 sink ESMTP\r\n").await.unwrap();
+        // Plaintext phase: greet EHLO, advertise STARTTLS, then upgrade.
+        loop {
+            let Some(line) = read_line(&mut stream).await else {
+                return capture;
+            };
+            let upper = line.trim_end().to_ascii_uppercase();
+            if upper.starts_with("EHLO") || upper.starts_with("HELO") {
+                stream
+                    .write_all(b"250-sink\r\n250-STARTTLS\r\n250 OK\r\n")
+                    .await
+                    .unwrap();
+            } else if upper.starts_with("STARTTLS") {
+                stream.write_all(b"220 Go ahead\r\n").await.unwrap();
+                break;
+            } else if upper.starts_with("QUIT") {
+                stream.write_all(b"221 Bye\r\n").await.unwrap();
+                return capture;
+            } else {
+                stream.write_all(b"250 OK\r\n").await.unwrap();
+            }
+        }
+
+        let tls = acceptor.accept(stream).await.expect("TLS handshake");
+        serve_smtp(tls, &mut capture).await;
+        capture
+    }
+
+    #[tokio::test]
+    async fn submit_speaks_esmtp_over_starttls_to_local_sink() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let sink = tokio::spawn(run_smtp_sink(listener, test_tls_acceptor()));
+
+        // Default config: opportunistic STARTTLS, accepting the self-signed cert.
+        let sender = MtaSender::new(MtaConfig::new("test.local").with_port(port));
+
+        let content = b"From: from@send.example\r\nSubject: hi\r\n\r\nbody\r\n";
+        let result = sender
+            .submit(
+                "127.0.0.1",
+                "from@send.example",
+                &["rcpt@example.com"],
+                content,
+                None,
+            )
+            .await;
+        assert!(
+            result.is_ok(),
+            "submit should succeed against the sink: {result:?}"
+        );
+
+        let cap = sink.await.unwrap();
+        assert!(
+            cap.mail_from.contains("from@send.example"),
+            "MAIL FROM seen: {}",
+            cap.mail_from
+        );
+        assert!(cap.rcpts.iter().any(|r| r.contains("rcpt@example.com")));
+        assert!(String::from_utf8_lossy(&cap.data).contains("Subject: hi"));
+    }
+
+    #[tokio::test]
+    async fn submit_signs_with_dkim_on_the_wire() {
+        use mail_auth::common::crypto::Ed25519Key;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let sink = tokio::spawn(run_smtp_sink(listener, test_tls_acceptor()));
+
+        let pkcs8 = Ed25519Key::generate_pkcs8().expect("key generation succeeds");
+        let dkim = DkimConfig::ed25519("send.example", "sel", pkcs8);
+        let sender = MtaSender::new(MtaConfig::new("test.local").with_port(port).with_dkim(dkim));
+
+        let content = b"From: from@send.example\r\nSubject: hi\r\n\r\nbody\r\n";
+        let result = sender
+            .submit(
+                "127.0.0.1",
+                "from@send.example",
+                &["rcpt@example.com"],
+                content,
+                None,
+            )
+            .await;
+        assert!(result.is_ok(), "DKIM submit should succeed: {result:?}");
+
+        let cap = sink.await.unwrap();
+        let wire = String::from_utf8_lossy(&cap.data);
+        assert!(
+            wire.contains("DKIM-Signature:"),
+            "the message on the wire must carry a DKIM signature"
+        );
+    }
 }

@@ -1,6 +1,6 @@
 //! Image processing for the Anti-Gravital ecosystem.
 //!
-//! Supports JPEG, PNG and WebP. AVIF pending (issue #145).
+//! Supports JPEG, PNG and WebP, plus AVIF encoding behind the `avif` feature.
 //!
 //! # Usage
 //!
@@ -89,6 +89,26 @@ impl ImageProcessor {
             let _ = quality;
             encode(img, ImageFormat::WebP)
         }
+    }
+
+    /// Encodes the image to AVIF at the given `quality` (0..=100) using the
+    /// pure-Rust `ravif`/`rav1e` encoder. Higher `quality` means better fidelity
+    /// and a larger file.
+    ///
+    /// Requires the `avif` feature. Only encoding is provided: decoding AVIF
+    /// would pull the `dav1d` C library and is out of scope here, so any
+    /// supported input format (JPEG, PNG, WebP) is accepted as the source.
+    #[cfg(feature = "avif")]
+    pub fn to_avif(&self, data: impl AsRef<[u8]>, quality: u8) -> Result<Bytes, StorageError> {
+        use image::codecs::avif::AvifEncoder;
+
+        let img = load(data.as_ref())?;
+        let mut buf = Cursor::new(Vec::new());
+        // Speed 6 is a balanced encoder default; quality maps straight through.
+        let encoder = AvifEncoder::new_with_speed_quality(&mut buf, 6, quality);
+        img.write_with_encoder(encoder)
+            .map_err(|e| StorageError::Image(e.to_string()))?;
+        Ok(Bytes::from(buf.into_inner()))
     }
 }
 
@@ -179,6 +199,22 @@ mod tests {
             thumb.height() <= 30,
             "alto esperado <= 30, obtenido: {}",
             thumb.height()
+        );
+    }
+
+    #[cfg(feature = "avif")]
+    #[test]
+    fn to_avif_produces_valid_container() {
+        let processor = ImageProcessor::new();
+        let src = test_jpeg_100x100();
+        let out = processor.to_avif(&src, 60).unwrap();
+        assert!(!out.is_empty());
+        // ISOBMFF: bytes 4..8 hold the box type of the first box, which for an
+        // AVIF still image is the `ftyp` box; the `avif` brand appears within it.
+        assert_eq!(&out[4..8], b"ftyp", "expected an ISOBMFF ftyp box");
+        assert!(
+            out.windows(4).any(|w| w == b"avif"),
+            "expected the AVIF brand in the ftyp box"
         );
     }
 

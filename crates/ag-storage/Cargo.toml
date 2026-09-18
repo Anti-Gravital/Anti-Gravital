@@ -24,6 +24,10 @@ s3   = ["dep:object_store"]
 # Lossy WebP encoding with configurable quality via the native `webp` crate
 # (bundled libwebp). Default stays lossless via `image` (no native build).
 webp-lossy = ["dep:webp"]
+# AVIF encoding via the `image` crate's pure-Rust `ravif`/`rav1e` path (no
+# system library required). Adds the encoder only: decoding AVIF would pull the
+# `dav1d` C library, which is intentionally out of scope here.
+avif = ["image/avif"]
 
 [dependencies]
 ag-auth       = { path = "../ag-auth", version = "0.0.0", optional = true }

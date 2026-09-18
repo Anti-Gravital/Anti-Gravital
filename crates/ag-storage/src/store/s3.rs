@@ -6,7 +6,7 @@
 use crate::{StorageConfig, StorageError};
 use bytes::Bytes;
 use futures_util::StreamExt;
-use object_store::{aws::AmazonS3Builder, path::Path, ObjectStore};
+use object_store::{aws::AmazonS3Builder, path::Path, ObjectStore, ObjectStoreExt};
 use std::sync::Arc;
 
 /// S3/MinIO storage backend.

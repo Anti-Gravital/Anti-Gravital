@@ -468,6 +468,17 @@ del BDFL; no existe codigo. Fase aditiva. Entregables y criterios en
 
 Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`.
 
+
+## Fase 5.5 - Funciones serverless
+
+Estado: Propuesta. `docs/rfc/RFC-0023-serverless-functions.md` espera decision
+del BDFL; no existe codigo. Fase aditiva posterior a la beta 0.5. Entregables y
+criterios en `fase-05-5-funciones-serverless.md`.
+
+- [ ] Etapas 5.5-A a 5.5-F (ninguna iniciada).
+
+---
+
 ## Fase 6 - ag-ai y Knowledge Graph
 
 Estado: Pendiente. Vease `docs/roadmap/fase-06-ag-ai-knowledge-graph.md`.

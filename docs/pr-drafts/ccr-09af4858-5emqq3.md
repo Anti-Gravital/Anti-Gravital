@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Hoja de Ruta ampliada (Fases 4.6, 4.7, 4.8 y etapas 5-10), RFC-0018 a RFC-0022 (TUI, capas, entorno, instalacion y consola remota, guardarrailes), Rust 1.99.1 y refresco de dependencias
+Hoja de Ruta ampliada (Fases 4.6, 4.7, 4.8 y etapas 5-10), RFC-0018 a RFC-0023 (TUI, capas, entorno, instalacion y consola remota, guardarrailes, funciones serverless), Rust 1.99.1 y refresco de dependencias
 
 ## Fase afectada
 
@@ -47,7 +47,7 @@ como front-end de los comandos existentes:
 
 Fusionar esta PR registra la decision de la RFC (seccion 9).
 
-### RFC-0019 a RFC-0022 — arquitectura, entorno, operacion y reglas
+### RFC-0019 a RFC-0023 — arquitectura, entorno, operacion, reglas y funciones
 
 Todas en estado propuesta, sin codigo. Fusionar la PR registra su decision.
 
@@ -64,6 +64,10 @@ Todas en estado propuesta, sin codigo. Fusionar la PR registra su decision.
   plan/apply) para scripts y agentes automatizados.
 - `RFC-0022`: guardarrailes de mantenibilidad, cada regla con el mecanismo de
   CI que la hace cumplir.
+- `RFC-0023`: funciones serverless como componentes WebAssembly aislados en
+  `ag-wasm-host`, declaradas en `schema.ag`, con triggers HTTP, schedule, cola
+  y eventos, capacidades denegadas por defecto y limites por invocacion. Nueva
+  Fase 5.5 aditiva en la Hoja de Ruta, posterior a la beta 0.5.
 
 ### Toolchain y dependencias
 
@@ -142,6 +146,7 @@ Todas en estado propuesta, sin codigo. Fusionar la PR registra su decision.
 - `docs/rfc/RFC-0020-environment-and-secrets.md`
 - `docs/rfc/RFC-0021-server-install-remote-console-and-machine-interface.md`
 - `docs/rfc/RFC-0022-maintainability-guardrails.md`
+- `docs/rfc/RFC-0023-serverless-functions.md`
 - `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`, `docs/master/VERSION.md`
 - `docs/roadmap/` (derivados, `README.md`, `STATUS.md`, `calendar.md`)
 - `ADR-0009`, `ADR-0010`, `ADR-0013`, `RFC-0009`, `RFC-0012`

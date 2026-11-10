@@ -41,6 +41,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
 | 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
+| 5.5   | Serverless functions                       | 2 months           | Proposed (`RFC-0023`); no code yet |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
 | 8     | `ag-mobile` — Flutter bridge               | 2 months           | Pending |

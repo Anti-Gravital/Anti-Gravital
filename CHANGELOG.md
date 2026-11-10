@@ -7,6 +7,16 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Proposal: serverless functions (`RFC-0023`)
+
+Added (proposed; no code):
+
+- `RFC-0023`: serverless functions as sandboxed WebAssembly components run by
+  `ag-wasm-host`, declared in `schema.ag`, triggered by HTTP, schedule, queue
+  or events, with deny-by-default capabilities and per-invocation limits;
+  external function platforms and containers as packaging adapters.
+- Roadmap master: additive Phase 5.5 after the public beta.
+
 ### Toolchain and dependency refresh
 
 Changed:

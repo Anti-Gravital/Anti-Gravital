@@ -2,7 +2,7 @@
 
 **[English](#english) | [Espanol](#espanol)**
 
-**Versión:** 4.2 — Noviembre 2026 (enmiendas `RFC-0018` a `RFC-0021`; base 4.0 de mayo 2026)
+**Versión:** 4.2 — Noviembre 2026 (enmiendas `RFC-0018` a `RFC-0023`; base 4.0 de mayo 2026)
 **Organización:** Gravital Labs — Nereira Technology and Business Solutions
 **Origen:** República de Panamá
 **Estado:** Documento vivo. Se actualiza con cada release.
@@ -48,6 +48,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
 | 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
+| 5.5   | Serverless functions                       | 2 months           | Proposed (`RFC-0023`); no code yet |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
 | 8     | `ag-mobile` — Flutter bridge               | 2 months           | Pending |
@@ -772,6 +773,80 @@ review screen before any change, and a secrets model fixed by RFC before code.
 
 ---
 
+## Phase 5.5 — Serverless functions
+
+**Status: proposed (`RFC-0023`). No code exists.** Additive phase, after the
+public beta.
+
+**Objective.** Give application code a unit smaller than the service: a
+function that is deployed independently, started on demand, isolated in a
+WebAssembly sandbox with explicit capabilities and hard limits, and idle at no
+cost. Functions run natively on the user's own servers; external function
+platforms and containers are packaging adapters.
+
+**Duration:** 2 months.
+
+### 5.5.1 Entry criteria
+
+- [ ] `RFC-0023` accepted with its open questions resolved (native runtime or
+  adapters only, position in the roadmap, second language).
+- [ ] Version 0.5 (public beta) released.
+- [ ] Phase 4.8 stages B and E complete (declared secrets; plan and apply).
+
+### 5.5.2 Deliverables
+
+- [ ] Host core in `ag-wasm-host`: engine, per-invocation memory, fuel and
+  timeout limits, compiled-module cache. This is the work listed as stage 9-A;
+  Phase 9 builds plugins on top of it.
+- [ ] Versioned WIT interface for functions and a Rust function scaffold.
+- [ ] `function` declarations in the DSL with compile-time validation of
+  triggers, limits and capabilities.
+- [ ] Triggers: HTTP through the Shield pipeline; schedule and queue through
+  `ag-workers`; events.
+- [ ] Capabilities, deny by default: data, cache, storage, mail, outbound
+  HTTP to listed hosts, declared environment variables, job enqueue.
+- [ ] Embedded mode (inside the service process) and dedicated mode.
+- [ ] `ag functions new/list/build/invoke/deploy/rollback/logs`, with JSON
+  output and interactive flows.
+- [ ] Per-function metrics and traces through `ag-observe`.
+- [ ] Container packaging and one external-platform adapter in `ag-cloud`.
+- [ ] Guide for a second language.
+- [ ] Documentation: when to use a function, a worker or the service.
+
+Stages:
+
+1. **5.5-A, host core and local invocation.**
+2. **5.5-B, declarations and HTTP trigger.**
+3. **5.5-C, asynchronous triggers on `ag-workers`.**
+4. **5.5-D, capabilities**, one at a time, each with its denial test.
+5. **5.5-E, deployment, rollback and observability.**
+6. **5.5-F, packaging adapters and second language.**
+
+### 5.5.3 Exit criteria
+
+- [ ] A function without a capability cannot read a file, open a connection
+  or read an environment variable; each denial is covered by a test.
+- [ ] A function that exceeds memory, fuel or timeout is terminated without
+  affecting other invocations or the API, demonstrated under load.
+- [ ] An example project runs one function per trigger type.
+- [ ] Deploying or rolling back one function does not restart the service.
+- [ ] Cold and warm invocation times are measured and published with the
+  methodology of rule 17. No figure is claimed before that.
+
+### 5.5.4 Phase risks
+
+The main risk is **a sandbox flaw**, because functions run code with fewer
+rights than the service in the same process. The mitigation is deny-by-default
+capabilities, a denial test per capability, a pinned engine under the weekly
+audit, and inclusion of the function host in the external audit of Phase 10.
+
+The second risk is **expectation of parity with large function platforms**.
+The mitigation is to state the limits in the documentation (no persistent
+connections, no long-running work, no state between invocations) and to offer
+adapters for those who need such a platform.
+
+---
+
 ## Phase 6 — `ag-ai` and Knowledge Graph
 
 **Objective.** Build the AI module with the knowledge graph and the assisted capabilities.
@@ -1109,6 +1184,7 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 | 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | Propuesta (`RFC-0018`); sin código aún |
 | 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Propuesta (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin código aún |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
+| 5.5  | Funciones serverless                       | 2 meses           | Propuesta (`RFC-0023`); sin código aún |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
 | 8    | `ag-mobile` — Flutter bridge               | 2 meses           | Pendiente |
@@ -1859,6 +1935,87 @@ maneja secretos y ejecuta acciones irreversibles sobre infraestructura que el
 usuario paga. La mitigación es el orden de las etapas (primero auto-alojado),
 la pantalla de revisión obligatoria antes de cualquier cambio y un modelo de
 secretos fijado por RFC antes del código.
+
+---
+
+## Fase 5.5 — Funciones serverless
+
+**Estado: propuesta (`RFC-0023`). No existe código.** Fase aditiva, posterior
+a la beta pública.
+
+**Objetivo.** Dar al código de aplicación una unidad más pequeña que el
+servicio: una función que se despliega de forma independiente, se arranca bajo
+demanda, se aísla en un sandbox WebAssembly con capacidades explícitas y
+límites estrictos, y no cuesta nada mientras está inactiva. Las funciones
+corren de forma nativa en los servidores del propio usuario; las plataformas
+externas de funciones y los contenedores son adaptadores de empaquetado.
+
+**Duración:** 2 meses.
+
+### 5.5.1 Criterios de entrada
+
+- [ ] `RFC-0023` aceptada con sus preguntas abiertas resueltas (runtime nativo
+  o solo adaptadores, posición en la hoja de ruta, segundo lenguaje).
+- [ ] Versión 0.5 (beta pública) liberada.
+- [ ] Etapas B y E de la Fase 4.8 completas (secretos declarados; plan y
+  aplicación).
+
+### 5.5.2 Entregables
+
+- [ ] Núcleo del host en `ag-wasm-host`: motor, límites de memoria, fuel y
+  timeout por invocación, caché de módulos compilados. Es el trabajo listado
+  como etapa 9-A; la Fase 9 construye los plugins encima.
+- [ ] Interfaz WIT versionada para funciones y scaffold de función en Rust.
+- [ ] Declaraciones `function` en el DSL con validación en compilación de
+  triggers, límites y capacidades.
+- [ ] Triggers: HTTP a través de la pipeline del Shield; schedule y cola a
+  través de `ag-workers`; eventos.
+- [ ] Capacidades, denegadas por defecto: datos, caché, almacenamiento,
+  correo, HTTP saliente a hosts listados, variables de entorno declaradas,
+  encolado de jobs.
+- [ ] Modo embebido (dentro del proceso del servicio) y modo dedicado.
+- [ ] `ag functions new/list/build/invoke/deploy/rollback/logs`, con salida
+  JSON y flujos interactivos.
+- [ ] Métricas y trazas por función a través de `ag-observe`.
+- [ ] Empaquetado como contenedor y un adaptador de plataforma externa en
+  `ag-cloud`.
+- [ ] Guía para un segundo lenguaje.
+- [ ] Documentación: cuándo usar una función, un worker o el servicio.
+
+Etapas:
+
+1. **5.5-A, núcleo del host e invocación local.**
+2. **5.5-B, declaraciones y trigger HTTP.**
+3. **5.5-C, triggers asíncronos sobre `ag-workers`.**
+4. **5.5-D, capacidades**, una a la vez, cada una con su test de denegación.
+5. **5.5-E, despliegue, rollback y observabilidad.**
+6. **5.5-F, adaptadores de empaquetado y segundo lenguaje.**
+
+### 5.5.3 Criterios de salida
+
+- [ ] Una función sin una capacidad no puede leer un archivo, abrir una
+  conexión ni leer una variable de entorno; cada denegación está cubierta por
+  un test.
+- [ ] Una función que excede memoria, fuel o timeout se termina sin afectar a
+  otras invocaciones ni a la API, demostrado bajo carga.
+- [ ] Un proyecto de ejemplo ejecuta una función por cada tipo de trigger.
+- [ ] Desplegar o revertir una función no reinicia el servicio.
+- [ ] Los tiempos de invocación en frío y en caliente están medidos y
+  publicados con la metodología de la regla 17. No se afirma ninguna cifra
+  antes de eso.
+
+### 5.5.4 Riesgos de la fase
+
+El riesgo principal es **un fallo del sandbox**, porque las funciones ejecutan
+código con menos derechos que el servicio dentro del mismo proceso. La
+mitigación son las capacidades denegadas por defecto, un test de denegación
+por capacidad, un motor fijado y cubierto por la auditoría semanal, y la
+inclusión del host de funciones en la auditoría externa de la Fase 10.
+
+El segundo riesgo es la **expectativa de paridad con las grandes plataformas
+de funciones**. La mitigación es declarar los límites en la documentación (sin
+conexiones persistentes, sin trabajo de larga duración, sin estado entre
+invocaciones) y ofrecer adaptadores para quien necesite una plataforma así.
 
 ---
 

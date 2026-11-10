@@ -19,6 +19,7 @@ exige una fecha externa."
 | 4.7 | Experiencia interactiva de terminal (TUI de ag) | 1-2 meses, aditiva | Propuesta (RFC-0018); sin codigo |
 | 4.8 | Fundaciones del proyecto: capas, entorno, instalacion, operacion remota | 2-3 meses, aditiva | Propuesta (RFC-0019/0020/0021); sin codigo |
 | 5 | ag-cloud y version 0.5 beta publica | 2 meses | Pendiente |
+| 5.5 | Funciones serverless | 2 meses, aditiva | Propuesta (RFC-0023); sin codigo |
 | 6 | ag-ai y Knowledge Graph | 2 meses | Pendiente |
 | 7 | ag-migrate importadores | 2 meses | Pendiente |
 | 8 | ag-mobile Flutter bridge | 2 meses | Pendiente |

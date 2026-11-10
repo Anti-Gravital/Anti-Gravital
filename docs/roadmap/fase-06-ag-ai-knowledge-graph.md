@@ -2,7 +2,7 @@
 
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 > Indice: [docs/roadmap/README.md](./README.md)
-> Anterior: [fase-05-ag-cloud.md](./fase-05-ag-cloud.md)
+> Anterior: [fase-05-5-funciones-serverless.md](./fase-05-5-funciones-serverless.md)
 > Siguiente: [fase-07-ag-migrate.md](./fase-07-ag-migrate.md)
 
 ## Phase 6 — `ag-ai` and Knowledge Graph

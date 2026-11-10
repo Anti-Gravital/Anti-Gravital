@@ -86,3 +86,4 @@ como `superseded`.
 | 0020 | Variables de entorno declaradas y gestion de secretos | propuesta | `RFC-0020-environment-and-secrets.md` |
 | 0021 | Instalacion en servidor con un comando, consola remota e interfaz de maquina | propuesta | `RFC-0021-server-install-remote-console-and-machine-interface.md` |
 | 0022 | Guardarrailes de mantenibilidad: reglas verificables contra la degradacion | propuesta | `RFC-0022-maintainability-guardrails.md` |
+| 0023 | Funciones serverless | propuesta | `RFC-0023-serverless-functions.md` |

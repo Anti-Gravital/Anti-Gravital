@@ -3,7 +3,7 @@
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 > Indice: [docs/roadmap/README.md](./README.md)
 > Anterior: [fase-04-8-fundaciones-del-proyecto.md](./fase-04-8-fundaciones-del-proyecto.md)
-> Siguiente: [fase-06-ag-ai-knowledge-graph.md](./fase-06-ag-ai-knowledge-graph.md)
+> Siguiente: [fase-05-5-funciones-serverless.md](./fase-05-5-funciones-serverless.md)
 
 ## Phase 5 — `ag-cloud` simplified deployment
 

@@ -388,6 +388,7 @@ Current state, phase by phase (evidence in
 | 4.7 (additive) | Interactive terminal experience: full-screen TUI in the `ag` binary to create and configure a project, with exact non-interactive equivalents | Proposed | `RFC-0018` awaits decision; no code yet. Stages A-B are required for v0.5, stage C for 1.0 |
 | 4.8 (additive) | Project foundations: layered project structure, declared environment and encrypted secrets, verified one-command installation, remote console over SSH, machine-readable interface | Proposed | `RFC-0019`, `RFC-0020` and `RFC-0021` await decision; no code yet |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains, TLS | Pending | Opens when the pre-Phase-5 gate closes. Milestone: public beta v0.5 |
+| 5.5 (additive) | Serverless functions: independently deployed, sandboxed WebAssembly functions with explicit capabilities, triggered by HTTP, schedule, queue or events | Proposed | `RFC-0023` awaits decision; no code yet |
 | 6 | `ag-ai` and Knowledge Graph: providers, retrieval, graph-assisted workflows | Pending | Phase 5 completion and beta feedback |
 | 7 | `ag-migrate`: importers and assisted migration from other backend frameworks | Pending | Phase 6 completion and importer acceptance tests |
 | 8 | `ag-mobile`: Flutter/Dart bridge, generated clients, offline contracts | Pending | Phase 7 completion and mobile compatibility gates |
@@ -796,6 +797,7 @@ Estado actual, fase por fase (evidencia en
 | 4.7 (aditiva) | Experiencia interactiva de terminal: TUI a pantalla completa en el binario `ag` para crear y configurar un proyecto, con equivalentes no interactivos exactos | Propuesta | `RFC-0018` espera decision; sin codigo aun. Las etapas A-B son requisito de la v0.5 y la etapa C de la 1.0 |
 | 4.8 (aditiva) | Fundaciones del proyecto: estructura por capas, entorno declarado y secretos cifrados, instalacion verificada con un comando, consola remota sobre SSH, interfaz legible por maquina | Propuesta | `RFC-0019`, `RFC-0020` y `RFC-0021` esperan decision; sin codigo aun |
 | 5 | `ag-cloud`: build/deploy simplificados, secretos, logs, rollback, dominios, TLS | Pendiente | Abre cuando cierre la puerta pre-Fase 5. Hito: beta publica v0.5 |
+| 5.5 (aditiva) | Funciones serverless: funciones WebAssembly aisladas, desplegadas de forma independiente, con capacidades explicitas, disparadas por HTTP, schedule, cola o eventos | Propuesta | `RFC-0023` espera decision; sin codigo aun |
 | 6 | `ag-ai` y Knowledge Graph: providers, retrieval, flujos asistidos por grafo | Pendiente | Cierre de la Fase 5 y feedback de la beta |
 | 7 | `ag-migrate`: importadores y migracion asistida desde otros frameworks backend | Pendiente | Cierre de la Fase 6 y tests de aceptacion de importadores |
 | 8 | `ag-mobile`: bridge Flutter/Dart, clientes generados, contratos offline | Pendiente | Cierre de la Fase 7 y puertas de compatibilidad mobile |

@@ -22,6 +22,7 @@ pendientes) se mantiene en `STATUS.md`.
 | 4.7 | Experiencia interactiva de terminal (TUI de ag) | `fase-04-7-experiencia-interactiva-de-terminal.md` | 1-2 meses |
 | 4.8 | Fundaciones del proyecto: capas, entorno, instalacion, operacion remota | `fase-04-8-fundaciones-del-proyecto.md` | 2-3 meses |
 | 5 | ag-cloud y version 0.5 beta | `fase-05-ag-cloud.md` | 2 meses |
+| 5.5 | Funciones serverless | `fase-05-5-funciones-serverless.md` | 2 meses |
 | 6 | ag-ai y Knowledge Graph | `fase-06-ag-ai-knowledge-graph.md` | 2 meses |
 | 7 | ag-migrate importadores | `fase-07-ag-migrate.md` | 2 meses |
 | 8 | ag-mobile Flutter bridge | `fase-08-ag-mobile.md` | 2 meses |

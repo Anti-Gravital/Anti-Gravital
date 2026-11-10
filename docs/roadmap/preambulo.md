@@ -38,6 +38,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
+| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -48,6 +49,18 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 **Total estimated duration:** 25–30 months from the start.
 **Public beta version milestone (0.5):** end of phase 5 (~15 months).
 **Stable version 1.0 milestone:** end of phase 10 (~30 months).
+
+Phases 4.5, 4.6 and 4.7 are additive: they do not move the two milestones
+above. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
+with Phase 5; its stages A and B are exit criteria of Phase 5 (section 5.3) and
+its stage C is an entry criterion of Phase 10 (section 10.1).
+
+**How later phases are detailed (amendment of 2026-11-10).** From Phase 5
+onward each phase carries, in addition to the four blocks, a **Stages** block
+that orders its deliverables into independently mergeable steps and a list of
+**RFC prerequisites** (rule 28: new commands, new DSL constructs and new
+dependencies need an approved RFC before code). Stages add no scope: every
+stage item is a deliverable already listed in the phase.
 
 **Status at the close of Phase 4.5 (2026-05-24), updated for the pre-Phase-5
 gate (2026-06-11).** Phases 1 through 4.5 are technically implemented and merged

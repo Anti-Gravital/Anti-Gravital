@@ -14,6 +14,8 @@
 - [ ] Phase 9 completed.
 - [ ] DSL version 1.0 (stable grammar) ready for freeze.
 - [ ] The technical committee is active and operational.
+- [ ] Phase 4.7 stage C complete, and every multi-decision command introduced
+  in Phases 5 to 9 has its interactive flow with flag parity.
 
 ### 10.2 Deliverables
 
@@ -26,10 +28,19 @@
 - [ ] Load test: 500 K req/s sustained for 30 minutes with degradation ≤ 5%.
 - [ ] Memory leak test: 24 hours of continuous load without detectable memory growth.
 - [ ] Compilation verified on: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
-- [ ] Compilation to `wasm32-wasi` to serve Anti-Gravital in edge functions.
+- [ ] Compilation to `wasm32-wasip1` (the target formerly named `wasm32-wasi`) to serve Anti-Gravital in edge functions.
 - [ ] Official manual published: "The Anti-Gravital Book" in Spanish and English.
 - [ ] Framework introduction course on YouTube (minimum six videos).
 - [ ] Position in TechEmpower Framework Benchmarks: top 10 in Plaintext and JSON Serialization categories.
+
+Stages:
+
+1. **10-A, freeze.** DSL 1.0 grammar freeze; public API review of every crate;
+   deprecations removed.
+2. **10-B, verification.** Coverage, 72-hour fuzzing, load and leak tests.
+3. **10-C, external audit and remediation.**
+4. **10-D, platforms.** Four native targets and `wasm32-wasip1`.
+5. **10-E, publication.** Book, course, benchmark submission, 1.0 release.
 
 ### 10.3 Exit criteria (version 1.0)
 

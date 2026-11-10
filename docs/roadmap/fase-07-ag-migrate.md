@@ -16,7 +16,7 @@
 
 ### 7.2 Deliverables
 
-- [ ] `ag-migrate` crate with five importers:
+- [ ] `ag-migrate` crate with six importers:
   - [ ] OpenAPI 3.0 and 3.1 importer.
   - [ ] Prisma importer.
   - [ ] Django importer.
@@ -26,6 +26,22 @@
 - [ ] `ag migrate from <framework> <path>` command.
 - [ ] Official migration guides per framework with complete examples.
 - [ ] Documented case study: real migration of a medium-sized FastAPI application.
+- [ ] Import report for every run: what was translated, what was approximated
+  and what was skipped, with source locations. Interactive review of the
+  report per `RFC-0018` before any file is written.
+
+RFC prerequisites (rule 28):
+
+- [ ] RFC for the `ag migrate from` command and the import report format.
+
+Stages:
+
+1. **7-A, contract formats.** OpenAPI 3.0/3.1 and GraphQL SDL (machine-readable
+   specifications; no source-code analysis).
+2. **7-B, schema formats.** Prisma.
+3. **7-C, framework sources.** Django, FastAPI, Sequelize, in the order set by
+   the size of the collected corpus.
+4. **7-D, guides and case study.**
 
 ### 7.3 Exit criteria (gate before Phase 8)
 

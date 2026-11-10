@@ -2,7 +2,7 @@
 
 **[English](#english) | [Espanol](#espanol)**
 
-**Versión:** 4.0 — Mayo 2026
+**Versión:** 4.2 — Noviembre 2026 (enmienda `RFC-0018`; base 4.0 de mayo 2026)
 **Organización:** Gravital Labs — Nereira Technology and Business Solutions
 **Origen:** República de Panamá
 **Estado:** Documento vivo. Se actualiza con cada release.
@@ -45,6 +45,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
+| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -55,6 +56,18 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 **Total estimated duration:** 25–30 months from the start.
 **Public beta version milestone (0.5):** end of phase 5 (~15 months).
 **Stable version 1.0 milestone:** end of phase 10 (~30 months).
+
+Phases 4.5, 4.6 and 4.7 are additive: they do not move the two milestones
+above. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
+with Phase 5; its stages A and B are exit criteria of Phase 5 (section 5.3) and
+its stage C is an entry criterion of Phase 10 (section 10.1).
+
+**How later phases are detailed (amendment of 2026-11-10).** From Phase 5
+onward each phase carries, in addition to the four blocks, a **Stages** block
+that orders its deliverables into independently mergeable steps and a list of
+**RFC prerequisites** (rule 28: new commands, new DSL constructs and new
+dependencies need an approved RFC before code). Stages add no scope: every
+stage item is a deliverable already listed in the phase.
 
 **Status at the close of Phase 4.5 (2026-05-24), updated for the pre-Phase-5
 gate (2026-06-11).** Phases 1 through 4.5 are technically implemented and merged
@@ -93,7 +106,7 @@ additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
 
 ### 0.2 Deliverables
 
-- [ ] Repository `github.com/gravital-labs/anti-gravital` created and public.
+- [ ] Repository `github.com/anti-gravital/anti-gravital` created and public.
 - [ ] `LICENSE` file with complete Apache 2.0 text.
 - [ ] Bilingual `README.md` file (Spanish + English) with value proposition.
 - [ ] `CONTRIBUTING.md` file with contribution guide, code conventions, pull request process.
@@ -403,14 +416,179 @@ remain a supported production path until native deliverability is proven.
 
 ---
 
+## Phase 4.6 — Additive pre-Phase-5 hardening: native MTA and `ag-workers`
+
+**Status: in progress.** Additive phase authorized with the pre-Phase-5 gate
+open (`ADR-0010`, `ADR-0013`). It makes no production claim until the gate
+closes. Live box-level state: `docs/roadmap/STATUS.md`.
+
+**Objective.** Remove two structural dependencies before `ag-cloud` exists: the
+need for a third-party relay to send email, and the absence of a shared
+background execution engine. Both are opt-in behind Cargo features and keep the
+native default path (`ADR-0009` rule 2).
+
+The phase has two independent tracks. The label "4.6-D" was historically used
+for two different things (the marketing stage of the mail track in `RFC-0009`
+and the whole workers track in `RFC-0012`); this document names them explicitly
+to remove the ambiguity.
+
+### 4.6.1 Mail track — native outbound MTA in `ag-mail` (`RFC-0009`)
+
+| Stage | Scope | State |
+|-------|-------|-------|
+| Mail A | MX resolution, ESMTP+STARTTLS direct delivery, DKIM signing, bounce classification (`mta` feature) | Implemented; protocol path exercised in CI against a loopback sink |
+| Mail B | Two-tier queue, suppression list, per-destination traffic shaping, durable PostgreSQL spool (`queue-postgres` feature) | Implemented; live PostgreSQL test is `#[ignore]` |
+| Mail C | Managed REST API, API keys, idempotency, signed webhooks, multi-tenancy (`api` feature) | Partial: HMAC-SHA256 webhook signing only; REST surface open (issue #152) |
+| Mail D | Audiences, broadcasts, one-click unsubscribe, template components | Not started (issue #152) |
+
+### 4.6.2 Workers track — `ag-workers` execution engine (`RFC-0012`)
+
+| Stage | Scope | State |
+|-------|-------|-------|
+| S1–S4 | Job model, in-memory runtime, PostgreSQL backend, scheduling | Implemented |
+| S5 | DSL v0.8 `worker` declarations, `ag workers` CLI | Implemented |
+| S6 | Producer-only enqueue from `ag-edge` | Partial; waits for a concrete consumer (issue #112) |
+| S7 | Migration of the `ag-mail` queue onto `ag-workers` | Implemented; parity verified against a live PostgreSQL |
+
+### 4.6.3 Exit criteria
+
+- [x] Mail A and Mail B merged behind opt-in features with the relay sender
+  still the default.
+- [x] Workers S1–S5 and S7 merged; the duplicated generic mail queue removed.
+- [ ] Mail A gate of `RFC-0009`: a message delivered by the native MTA to a
+  real external mailbox passes aligned SPF, DKIM and DMARC. Manual evidence
+  recorded with date, commit and headers.
+- [ ] Mail C and Mail D either delivered or formally moved out of Phase 4.6 by
+  an RFC amendment (issue #152). They do not block Phase 5.
+- [ ] Workers S6 delivered or formally deferred with its consumer named
+  (issue #112). It does not block Phase 5.
+
+### 4.6.4 Phase risks
+
+The main risk is that an additive phase never closes because its optional
+stages keep it open. The mitigation is the rule in 4.6.3: a stage that has no
+consumer is moved out by an RFC amendment instead of staying "in progress".
+The second risk is deliverability: a native MTA is only as good as the
+reputation of the addresses it sends from, which no code can provide. The
+mitigation is that the relay sender remains the default and the documented
+production path until the Mail A gate has real evidence.
+
+---
+
+## Phase 4.7 — Interactive terminal experience (`ag` TUI)
+
+**Status: proposed (`RFC-0018`). No code exists.** Additive phase.
+
+**Objective.** Make creating and configuring a project discoverable and guided
+from the terminal, through a full-screen interactive interface in the `ag`
+binary, without weakening scripting: every interactive action has an exact
+non-interactive equivalent. The product is the experience promised by rule 32:
+a new user reaches a running project without reading the manual first.
+
+**Duration:** 1–2 months. Runs in parallel with the gate closing and Phase 5.
+
+### 4.7.1 Entry criteria
+
+- [ ] `RFC-0018` accepted, including its three open questions (interface
+  language, gate position, behavior of bare `ag`).
+- [ ] `ag-cli` split into modules with no behavior change (typed request per
+  command and a single executor), verified by the existing command-tree test.
+
+### 4.7.2 Deliverables
+
+Stage A — foundation and project creation:
+
+- [ ] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
+  commands work with `--no-default-features`.
+- [ ] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
+  panic.
+- [ ] `ag new` wizard: name with live validation, template with description,
+  review screen, result screen. `NAME` becomes optional.
+- [ ] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
+  mode when not a terminal, when `CI` is set or when `TERM=dumb`.
+- [ ] Equivalent non-interactive command printed at the end of every flow.
+- [ ] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
+- [ ] Degraded line-prompt mode below 80x24.
+- [ ] A single interaction library in `ag-cli` (the previous prompt library is
+  removed).
+
+Stage B — project configuration:
+
+- [ ] `ag config get`, `ag config set`, `ag config validate` (non-interactive,
+  usable in CI).
+- [ ] `ag config` form generated from the configuration types of `ag-core`,
+  with inline validation, defaults and descriptions.
+- [ ] Format-preserving, atomic save with a diff on the review screen.
+- [ ] Secret fields accept only a file path or an environment variable name.
+- [ ] `ag new --with MODULE` for the first standard module with tested scaffold
+  composition, then the matching wizard step.
+
+Stage C — home screen:
+
+- [ ] Bare `ag` in a terminal opens a context-aware launcher (outside a project
+  / inside a project). Outside a terminal it prints help as before.
+- [ ] Every launcher entry runs an existing command and displays it.
+
+Cross-stage:
+
+- [ ] State-transition unit tests for every screen.
+- [ ] Render snapshot tests at 80x24 and 120x40, color and monochrome.
+- [ ] Parity tests: the request built by a wizard equals the request parsed
+  from its printed equivalent command.
+- [ ] Non-interactive regression tests: no command blocks or emits escape
+  sequences with stdin closed.
+- [ ] Interaction flow diagram in `docs/diagrams/`.
+- [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, root
+  `README.md` and the first-API manual chapter updated in the same pull
+  request as each stage.
+
+### 4.7.3 Exit criteria
+
+- [ ] A person who has never used Anti-Gravital creates and starts a project
+  using only `ag new` in a terminal, with no flags and no documentation.
+  Verified with at least three people external to the project; the session
+  notes are published.
+- [ ] Every command passes the non-interactive regression suite on the four CI
+  platforms.
+- [ ] The wizard works over SSH and inside `tmux`, and on the Windows console.
+- [ ] The size increase of the release `ag` binary caused by the `tui` feature
+  is measured and published.
+- [ ] No interactive flow has a capability missing from the flags (parity
+  suite green).
+
+### 4.7.4 Phase risks
+
+The main risk is **two diverging products**: an interactive tool and a
+scripting tool that slowly stop behaving the same. The mitigation is
+architectural, not procedural: screens produce the same typed request as the
+flag parser and one executor performs the work, with parity tests in CI.
+
+The second risk is **scope creep toward a terminal IDE** (log viewers,
+editors, dashboards). The mitigation is the rule fixed in `RFC-0018`: a screen
+is a front-end to an existing command; anything else requires a new RFC.
+
+The third risk is **terminal diversity**. The mitigation is a conservative
+glyph set, a monochrome theme, four-platform CI and the degraded line mode.
+
+---
+
 ## Phase 5 — `ag-cloud` simplified deployment
 
 **Objective.** Build the deployment subsystem in the style of Railway/Fly.io. Support for the four targets: docker-compose, fly, railway, k8s. This is the **public beta version (0.5)** milestone.
 
 ### 5.1 Entry criteria
 
-- [ ] Phase 4 completed.
+- [ ] Phases 4, 4.5 and 4.6 implemented and the pre-Phase-5 release gate
+  (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) closed: every blocking row `pass`,
+  including the 24-hour fuzz run (issue #156) and the final benchmark evidence
+  (issue #157).
 - [ ] RFC decision on the deployment targets supported in 1.0.
+
+RFC prerequisites (rule 28), each approved before its stage starts:
+
+- [ ] RFC for the `deploy.ag` specification (new DSL surface).
+- [ ] RFC for the `ag deploy` and `ag rollback` commands, including the
+  secrets model and what is stored locally.
 
 ### 5.2 Deliverables
 
@@ -424,13 +602,39 @@ remain a supported production path until native deliverability is proven.
 - [ ] `ag deploy` command.
 - [ ] `ag rollback` command.
 - [ ] Database migrations pipeline integrated into the deployment.
+- [ ] Interactive deploy flow per `RFC-0018`: target selection, review screen
+  listing every resource that will be created or changed, explicit
+  confirmation; `ag rollback` shows what it will revert before acting. Flag
+  parity is mandatory.
 - [ ] Documentation: "From zero to production in 15 minutes" with each target.
+
+Stages:
+
+1. **5-A, specification.** `deploy.ag` grammar and validation; `ag-cloud`
+   crate layout with one decoupled module per target behind its own Cargo
+   feature; contract-test harness shared by all targets.
+2. **5-B, image.** Multi-stage Dockerfile generator; reproducible image build;
+   image size recorded.
+3. **5-C, self-hosted target first.** docker-compose target with reverse proxy
+   and automatic TLS; migrations pipeline; `ag deploy` and `ag rollback` for
+   this target; optional `ag-domains` integration. This is the native,
+   self-hostable path required by `ADR-0009` rule 5 and is delivered before
+   any hosted target.
+4. **5-D, k8s target.** Standard manifests generated from the same
+   specification.
+5. **5-E, hosted targets.** fly and railway, each as an adapter module.
+6. **5-F, interactive flow and documentation.** Deploy wizard, per-target
+   guides, release of 0.5.
 
 ### 5.3 Exit criteria (gate before Phase 6 and version 0.5)
 
 - [ ] The `todo-api` example deploys successfully to Fly.io with `ag deploy`.
 - [ ] The `ecommerce-api` example deploys successfully with docker-compose to a VPS and is accessed via domain with TLS.
 - [ ] The `realtime-chat` example deploys successfully to Railway.
+- [ ] Phase 4.7 stages A and B complete (interactive project creation and
+  configuration).
+- [ ] A failed deployment leaves the previous version serving, and
+  `ag rollback` restores it; demonstrated on the docker-compose target.
 - [ ] Version 0.5 (public beta) released on GitHub Releases.
 - [ ] Public announcement on Hacker News, Reddit `/r/rust`, Twitter/X, Bluesky, LinkedIn.
 - [ ] At least ten external projects report that they have deployed Anti-Gravital in production or staging.
@@ -439,6 +643,11 @@ remain a supported production path until native deliverability is proven.
 ### 5.4 Phase risks
 
 The main risk is the dependency on external APIs (Fly, Railway) that can change. The mitigation is to structure each target as a decoupled module with contract tests.
+
+The second risk is that deployment is the first place where the tool handles
+secrets and performs irreversible actions on infrastructure the user pays for.
+The mitigation is the order of the stages (self-hosted first), the mandatory
+review screen before any change, and a secrets model fixed by RFC before code.
 
 ---
 
@@ -450,6 +659,13 @@ The main risk is the dependency on external APIs (Fly, Railway) that can change.
 
 - [ ] Version 0.5 (public beta) released.
 - [ ] Feedback from the first users incorporated into the backlog.
+
+RFC prerequisites (rule 28):
+
+- [ ] RFC for the knowledge-graph schema (`.ag/knowledge-graph.json`) and its
+  versioning.
+- [ ] RFC for the `ag ai` commands and the provider trait, including what
+  project data may leave the machine and the consent model.
 
 ### 6.2 Deliverables
 
@@ -465,6 +681,21 @@ The main risk is the dependency on external APIs (Fly, Railway) that can change.
 - [ ] Offline mode where the AI functions are disabled but the framework works.
 - [ ] Documentation: "Anti-Gravital + AI agents: the schema-first flow" with complete examples.
 
+Stages:
+
+1. **6-A, graph (no AI involved).** Generator from the DSL AST, persistence,
+   regeneration on `ag generate`, deterministic output.
+2. **6-B, derived documents.** Markdown architecture documentation and C4
+   diagrams produced from the graph.
+3. **6-C, dashboard.** Interactive graph view in the dev server.
+4. **6-D, provider abstraction.** Provider trait, one local provider and one
+   remote adapter, offline mode as the default.
+5. **6-E, assisted commands.** `suggest-schema`, `review-migration`,
+   `analyze-architecture`, each producing a reviewable proposal and never
+   writing files without confirmation.
+
+Stages 6-A to 6-C are useful without any AI provider and are delivered first.
+
 ### 6.3 Exit criteria (gate before Phase 7)
 
 - [ ] The knowledge graph regenerates correctly with each `ag generate`.
@@ -475,6 +706,11 @@ The main risk is the dependency on external APIs (Fly, Railway) that can change.
 ### 6.4 Phase risks
 
 The main risk is the dependency on external AI providers. The mitigation is provider abstraction and offline mode.
+
+The second risk is data exposure: schema and code sent to a remote provider.
+The mitigation is that remote providers are opt-in adapters behind Cargo
+features (`ADR-0009` rule 2, `ADR-0011`), a local provider exists, and each
+command states what it will send before sending it.
 
 ---
 
@@ -489,7 +725,7 @@ The main risk is the dependency on external AI providers. The mitigation is prov
 
 ### 7.2 Deliverables
 
-- [ ] `ag-migrate` crate with five importers:
+- [ ] `ag-migrate` crate with six importers:
   - [ ] OpenAPI 3.0 and 3.1 importer.
   - [ ] Prisma importer.
   - [ ] Django importer.
@@ -499,6 +735,22 @@ The main risk is the dependency on external AI providers. The mitigation is prov
 - [ ] `ag migrate from <framework> <path>` command.
 - [ ] Official migration guides per framework with complete examples.
 - [ ] Documented case study: real migration of a medium-sized FastAPI application.
+- [ ] Import report for every run: what was translated, what was approximated
+  and what was skipped, with source locations. Interactive review of the
+  report per `RFC-0018` before any file is written.
+
+RFC prerequisites (rule 28):
+
+- [ ] RFC for the `ag migrate from` command and the import report format.
+
+Stages:
+
+1. **7-A, contract formats.** OpenAPI 3.0/3.1 and GraphQL SDL (machine-readable
+   specifications; no source-code analysis).
+2. **7-B, schema formats.** Prisma.
+3. **7-C, framework sources.** Django, FastAPI, Sequelize, in the order set by
+   the size of the collected corpus.
+4. **7-D, guides and case study.**
 
 ### 7.3 Exit criteria (gate before Phase 8)
 
@@ -534,6 +786,14 @@ The importers cover the translation of the contract, not the business logic. The
 - [ ] `flutter-fullstack` example in `examples/`: complete Flutter app with Anti-Gravital backend.
 - [ ] Documentation: Flutter user guide.
 
+Stages:
+
+1. **8-A, types and HTTP.** Dart generator, generated types, HTTP client,
+   mocks; the CRUD case end to end.
+2. **8-B, realtime.** WebSocket and SSE clients.
+3. **8-C, authentication.** Native WebAuthn and OAuth2 widgets.
+4. **8-D, example, guide and pub.dev publication.**
+
 ### 8.3 Exit criteria (gate before Phase 9)
 
 - [ ] The `anti_gravital` package on pub.dev has at least 50 likes.
@@ -567,6 +827,21 @@ The main risk is that the Rust → Dart context switch has unforeseen frictions.
 - [ ] `ag plugin add/remove/list` command.
 - [ ] Public registry at `plugins.antigravital.dev`.
 - [ ] Guide: "How to write a plugin for Anti-Gravital" with examples in Rust, Go (TinyGo) and AssemblyScript.
+- [ ] Plugin installation shows the capabilities a plugin requests and asks
+  for confirmation (interactive per `RFC-0018`, with flag parity).
+
+RFC prerequisites (rule 28), in addition to the ABI RFC of 9.1:
+
+- [ ] RFC for the `ag plugin` commands and the registry trust model
+  (signing, integrity verification, revocation).
+
+Stages:
+
+1. **9-A, host.** WIT interfaces, `plugin.toml`, life cycle, sandbox limits.
+2. **9-B, CLI.** `ag plugin add/remove/list` against local plugins.
+3. **9-C, official plugins.**
+4. **9-D, registry.** Public registry with integrity verification.
+5. **9-E, guide and overhead benchmark.**
 
 ### 9.3 Exit criteria (gate before Phase 10)
 
@@ -590,6 +865,8 @@ The main risk is the complexity of the WebAssembly component model, which keeps 
 - [ ] Phase 9 completed.
 - [ ] DSL version 1.0 (stable grammar) ready for freeze.
 - [ ] The technical committee is active and operational.
+- [ ] Phase 4.7 stage C complete, and every multi-decision command introduced
+  in Phases 5 to 9 has its interactive flow with flag parity.
 
 ### 10.2 Deliverables
 
@@ -602,10 +879,19 @@ The main risk is the complexity of the WebAssembly component model, which keeps 
 - [ ] Load test: 500 K req/s sustained for 30 minutes with degradation ≤ 5%.
 - [ ] Memory leak test: 24 hours of continuous load without detectable memory growth.
 - [ ] Compilation verified on: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
-- [ ] Compilation to `wasm32-wasi` to serve Anti-Gravital in edge functions.
+- [ ] Compilation to `wasm32-wasip1` (the target formerly named `wasm32-wasi`) to serve Anti-Gravital in edge functions.
 - [ ] Official manual published: "The Anti-Gravital Book" in Spanish and English.
 - [ ] Framework introduction course on YouTube (minimum six videos).
 - [ ] Position in TechEmpower Framework Benchmarks: top 10 in Plaintext and JSON Serialization categories.
+
+Stages:
+
+1. **10-A, freeze.** DSL 1.0 grammar freeze; public API review of every crate;
+   deprecations removed.
+2. **10-B, verification.** Coverage, 72-hour fuzzing, load and leak tests.
+3. **10-C, external audit and remediation.**
+4. **10-D, platforms.** Four native targets and `wasm32-wasip1`.
+5. **10-E, publication.** Book, course, benchmark submission, 1.0 release.
 
 ### 10.3 Exit criteria (version 1.0)
 
@@ -699,6 +985,7 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 | 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementada y probada; evidencia de escala y deuda documentada abiertas |
 | 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementada; `ag-domains` activo, evidencia de release/doc abierta |
 | 4.6  | Endurecimiento aditivo pre-Fase 5 (`ag-mail` MTA, `ag-workers`) | — | Implementada y verificada en CI; paridad live-DB y wiring de producer abiertos (issues #108/#109/#103/#112) |
+| 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | Propuesta (`RFC-0018`); sin código aún |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
@@ -709,6 +996,19 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 **Duración total estimada:** 25–30 meses desde el inicio.
 **Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
 **Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
+
+Las Fases 4.5, 4.6 y 4.7 son aditivas: no mueven los dos hitos anteriores. La
+Fase 4.7 corre en paralelo con el cierre del gate pre-Fase 5 y con la Fase 5;
+sus etapas A y B son criterios de salida de la Fase 5 (sección 5.3) y su etapa
+C es criterio de entrada de la Fase 10 (sección 10.1).
+
+**Cómo se detallan las fases posteriores (enmienda del 2026-11-10).** Desde la
+Fase 5 en adelante cada fase lleva, además de los cuatro bloques, un bloque de
+**Etapas** que ordena sus entregables en pasos fusionables de forma
+independiente y una lista de **RFC previas** (regla 28: comandos nuevos,
+construcciones nuevas del DSL y dependencias nuevas requieren RFC aprobada
+antes del código). Las etapas no añaden alcance: cada elemento de una etapa es
+un entregable ya listado en la fase.
 
 **Estado al cierre de la Fase 4.5 (2026-05-24), actualizado para el gate
 pre-Fase 5 (2026-06-11).** Las fases 1 a 4.5 están técnicamente implementadas y
@@ -749,7 +1049,7 @@ aditiva a 20 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
 
 ### 0.2 Entregables
 
-- [ ] Repositorio `github.com/gravital-labs/anti-gravital` creado y público.
+- [ ] Repositorio `github.com/anti-gravital/anti-gravital` creado y público.
 - [ ] Archivo `LICENSE` con texto completo Apache 2.0.
 - [ ] Archivo `README.md` bilingüe (español + inglés) con propuesta de valor.
 - [ ] Archivo `CONTRIBUTING.md` con guía de contribución, convenciones de código, proceso de pull request.
@@ -1059,14 +1359,194 @@ soportada hasta demostrar la entregabilidad nativa.
 
 ---
 
+## Fase 4.6 — Endurecimiento aditivo pre-Fase 5: MTA nativo y `ag-workers`
+
+**Estado: en curso.** Fase aditiva autorizada con el gate pre-Fase 5 abierto
+(`ADR-0010`, `ADR-0013`). No hace ninguna afirmación de producción hasta que el
+gate cierre. Estado vivo a nivel de casilla: `docs/roadmap/STATUS.md`.
+
+**Objetivo.** Eliminar dos dependencias estructurales antes de que exista
+`ag-cloud`: la necesidad de un relay de terceros para enviar correo y la
+ausencia de un motor compartido de ejecución en segundo plano. Ambos son opt-in
+tras features de Cargo y conservan el camino nativo por defecto (`ADR-0009`
+regla 2).
+
+La fase tiene dos pistas independientes. La etiqueta "4.6-D" se usó
+históricamente para dos cosas distintas (la etapa de marketing de la pista de
+correo en `RFC-0009` y toda la pista de workers en `RFC-0012`); este documento
+las nombra de forma explícita para eliminar la ambigüedad.
+
+### 4.6.1 Pista de correo — MTA outbound nativo en `ag-mail` (`RFC-0009`)
+
+| Etapa | Alcance | Estado |
+|-------|---------|--------|
+| Correo A | Resolución MX, entrega directa ESMTP+STARTTLS, firma DKIM, clasificación de bounces (feature `mta`) | Implementada; camino de protocolo ejercitado en CI contra un sink en loopback |
+| Correo B | Cola de dos niveles, lista de supresión, traffic shaping por destino, spool durable PostgreSQL (feature `queue-postgres`) | Implementada; el test con PostgreSQL vivo es `#[ignore]` |
+| Correo C | API REST gestionada, API keys, idempotencia, webhooks firmados, multi-tenancy (feature `api`) | Parcial: solo firma de webhooks HMAC-SHA256; superficie REST abierta (issue #152) |
+| Correo D | Audiencias, broadcasts, baja con un clic, componentes de plantilla | No iniciada (issue #152) |
+
+### 4.6.2 Pista de workers — motor de ejecución `ag-workers` (`RFC-0012`)
+
+| Etapa | Alcance | Estado |
+|-------|---------|--------|
+| S1–S4 | Modelo de jobs, runtime en memoria, backend PostgreSQL, scheduling | Implementadas |
+| S5 | Declaraciones `worker` del DSL v0.8, CLI `ag workers` | Implementada |
+| S6 | Encolado solo-productor desde `ag-edge` | Parcial; espera un consumidor concreto (issue #112) |
+| S7 | Migración de la cola de `ag-mail` a `ag-workers` | Implementada; paridad verificada contra un PostgreSQL vivo |
+
+### 4.6.3 Criterios de salida
+
+- [x] Correo A y Correo B fusionadas tras features opt-in, con el sender de
+  relay como valor por defecto.
+- [x] Workers S1–S5 y S7 fusionadas; eliminada la cola genérica duplicada de
+  correo.
+- [ ] Gate de Correo A según `RFC-0009`: un mensaje entregado por el MTA nativo
+  a un buzón externo real pasa SPF, DKIM y DMARC alineados. Evidencia manual
+  registrada con fecha, commit y cabeceras.
+- [ ] Correo C y Correo D entregadas o movidas formalmente fuera de la Fase 4.6
+  mediante enmienda de RFC (issue #152). No bloquean la Fase 5.
+- [ ] Workers S6 entregada o diferida formalmente con su consumidor nombrado
+  (issue #112). No bloquea la Fase 5.
+
+### 4.6.4 Riesgos de la fase
+
+El riesgo principal es que una fase aditiva nunca cierre porque sus etapas
+opcionales la mantienen abierta. La mitigación es la regla de 4.6.3: una etapa
+sin consumidor se mueve fuera mediante enmienda de RFC en lugar de quedar "en
+curso". El segundo riesgo es la entregabilidad: un MTA nativo vale lo que vale
+la reputación de las direcciones desde las que envía, y eso no lo aporta
+ningún código. La mitigación es que el sender de relay sigue siendo el valor
+por defecto y la ruta de producción documentada hasta que el gate de Correo A
+tenga evidencia real.
+
+---
+
+## Fase 4.7 — Experiencia interactiva de terminal (TUI de `ag`)
+
+**Estado: propuesta (`RFC-0018`). No existe código.** Fase aditiva.
+
+**Objetivo.** Hacer que crear y configurar un proyecto sea descubrible y guiado
+desde la terminal, mediante una interfaz interactiva a pantalla completa en el
+binario `ag`, sin debilitar el uso en scripts: toda acción interactiva tiene un
+equivalente no interactivo exacto. El producto es la experiencia prometida por
+la regla 32: un usuario nuevo llega a un proyecto en ejecución sin leer antes
+el manual.
+
+**Duración:** 1–2 meses. Corre en paralelo con el cierre del gate y la Fase 5.
+
+### 4.7.1 Criterios de entrada
+
+- [ ] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas (idioma de la
+  interfaz, posición en las puertas, comportamiento de `ag` sin argumentos).
+- [ ] `ag-cli` dividido en módulos sin cambio de comportamiento (una petición
+  tipada por comando y un único ejecutor), verificado por el test existente
+  del árbol de comandos.
+
+### 4.7.2 Entregables
+
+Etapa A — fundación y creación de proyecto:
+
+- [ ] Feature de Cargo `tui` en `ag-cli` (activa por defecto); el binario
+  compila y todos los comandos funcionan con `--no-default-features`.
+- [ ] Guarda de terminal que restaura la terminal al salir, ante error, ante
+  `Ctrl-C` y ante panic.
+- [ ] Asistente de `ag new`: nombre con validación en vivo, template con
+  descripción, pantalla de revisión, pantalla de resultado. `NAME` pasa a ser
+  opcional.
+- [ ] Flag global `--no-interactive` y variable `AG_NO_TUI`; modo no
+  interactivo automático cuando no hay terminal, cuando `CI` está definida o
+  cuando `TERM=dumb`.
+- [ ] Comando no interactivo equivalente impreso al final de cada flujo.
+- [ ] Tema monocromo que respeta `NO_COLOR`; solo glifos ASCII y de trazado de
+  cajas.
+- [ ] Modo degradado de prompts por línea por debajo de 80x24.
+- [ ] Una única librería de interacción en `ag-cli` (se retira la librería de
+  prompts anterior).
+
+Etapa B — configuración del proyecto:
+
+- [ ] `ag config get`, `ag config set`, `ag config validate` (no interactivos,
+  utilizables en CI).
+- [ ] Formulario `ag config` generado a partir de los tipos de configuración de
+  `ag-core`, con validación en línea, valores por defecto y descripciones.
+- [ ] Guardado atómico que preserva el formato, con diff en la pantalla de
+  revisión.
+- [ ] Los campos secretos solo aceptan una ruta de archivo o el nombre de una
+  variable de entorno.
+- [ ] `ag new --with MODULE` para el primer módulo estándar con composición de
+  scaffold probada, y después el paso correspondiente en el asistente.
+
+Etapa C — pantalla de inicio:
+
+- [ ] `ag` sin argumentos en una terminal abre un lanzador sensible al contexto
+  (fuera de un proyecto / dentro de un proyecto). Fuera de una terminal
+  imprime la ayuda como hasta ahora.
+- [ ] Cada entrada del lanzador ejecuta un comando existente y lo muestra.
+
+Transversales:
+
+- [ ] Tests unitarios de transición de estado para cada pantalla.
+- [ ] Tests de snapshot de render a 80x24 y 120x40, en color y monocromo.
+- [ ] Tests de paridad: la petición construida por un asistente es igual a la
+  petición parseada desde su comando equivalente impreso.
+- [ ] Tests de regresión no interactiva: ningún comando se bloquea ni emite
+  secuencias de escape con stdin cerrado.
+- [ ] Diagrama del flujo de interacción en `docs/diagrams/`.
+- [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, el
+  `README.md` raíz y el capítulo del manual de la primera API actualizados en
+  la misma pull request de cada etapa.
+
+### 4.7.3 Criterios de salida
+
+- [ ] Una persona que nunca ha usado Anti-Gravital crea y arranca un proyecto
+  usando solo `ag new` en una terminal, sin flags y sin documentación.
+  Verificado con al menos tres personas externas al proyecto; las notas de las
+  sesiones se publican.
+- [ ] Todos los comandos pasan la suite de regresión no interactiva en las
+  cuatro plataformas de CI.
+- [ ] El asistente funciona sobre SSH, dentro de `tmux` y en la consola de
+  Windows.
+- [ ] El aumento de tamaño del binario release de `ag` causado por la feature
+  `tui` está medido y publicado.
+- [ ] Ningún flujo interactivo tiene una capacidad ausente en los flags (suite
+  de paridad en verde).
+
+### 4.7.4 Riesgos de la fase
+
+El riesgo principal son **dos productos divergentes**: una herramienta
+interactiva y una herramienta de scripting que poco a poco dejan de comportarse
+igual. La mitigación es arquitectónica, no de proceso: las pantallas producen
+la misma petición tipada que el parser de flags y un único ejecutor realiza el
+trabajo, con tests de paridad en CI.
+
+El segundo riesgo es el **scope creep hacia un IDE de terminal** (visores de
+logs, editores, dashboards). La mitigación es la regla fijada en `RFC-0018`:
+una pantalla es un front-end de un comando existente; cualquier otra cosa
+requiere una RFC nueva.
+
+El tercer riesgo es la **diversidad de terminales**. La mitigación es un
+conjunto conservador de glifos, un tema monocromo, CI en cuatro plataformas y
+el modo degradado por línea.
+
+---
+
 ## Fase 5 — `ag-cloud` despliegue simplificado
 
 **Objetivo.** Construir el subsistema de despliegue al estilo Railway/Fly.io. Soporte para los cuatro targets: docker-compose, fly, railway, k8s. Este es el hito de **versión beta pública (0.5)**.
 
 ### 5.1 Criterios de entrada
 
-- [ ] Fase 4 completada.
+- [ ] Fases 4, 4.5 y 4.6 implementadas y el gate de release pre-Fase 5
+  (`docs/audits/PRE_FASE5_RELEASE_GATE.md`) cerrado: todas las filas
+  bloqueantes en `pass`, incluida la corrida de fuzz de 24 horas (issue #156)
+  y la evidencia final de benchmarks (issue #157).
 - [ ] Decisión RFC sobre los targets de despliegue soportados en la 1.0.
+
+RFC previas (regla 28), cada una aprobada antes de iniciar su etapa:
+
+- [ ] RFC de la especificación de `deploy.ag` (superficie nueva del DSL).
+- [ ] RFC de los comandos `ag deploy` y `ag rollback`, incluido el modelo de
+  secretos y qué se almacena localmente.
 
 ### 5.2 Entregables
 
@@ -1080,13 +1560,40 @@ soportada hasta demostrar la entregabilidad nativa.
 - [ ] Comando `ag deploy`.
 - [ ] Comando `ag rollback`.
 - [ ] Pipeline de migraciones de base de datos integrado al despliegue.
+- [ ] Flujo interactivo de despliegue según `RFC-0018`: selección de target,
+  pantalla de revisión que lista cada recurso que se creará o cambiará,
+  confirmación explícita; `ag rollback` muestra qué va a revertir antes de
+  actuar. La paridad con flags es obligatoria.
 - [ ] Documentación: "Desde cero a producción en 15 minutos" con cada target.
+
+Etapas:
+
+1. **5-A, especificación.** Gramática y validación de `deploy.ag`; estructura
+   del crate `ag-cloud` con un módulo desacoplado por target tras su propia
+   feature de Cargo; arnés de tests de contrato compartido por todos los
+   targets.
+2. **5-B, imagen.** Generador de Dockerfile multi-stage; build de imagen
+   reproducible; tamaño de imagen registrado.
+3. **5-C, primero el target auto-alojado.** Target docker-compose con reverse
+   proxy y TLS automático; pipeline de migraciones; `ag deploy` y
+   `ag rollback` para este target; integración opcional con `ag-domains`. Es
+   el camino nativo y auto-alojable exigido por la regla 5 de `ADR-0009` y se
+   entrega antes que cualquier target alojado.
+4. **5-D, target k8s.** Manifiestos estándar generados desde la misma
+   especificación.
+5. **5-E, targets alojados.** fly y railway, cada uno como módulo adaptador.
+6. **5-F, flujo interactivo y documentación.** Asistente de despliegue, guías
+   por target, liberación de la 0.5.
 
 ### 5.3 Criterios de salida (puerta antes de Fase 6 y versión 0.5)
 
 - [ ] El example `todo-api` se despliega exitosamente a Fly.io con `ag deploy`.
 - [ ] El example `ecommerce-api` se despliega exitosamente con docker-compose a un VPS y se accede vía dominio con TLS.
 - [ ] El example `realtime-chat` se despliega exitosamente a Railway.
+- [ ] Etapas A y B de la Fase 4.7 completas (creación y configuración
+  interactiva de proyectos).
+- [ ] Un despliegue fallido deja sirviendo la versión anterior y `ag rollback`
+  la restaura; demostrado en el target docker-compose.
 - [ ] Versión 0.5 (beta pública) liberada en GitHub Releases.
 - [ ] Anuncio público en Hacker News, Reddit `/r/rust`, Twitter/X, Bluesky, LinkedIn.
 - [ ] Al menos diez proyectos externos reportan que han desplegado Anti-Gravital en producción o staging.
@@ -1095,6 +1602,12 @@ soportada hasta demostrar la entregabilidad nativa.
 ### 5.4 Riesgos de la fase
 
 El riesgo principal es la dependencia de APIs externas (Fly, Railway) que pueden cambiar. La mitigación es estructurar cada target como un módulo desacoplado con tests de contrato.
+
+El segundo riesgo es que el despliegue es el primer lugar donde la herramienta
+maneja secretos y ejecuta acciones irreversibles sobre infraestructura que el
+usuario paga. La mitigación es el orden de las etapas (primero auto-alojado),
+la pantalla de revisión obligatoria antes de cualquier cambio y un modelo de
+secretos fijado por RFC antes del código.
 
 ---
 
@@ -1106,6 +1619,13 @@ El riesgo principal es la dependencia de APIs externas (Fly, Railway) que pueden
 
 - [ ] Versión 0.5 (beta pública) liberada.
 - [ ] Retroalimentación de los primeros usuarios incorporada en backlog.
+
+RFC previas (regla 28):
+
+- [ ] RFC del esquema del knowledge graph (`.ag/knowledge-graph.json`) y su
+  versionado.
+- [ ] RFC de los comandos `ag ai` y del trait de proveedor, incluido qué datos
+  del proyecto pueden salir de la máquina y el modelo de consentimiento.
 
 ### 6.2 Entregables
 
@@ -1121,6 +1641,22 @@ El riesgo principal es la dependencia de APIs externas (Fly, Railway) que pueden
 - [ ] Modo offline donde las funciones AI están deshabilitadas pero el framework funciona.
 - [ ] Documentación: "Anti-Gravital + agentes IA: el flujo schema-first" con ejemplos completos.
 
+Etapas:
+
+1. **6-A, grafo (sin IA).** Generador desde el AST del DSL, persistencia,
+   regeneración en `ag generate`, salida determinista.
+2. **6-B, documentos derivados.** Documentación arquitectónica en Markdown y
+   diagramas C4 producidos desde el grafo.
+3. **6-C, dashboard.** Vista interactiva del grafo en el dev server.
+4. **6-D, abstracción de proveedor.** Trait de proveedor, un proveedor local y
+   un adaptador remoto, modo offline como valor por defecto.
+5. **6-E, comandos asistidos.** `suggest-schema`, `review-migration`,
+   `analyze-architecture`; cada uno produce una propuesta revisable y nunca
+   escribe archivos sin confirmación.
+
+Las etapas 6-A a 6-C son útiles sin ningún proveedor de IA y se entregan
+primero.
+
 ### 6.3 Criterios de salida (puerta antes de Fase 7)
 
 - [ ] El knowledge graph se regenera correctamente con cada `ag generate`.
@@ -1131,6 +1667,11 @@ El riesgo principal es la dependencia de APIs externas (Fly, Railway) que pueden
 ### 6.4 Riesgos de la fase
 
 El riesgo principal es la dependencia de proveedores externos de IA. La mitigación es la abstracción del proveedor y el modo offline.
+
+El segundo riesgo es la exposición de datos: schema y código enviados a un
+proveedor remoto. La mitigación es que los proveedores remotos son adaptadores
+opt-in tras features de Cargo (`ADR-0009` regla 2, `ADR-0011`), existe un
+proveedor local y cada comando indica qué va a enviar antes de enviarlo.
 
 ---
 
@@ -1145,7 +1686,7 @@ El riesgo principal es la dependencia de proveedores externos de IA. La mitigaci
 
 ### 7.2 Entregables
 
-- [ ] Crate `ag-migrate` con cinco importadores:
+- [ ] Crate `ag-migrate` con seis importadores:
   - [ ] Importador OpenAPI 3.0 y 3.1.
   - [ ] Importador Prisma.
   - [ ] Importador Django.
@@ -1155,6 +1696,23 @@ El riesgo principal es la dependencia de proveedores externos de IA. La mitigaci
 - [ ] Comando `ag migrate from <framework> <ruta>`.
 - [ ] Guías oficiales de migración por framework con ejemplos completos.
 - [ ] Estudio de caso documentado: migración real de una aplicación FastAPI mediana.
+- [ ] Reporte de importación en cada ejecución: qué se tradujo, qué se aproximó
+  y qué se omitió, con ubicaciones en el origen. Revisión interactiva del
+  reporte según `RFC-0018` antes de escribir ningún archivo.
+
+RFC previas (regla 28):
+
+- [ ] RFC del comando `ag migrate from` y del formato del reporte de
+  importación.
+
+Etapas:
+
+1. **7-A, formatos de contrato.** OpenAPI 3.0/3.1 y GraphQL SDL
+   (especificaciones legibles por máquina; sin análisis de código fuente).
+2. **7-B, formatos de schema.** Prisma.
+3. **7-C, fuentes de framework.** Django, FastAPI, Sequelize, en el orden que
+   fije el tamaño del corpus recolectado.
+4. **7-D, guías y estudio de caso.**
 
 ### 7.3 Criterios de salida (puerta antes de Fase 8)
 
@@ -1190,6 +1748,14 @@ Los importadores cubren la traducción del contrato, no la lógica de negocio. E
 - [ ] Example `flutter-fullstack` en `examples/`: app Flutter completa con backend Anti-Gravital.
 - [ ] Documentación: guía de usuario Flutter.
 
+Etapas:
+
+1. **8-A, tipos y HTTP.** Generador Dart, tipos generados, cliente HTTP,
+   mocks; el caso CRUD de extremo a extremo.
+2. **8-B, realtime.** Clientes WebSocket y SSE.
+3. **8-C, autenticación.** Widgets de WebAuthn nativo y OAuth2.
+4. **8-D, ejemplo, guía y publicación en pub.dev.**
+
 ### 8.3 Criterios de salida (puerta antes de Fase 9)
 
 - [ ] El paquete `anti_gravital` en pub.dev tiene al menos 50 likes.
@@ -1223,6 +1789,22 @@ El riesgo principal es que el cambio de contexto Rust → Dart tenga fricciones 
 - [ ] Comando `ag plugin add/remove/list`.
 - [ ] Registro público en `plugins.antigravital.dev`.
 - [ ] Guía: "Cómo escribir un plugin para Anti-Gravital" con ejemplos en Rust, Go (TinyGo) y AssemblyScript.
+- [ ] La instalación de un plugin muestra las capacidades que solicita y pide
+  confirmación (interactiva según `RFC-0018`, con paridad de flags).
+
+RFC previas (regla 28), además de la RFC de la ABI de 9.1:
+
+- [ ] RFC de los comandos `ag plugin` y del modelo de confianza del registry
+  (firma, verificación de integridad, revocación).
+
+Etapas:
+
+1. **9-A, host.** Interfaces WIT, `plugin.toml`, ciclo de vida, límites del
+   sandbox.
+2. **9-B, CLI.** `ag plugin add/remove/list` contra plugins locales.
+3. **9-C, plugins oficiales.**
+4. **9-D, registry.** Registry público con verificación de integridad.
+5. **9-E, guía y benchmark de overhead.**
 
 ### 9.3 Criterios de salida (puerta antes de Fase 10)
 
@@ -1246,6 +1828,9 @@ El riesgo principal es la complejidad del component model de WebAssembly, que si
 - [ ] Fase 9 completada.
 - [ ] DSL versión 1.0 (gramática estable) lista para freeze.
 - [ ] El comité técnico está activo y operativo.
+- [ ] Etapa C de la Fase 4.7 completa, y cada comando de múltiples decisiones
+  introducido en las Fases 5 a 9 tiene su flujo interactivo con paridad de
+  flags.
 
 ### 10.2 Entregables
 
@@ -1258,10 +1843,21 @@ El riesgo principal es la complejidad del component model de WebAssembly, que si
 - [ ] Load test: 500 K req/s sostenidos por 30 minutos con degradación ≤ 5%.
 - [ ] Memory leak test: 24 horas de carga continua sin crecimiento de memoria detectable.
 - [ ] Compilación verificada en: Linux x86-64, Linux ARM64, macOS ARM64, Windows x64.
-- [ ] Compilación a `wasm32-wasi` para servir Anti-Gravital en edge functions.
+- [ ] Compilación a `wasm32-wasip1` (el target antes llamado `wasm32-wasi`) para servir Anti-Gravital en edge functions.
 - [ ] Manual oficial publicado: "The Anti-Gravital Book" en español e inglés.
 - [ ] Curso de introducción al framework en YouTube (mínimo seis videos).
 - [ ] Posición en TechEmpower Framework Benchmarks: top 10 en categorías Plaintext y JSON Serialization.
+
+Etapas:
+
+1. **10-A, freeze.** Congelación de la gramática DSL 1.0; revisión de la API
+   pública de cada crate; eliminación de deprecaciones.
+2. **10-B, verificación.** Cobertura, fuzzing de 72 horas, pruebas de carga y
+   de fugas.
+3. **10-C, auditoría externa y remediación.**
+4. **10-D, plataformas.** Cuatro targets nativos y `wasm32-wasip1`.
+5. **10-E, publicación.** Libro, curso, envío a benchmarks, liberación de la
+   1.0.
 
 ### 10.3 Criterios de salida (versión 1.0)
 

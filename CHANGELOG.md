@@ -7,6 +7,41 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Roadmap amendment: Phase 4.6 and 4.7 sections, staged later phases (`RFC-0018`)
+
+Added:
+
+- `docs/rfc/RFC-0018-interactive-terminal-experience.md` (proposed): an
+  interactive full-screen terminal interface for the `ag` binary to create and
+  configure a project, with exact non-interactive equivalents. No code yet.
+- Roadmap master: a dedicated Phase 4.6 section (mail and workers tracks with
+  per-stage state), a new additive Phase 4.7 (interactive terminal
+  experience), and a Stages block plus RFC prerequisites in Phases 5 to 10.
+
+Changed:
+
+- Roadmap master: Phase 5 entry criteria now name the pre-Phase-5 release gate
+  and its open issues; Phase 5 delivers the self-hosted target before hosted
+  ones (`ADR-0009` rule 5).
+- `tools/split-masters.sh` ranges recomputed; derived files under
+  `docs/roadmap/` regenerated, with new files for Phases 4.6 and 4.7.
+- `docs/modules/ag-cli/README.md` rewritten to the real command surface.
+
+Fixed:
+
+- `Cargo.lock` was missing the dependency tree of the `ag-storage` `avif`
+  feature (`rav1e`, `ravif` and transitive crates), so a clean build rewrote it
+  and `cargo audit` inspected an incomplete lockfile.
+- Roadmap master: repository URL in Phase 0, importer count in Phase 7 (six,
+  not five), and the retired `wasm32-wasi` target name in Phase 10
+  (`wasm32-wasip1`).
+- Root README: the Spanish Phase 4.6 row had drifted from the English one.
+
+Removed:
+
+- Six descriptors under `docs/pr-drafts/` whose pull requests were already
+  merged (descriptor life-cycle rule).
+
 ### ag-storage: lossy WebP encoding with configurable quality (`webp-lossy`)
 
 Added:

@@ -31,7 +31,7 @@ desde el origen autorizado antes de continuar.
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
 | `ANTI-GRAVITAL-Blueprint-v4.1.md` | 10693 | `be7c175f133580a007864d5740ebebe8da762468c5b564650a6f0bd33f355cbb` |
 | `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 206984 | `e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 72131 | `405f0319f0fcbb91d9db4c3464cfd21309b3c87c1c038746ac0929a768552859` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 101836 | `515c4e4ab9a40d3265b9b9682a950605933eac054d79142b819484ce0afd2ec5` |
 
 ### Deuda explícita — Blueprint PDF v4.1
 
@@ -66,6 +66,7 @@ nueva del historial de revisiones.
 | 2026-06-04 | Politica de marcas comerciales (`ADR-0011`/`RFC-0010`): retirados los adaptadores con nombre de marca de `ag-mail`; saneo de las menciones de marca en ambos maestros (relay SMTP nativo / MTA nativo). Arquitectura → `34026dbe0ae6ecb8f6280e07d4cf5e5da33c126e352973f54df44df463090af6` (204762 bytes); Hoja-de-Ruta → `02c5b8a2529cf24ae308e45f9d236f2534b53a73da46d1a255adcd133b5dc424` (69719 bytes). | Decision del BDFL vía ADR-0011. |
 | 2026-06-10 | Roster de crates sincronizado con la realidad (`ADR-0012`/`ADR-0013`): anadidos `ag-workers` (estandar diferido), `ag-edge` (opcional infra) y `ag-lsp` (nucleo) en §5.1/§5.2 (EN+ES) de Arquitectura, en la seccion 4 del Blueprint (EN+ES) y en la nota de conteo de la Hoja-de-Ruta (EN+ES); conteo 17→20. Blueprint-v4.1 → `be7c175f133580a007864d5740ebebe8da762468c5b564650a6f0bd33f355cbb` (10693 bytes); Arquitectura → `e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5` (206984 bytes); Hoja-de-Ruta → `32b36442ec47f304a1bdf43ef1fee2b02df6886307d93a101d20d37f96157ba0` (70021 bytes). | Sincronizacion de decisiones ya aprobadas (ADR-0012/0013). |
 | 2026-06-11 | Honestidad de estado pre-Fase 5 (issue #71, Stage 10 del gate; `ADR-0008`/`ADR-0009`): la Hoja-de-Ruta sustituye "implementacion tecnica completa" por estados explicitos basados en evidencia (tabla de resumen y nota de cierre, EN+ES), anade la fila de Fase 4.6 y apunta la deuda a GitHub Issues. Sin cambios en Arquitectura ni Blueprint. Hoja-de-Ruta → `405f0319f0fcbb91d9db4c3464cfd21309b3c87c1c038746ac0929a768552859` (72131 bytes). | Reconciliacion de honestidad documental (issue #71). |
+| 2026-11-10 | Enmienda de la Hoja-de-Ruta (`RFC-0018`): seccion propia para la Fase 4.6 (pistas de correo y workers con estado por etapa), nueva Fase 4.7 aditiva (experiencia interactiva de terminal), bloque de etapas y RFC previas en las Fases 5-10, criterio de entrada de la Fase 5 ligado al gate pre-Fase 5; correcciones: URL del repositorio (Fase 0), conteo de importadores (Fase 7), target `wasm32-wasip1` (Fase 10). EN+ES. Sin cambios en Arquitectura ni Blueprint. Hoja-de-Ruta → `515c4e4ab9a40d3265b9b9682a950605933eac054d79142b819484ce0afd2ec5` (101836 bytes). | Direccion del BDFL; `RFC-0018` (propuesta, decision al fusionar). |
 
 ## Verificación local
 
@@ -73,6 +74,7 @@ Desde la raíz del repositorio:
 
 ```sh
 sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf \
+          docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md \
           docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md \
           docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 ```

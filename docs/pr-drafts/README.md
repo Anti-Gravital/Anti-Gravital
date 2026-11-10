@@ -91,4 +91,4 @@ rama de herramienta IA (`claude-`, `gpt-`, `ai-`, `copilot-`): el job
 
 ## Indice
 
-No hay PRs abiertos con descriptor en este momento.
+- `ccr-09af4858-5emqq3.md` — enmienda de la Hoja de Ruta (Fases 4.6/4.7, etapas) y `RFC-0018`.

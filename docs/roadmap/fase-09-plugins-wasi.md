@@ -25,6 +25,21 @@
 - [ ] `ag plugin add/remove/list` command.
 - [ ] Public registry at `plugins.antigravital.dev`.
 - [ ] Guide: "How to write a plugin for Anti-Gravital" with examples in Rust, Go (TinyGo) and AssemblyScript.
+- [ ] Plugin installation shows the capabilities a plugin requests and asks
+  for confirmation (interactive per `RFC-0018`, with flag parity).
+
+RFC prerequisites (rule 28), in addition to the ABI RFC of 9.1:
+
+- [ ] RFC for the `ag plugin` commands and the registry trust model
+  (signing, integrity verification, revocation).
+
+Stages:
+
+1. **9-A, host.** WIT interfaces, `plugin.toml`, life cycle, sandbox limits.
+2. **9-B, CLI.** `ag plugin add/remove/list` against local plugins.
+3. **9-C, official plugins.**
+4. **9-D, registry.** Public registry with integrity verification.
+5. **9-E, guide and overhead benchmark.**
 
 ### 9.3 Exit criteria (gate before Phase 10)
 

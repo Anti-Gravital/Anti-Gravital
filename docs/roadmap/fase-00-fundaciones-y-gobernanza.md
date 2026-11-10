@@ -17,7 +17,7 @@
 
 ### 0.2 Deliverables
 
-- [ ] Repository `github.com/gravital-labs/anti-gravital` created and public.
+- [ ] Repository `github.com/anti-gravital/anti-gravital` created and public.
 - [ ] `LICENSE` file with complete Apache 2.0 text.
 - [ ] Bilingual `README.md` file (Spanish + English) with value proposition.
 - [ ] `CONTRIBUTING.md` file with contribution guide, code conventions, pull request process.

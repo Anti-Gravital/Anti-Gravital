@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-06-10. Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
+Ultima actualizacion: 2026-11-10 (se anade la Fase 4.7 propuesta por RFC-0018; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
 
 ---
 
@@ -424,6 +424,27 @@ prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
 - [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit`,
   `cargo deny check` verdes.
 - [x] Sin afirmacion de produccion/GA antes de que el gate pre-Fase 5 lo permita.
+
+
+## Fase 4.7 - Experiencia interactiva de terminal (TUI de ag)
+
+Estado: Propuesta. `docs/rfc/RFC-0018-interactive-terminal-experience.md` espera
+decision del BDFL; no existe codigo. Fase aditiva: no mueve los hitos 0.5 ni
+1.0. Entregables y criterios en
+`fase-04-7-experiencia-interactiva-de-terminal.md`.
+
+### Criterios de entrada (4.7.1)
+
+- [ ] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas.
+- [ ] `ag-cli` dividido en modulos sin cambio de comportamiento.
+
+### Entregables (4.7.2)
+
+- [ ] Etapa A: fundacion y asistente de `ag new`.
+- [ ] Etapa B: `ag config` (get/set/validate y formulario) y `ag new --with`.
+- [ ] Etapa C: pantalla de inicio de `ag` sin argumentos.
+
+---
 
 ## Fase 5 - ag-cloud
 

@@ -27,6 +27,14 @@
 - [ ] `flutter-fullstack` example in `examples/`: complete Flutter app with Anti-Gravital backend.
 - [ ] Documentation: Flutter user guide.
 
+Stages:
+
+1. **8-A, types and HTTP.** Dart generator, generated types, HTTP client,
+   mocks; the CRUD case end to end.
+2. **8-B, realtime.** WebSocket and SSE clients.
+3. **8-C, authentication.** Native WebAuthn and OAuth2 widgets.
+4. **8-D, example, guide and pub.dev publication.**
+
 ### 8.3 Exit criteria (gate before Phase 9)
 
 - [ ] The `anti_gravital` package on pub.dev has at least 50 likes.

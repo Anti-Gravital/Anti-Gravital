@@ -81,3 +81,4 @@ como `superseded`.
 | 0015 | ag-registrars: compra/transferencia/renovacion de dominios (Fase F) | aceptada | `RFC-0015-ag-registrars-design.md` |
 | 0016 | eTLD+1 via Public Suffix List en ag-domains (DEBT-024) | aceptada | `RFC-0016-eldp1-public-suffix-list.md` |
 | 0017 | ag-workers: re-drive/purga masiva de DLQ por filtro | aceptada | `RFC-0017-ag-workers-bulk-dlq.md` |
+| 0018 | Experiencia interactiva de terminal (TUI) para la CLI `ag` | propuesta | `RFC-0018-interactive-terminal-experience.md` |

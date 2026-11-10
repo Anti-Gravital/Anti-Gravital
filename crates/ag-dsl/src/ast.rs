@@ -443,24 +443,13 @@ impl std::fmt::Display for HttpMethod {
     }
 }
 
-/// Converts a DSL path (`/users/{id}`) to Axum format (`/users/:id`).
+/// Converts a DSL path (`/users/{id}`) to the Axum route format.
+///
+/// Since Axum 0.8 the router uses the same `{name}` capture syntax as the DSL,
+/// so the path is returned unchanged. The function is kept as the single place
+/// where the DSL-to-router mapping is defined.
 pub fn dsl_path_to_axum(path: &str) -> std::string::String {
-    let mut result = std::string::String::new();
-    let mut chars = path.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch == '{' {
-            result.push(':');
-            for inner in chars.by_ref() {
-                if inner == '}' {
-                    break;
-                }
-                result.push(inner);
-            }
-        } else {
-            result.push(ch);
-        }
-    }
-    result
+    path.to_owned()
 }
 
 /// Extracts the path parameter names from a DSL path.

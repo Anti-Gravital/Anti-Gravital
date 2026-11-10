@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-REQUIRED_RUST="1.95.0"
+REQUIRED_RUST="1.99.1"
 
 log() { printf '[ag-install] %s\n' "$1"; }
 

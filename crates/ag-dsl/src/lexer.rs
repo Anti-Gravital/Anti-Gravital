@@ -17,7 +17,7 @@ pub type Span = Range<usize>;
 /// keywords are always recognized before the generic identifier.
 #[derive(Logos, Debug, Clone, PartialEq, Eq, Hash)]
 #[logos(skip r"[ \t\r\n\f]+")] // whitespace
-#[logos(skip r"#[^\r\n]*")] // line comments
+#[logos(skip(r"#[^\r\n]*", allow_greedy = true))] // line comments
 pub enum Token {
     // ---- Structure keywords ----
     /// Model definition: `model Name { ... }`

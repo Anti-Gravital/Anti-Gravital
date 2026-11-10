@@ -23,7 +23,8 @@ use axum::body::Body;
 use axum::http::{Method, Request};
 use axum::routing::get;
 use axum::Router;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
 use tower::ServiceExt;
 
 fn make_bare_router() -> Router {

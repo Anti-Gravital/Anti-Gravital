@@ -13,7 +13,7 @@ async fn serves_https_with_sni_selected_cert() {
     // Self-signed cert for the test hostname.
     let ck = rcgen::generate_simple_self_signed(vec!["test.local".to_string()]).unwrap();
     let cert_pem = ck.cert.pem();
-    let key_pem = ck.key_pair.serialize_pem();
+    let key_pem = ck.signing_key.serialize_pem();
 
     let mut store = CertStore::new();
     store.insert_pem("test.local", &cert_pem, &key_pem).unwrap();

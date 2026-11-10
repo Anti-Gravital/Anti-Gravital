@@ -272,18 +272,18 @@ pub fn build_router(state: ApiState) -> Router {
             "/v1/domains/attachments",
             post(create_attachment).get(list_attachments),
         )
-        .route("/v1/domains/attachments/:id", get(get_attachment))
+        .route("/v1/domains/attachments/{id}", get(get_attachment))
         .route(
-            "/v1/domains/attachments/:id/instructions",
+            "/v1/domains/attachments/{id}/instructions",
             get(get_instructions),
         )
-        .route("/v1/domains/attachments/:id/status", get(get_attachment))
+        .route("/v1/domains/attachments/{id}/status", get(get_attachment))
         .route(
-            "/v1/domains/attachments/:id/detach",
+            "/v1/domains/attachments/{id}/detach",
             post(detach_attachment),
         )
         .route(
-            "/v1/domains/attachments/:id/verify",
+            "/v1/domains/attachments/{id}/verify",
             post(verify_attachment),
         )
         .route(

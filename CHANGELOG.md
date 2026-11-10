@@ -7,6 +7,67 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Toolchain and dependency refresh
+
+Changed:
+
+- Rust toolchain and MSRV: 1.95.0 to 1.99.1 (`rust-toolchain.toml`,
+  `rust-version`, `clippy.toml`, installers and their checksums, CI, README,
+  manual, CONTRIBUTING, `examples/todo-api/Dockerfile`).
+- All semver-compatible updates applied (`cargo update`).
+- Major upgrades: `axum` 0.7 to 0.8, `tower-http` 0.6 to 0.7, `thiserror` 1 to
+  2, `toml` 0.8 to 1, `governor` 0.7 to 0.10, `jsonwebtoken` 10 to 11,
+  `logos` 0.14 to 0.16, `opentelemetry` and `opentelemetry_sdk` 0.27 to 0.33,
+  `tracing-opentelemetry` 0.28 to 0.34, `metrics-exporter-prometheus` 0.16 to
+  0.18, `console-subscriber` 0.4 to 0.5, `async-nats` 0.48 to 0.52, `redis`
+  0.27 to 1, `passkey-types` 0.5 to 0.6, `x509-parser` 0.16 to 0.18, `rcgen`
+  0.13 to 0.14, `quick-xml` 0.41 to 0.42, `minijinja` 2 to 3, `base64` 0.22 to
+  0.23, `criterion` 0.5 to 0.8.
+- `axum` 0.8 migration: route captures use `{name}` and `{*name}` instead of
+  `:name` and `*name` (`ag-domains` API, `ag-storage` server, examples,
+  benchmark, generated router). The DSL already used `{name}`, so
+  `ag_dsl::ast::dsl_path_to_axum` now returns the path unchanged and
+  `ag generate` emits `{name}` routes. Shield extractors no longer use
+  `axum::async_trait`.
+- `ag-cache`: RESP bulk-string parsing rewritten with `?` (lint of the new
+  toolchain; no behavior change).
+
+Known issue surfaced by this refresh, already present on `main`: a workspace
+build with `--all-features` links two `rustls` crypto providers and two
+`ag-mail` MTA tests panic (#181). Default features and the per-crate feature
+sets that CI runs are green.
+
+Not upgraded (each tracked in its own issue): `sqlx` 0.9 (#175), the
+RustCrypto generation (#176), `reqwest` 0.13 (#177), the mail protocol stack
+(#178), `instant-acme` 0.8 (#179), `chumsky` 0.13 (#180). `testcontainers`
+0.28 is blocked upstream by `testcontainers-modules` (#174). The line-prompt
+library is left as is because `RFC-0018` removes it.
+
+Note for generated projects: the templates under `templates/` pin `ag-core`
+by commit and declare `axum` 0.7. They keep building against that commit.
+After this change merges, the pin and the `axum` version in the three
+templates must be bumped together (procedure in `templates/README.md`).
+
+### Architecture proposals: project layers, environment, installation, guardrails
+
+Added (all proposed; no code):
+
+- `RFC-0019`: layered architecture of generated projects (domain, application,
+  infrastructure, interface, composition root) enforced by Cargo, the
+  `ag.toml` project manifest, and the backend-only interoperability scope
+  (Docker, Kubernetes, Terraform, gRPC, Go, WebAssembly, Flutter).
+- `RFC-0020`: declared environment variables with fail-fast typed loading, a
+  `Secret<T>` type, an encrypted per-environment secrets file and the `ag env`
+  command group.
+- `RFC-0021`: verified one-command installation from signed static binaries,
+  `ag setup`, a remote console over SSH (`ag connect`) and a machine interface
+  (`--output json`, `ag describe`, plan and apply).
+- `RFC-0022`: maintainability guardrails, each paired with the CI mechanism
+  that enforces it.
+- Roadmap master: additive Phase 4.8 (project foundations) with stages A-E;
+  Phase 5 gains Phase 4.8 stages A and B as an entry criterion and a Terraform
+  integration deliverable.
+
 ### Roadmap amendment: Phase 4.6 and 4.7 sections, staged later phases (`RFC-0018`)
 
 Added:

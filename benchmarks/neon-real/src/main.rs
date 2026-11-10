@@ -882,7 +882,7 @@ fn generate_report(
     ));
 
     out.push_str("## Metodologia\n\n");
-    out.push_str("Servicio HTTP Anti-Gravital (axum 0.7 + sqlx 0.8 + tokio rt-multi-thread) \
+    out.push_str("Servicio HTTP Anti-Gravital (axum 0.8 + sqlx 0.8 + tokio rt-multi-thread) \
         ejecutando 7 fases de carga contra Neon PostgreSQL serverless via pooler. \
         Cada fase tiene un numero fijo de workers async concurrentes. \
         Mix de operaciones: 35% POST (crear factura con 3 items + log en transaccion), \
@@ -1062,8 +1062,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .route("/invoices", post(create_invoice))
         .route("/invoices", get(list_invoices))
-        .route("/invoices/:id", get(get_invoice))
-        .route("/invoices/:id/status", patch(update_status))
+        .route("/invoices/{id}", get(get_invoice))
+        .route("/invoices/{id}/status", patch(update_status))
         .with_state(state);
 
     let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;

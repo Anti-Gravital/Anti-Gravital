@@ -577,7 +577,7 @@ mod tests {
 
         let ck = rcgen::generate_simple_self_signed(vec!["127.0.0.1".to_owned()]).unwrap();
         let cert = ck.cert.der().clone();
-        let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(ck.key_pair.serialize_der()));
+        let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(ck.signing_key.serialize_der()));
         let provider = Arc::new(rustls::crypto::ring::default_provider());
         let config = ServerConfig::builder_with_provider(provider)
             .with_safe_default_protocol_versions()

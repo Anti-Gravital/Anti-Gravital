@@ -146,7 +146,7 @@ work.
 ## Installation
 
 ```bash
-# From source (requires Rust >= 1.95):
+# From source (requires Rust >= 1.99):
 bash install.sh          # Linux / macOS
 .\install.ps1            # Windows PowerShell
 ```

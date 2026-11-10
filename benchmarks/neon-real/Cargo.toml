@@ -13,7 +13,7 @@ name = "neon-saturate"
 path = "src/saturate.rs"
 
 [dependencies]
-axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "json", "query"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json", "query"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros"] }
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
 serde = { version = "1", features = ["derive"] }

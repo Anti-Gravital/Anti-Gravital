@@ -9,7 +9,7 @@
 # Usage: .\install.ps1
 
 $ErrorActionPreference = "Stop"
-$RequiredRust = [version]"1.95.0"
+$RequiredRust = [version]"1.99.1"
 
 function Log($msg) { Write-Host "[ag-install] $msg" }
 

@@ -55,19 +55,16 @@ where
             let mut len_line = String::new();
             reader.read_line(&mut len_line).await.ok()?;
             let len_line = len_line.trim_end_matches(['\r', '\n']);
-            if let Some(len_str) = len_line.strip_prefix('$') {
-                let len: usize = len_str.parse().ok()?;
-                if len > MAX_BULK_LEN {
-                    return None; // reject oversized bulk string before allocating
-                }
-                // `len <= MAX_BULK_LEN`, so `len + 2` cannot overflow.
-                let mut buf = vec![0u8; len + 2];
-                reader.read_exact(&mut buf).await.ok()?;
-                buf.truncate(len); // drop trailing \r\n
-                args.push(buf);
-            } else {
-                return None;
+            let len_str = len_line.strip_prefix('$')?;
+            let len: usize = len_str.parse().ok()?;
+            if len > MAX_BULK_LEN {
+                return None; // reject oversized bulk string before allocating
             }
+            // `len <= MAX_BULK_LEN`, so `len + 2` cannot overflow.
+            let mut buf = vec![0u8; len + 2];
+            reader.read_exact(&mut buf).await.ok()?;
+            buf.truncate(len); // drop trailing \r\n
+            args.push(buf);
         }
         Some(args)
     } else {

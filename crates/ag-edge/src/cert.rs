@@ -174,7 +174,7 @@ mod tests {
     fn self_signed(names: &[&str]) -> (String, String) {
         let names: Vec<String> = names.iter().map(|s| s.to_string()).collect();
         let ck = rcgen::generate_simple_self_signed(names).unwrap();
-        (ck.cert.pem(), ck.key_pair.serialize_pem())
+        (ck.cert.pem(), ck.signing_key.serialize_pem())
     }
 
     #[test]

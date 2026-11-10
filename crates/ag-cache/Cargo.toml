@@ -38,7 +38,7 @@ dashmap = { version = "6", optional = true }
 # External Redis L2 adapter (feature "redis-l2"). Mature MIT client; the
 # auto-reconnecting multiplexed ConnectionManager backs the L2 trait. The
 # crate's native default does not require it (ADR-0009 rule 2).
-redis = { version = "0.27", optional = true, default-features = false, features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1", optional = true, default-features = false, features = ["tokio-comp", "connection-manager"] }
 
 [[test]]
 name = "resp2_compat"

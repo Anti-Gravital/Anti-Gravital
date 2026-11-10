@@ -24,7 +24,7 @@ impl CertIssuer for RcgenIssuer {
             .map_err(|e| IssuanceError::Issuer(e.to_string()))?;
         Ok(IssuedCertificate {
             cert_chain_pem: ck.cert.pem(),
-            private_key_pem: ck.key_pair.serialize_pem(),
+            private_key_pem: ck.signing_key.serialize_pem(),
         })
     }
 }

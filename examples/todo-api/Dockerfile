@@ -7,7 +7,7 @@
 #   docker build -t todo-api .
 #   docker run -e DATABASE_URL=postgresql://... -p 8080:8080 todo-api
 
-FROM rust:1.95-slim AS builder
+FROM rust:1.99-slim AS builder
 
 # Instala las herramientas necesarias para compilacion estatica con MUSL.
 RUN apt-get update && apt-get install -y --no-install-recommends \

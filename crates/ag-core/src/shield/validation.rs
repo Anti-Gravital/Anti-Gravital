@@ -9,7 +9,6 @@
 //! for their types. Starting in Phase 3 the DSL generates types that
 //! already implement `Validate` from the `.ag` annotations.
 
-use axum::async_trait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRequest, Request};
 use axum::Json;
@@ -90,7 +89,6 @@ pub trait Validate {
 #[derive(Debug, Clone)]
 pub struct ValidatedJson<T>(pub T);
 
-#[async_trait]
 impl<T, S> FromRequest<S> for ValidatedJson<T>
 where
     T: DeserializeOwned + Validate + Send + 'static,

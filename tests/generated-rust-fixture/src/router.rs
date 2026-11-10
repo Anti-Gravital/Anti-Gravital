@@ -5,5 +5,5 @@ use axum::routing;
 
 /// Creates the Axum router with all routes defined in the schema.
 pub fn api_router() -> axum::Router<AppState> {
-    axum::Router::new().route("/users/:id", routing::patch(handlers::update_user))
+    axum::Router::new().route("/users/{id}", routing::patch(handlers::update_user))
 }

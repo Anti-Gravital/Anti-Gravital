@@ -63,27 +63,27 @@ jobs:
             throw "install.ps1 accepted Rust below the workspace MSRV"
           }
           Set-Content (Join-Path $fakeBin "cargo.cmd") '@echo cargo %* & exit /b 0'
-          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.95.0 (test fixture)'
+          Set-Content (Join-Path $fakeBin "rustc.cmd") '@echo rustc 1.99.1 (test fixture)'
           pwsh -NoProfile -File ./install.ps1
           if ($LASTEXITCODE -ne 0) {
             throw "install.ps1 rejected the workspace MSRV"
           }
 
   msrv:
-    name: cargo check (MSRV 1.95.0)
+    name: cargo check (MSRV 1.99.1)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          toolchain: "1.95.0"
+          toolchain: "1.99.1"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-msrv-1.95.0-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-msrv-1.99.1-${{ hashFiles('**/Cargo.toml') }}
       - run: cargo check --workspace --all-targets
 
   fmt:
@@ -93,7 +93,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          toolchain: "1.95.0"
+          toolchain: "1.99.1"
           components: rustfmt
       - run: cargo fmt --all -- --check
 
@@ -179,7 +179,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          toolchain: "1.95.0"
+          toolchain: "1.99.1"
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |

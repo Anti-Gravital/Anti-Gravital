@@ -8,7 +8,7 @@ Rust/SQL/TypeScript/OpenAPI surface, and ship a small static binary.
 [![CI](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/ci.yml/badge.svg)](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/ci.yml)
 [![Quality](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml/badge.svg)](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Rust: 1.95+](https://img.shields.io/badge/rust-1.95%2B-orange.svg)](rust-toolchain.toml)
+[![Rust: 1.99+](https://img.shields.io/badge/rust-1.99%2B-orange.svg)](rust-toolchain.toml)
 [![Status: pre-release](https://img.shields.io/badge/status-pre--release-yellow.svg)](docs/roadmap/STATUS.md)
 
 [English](#english) | [Espanol](#espanol) — English is the canonical project
@@ -40,7 +40,7 @@ language (ADR-0008). A full Spanish version follows the English one.
 
 | | |
 | --- | --- |
-| Language and runtime | Rust (MSRV 1.95.0) on Tokio, Axum, Tower and rustls |
+| Language and runtime | Rust (MSRV 1.99.1) on Tokio, Axum, Tower and rustls |
 | License | Apache-2.0 |
 | Released version | None yet. No crates.io releases, no binary releases; install from source only |
 | Workspace | 20 `ag-*` crates plus the `ag` developer CLI (6 of them are reserved placeholders for later phases) |
@@ -148,7 +148,7 @@ never hides your business logic.
 
 ### Quick start
 
-Prerequisites: Git and Rust 1.95.0 or newer.
+Prerequisites: Git and Rust 1.99.1 or newer.
 
 Linux or macOS:
 
@@ -386,6 +386,7 @@ Current state, phase by phase (evidence in
 | 4.5 (additive) | `ag-mail` transactional email; `ag-domains` DNS/ACME/SPF-DKIM-DMARC; DSL v0.7 | Implemented; gate open | Gate re-run on the final consolidation commit; `ag-domains` has active ongoing work |
 | 4.6 (additive) | Pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C); `ag-workers` engine (D); DSL v0.8 | In progress | `ag-edge` producer wiring (issue #112); MTA live-delivery evidence (issue #153). The MTA durable spool now ships behind the `queue-postgres` feature (issue #151; its live PostgreSQL test is `#[ignore]`). Stages S1-S5 and the S7 `ag-mail` migration are done; the `ag-workers` PostgreSQL backend was verified against a live database (issues #108/#109/#103) |
 | 4.7 (additive) | Interactive terminal experience: full-screen TUI in the `ag` binary to create and configure a project, with exact non-interactive equivalents | Proposed | `RFC-0018` awaits decision; no code yet. Stages A-B are required for v0.5, stage C for 1.0 |
+| 4.8 (additive) | Project foundations: layered project structure, declared environment and encrypted secrets, verified one-command installation, remote console over SSH, machine-readable interface | Proposed | `RFC-0019`, `RFC-0020` and `RFC-0021` await decision; no code yet |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains, TLS | Pending | Opens when the pre-Phase-5 gate closes. Milestone: public beta v0.5 |
 | 6 | `ag-ai` and Knowledge Graph: providers, retrieval, graph-assisted workflows | Pending | Phase 5 completion and beta feedback |
 | 7 | `ag-migrate`: importers and assisted migration from other backend frameworks | Pending | Phase 6 completion and importer acceptance tests |
@@ -478,7 +479,7 @@ public issues.
 
 | | |
 | --- | --- |
-| Lenguaje y runtime | Rust (MSRV 1.95.0) sobre Tokio, Axum, Tower y rustls |
+| Lenguaje y runtime | Rust (MSRV 1.99.1) sobre Tokio, Axum, Tower y rustls |
 | Licencia | Apache-2.0 |
 | Version publicada | Ninguna todavia. Sin releases en crates.io ni binarios; instalacion solo desde el codigo fuente |
 | Workspace | 20 crates `ag-*` mas la CLI de desarrollo `ag` (6 de ellos son placeholders reservados para fases posteriores) |
@@ -593,7 +594,7 @@ oculta la logica de negocio.
 
 ### Inicio rapido
 
-Requisitos: Git y Rust 1.95.0 o superior.
+Requisitos: Git y Rust 1.99.1 o superior.
 
 Linux o macOS:
 
@@ -793,6 +794,7 @@ Estado actual, fase por fase (evidencia en
 | 4.5 (aditiva) | Correo transaccional `ag-mail`; `ag-domains` DNS/ACME/SPF-DKIM-DMARC; DSL v0.7 | Implementada; puerta abierta | Reejecucion de la puerta sobre el commit final de consolidacion; `ag-domains` tiene trabajo activo |
 | 4.6 (aditiva) | Endurecimiento pre-Fase 5: MTA outbound nativo + webhooks firmados en `ag-mail` (A/B/C); motor `ag-workers` (D); DSL v0.8 | En curso | Wiring del modo producer en `ag-edge` (issue #112); evidencia de entrega en vivo del MTA (issue #153). El spool durable del MTA ya se entrega tras la feature `queue-postgres` (issue #151; su test con PostgreSQL vivo es `#[ignore]`). Las etapas S1-S5 y la migracion S7 de `ag-mail` estan hechas; el backend PostgreSQL se verifico contra una base viva (issues #108/#109/#103) |
 | 4.7 (aditiva) | Experiencia interactiva de terminal: TUI a pantalla completa en el binario `ag` para crear y configurar un proyecto, con equivalentes no interactivos exactos | Propuesta | `RFC-0018` espera decision; sin codigo aun. Las etapas A-B son requisito de la v0.5 y la etapa C de la 1.0 |
+| 4.8 (aditiva) | Fundaciones del proyecto: estructura por capas, entorno declarado y secretos cifrados, instalacion verificada con un comando, consola remota sobre SSH, interfaz legible por maquina | Propuesta | `RFC-0019`, `RFC-0020` y `RFC-0021` esperan decision; sin codigo aun |
 | 5 | `ag-cloud`: build/deploy simplificados, secretos, logs, rollback, dominios, TLS | Pendiente | Abre cuando cierre la puerta pre-Fase 5. Hito: beta publica v0.5 |
 | 6 | `ag-ai` y Knowledge Graph: providers, retrieval, flujos asistidos por grafo | Pendiente | Cierre de la Fase 5 y feedback de la beta |
 | 7 | `ag-migrate`: importadores y migracion asistida desde otros frameworks backend | Pendiente | Cierre de la Fase 6 y tests de aceptacion de importadores |

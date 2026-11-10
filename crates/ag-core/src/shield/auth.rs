@@ -14,7 +14,6 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use axum::async_trait;
 use axum::extract::{FromRequestParts, Request};
 use axum::http::header::AUTHORIZATION;
 use axum::http::request::Parts;
@@ -243,7 +242,6 @@ where
 #[derive(Debug, Clone)]
 pub struct Claims<T>(pub T);
 
-#[async_trait]
 impl<T, S> FromRequestParts<S> for Claims<T>
 where
     T: DeserializeOwned + Send + 'static,

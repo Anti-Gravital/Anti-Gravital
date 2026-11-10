@@ -324,8 +324,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .route("/invoices", post(create_invoice))
         .route("/invoices", get(list_invoices))
-        .route("/invoices/:id", get(get_invoice))
-        .route("/invoices/:id/status", patch(update_status))
+        .route("/invoices/{id}", get(get_invoice))
+        .route("/invoices/{id}/status", patch(update_status))
         .with_state(state.clone());
 
     let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
@@ -491,7 +491,7 @@ fn generate_saturation_report(
     out.push_str(&format!("- **Duracion total:** {} s\n\n", duration_s));
 
     out.push_str("## Metodologia\n\n");
-    out.push_str("Ramp-up agresivo de workers async contra servidor Anti-Gravital (axum 0.7 + sqlx 0.8). \
+    out.push_str("Ramp-up agresivo de workers async contra servidor Anti-Gravital (axum 0.8 + sqlx 0.8). \
         Cada nivel dura 30 segundos. Workers se duplican: 50→100→200→400→800→1600→3200. \
         Criterio de saturacion: error_rate > 30% O p99 > 30s. \
         Pool de conexiones DB: 30. Mix: 35% POST (transaccion 5 queries), \

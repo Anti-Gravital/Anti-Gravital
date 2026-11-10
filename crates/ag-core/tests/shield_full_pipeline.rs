@@ -110,7 +110,7 @@ fn generate_tls_cert() -> (PathBuf, PathBuf) {
         .unwrap();
     std::fs::File::create(&key_path)
         .unwrap()
-        .write_all(cert.key_pair.serialize_pem().as_bytes())
+        .write_all(cert.signing_key.serialize_pem().as_bytes())
         .unwrap();
     (cert_path, key_path)
 }

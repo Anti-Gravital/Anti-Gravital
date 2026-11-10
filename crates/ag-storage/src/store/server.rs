@@ -66,10 +66,10 @@ pub fn build_router(store: Arc<AgStore>, config: &StorageConfig) -> Router {
 
     let protected = Router::new()
         .route("/v1/objects/", get(list_objects))
-        .route("/v1/objects/*key", get(get_object))
-        .route("/v1/objects/*key", put(put_object))
-        .route("/v1/objects/*key", delete(delete_object))
-        .route("/v1/objects/*key", head(head_object))
+        .route("/v1/objects/{*key}", get(get_object))
+        .route("/v1/objects/{*key}", put(put_object))
+        .route("/v1/objects/{*key}", delete(delete_object))
+        .route("/v1/objects/{*key}", head(head_object))
         .route("/v1/copy", post(copy_object))
         .with_state(store)
         .layer(

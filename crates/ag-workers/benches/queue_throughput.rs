@@ -25,8 +25,9 @@
 use ag_workers::{
     decode, encode, JobPayload, MemoryQueue, NewJob, QueueBackend, QueueName, WorkerId,
 };
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use serde::{Deserialize, Serialize};
+use std::hint::black_box;
 use tokio::runtime::Runtime;
 
 /// A representative typed payload (a couple of scalar fields, as most jobs carry).

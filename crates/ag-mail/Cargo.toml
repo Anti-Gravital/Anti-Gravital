@@ -67,7 +67,7 @@ tracing = { workspace = true }
 lettre = { workspace = true, optional = true }
 
 # Motor de plantillas externo opcional
-minijinja = { version = "2", optional = true }
+minijinja = { version = "3", optional = true }
 
 # Metricas
 metrics = { workspace = true, optional = true }
@@ -102,7 +102,7 @@ getrandom = { workspace = true, optional = true }
 # Firma de webhooks (feature "api").
 hmac = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
-base64 = { version = "0.22", optional = true }
+base64 = { version = "0.23", optional = true }
 
 [dev-dependencies]
 proptest = { workspace = true }

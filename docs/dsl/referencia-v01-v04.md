@@ -305,7 +305,7 @@ pub async fn create_user(
 pub fn api_router() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/users", routing::post(handlers::create_user))
-        .route("/users/:id", routing::get(handlers::get_user))
+        .route("/users/{id}", routing::get(handlers::get_user))
 }
 ```
 

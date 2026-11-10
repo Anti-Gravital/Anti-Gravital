@@ -2,12 +2,13 @@
 
 ## Resumen
 
-Enmienda de la Hoja de Ruta: secciones de Fase 4.6 y 4.7, etapas y RFC previas en Fases 5-10; RFC-0018 (experiencia interactiva de terminal); correccion de Cargo.lock
+Hoja de Ruta ampliada (Fases 4.6, 4.7, 4.8 y etapas 5-10), RFC-0018 a RFC-0022 (TUI, capas, entorno, instalacion y consola remota, guardarrailes), Rust 1.99.1 y refresco de dependencias
 
 ## Fase afectada
 
-Hoja de Ruta completa (documento maestro). Introduce la Fase 4.7 aditiva como
-propuesta. No implementa codigo funcional y no avanza ninguna puerta.
+Hoja de Ruta completa (documento maestro). Introduce las Fases 4.7 y 4.8
+aditivas como propuestas. El unico cambio de codigo es el refresco de toolchain
+y dependencias (sin funcionalidad nueva); no avanza ninguna puerta.
 
 ## Tipo de cambio
 
@@ -15,7 +16,9 @@ propuesta. No implementa codigo funcional y no avanza ninguna puerta.
 - [x] Documentacion (maestro Hoja-de-Ruta EN+ES, derivados, README, RFC)
 - [x] Gobernanza (limpieza de descriptores de PRs ya fusionadas)
 - [ ] Nueva feature
-- [ ] Cambio que rompe compatibilidad
+- [x] Mantenimiento (toolchain Rust 1.99.1 y dependencias)
+- [x] Cambio que rompe compatibilidad (pre-release): MSRV 1.99.1; rutas de
+  axum 0.8 con capturas `{nombre}`
 
 ## Contexto
 
@@ -44,6 +47,36 @@ como front-end de los comandos existentes:
 
 Fusionar esta PR registra la decision de la RFC (seccion 9).
 
+### RFC-0019 a RFC-0022 — arquitectura, entorno, operacion y reglas
+
+Todas en estado propuesta, sin codigo. Fusionar la PR registra su decision.
+
+- `RFC-0019`: arquitectura por capas de los proyectos generados (dominio,
+  aplicacion, infraestructura con la base de datos como modulo acotado,
+  interfaz, raiz de composicion) forzada por Cargo; manifiesto `ag.toml`;
+  alcance de interoperabilidad estrictamente backend (Docker, Kubernetes,
+  Terraform, gRPC, Go, WebAssembly, Flutter). Propone retirar `ag-ui`.
+- `RFC-0020`: variables de entorno declaradas, carga tipada fail-fast, tipo
+  `Secret<T>`, archivo de secretos cifrado por entorno, comandos `ag env`.
+- `RFC-0021`: instalacion con un comando desde binarios estaticos firmados
+  (cierra el diseno del issue #141), `ag setup`, consola remota sobre SSH
+  (`ag connect`) e interfaz de maquina (`--output json`, `ag describe`,
+  plan/apply) para scripts y agentes automatizados.
+- `RFC-0022`: guardarrailes de mantenibilidad, cada regla con el mecanismo de
+  CI que la hace cumplir.
+
+### Toolchain y dependencias
+
+- Rust 1.95.0 a 1.99.1 (toolchain y MSRV) en todos los lugares que lo
+  declaran, con checksums de instaladores regenerados.
+- `cargo update` completo y 21 actualizaciones mayores (lista en el CHANGELOG),
+  incluida la migracion a `axum` 0.8: capturas de ruta `{nombre}` en crates,
+  ejemplos, benchmark y en el router que emite `ag generate`.
+- Seis actualizaciones mayores no se aplican porque requieren migracion
+  deliberada de codigo criptografico, TLS o de protocolo: issues #175 a #180.
+- Los templates de `ag new` fijan `ag-core` por commit con `axum` 0.7 y siguen
+  compilando; su pin debe subirse tras fusionar (ver CHANGELOG).
+
 ### Enmienda de la Hoja de Ruta (EN+ES)
 
 - Nueva seccion **Fase 4.6**: la fila existia en la tabla resumen pero la fase
@@ -52,6 +85,9 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
   Resuelve la ambiguedad de la etiqueta "4.6-D".
 - Nueva seccion **Fase 4.7** (aditiva, propuesta): criterios de entrada,
   entregables por etapa, criterios de salida y riesgos.
+- Nueva seccion **Fase 4.8** (aditiva, propuesta): fundaciones del proyecto
+  en cinco etapas (capas, entorno, instalacion, consola remota, interfaz de
+  maquina) con la declaracion de alcance backend.
 - **Fases 5 a 10**: bloque de etapas que ordena los entregables ya existentes
   en pasos fusionables, y lista de RFC previas por la regla 28. Las etapas no
   anaden alcance.
@@ -89,6 +125,8 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
 
 - #173 `cargo audit` en rojo: `crypto-bigint` y `libsqlite3-sys` sin correccion
   compatible (p1, seguridad).
+- #181 Con `--all-features` se enlazan dos proveedores criptograficos de
+  `rustls` y dos tests del MTA entran en panic (preexistente; CI no lo cubre).
 - #174 `cargo deny` en rojo: `astral-tokio-tar` sin mantenimiento (ruta de
   dev-dependency).
 - #168 CI no detecta un `Cargo.lock` desactualizado (sin `--locked`).
@@ -100,6 +138,10 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
 ## Documentos relacionados
 
 - `docs/rfc/RFC-0018-interactive-terminal-experience.md`
+- `docs/rfc/RFC-0019-project-layered-architecture.md`
+- `docs/rfc/RFC-0020-environment-and-secrets.md`
+- `docs/rfc/RFC-0021-server-install-remote-console-and-machine-interface.md`
+- `docs/rfc/RFC-0022-maintainability-guardrails.md`
 - `docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md`, `docs/master/VERSION.md`
 - `docs/roadmap/` (derivados, `README.md`, `STATUS.md`, `calendar.md`)
 - `ADR-0009`, `ADR-0010`, `ADR-0013`, `RFC-0009`, `RFC-0012`
@@ -109,16 +151,30 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
 ```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo test --workspace --all-targets
+cargo test -p ag-mail --features mta,api,minijinja
 cargo build --workspace --locked
 sha256sum docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md   # coincide con VERSION.md
 bash tools/split-masters.sh && git diff --exit-code docs/roadmap docs/architecture
 ```
 
-Resultado local (2026-11-10, Rust 1.95.0, Linux x86-64): fmt limpio; clippy
-exit 0; tests 820 pasados, 0 fallidos, 14 ignorados; regeneracion de derivados
-sin diff. `cargo audit`: exit 1 con 2 vulnerabilidades restantes (issue #173),
-frente a 15 antes de esta rama.
+Resultado local (2026-11-10, Rust 1.99.1, Linux x86-64), sobre el commit final:
+
+- `cargo fmt --all -- --check`: limpio.
+- `cargo clippy --workspace --all-targets -- -D warnings`: exit 0; tambien con
+  `--all-features`.
+- `cargo test --workspace --all-targets`: 800 pasados, 0 fallidos, 10 ignorados.
+- `cargo test -p ag-mail --features mta,api,minijinja`: 125 pasados.
+- `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`: exit 0.
+- `ag generate` sobre `examples/ecommerce-api/schema.ag`: salida identica a la
+  versionada (`diff -rq`).
+- Regeneracion de derivados sin diff; `tools/check-installers.sh` pasa.
+- NO pasa: `cargo test --workspace --all-features` (2 tests del MTA, issue
+  #181, preexistente en `main`); `cargo audit` (2 vulnerabilidades, issue #173,
+  frente a 15 antes de esta rama); `cargo deny` (issues #173 y #174).
+
+Un test (`ag-edge` `tls_edge`) falla solo si hay un proxy HTTPS en el entorno;
+pasa con las variables de proxy sin definir.
 
 ## Criterios de salida que avanza
 
@@ -133,6 +189,14 @@ Closes: none
 - Refs #168
 - Refs #173
 - Refs #174
+- Refs #175
+- Refs #176
+- Refs #177
+- Refs #178
+- Refs #179
+- Refs #180
+- Refs #181
+- Refs #141
 - Refs #169
 - Refs #170
 - Refs #171
@@ -147,4 +211,4 @@ Closes: none
 - [ ] Pasa audit y deny: NO. Quedan avisos sin correccion compatible (issues
   #173 y #174).
 - [x] README sincronizado en el mismo cambio.
-- [x] Sin dependencias nuevas ni cambios de API.
+- [x] Sin dependencias nuevas. Cambios de version documentados en el CHANGELOG.

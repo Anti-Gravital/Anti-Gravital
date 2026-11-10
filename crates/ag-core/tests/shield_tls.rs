@@ -22,7 +22,7 @@ fn generate_cert_pair() -> (PathBuf, PathBuf) {
     let subject_alt_names = vec!["localhost".to_owned(), "127.0.0.1".to_owned()];
     let cert = rcgen::generate_simple_self_signed(subject_alt_names).unwrap();
     let cert_pem = cert.cert.pem();
-    let key_pem = cert.key_pair.serialize_pem();
+    let key_pem = cert.signing_key.serialize_pem();
 
     let cert_path = unique_temp("ag-tls-cert");
     let key_path = unique_temp("ag-tls-key");

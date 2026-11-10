@@ -11,15 +11,56 @@
 
 ## Subcommands
 
-### `ag new <name> [--template rest|realtime|fullstack]`
+### `ag new [name] [--template rest|realtime|fullstack]`
 
-Creates a new project. When `--template` is omitted and the terminal is
-interactive, you are prompted to choose. In CI / scripts the default is `rest`.
+Creates a new project.
+
+With every input on the command line it runs without asking anything:
 
 ```bash
-ag new my-api                        # interactive prompt
-ag new my-api --template realtime    # non-interactive
+ag new my-api --template realtime
 ```
+
+With an input missing, in an interactive terminal, a guided full-screen wizard
+opens (RFC-0018, stage A). It asks for the name with live validation, lets you
+pick a template while showing the files each one creates, and ends on a review
+screen that lists exactly what will be written. Nothing is written before you
+confirm there.
+
+```bash
+ag new            # wizard asks for name and template
+ag new my-api     # wizard starts on the template step
+```
+
+Keys: `Enter` continues, `Esc` goes back (or cancels on the first step),
+`Up`/`Down` or `j`/`k` select, `q` or `Ctrl-C` cancels. After the project is
+created, `ag` prints the equivalent non-interactive command so the action can
+be repeated or scripted.
+
+The wizard is never used by surprise. `ag` does not prompt when any of these
+holds: standard input or output is not a terminal, `CI` is set, `AG_NO_TUI` is
+set, `TERM` is `dumb`, or `--no-interactive` is passed. In that case:
+
+| Input | Result |
+| --- | --- |
+| Name and template given | Project created |
+| Name given, template omitted | Template defaults to `rest` |
+| Name omitted | Usage error, exit code 2, nothing written |
+
+Other behavior:
+
+- `NO_COLOR` selects a monochrome theme. Selection and errors are also marked
+  with text, never by color alone.
+- In a terminal smaller than 80x24 the same questions are asked as plain line
+  prompts.
+- The terminal is restored on exit, on error, on `Ctrl-C` and on panic.
+- The interface is the `tui` Cargo feature, on by default. A build with
+  `--no-default-features` has no interactive code and behaves as a
+  non-interactive session.
+
+### Global flag `--no-interactive`
+
+Accepted before or after the subcommand. Forces the non-interactive path.
 
 ### `ag dev [--bind host:port]`
 

@@ -1,14 +1,14 @@
 # RFC-0018 - Interactive terminal experience (TUI) for the `ag` CLI
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: new additive Phase 4.7 (stages A-C); later phases add screens
 - Affected modules/crates: `ag-cli` (new `tui` module and feature, new
   `ag config` command, optional `NAME` in `ag new`, bare `ag` home screen)
 - Predecessor RFC: none
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -289,23 +289,25 @@ get/set/validate` are useful without the TUI and would be kept.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open questions for the decision:
+1. **Interface language.** English in stages A to C. All user-facing strings
+   live in one module (`crates/ag-cli/src/tui/text.rs`) so a later RFC can add
+   Spanish without touching screen logic.
+2. **Gate position.** Stages A and B are exit criteria of the v0.5 public
+   beta; stage C is an entry criterion of Phase 10.
+3. **Bare `ag`.** In an interactive terminal it opens the home screen
+   (stage C). Outside a terminal it prints help as before.
 
-1. **Interface language.** English only, or English and Spanish selected from
-   the locale? The project targets Latin America first, but every translated
-   string is a maintenance cost. Recommendation: English in stages A-C, with
-   all strings in one module so a later RFC can add Spanish without a rewrite.
-2. **Gate position.** This RFC proposes stages A and B as v0.5 exit criteria
-   and stage C as a 1.0 criterion. The alternative is to require all three
-   before Phase 5 starts.
-3. **Bare `ag`.** Opening a home screen changes what bare `ag` does in a
-   terminal (today: help). The alternative is an explicit `ag ui` command.
+Implementation status: stage A is implemented (module split, `tui` feature,
+`ag new` wizard, `--no-interactive`). Stages B and C are not started.
+One deviation from section 4.8: `crossterm` is used through the re-export of
+`ratatui` instead of being declared as a second direct dependency, so the two
+versions cannot diverge.
 
 ## 10. References
 

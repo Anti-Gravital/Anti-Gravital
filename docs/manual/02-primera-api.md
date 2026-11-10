@@ -42,6 +42,10 @@ ag new mi-api --template rest
 cd mi-api
 ```
 
+Running `ag new` without arguments in a terminal opens a guided wizard that
+asks for the name and the template and shows what it will write. It ends by
+printing the equivalent command, which is the one shown above.
+
 This generates:
 
 ```
@@ -295,6 +299,10 @@ Todo en un proceso Rust, sin IPC, sin sidecar, sin magic.
 ag new mi-api --template rest
 cd mi-api
 ```
+
+Ejecutar `ag new` sin argumentos en una terminal abre un asistente guiado que
+pide el nombre y el template y muestra lo que va a escribir. Al terminar
+imprime el comando equivalente, que es el mostrado arriba.
 
 Esto genera:
 

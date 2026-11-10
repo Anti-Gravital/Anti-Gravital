@@ -1,6 +1,7 @@
 # RFC-0019 - Layered architecture of generated projects and interoperability scope
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: additive Phase 4.8, stage A; interoperability targets land in
@@ -9,8 +10,7 @@
   (generator output paths), `ag-ui` (scope decision)
 - Predecessor RFC: RFC-0018 (the creation wizard configures what this RFC
   defines)
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -221,20 +221,19 @@ the previous single-file scaffold. `ag.toml` is additive and can remain.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open questions for the decision:
-
-1. **Default layout.** Layered workspace as the default for `fullstack` and
-   `realtime`, compact for `rest` (proposed), or compact everywhere with the
-   workspace as an option.
-2. **`ag-ui`.** Remove it from the roster (proposed), or keep it as optional.
-3. **gRPC and Go.** Confirm both enter the scope, to be designed in their own
-   RFC, or leave them out.
+1. **Default layout.** Layered workspace for the `fullstack` and `realtime`
+   templates; compact layout for `rest`.
+2. **`ag-ui`.** Removed from the roster. The removal is applied in its own
+   pull request, which updates rule 14 of `CLAUDE.md`, the three master
+   documents and the workspace in one change.
+3. **gRPC and Go.** Both enter the scope. Their design is fixed by a dedicated
+   RFC before any code.
 
 ## 10. References
 

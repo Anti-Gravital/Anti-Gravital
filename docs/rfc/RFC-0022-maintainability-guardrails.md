@@ -1,14 +1,14 @@
 # RFC-0022 - Maintainability guardrails: enforceable rules against degradation
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: governance; applies from acceptance
 - Affected modules/crates: `CLAUDE.md`, `CONTRIBUTING.md`, CI workflows, all
   crates
 - Predecessor RFC: none
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -178,14 +178,16 @@ over a phase is removed by amendment.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open questions: the size thresholds of 4.3 (600 and 80 lines proposed), and
-whether stale pull requests are closed automatically (4.8) or only labelled.
+1. **Size thresholds.** 600 lines per source file and 80 lines per function,
+   with the seeded allowlist of section 4.3.
+2. **Stale pull requests.** Closed automatically after thirty days without
+   activity, with a note; the branch is kept.
 
 ## 10. References
 

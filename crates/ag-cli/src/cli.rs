@@ -13,6 +13,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
     long_about = None,
 )]
 pub(crate) struct Cli {
+    /// Never prompt or open the interactive interface. Missing required
+    /// input becomes an error. Implied when the session is not a terminal,
+    /// when `CI` or `AG_NO_TUI` is set, or when `TERM` is `dumb`.
+    #[arg(long, global = true)]
+    pub(crate) no_interactive: bool,
+
     #[command(subcommand)]
     pub(crate) command: Commands,
 }
@@ -24,11 +30,13 @@ pub(crate) enum Commands {
     /// Generates the file structure from the chosen template
     /// and substitutes the project name across all files.
     New {
-        /// Name of the new project (also used as the directory name).
-        name: String,
+        /// Name of the new project (also used as the directory name). When
+        /// omitted in an interactive terminal, a guided wizard asks for it.
+        name: Option<String>,
 
-        /// Starting template. When omitted in an interactive terminal, you
-        /// will be prompted. In non-interactive sessions, defaults to "rest".
+        /// Starting template. When omitted in an interactive terminal, the
+        /// wizard asks for it. In non-interactive sessions it defaults to
+        /// "rest".
         #[arg(long, short = 't', value_parser = ["rest", "realtime", "fullstack"])]
         template: Option<String>,
     },

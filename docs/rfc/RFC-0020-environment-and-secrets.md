@@ -1,14 +1,14 @@
 # RFC-0020 - Declared environment variables and secret management
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: additive Phase 4.8, stage B
 - Affected modules/crates: `ag-core` (configuration loading, `Secret` type),
   `ag-cli` (new `ag env` command group), `templates/`
 - Predecessor RFC: RFC-0019 (`ag.toml`), RFC-0018 (interactive forms)
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -187,14 +187,15 @@ every variable from outside, as today. `Secret<T>` would be kept in any case.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open question: whether the native encrypted file is the default (proposed) or
-an opt-in beside a plain process-environment-only mode.
+The native encrypted secrets file is the default storage. A project can still
+supply every variable through the process environment, which keeps the highest
+priority in the resolution order.
 
 ## 10. References
 

@@ -1,6 +1,7 @@
 # RFC-0023 - Serverless functions
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: new additive Phase 5.5
@@ -10,8 +11,7 @@
   (packaging), `ag-observe`
 - Predecessor RFC: RFC-0019 (project layout), RFC-0020 (secrets), RFC-0021
   (plan and apply, machine interface)
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -268,20 +268,17 @@ remains because Phase 9 needs it.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open questions for the decision:
-
-1. **Meaning.** Native functions that run on your own servers, with external
-   platforms as adapters (proposed), or only deployment to external function
-   platforms.
-2. **Position.** Phase 5.5, after the 0.5 beta and before `ag-ai` (proposed),
-   or as a stage of Phase 9 with no reordering.
-3. **Second language.** Go (proposed) or another.
+1. **Meaning.** Native functions that run on the user's own servers. External
+   function platforms and containers are packaging adapters.
+2. **Position.** Additive Phase 5.5, after the v0.5 beta and before `ag-ai`.
+   The host core moves from Phase 9 stage 9-A to Phase 5.5.
+3. **Second language.** Go.
 
 ## 10. References
 

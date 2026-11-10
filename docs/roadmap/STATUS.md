@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-11-10 (se anaden las Fases 4.7 y 4.8 propuestas por RFC-0018 a RFC-0021; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
+Ultima actualizacion: 2026-11-10 (RFC-0018 a RFC-0023 aceptadas; etapa A de la Fase 4.7 implementada; se anaden las Fases 4.8 y 5.5; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
 
 ---
 
@@ -428,30 +428,46 @@ prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
 
 ## Fase 4.7 - Experiencia interactiva de terminal (TUI de ag)
 
-Estado: Propuesta. `docs/rfc/RFC-0018-interactive-terminal-experience.md` espera
-decision del BDFL; no existe codigo. Fase aditiva: no mueve los hitos 0.5 ni
-1.0. Entregables y criterios en
-`fase-04-7-experiencia-interactiva-de-terminal.md`.
+Estado: En curso. `RFC-0018` aceptada el 2026-11-10. Etapa A implementada;
+etapas B y C sin iniciar. Fase aditiva: no mueve los hitos 0.5 ni 1.0.
+Entregables y criterios en `fase-04-7-experiencia-interactiva-de-terminal.md`.
 
 ### Criterios de entrada (4.7.1)
 
-- [ ] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas.
-- [ ] `ag-cli` dividido en modulos sin cambio de comportamiento.
+- [x] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas.
+- [x] `ag-cli` dividido en modulos sin cambio de comportamiento
+  (`src/cli.rs`, `src/commands/`); el test del arbol de comandos pasa sin
+  cambios.
 
 ### Entregables (4.7.2)
 
-- [ ] Etapa A: fundacion y asistente de `ag new`.
+- [x] Etapa A: fundacion y asistente de `ag new`. Feature `tui`, guarda de
+  terminal, flag `--no-interactive`, modo no interactivo automatico, tema
+  monocromo, modo degradado por linea, comando equivalente impreso. Evidencia:
+  `cargo test -p ag-cli` (52 tests unitarios y 6 de regresion con el binario
+  real), tambien con `--no-default-features`; verificacion manual en
+  pseudo-terminal a 80x24 y 60x15, con `NO_COLOR`, cancelacion y `Ctrl-C`.
 - [ ] Etapa B: `ag config` (get/set/validate y formulario) y `ag new --with`.
 - [ ] Etapa C: pantalla de inicio de `ag` sin argumentos.
 
----
+### Criterios de salida (4.7.3)
 
+- [ ] Prueba con tres personas externas.
+- [/] Suite de regresion no interactiva en las cuatro plataformas de CI.
+  (Pasa en Linux x86-64; las otras tres se verifican al correr CI.)
+- [ ] Verificado sobre SSH, dentro de `tmux` y en la consola de Windows.
+- [ ] Aumento de tamano del binario release medido y publicado.
+- [x] Ningun flujo interactivo tiene una capacidad ausente en los flags (test
+  de paridad en verde).
+
+---
 
 ## Fase 4.8 - Fundaciones del proyecto
 
-Estado: Propuesta. `RFC-0019` (capas), `RFC-0020` (entorno y secretos) y
-`RFC-0021` (instalacion, consola remota, interfaz de maquina) esperan decision
-del BDFL; no existe codigo. Fase aditiva. Entregables y criterios en
+Estado: Aceptada el 2026-11-10 (`RFC-0019` capas, `RFC-0020` entorno y
+secretos, `RFC-0021` instalacion, consola remota e interfaz de maquina); sin
+iniciar. Quedan por decidir dos preguntas de `RFC-0021` (alcance de `ag setup`
+y custodia de la llave de release) antes de su etapa C. Fase aditiva. Entregables y criterios en
 `fase-04-8-fundaciones-del-proyecto.md`.
 
 ### Entregables (4.8.2)
@@ -471,8 +487,8 @@ Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`.
 
 ## Fase 5.5 - Funciones serverless
 
-Estado: Propuesta. `docs/rfc/RFC-0023-serverless-functions.md` espera decision
-del BDFL; no existe codigo. Fase aditiva posterior a la beta 0.5. Entregables y
+Estado: Aceptada el 2026-11-10 (`docs/rfc/RFC-0023-serverless-functions.md`);
+sin iniciar. Fase aditiva posterior a la beta 0.5. Entregables y
 criterios en `fase-05-5-funciones-serverless.md`.
 
 - [ ] Etapas 5.5-A a 5.5-F (ninguna iniciada).

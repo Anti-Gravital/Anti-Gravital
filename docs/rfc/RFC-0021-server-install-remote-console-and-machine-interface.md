@@ -1,14 +1,14 @@
 # RFC-0021 - One-command server installation, remote console and machine interface
 
-- Status: proposed
+- Status: accepted
+- Decision date: 2026-11-10
 - Author: Angel Nereira (BDFL), Gravital Labs
 - Draft date: 2026-11-10
 - Target phase: additive Phase 4.8, stages C, D and E
 - Affected modules/crates: `ag-cli`, `install.sh`, `install.ps1`, release
   tooling
 - Predecessor RFC: RFC-0018 (the interface that is used remotely)
-- Comment period: seven calendar days, or waived by BDFL decision. Merging the
-  pull request that carries this RFC records the decision in section 9.
+- Comment period: waived by BDFL decision.
 
 ## 1. Motivation
 
@@ -212,19 +212,18 @@ convenience over SSH and can be removed without affecting servers.
 
 ## 9. Decision
 
-To be completed after the comment period.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-10.
+- Result: accepted. The comment period was waived by BDFL decision.
 
-- Decider: BDFL.
-- Decision date: pending.
-- Result: pending.
+Resolution of the open questions:
 
-Open questions for the decision:
-
-1. **Remote transport.** SSH as proposed, or a dedicated daemon and protocol
-   despite the objections in section 3.
-2. **Scope of `ag setup`.** Which prerequisites it may install (container
-   runtime, database server) and for which distributions first.
-3. **Where the release key lives** and who can sign.
+1. **Remote transport.** SSH. No Anti-Gravital daemon, port or authentication
+   mechanism is introduced.
+2. **Scope of `ag setup`.** Not decided. To be fixed before stage C starts:
+   which prerequisites it may install and the first supported distributions.
+3. **Release key custody.** Not decided. To be fixed before the release
+   workflow of stage C is implemented.
 
 ## 10. References
 

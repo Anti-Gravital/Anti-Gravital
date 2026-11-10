@@ -7,9 +7,9 @@
 
 ## Phase 4.8 — Project foundations: layers, environment, installation and remote operation
 
-**Status: proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`). No code exists.**
-Additive phase. The maintainability rules that accompany it are proposed
-separately in `RFC-0022` (governance, not a phase).
+**Status: accepted 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); not
+started.** Additive phase. The maintainability rules that accompany it are in
+`RFC-0022` (accepted; governance, not a phase).
 
 **Objective.** Give every generated project a defined, enforced structure;
 make configuration and secrets declared, validated and safe by default; and

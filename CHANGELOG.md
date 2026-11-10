@@ -7,6 +7,44 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### ag-cli: interactive project creation wizard (`RFC-0018`, stage A)
+
+Added:
+
+- `ag new` opens a guided full-screen wizard when an input is missing and the
+  session is an interactive terminal: project name with live validation,
+  template selection with the files each template creates, and a review
+  screen. Nothing is written before the review is confirmed. After creating
+  the project, `ag` prints the equivalent non-interactive command.
+- Global `--no-interactive` flag. `ag` also never prompts when standard input
+  or output is not a terminal, when `CI` or `AG_NO_TUI` is set, or when `TERM`
+  is `dumb`.
+- Monochrome theme under `NO_COLOR`; sequential line prompts in terminals
+  smaller than 80x24; terminal state restored on exit, error, `Ctrl-C` and
+  panic.
+- `tui` Cargo feature (default on). `--no-default-features` builds contain no
+  interactive code.
+- Dependency: `ratatui` 0.30 (optional, `tui` feature), with its re-exported
+  `crossterm` backend.
+
+Changed:
+
+- `ag new`: `NAME` is now optional. With `NAME` and `--template` given the
+  behavior is unchanged. In a non-interactive session a missing `NAME` is a
+  usage error with exit code 2 (previously a clap error with the same code);
+  a missing `--template` still defaults to `rest`.
+- `ag-cli` source split into `cli.rs`, `commands/` (one module per command
+  group), `request.rs` and `interactive.rs`; `main.rs` went from 1 829 lines
+  to dispatch only. No behavior change in the other commands.
+- `RFC-0018` to `RFC-0023` accepted by BDFL decision on 2026-11-10; their
+  decision sections record the resolution of each open question. Two
+  questions of `RFC-0021` (scope of `ag setup`, release key custody) remain
+  open until its stage C.
+
+Removed:
+
+- `dialoguer` dependency. `ag-cli` has a single interaction library.
+
 ### Proposal: serverless functions (`RFC-0023`)
 
 Added (proposed; no code):

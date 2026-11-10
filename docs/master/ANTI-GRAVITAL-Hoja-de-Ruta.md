@@ -45,10 +45,10 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
-| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
-| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`); no code yet |
+| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | In progress: stage A implemented (`RFC-0018` accepted); stages B and C not started |
+| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Accepted (`RFC-0019`, `RFC-0020`, `RFC-0021`); not started |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
-| 5.5   | Serverless functions                       | 2 months           | Proposed (`RFC-0023`); no code yet |
+| 5.5   | Serverless functions                       | 2 months           | Accepted (`RFC-0023`); not started |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
 | 8     | `ag-mobile` — Flutter bridge               | 2 months           | Pending |
@@ -480,7 +480,8 @@ production path until the Mail A gate has real evidence.
 
 ## Phase 4.7 — Interactive terminal experience (`ag` TUI)
 
-**Status: proposed (`RFC-0018`). No code exists.** Additive phase.
+**Status: in progress (`RFC-0018` accepted 2026-11-10). Stage A is implemented;
+stages B and C are not started.** Additive phase.
 
 **Objective.** Make creating and configuring a project discoverable and guided
 from the terminal, through a full-screen interactive interface in the `ag`
@@ -492,27 +493,29 @@ a new user reaches a running project without reading the manual first.
 
 ### 4.7.1 Entry criteria
 
-- [ ] `RFC-0018` accepted, including its three open questions (interface
+- [x] `RFC-0018` accepted, including its three open questions (interface
   language, gate position, behavior of bare `ag`).
-- [ ] `ag-cli` split into modules with no behavior change (typed request per
-  command and a single executor), verified by the existing command-tree test.
+- [x] `ag-cli` split into modules with no behavior change, verified by the
+  existing command-tree test. The typed request and single executor exist for
+  `ag new`; each other command gets its own when it gains an interactive flow.
 
 ### 4.7.2 Deliverables
 
 Stage A — foundation and project creation:
 
-- [ ] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
+- [x] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
   commands work with `--no-default-features`.
-- [ ] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
+- [x] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
   panic.
-- [ ] `ag new` wizard: name with live validation, template with description,
-  review screen, result screen. `NAME` becomes optional.
-- [ ] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
+- [x] `ag new` wizard: name with live validation, template with description,
+  review screen, result printed after the interface closes. `NAME` becomes
+  optional.
+- [x] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
   mode when not a terminal, when `CI` is set or when `TERM=dumb`.
-- [ ] Equivalent non-interactive command printed at the end of every flow.
-- [ ] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
-- [ ] Degraded line-prompt mode below 80x24.
-- [ ] A single interaction library in `ag-cli` (the previous prompt library is
+- [x] Equivalent non-interactive command printed at the end of every flow.
+- [x] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
+- [x] Degraded line-prompt mode below 80x24.
+- [x] A single interaction library in `ag-cli` (the previous prompt library is
   removed).
 
 Stage B — project configuration:
@@ -534,13 +537,17 @@ Stage C — home screen:
 
 Cross-stage:
 
-- [ ] State-transition unit tests for every screen.
-- [ ] Render snapshot tests at 80x24 and 120x40, color and monochrome.
-- [ ] Parity tests: the request built by a wizard equals the request parsed
+Each box below is checked for the screens that exist (stage A) and applies
+again to every screen added by stages B and C.
+
+- [x] State-transition unit tests for every screen.
+- [x] Render tests at 80x24 and 120x40, color and monochrome, asserting on the
+  rendered buffer.
+- [x] Parity tests: the request built by a wizard equals the request parsed
   from its printed equivalent command.
-- [ ] Non-interactive regression tests: no command blocks or emits escape
+- [x] Non-interactive regression tests: no command blocks or emits escape
   sequences with stdin closed.
-- [ ] Interaction flow diagram in `docs/diagrams/`.
+- [x] Interaction flow diagram in `docs/diagrams/`.
 - [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, root
   `README.md` and the first-API manual chapter updated in the same pull
   request as each stage.
@@ -577,9 +584,9 @@ glyph set, a monochrome theme, four-platform CI and the degraded line mode.
 
 ## Phase 4.8 — Project foundations: layers, environment, installation and remote operation
 
-**Status: proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`). No code exists.**
-Additive phase. The maintainability rules that accompany it are proposed
-separately in `RFC-0022` (governance, not a phase).
+**Status: accepted 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); not
+started.** Additive phase. The maintainability rules that accompany it are in
+`RFC-0022` (accepted; governance, not a phase).
 
 **Objective.** Give every generated project a defined, enforced structure;
 make configuration and secrets declared, validated and safe by default; and
@@ -775,8 +782,8 @@ review screen before any change, and a secrets model fixed by RFC before code.
 
 ## Phase 5.5 — Serverless functions
 
-**Status: proposed (`RFC-0023`). No code exists.** Additive phase, after the
-public beta.
+**Status: accepted 2026-11-10 (`RFC-0023`); not started.** Additive phase,
+after the public beta.
 
 **Objective.** Give application code a unit smaller than the service: a
 function that is deployed independently, started on demand, isolated in a
@@ -1181,10 +1188,10 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 | 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementada y probada; evidencia de escala y deuda documentada abiertas |
 | 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementada; `ag-domains` activo, evidencia de release/doc abierta |
 | 4.6  | Endurecimiento aditivo pre-Fase 5 (`ag-mail` MTA, `ag-workers`) | — | Implementada y verificada en CI; paridad live-DB y wiring de producer abiertos (issues #108/#109/#103/#112) |
-| 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | Propuesta (`RFC-0018`); sin código aún |
-| 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Propuesta (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin código aún |
+| 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | En curso: etapa A implementada (`RFC-0018` aceptada); etapas B y C sin iniciar |
+| 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Aceptada (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin iniciar |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
-| 5.5  | Funciones serverless                       | 2 meses           | Propuesta (`RFC-0023`); sin código aún |
+| 5.5  | Funciones serverless                       | 2 meses           | Aceptada (`RFC-0023`); sin iniciar |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
 | 8    | `ag-mobile` — Flutter bridge               | 2 meses           | Pendiente |
@@ -1623,7 +1630,8 @@ tenga evidencia real.
 
 ## Fase 4.7 — Experiencia interactiva de terminal (TUI de `ag`)
 
-**Estado: propuesta (`RFC-0018`). No existe código.** Fase aditiva.
+**Estado: en curso (`RFC-0018` aceptada el 2026-11-10). La etapa A está
+implementada; las etapas B y C no se han iniciado.** Fase aditiva.
 
 **Objetivo.** Hacer que crear y configurar un proyecto sea descubrible y guiado
 desde la terminal, mediante una interfaz interactiva a pantalla completa en el
@@ -1636,31 +1644,32 @@ el manual.
 
 ### 4.7.1 Criterios de entrada
 
-- [ ] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas (idioma de la
+- [x] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas (idioma de la
   interfaz, posición en las puertas, comportamiento de `ag` sin argumentos).
-- [ ] `ag-cli` dividido en módulos sin cambio de comportamiento (una petición
-  tipada por comando y un único ejecutor), verificado por el test existente
-  del árbol de comandos.
+- [x] `ag-cli` dividido en módulos sin cambio de comportamiento, verificado por
+  el test existente del árbol de comandos. La petición tipada y el ejecutor
+  único existen para `ag new`; cada otro comando recibe los suyos cuando gane
+  un flujo interactivo.
 
 ### 4.7.2 Entregables
 
 Etapa A — fundación y creación de proyecto:
 
-- [ ] Feature de Cargo `tui` en `ag-cli` (activa por defecto); el binario
+- [x] Feature de Cargo `tui` en `ag-cli` (activa por defecto); el binario
   compila y todos los comandos funcionan con `--no-default-features`.
-- [ ] Guarda de terminal que restaura la terminal al salir, ante error, ante
+- [x] Guarda de terminal que restaura la terminal al salir, ante error, ante
   `Ctrl-C` y ante panic.
-- [ ] Asistente de `ag new`: nombre con validación en vivo, template con
+- [x] Asistente de `ag new`: nombre con validación en vivo, template con
   descripción, pantalla de revisión, pantalla de resultado. `NAME` pasa a ser
   opcional.
-- [ ] Flag global `--no-interactive` y variable `AG_NO_TUI`; modo no
+- [x] Flag global `--no-interactive` y variable `AG_NO_TUI`; modo no
   interactivo automático cuando no hay terminal, cuando `CI` está definida o
   cuando `TERM=dumb`.
-- [ ] Comando no interactivo equivalente impreso al final de cada flujo.
-- [ ] Tema monocromo que respeta `NO_COLOR`; solo glifos ASCII y de trazado de
+- [x] Comando no interactivo equivalente impreso al final de cada flujo.
+- [x] Tema monocromo que respeta `NO_COLOR`; solo glifos ASCII y de trazado de
   cajas.
-- [ ] Modo degradado de prompts por línea por debajo de 80x24.
-- [ ] Una única librería de interacción en `ag-cli` (se retira la librería de
+- [x] Modo degradado de prompts por línea por debajo de 80x24.
+- [x] Una única librería de interacción en `ag-cli` (se retira la librería de
   prompts anterior).
 
 Etapa B — configuración del proyecto:
@@ -1685,13 +1694,17 @@ Etapa C — pantalla de inicio:
 
 Transversales:
 
-- [ ] Tests unitarios de transición de estado para cada pantalla.
-- [ ] Tests de snapshot de render a 80x24 y 120x40, en color y monocromo.
-- [ ] Tests de paridad: la petición construida por un asistente es igual a la
+Cada casilla siguiente está marcada para las pantallas que existen (etapa A)
+y vuelve a aplicar a cada pantalla que añadan las etapas B y C.
+
+- [x] Tests unitarios de transición de estado para cada pantalla.
+- [x] Tests de render a 80x24 y 120x40, en color y monocromo, que verifican el
+  buffer renderizado.
+- [x] Tests de paridad: la petición construida por un asistente es igual a la
   petición parseada desde su comando equivalente impreso.
-- [ ] Tests de regresión no interactiva: ningún comando se bloquea ni emite
+- [x] Tests de regresión no interactiva: ningún comando se bloquea ni emite
   secuencias de escape con stdin cerrado.
-- [ ] Diagrama del flujo de interacción en `docs/diagrams/`.
+- [x] Diagrama del flujo de interacción en `docs/diagrams/`.
 - [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, el
   `README.md` raíz y el capítulo del manual de la primera API actualizados en
   la misma pull request de cada etapa.
@@ -1732,9 +1745,9 @@ el modo degradado por línea.
 
 ## Fase 4.8 — Fundaciones del proyecto: capas, entorno, instalación y operación remota
 
-**Estado: propuesta (`RFC-0019`, `RFC-0020`, `RFC-0021`). No existe código.**
-Fase aditiva. Las reglas de mantenibilidad que la acompañan se proponen aparte
-en `RFC-0022` (gobernanza, no una fase).
+**Estado: aceptada el 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin
+iniciar.** Fase aditiva. Las reglas de mantenibilidad que la acompañan están
+en `RFC-0022` (aceptada; gobernanza, no una fase).
 
 **Objetivo.** Dar a cada proyecto generado una estructura definida y forzada;
 hacer que la configuración y los secretos sean declarados, validados y seguros
@@ -1940,8 +1953,8 @@ secretos fijado por RFC antes del código.
 
 ## Fase 5.5 — Funciones serverless
 
-**Estado: propuesta (`RFC-0023`). No existe código.** Fase aditiva, posterior
-a la beta pública.
+**Estado: aceptada el 2026-11-10 (`RFC-0023`); sin iniciar.** Fase aditiva,
+posterior a la beta pública.
 
 **Objetivo.** Dar al código de aplicación una unidad más pequeña que el
 servicio: una función que se despliega de forma independiente, se arranca bajo

@@ -22,7 +22,7 @@ means a `fail` or `pending` on that row forbids advancing.
 | Area | State | Evidence | Blocks Phase 5 | Stage |
 | --- | --- | --- | --- | --- |
 | Build | pass | `cargo clippy --workspace --all-targets --all-features` exit 0, 2026-05-29 (commit 635e623) | yes | 1 |
-| Tests | fail | 2026-11-10 (Rust 1.99.1): `cargo test --workspace --all-targets` 800 passed, 0 failed, 10 ignored; `cargo test -p ag-mail --features mta,api,minijinja` 125 passed. `cargo test --workspace --all-features` fails: 2 `ag-mail` MTA tests panic because two `rustls` crypto providers are linked (issue #181) | yes | 1 |
+| Tests | fail | 2026-11-10 (Rust 1.99.1): `cargo test --workspace --all-targets` 851 passed, 0 failed, 10 ignored; `cargo test -p ag-mail --features mta,api,minijinja` 125 passed. `cargo test --workspace --all-features` fails: 2 `ag-mail` MTA tests panic because two `rustls` crypto providers are linked (issue #181) | yes | 1 |
 | Clippy | pass | `cargo clippy --workspace --all-targets --all-features -- -D warnings` exit 0, 2026-05-29 | yes | 1 |
 | Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
 | Audit | fail | `cargo audit` exit 1 on 2026-11-10: 15 vulnerabilities from advisories published after the 2026-05-29 pass; 13 resolved by lockfile updates the same day, 2 remain (`crypto-bigint` RUSTSEC-2026-0387, `libsqlite3-sys` RUSTSEC-2026-0459); tracked in issue #173 | yes | 3 |

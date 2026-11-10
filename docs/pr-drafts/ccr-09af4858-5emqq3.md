@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Hoja de Ruta ampliada (Fases 4.6, 4.7, 4.8 y etapas 5-10), RFC-0018 a RFC-0023 (TUI, capas, entorno, instalacion y consola remota, guardarrailes, funciones serverless), Rust 1.99.1 y refresco de dependencias
+Asistente interactivo de `ag new` (RFC-0018 etapa A), RFC-0018 a RFC-0023 aceptadas, Hoja de Ruta ampliada (Fases 4.6-4.8, 5.5 y etapas 5-10), Rust 1.99.1 y refresco de dependencias
 
 ## Fase afectada
 
@@ -15,7 +15,7 @@ y dependencias (sin funcionalidad nueva); no avanza ninguna puerta.
 - [x] Correccion de bug (`Cargo.lock` desincronizado de los manifiestos)
 - [x] Documentacion (maestro Hoja-de-Ruta EN+ES, derivados, README, RFC)
 - [x] Gobernanza (limpieza de descriptores de PRs ya fusionadas)
-- [ ] Nueva feature
+- [x] Nueva feature (asistente interactivo de `ag new`, feature `tui`)
 - [x] Mantenimiento (toolchain Rust 1.99.1 y dependencias)
 - [x] Cambio que rompe compatibilidad (pre-release): MSRV 1.99.1; rutas de
   axum 0.8 con capturas `{nombre}`
@@ -29,9 +29,34 @@ para crear y configurar proyectos. Siguiendo las reglas 5, 22 y 28, la interfaz
 se entrega como RFC y como fase de la Hoja de Ruta; no se escribe codigo de la
 TUI hasta que la RFC se decida.
 
+### Etapa A de la TUI implementada (RFC-0018)
+
+Las RFC-0018 a RFC-0023 fueron aceptadas por el BDFL el 2026-11-10; cada una
+registra en su seccion 9 la resolucion de sus preguntas abiertas. Sobre esa
+aceptacion esta rama implementa la etapa A de RFC-0018:
+
+- `crates/ag-cli/src/main.rs` (1829 lineas) dividido en `cli.rs`,
+  `commands/` (un modulo por grupo de comandos), sin cambio de comportamiento.
+- `request.rs`: `NewProjectRequest` y `Template`; lo construyen tanto el
+  parser de flags como el asistente, y lo ejecuta un unico `execute_new`.
+- `interactive.rs`: decide si la sesion puede preguntar (terminal real, sin
+  `CI`, sin `AG_NO_TUI`, `TERM` distinto de `dumb`, sin `--no-interactive`).
+- `tui/` (feature `tui`, activa por defecto): asistente a pantalla completa
+  de tres pasos (nombre con validacion en vivo, template, revision), tema
+  monocromo con `NO_COLOR`, prompts por linea bajo 80x24, guarda que restaura
+  la terminal al salir, ante error, `Ctrl-C` y panic, y todos los textos en
+  `tui/text.rs`.
+- `ag new`: `NAME` pasa a ser opcional; flag global `--no-interactive`; al
+  terminar un flujo interactivo se imprime el comando equivalente.
+- Dependencia nueva `ratatui` 0.30 (opcional); se retira `dialoguer`.
+- Diagrama `docs/diagrams/cli-interactive-flow.md`; documentacion de la CLI,
+  README (EN+ES), manual y knowledge graph actualizados.
+
+Etapas B (`ag config`) y C (pantalla de inicio) no estan implementadas.
+
 ### RFC-0018 — experiencia interactiva de terminal
 
-`docs/rfc/RFC-0018-interactive-terminal-experience.md` (estado: propuesta).
+`docs/rfc/RFC-0018-interactive-terminal-experience.md` (estado: aceptada).
 Define una TUI a pantalla completa dentro de `ag-cli`, tras la feature `tui`,
 como front-end de los comandos existentes:
 
@@ -45,11 +70,12 @@ como front-end de los comandos existentes:
 - Tres preguntas abiertas para la decision: idioma de la interfaz, posicion en
   las puertas, comportamiento de `ag` sin argumentos.
 
-Fusionar esta PR registra la decision de la RFC (seccion 9).
 
 ### RFC-0019 a RFC-0023 — arquitectura, entorno, operacion, reglas y funciones
 
-Todas en estado propuesta, sin codigo. Fusionar la PR registra su decision.
+Todas aceptadas el 2026-11-10, sin codigo todavia. Quedan abiertas dos
+preguntas de `RFC-0021` (alcance de `ag setup`, custodia de la llave de
+release) hasta su etapa C.
 
 - `RFC-0019`: arquitectura por capas de los proyectos generados (dominio,
   aplicacion, infraestructura con la base de datos como modulo acotado,
@@ -168,12 +194,20 @@ Resultado local (2026-11-10, Rust 1.99.1, Linux x86-64), sobre el commit final:
 - `cargo fmt --all -- --check`: limpio.
 - `cargo clippy --workspace --all-targets -- -D warnings`: exit 0; tambien con
   `--all-features`.
-- `cargo test --workspace --all-targets`: 800 pasados, 0 fallidos, 10 ignorados.
+- `cargo test --workspace --all-targets`: 851 pasados, 0 fallidos, 10 ignorados.
 - `cargo test -p ag-mail --features mta,api,minijinja`: 125 pasados.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`: exit 0.
 - `ag generate` sobre `examples/ecommerce-api/schema.ag`: salida identica a la
   versionada (`diff -rq`).
 - Regeneracion de derivados sin diff; `tools/check-installers.sh` pasa.
+- `cargo test -p ag-cli`: 52 tests unitarios y 6 de regresion con el binario
+  real; tambien con `--no-default-features`.
+- Asistente ejercitado en una pseudo-terminal real: 80x24 (flujo completo,
+  nombre invalido, seleccion, revision, creacion), 60x15 (modo por linea),
+  `NO_COLOR` (cero secuencias de color), `Esc` y `Ctrl-C` (nada escrito y
+  terminal restaurada), `--no-interactive` y `AG_NO_TUI` (sin pantalla).
+- No medido: aumento de tamano del binario release por la feature `tui`
+  (criterio de salida de la fase, pendiente).
 - NO pasa: `cargo test --workspace --all-features` (2 tests del MTA, issue
   #181, preexistente en `main`); `cargo audit` (2 vulnerabilidades, issue #173,
   frente a 15 antes de esta rama); `cargo deny` (issues #173 y #174).
@@ -183,8 +217,9 @@ pasa con las variables de proxy sin definir.
 
 ## Criterios de salida que avanza
 
-Ninguno. La PR anade la seccion "Fase 4.7" a `docs/roadmap/STATUS.md` con todas
-sus casillas sin marcar.
+Fase 4.7: los dos criterios de entrada, los ocho entregables de la etapa A y
+los cinco transversales (para las pantallas existentes), y el criterio de
+salida de paridad. Ver `docs/roadmap/STATUS.md`.
 
 ## Cierre de issues
 
@@ -216,4 +251,5 @@ Closes: none
 - [ ] Pasa audit y deny: NO. Quedan avisos sin correccion compatible (issues
   #173 y #174).
 - [x] README sincronizado en el mismo cambio.
-- [x] Sin dependencias nuevas. Cambios de version documentados en el CHANGELOG.
+- [x] Una dependencia nueva (`ratatui`, opcional, justificada en `RFC-0018`
+  seccion 4.8) y una retirada (`dialoguer`). Cambios de version en el CHANGELOG.

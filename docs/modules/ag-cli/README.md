@@ -27,7 +27,7 @@ Implemented through Phase 4.6. Eight top-level commands:
 
 | Command | Phase | Purpose |
 | --- | --- | --- |
-| `ag new` | 2 | Scaffold a project from the `rest`, `realtime` or `fullstack` template |
+| `ag new` | 2, 4.7-A | Scaffold a project from the `rest`, `realtime` or `fullstack` template. With missing input in an interactive terminal, a full-screen wizard asks for it (`RFC-0018`) |
 | `ag dev` | 2 | Development server with hot reload via `cargo-watch` |
 | `ag build` | 2 | Release build |
 | `ag generate` | 3 | Compile `schema.ag` into SQL, Rust, TypeScript and OpenAPI |
@@ -46,8 +46,23 @@ The public command tree is pinned by the test
 arrive with their roadmap phases (5, 7 and 9) and each requires an approved
 RFC first.
 
-## Proposed
+## Source layout
 
-`RFC-0018` proposes an interactive full-screen terminal interface for project
-creation and configuration (roadmap Phase 4.7), including a new `ag config`
-command. It is a proposal: no part of it is implemented.
+| Path | Contents |
+| --- | --- |
+| `src/main.rs` | Dispatch and exit codes |
+| `src/cli.rs` | clap definitions |
+| `src/commands/` | One module per command group |
+| `src/request.rs` | Typed requests shared by flags and interface |
+| `src/interactive.rs` | Decision on whether a session may prompt |
+| `src/tui/` | Interactive interface (`tui` Cargo feature) |
+
+## Interactive interface (`RFC-0018`, accepted)
+
+Stage A is implemented: the `ag new` wizard, the global `--no-interactive`
+flag, automatic non-interactive mode, monochrome theme, degraded line prompts
+and terminal restoration. Flow and architecture diagrams:
+`docs/diagrams/cli-interactive-flow.md`.
+
+Not implemented: stage B (`ag config`, `ag new --with MODULE`) and stage C
+(home screen for bare `ag`).

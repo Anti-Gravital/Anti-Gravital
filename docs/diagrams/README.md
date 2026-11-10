@@ -33,6 +33,8 @@ auditabilidad por diff.
 - `request-flow-shield.md` — flujo de un request a traves del Shield.
 - `dsl-pipeline.md` — pipeline de compilacion del Anti-DSL.
 - `mail-workers-dataflow.md` — flujo de correo y jobs (`ag-mail`/`ag-workers`).
+- `cli-interactive-flow.md` — resolucion de entradas de `ag new`, arquitectura de
+  pantallas y pasos del asistente interactivo (`RFC-0018`).
 
 Las fuentes Mermaid van embebidas en su `.md` (bloque ```mermaid```), que
 GitHub renderiza y que se audita por diff. Se anaden mas diagramas a medida

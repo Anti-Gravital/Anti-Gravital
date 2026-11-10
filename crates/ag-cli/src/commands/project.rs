@@ -1,9 +1,11 @@
 //! Project commands: `ag new`, `ag dev`, `ag build`.
 
 use std::fs;
-use std::io::IsTerminal;
 use std::path::Path;
 use std::process;
+
+use crate::interactive::Session;
+use crate::request::{NewProjectRequest, Template};
 
 // Templates embedded in the binary at compile time. The paths are relative
 // to the workspace root directory (crates/ag-cli/src/commands/../../../../templates/).
@@ -23,7 +25,70 @@ const FULLSTACK_CONFIG_TOML: &str =
 const FULLSTACK_MIGRATION: &str =
     include_str!("../../../../templates/fullstack/migrations/0001_init.sql.tmpl");
 
-pub(crate) fn cmd_new(name: &str, template: Option<&str>) -> Result<(), String> {
+/// Why `ag new` could not produce a project.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum NewError {
+    /// The command line is incomplete and the session cannot ask (exit code 2).
+    Usage(String),
+    /// Creating the project failed (exit code 1).
+    Failed(String),
+}
+
+/// How the inputs of `ag new` were obtained.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Resolved {
+    /// Every input came from the command line or from documented defaults.
+    FromFlags(NewProjectRequest),
+    /// At least one input was asked interactively.
+    Asked(NewProjectRequest),
+    /// The user cancelled the interactive flow. Nothing was written.
+    Cancelled,
+}
+
+/// True when a file or directory named `name` exists in the current directory.
+#[cfg_attr(not(feature = "tui"), allow(dead_code))]
+pub(crate) fn path_exists(name: &str) -> bool {
+    Path::new(name).exists()
+}
+
+/// Turns the command-line inputs of `ag new` into a request.
+///
+/// Complete input never prompts. Incomplete input prompts only in an
+/// interactive session; otherwise a missing name is a usage error and a
+/// missing template takes the documented default. `ask` is the interactive
+/// front-end, injected so the decision logic is testable without a terminal.
+pub(crate) fn resolve_new_request(
+    name: Option<String>,
+    template: Option<Template>,
+    session: &Session,
+    ask: impl FnOnce(Option<String>, Option<Template>) -> Result<Option<NewProjectRequest>, String>,
+) -> Result<Resolved, NewError> {
+    match (name, template) {
+        (Some(name), Some(template)) => {
+            Ok(Resolved::FromFlags(NewProjectRequest { name, template }))
+        }
+        (name, template) if session.is_interactive() && cfg!(feature = "tui") => {
+            match ask(name, template).map_err(NewError::Failed)? {
+                Some(request) => Ok(Resolved::Asked(request)),
+                None => Ok(Resolved::Cancelled),
+            }
+        }
+        (Some(name), None) => Ok(Resolved::FromFlags(NewProjectRequest {
+            name,
+            template: Template::Rest,
+        })),
+        (None, _) => Err(NewError::Usage(
+            "the project name is required when the session is not interactive.\n\
+             usage: ag new <NAME> [--template rest|realtime|fullstack]"
+                .to_owned(),
+        )),
+    }
+}
+
+/// Creates the project described by the request. The single executor behind
+/// both the flags and the interactive interface.
+pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), String> {
+    let name = request.name.as_str();
     validate_project_name(name)?;
 
     let project_dir = Path::new(name);
@@ -31,18 +96,15 @@ pub(crate) fn cmd_new(name: &str, template: Option<&str>) -> Result<(), String> 
         return Err(format!("directory '{name}' already exists"));
     }
 
-    let template = match template {
-        Some(t) => t.to_owned(),
-        None => resolve_template_interactive(),
-    };
+    println!(
+        "Creating project '{name}' with template '{}'...",
+        request.template
+    );
 
-    println!("Creating project '{name}' with template '{template}'...");
-
-    match template.as_str() {
-        "rest" => scaffold_rest(name, project_dir),
-        "realtime" => scaffold_realtime(name, project_dir),
-        "fullstack" => scaffold_fullstack(name, project_dir),
-        _ => Err(format!("unknown template: {template}")),
+    match request.template {
+        Template::Rest => scaffold_rest(name, project_dir),
+        Template::Realtime => scaffold_realtime(name, project_dir),
+        Template::Fullstack => scaffold_fullstack(name, project_dir),
     }?;
 
     println!();
@@ -55,21 +117,63 @@ pub(crate) fn cmd_new(name: &str, template: Option<&str>) -> Result<(), String> 
     Ok(())
 }
 
-/// Returns the template name. Prompts interactively when running in a terminal;
-/// returns "rest" silently when stdin is not a terminal (CI / scripts).
-pub(crate) fn resolve_template_interactive() -> String {
-    if !std::io::stdin().is_terminal() {
-        return "rest".to_owned();
+/// Entry point of `ag new`.
+pub(crate) fn cmd_new(
+    name: Option<String>,
+    template: Option<&str>,
+    no_interactive: bool,
+) -> Result<(), NewError> {
+    let template = match template {
+        Some(value) => Some(
+            Template::parse(value)
+                .ok_or_else(|| NewError::Usage(format!("unknown template: {value}")))?,
+        ),
+        None => None,
+    };
+    let session = Session::from_environment(no_interactive);
+    match resolve_new_request(name, template, &session, |name, template| {
+        ask_new_project(name, template, &session)
+    })? {
+        Resolved::FromFlags(request) => execute_new(&request).map_err(NewError::Failed),
+        Resolved::Asked(request) => {
+            execute_new(&request).map_err(NewError::Failed)?;
+            println!();
+            println!("{EQUIVALENT_COMMAND_LABEL}");
+            println!("  {}", request.equivalent_command());
+            Ok(())
+        }
+        Resolved::Cancelled => {
+            println!("{CANCELLED_LABEL}");
+            Ok(())
+        }
     }
-    const TEMPLATES: &[&str] = &["rest", "realtime", "fullstack"];
-    let selection = dialoguer::Select::new()
-        .with_prompt("Choose a template")
-        .items(TEMPLATES)
-        .default(0)
-        .interact_opt()
-        .unwrap_or(None)
-        .unwrap_or(0);
-    TEMPLATES[selection].to_owned()
+}
+
+#[cfg(feature = "tui")]
+use crate::tui::text::{
+    ABORTED as CANCELLED_LABEL, EQUIVALENT_COMMAND as EQUIVALENT_COMMAND_LABEL,
+};
+#[cfg(not(feature = "tui"))]
+const CANCELLED_LABEL: &str = "Cancelled. Nothing was written.";
+#[cfg(not(feature = "tui"))]
+const EQUIVALENT_COMMAND_LABEL: &str = "Equivalent non-interactive command:";
+
+#[cfg(feature = "tui")]
+fn ask_new_project(
+    name: Option<String>,
+    template: Option<Template>,
+    session: &Session,
+) -> Result<Option<NewProjectRequest>, String> {
+    crate::tui::ask_new_project(name, template, session, path_exists)
+}
+
+#[cfg(not(feature = "tui"))]
+fn ask_new_project(
+    _name: Option<String>,
+    _template: Option<Template>,
+    _session: &Session,
+) -> Result<Option<NewProjectRequest>, String> {
+    Err("this build of ag has no interactive interface".to_owned())
 }
 
 pub(crate) fn cmd_dev(bind: &str) -> Result<(), String> {

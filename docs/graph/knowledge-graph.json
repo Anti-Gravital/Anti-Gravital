@@ -42,7 +42,7 @@
     "ag-domains is consumed by ag-cloud during `ag deploy` (seventh rule); ag-domains does not depend on ag-cloud."
   ],
   "cli_commands": [
-    { "command": "ag new <name> [--template rest|realtime|fullstack]", "effect": "Scaffold a new project from a template." },
+    { "command": "ag new [name] [--template rest|realtime|fullstack] [--no-interactive]", "effect": "Scaffold a new project from a template. Missing input opens a guided wizard in an interactive terminal; non-interactive sessions never prompt." },
     { "command": "ag dev", "effect": "Run the development server with optional hot reload." },
     { "command": "ag build", "effect": "Build the project for production." },
     { "command": "ag generate", "effect": "Run the DSL codegen over schema.ag." },

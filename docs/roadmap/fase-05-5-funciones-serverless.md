@@ -7,8 +7,8 @@
 
 ## Phase 5.5 — Serverless functions
 
-**Status: proposed (`RFC-0023`). No code exists.** Additive phase, after the
-public beta.
+**Status: accepted 2026-11-10 (`RFC-0023`); not started.** Additive phase,
+after the public beta.
 
 **Objective.** Give application code a unit smaller than the service: a
 function that is deployed independently, started on demand, isolated in a

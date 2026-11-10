@@ -32,6 +32,12 @@ Fixed:
 - `Cargo.lock` was missing the dependency tree of the `ag-storage` `avif`
   feature (`rav1e`, `ravif` and transitive crates), so a clean build rewrote it
   and `cargo audit` inspected an incomplete lockfile.
+- Security: lockfile updates for advisories published since the last green
+  `cargo audit` run: `rustls` 0.23.46, `rustls-webpki` 0.103.16, `quinn-proto`
+  0.11.19, `h2` 0.4.20, `webpki-roots` and `webpki-root-certs` 1.0.11, and
+  `tokio` 1.54.1. This resolves 13 of the 15 reported vulnerabilities; the two
+  without a semver-compatible fix (`crypto-bigint`, `libsqlite3-sys`) are
+  tracked in issue #173, and `cargo audit` stays red until it closes.
 - Roadmap master: repository URL in Phase 0, importer count in Phase 7 (six,
   not five), and the retired `wasm32-wasi` target name in Phase 10
   (`wasm32-wasip1`).

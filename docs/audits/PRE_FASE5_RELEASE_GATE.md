@@ -25,8 +25,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Tests | pass | `cargo test --workspace --all-features`: 564 passed, 0 failed, 7 ignored, 2026-05-29 | yes | 1 |
 | Clippy | pass | `cargo clippy --workspace --all-targets --all-features -- -D warnings` exit 0, 2026-05-29 | yes | 1 |
 | Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
-| Audit | pass | `cargo audit` exit 0, 0 vulnerabilities / 591 deps, 2026-05-29 | yes | 3 |
-| Deny | pass | `cargo deny check` exit 0 (advisories/bans/licenses/sources ok), 2026-05-29 | yes | 3 |
+| Audit | fail | `cargo audit` exit 1 on 2026-11-10: 15 vulnerabilities from advisories published after the 2026-05-29 pass; 13 resolved by lockfile updates the same day, 2 remain (`crypto-bigint` RUSTSEC-2026-0387, `libsqlite3-sys` RUSTSEC-2026-0459); tracked in issue #173 | yes | 3 |
+| Deny | fail | `cargo deny check` exit 1 on 2026-11-10: advisories FAILED (`crypto-bigint` RUSTSEC-2026-0387, issue #173; `astral-tokio-tar` unmaintained RUSTSEC-2026-0440, issue #174); bans, licenses and sources ok | yes | 3 |
 | Fuzz smoke | pass | 6 targets (3 DSL + fuzz_resp/storage_key/signed_url), ~9.3M runs, 0 crashes, 2026-05-29 | yes | 4 |
 | Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md`; tracked in issue #156 | yes | 4 |
 | Coverage | pass | `cargo tarpaulin --workspace --fail-under 80` (excludes test files + binary mains): 80.05%, 3210/4010 lines, exit 0, 2026-05-30 | yes | 5 |

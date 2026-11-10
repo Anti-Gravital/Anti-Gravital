@@ -72,6 +72,13 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
 - `Cargo.lock` no contenia el arbol de dependencias de la feature `avif` de
   `ag-storage` (PR #164). Un build limpio lo reescribia (343 lineas) y
   `cargo audit` inspeccionaba un lockfile incompleto.
+- `cargo audit` fallaba en `main` con 15 vulnerabilidades por avisos publicados
+  desde junio. Trece se resuelven con actualizaciones del lockfile compatibles
+  por semver (`rustls` 0.23.46, `rustls-webpki` 0.103.16, `quinn-proto`
+  0.11.19, `h2` 0.4.20, `webpki-roots`/`webpki-root-certs` 1.0.11, `tokio`
+  1.54.1). Las dos restantes (`crypto-bigint`, `libsqlite3-sys`) no tienen
+  correccion compatible y quedan en el issue #173; las filas "Audit" y "Deny"
+  del gate pre-Fase 5 pasan de `pass` a `fail` con esa evidencia.
 - `docs/modules/ag-cli/README.md` declaraba "seis comandos" y solo las Fases 2
   y 3; reescrito en ingles con la superficie real (ocho comandos).
 - README raiz: la fila espanola de la Fase 4.6 habia divergido de la inglesa.
@@ -80,6 +87,10 @@ Fusionar esta PR registra la decision de la RFC (seccion 9).
 
 ### Hallazgos registrados como Issues (no resueltos aqui)
 
+- #173 `cargo audit` en rojo: `crypto-bigint` y `libsqlite3-sys` sin correccion
+  compatible (p1, seguridad).
+- #174 `cargo deny` en rojo: `astral-tokio-tar` sin mantenimiento (ruta de
+  dev-dependency).
 - #168 CI no detecta un `Cargo.lock` desactualizado (sin `--locked`).
 - #169 `ag dev` escucha en `0.0.0.0` por defecto.
 - #170 Blueprint v4.1 contradice `ADR-0010` y el `ag-cache` actual.
@@ -106,7 +117,8 @@ bash tools/split-masters.sh && git diff --exit-code docs/roadmap docs/architectu
 
 Resultado local (2026-11-10, Rust 1.95.0, Linux x86-64): fmt limpio; clippy
 exit 0; tests 820 pasados, 0 fallidos, 14 ignorados; regeneracion de derivados
-sin diff.
+sin diff. `cargo audit`: exit 1 con 2 vulnerabilidades restantes (issue #173),
+frente a 15 antes de esta rama.
 
 ## Criterios de salida que avanza
 
@@ -119,6 +131,8 @@ Closes: none
 
 - Refs #142 (auditoria previa; esta rama es su continuacion incremental)
 - Refs #168
+- Refs #173
+- Refs #174
 - Refs #169
 - Refs #170
 - Refs #171
@@ -130,5 +144,7 @@ Closes: none
 - [x] Respeta la documentacion; el maestro se modifica con RFC y registro en
   `VERSION.md`.
 - [x] Compila, pasa tests, fmt y clippy.
+- [ ] Pasa audit y deny: NO. Quedan avisos sin correccion compatible (issues
+  #173 y #174).
 - [x] README sincronizado en el mismo cambio.
 - [x] Sin dependencias nuevas ni cambios de API.

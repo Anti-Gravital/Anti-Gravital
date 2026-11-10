@@ -20,6 +20,7 @@ pendientes) se mantiene en `STATUS.md`.
 | 4.5 | ag-mail + ag-domains: comunicacion y dominios | `fase-04-5-ag-mail-y-ag-domains.md` | 1-2 meses |
 | 4.6 | Endurecimiento aditivo: MTA nativo y ag-workers | `fase-04-6-mta-nativo-y-ag-workers.md` | Aditiva |
 | 4.7 | Experiencia interactiva de terminal (TUI de ag) | `fase-04-7-experiencia-interactiva-de-terminal.md` | 1-2 meses |
+| 4.8 | Fundaciones del proyecto: capas, entorno, instalacion, operacion remota | `fase-04-8-fundaciones-del-proyecto.md` | 2-3 meses |
 | 5 | ag-cloud y version 0.5 beta | `fase-05-ag-cloud.md` | 2 meses |
 | 6 | ag-ai y Knowledge Graph | `fase-06-ag-ai-knowledge-graph.md` | 2 meses |
 | 7 | ag-migrate importadores | `fase-07-ag-migrate.md` | 2 meses |
@@ -35,8 +36,9 @@ aditiva, introducida por ADR-0007).
 Las fases aditivas 4.6 (MTA nativo y API de `ag-mail`,
 `ADR-0010`/`RFC-0009`; motor `ag-workers`, `RFC-0012`/`ADR-0013`) y 4.7
 (experiencia interactiva de terminal, `RFC-0018`) tienen seccion propia en
-el maestro desde la enmienda del 2026-11-10. El detalle de diseno vive en
-sus RFC/ADR y el estado vivo en `STATUS.md`. Las Fases 4.5, 4.6 y 4.7 son
+el maestro desde la enmienda del 2026-11-10, igual que la 4.8 (fundaciones
+del proyecto, `RFC-0019`/`RFC-0020`/`RFC-0021`). El detalle de diseno vive en
+sus RFC/ADR y el estado vivo en `STATUS.md`. Las Fases 4.5, 4.6, 4.7 y 4.8 son
 aditivas y no mueven los hitos 0.5 ni 1.0.
 
 ## Estado vivo

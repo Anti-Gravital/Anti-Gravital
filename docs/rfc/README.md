@@ -82,3 +82,7 @@ como `superseded`.
 | 0016 | eTLD+1 via Public Suffix List en ag-domains (DEBT-024) | aceptada | `RFC-0016-eldp1-public-suffix-list.md` |
 | 0017 | ag-workers: re-drive/purga masiva de DLQ por filtro | aceptada | `RFC-0017-ag-workers-bulk-dlq.md` |
 | 0018 | Experiencia interactiva de terminal (TUI) para la CLI `ag` | propuesta | `RFC-0018-interactive-terminal-experience.md` |
+| 0019 | Arquitectura por capas de los proyectos generados y alcance de interoperabilidad | propuesta | `RFC-0019-project-layered-architecture.md` |
+| 0020 | Variables de entorno declaradas y gestion de secretos | propuesta | `RFC-0020-environment-and-secrets.md` |
+| 0021 | Instalacion en servidor con un comando, consola remota e interfaz de maquina | propuesta | `RFC-0021-server-install-remote-console-and-machine-interface.md` |
+| 0022 | Guardarrailes de mantenibilidad: reglas verificables contra la degradacion | propuesta | `RFC-0022-maintainability-guardrails.md` |

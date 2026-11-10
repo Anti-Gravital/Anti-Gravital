@@ -2,7 +2,7 @@
 
 **[English](#english) | [Espanol](#espanol)**
 
-**Versión:** 4.2 — Noviembre 2026 (enmienda `RFC-0018`; base 4.0 de mayo 2026)
+**Versión:** 4.2 — Noviembre 2026 (enmiendas `RFC-0018` a `RFC-0021`; base 4.0 de mayo 2026)
 **Organización:** Gravital Labs — Nereira Technology and Business Solutions
 **Origen:** República de Panamá
 **Estado:** Documento vivo. Se actualiza con cada release.
@@ -46,6 +46,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
 | 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
+| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -57,8 +58,9 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 **Public beta version milestone (0.5):** end of phase 5 (~15 months).
 **Stable version 1.0 milestone:** end of phase 10 (~30 months).
 
-Phases 4.5, 4.6 and 4.7 are additive: they do not move the two milestones
-above. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
+Phases 4.5, 4.6, 4.7 and 4.8 are additive: they do not move the two
+milestones above, although Phase 4.8 stages A and B change what Phase 5 builds
+on and are entry criteria of its stage 5-A. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
 with Phase 5; its stages A and B are exit criteria of Phase 5 (section 5.3) and
 its stage C is an entry criterion of Phase 10 (section 10.1).
 
@@ -572,6 +574,120 @@ glyph set, a monochrome theme, four-platform CI and the degraded line mode.
 
 ---
 
+## Phase 4.8 — Project foundations: layers, environment, installation and remote operation
+
+**Status: proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`). No code exists.**
+Additive phase. The maintainability rules that accompany it are proposed
+separately in `RFC-0022` (governance, not a phase).
+
+**Objective.** Give every generated project a defined, enforced structure;
+make configuration and secrets declared, validated and safe by default; and
+make the tool installable on a server with one verified command and operable
+from any other device through the terminal interface of Phase 4.7, by people
+and by automated agents alike. Deployment (Phase 5) builds on all three.
+
+**Scope statement fixed by this phase (`RFC-0019`).** Anti-Gravital is a
+backend tool. It integrates with Docker, Kubernetes and Terraform and does not
+replace them; it offers gRPC as an optional transport and generated clients
+for Go, WebAssembly and Flutter consumers; it does not render user interfaces.
+
+**Duration:** 2–3 months.
+
+### 4.8.1 Entry criteria
+
+- [ ] `RFC-0019`, `RFC-0020` and `RFC-0021` accepted with their open questions
+  resolved (default layout, fate of `ag-ui`, gRPC and Go in scope, default
+  secret storage, remote transport, scope of `ag setup`, release key custody).
+- [ ] Phase 4.7 stage A complete (the interactive foundation these flows use).
+
+### 4.8.2 Deliverables
+
+Stage A — project structure (`RFC-0019`):
+
+- [ ] `ag.toml` project manifest read by every command.
+- [ ] Layered workspace layout (domain, application, infrastructure,
+  interface, composition root) for the `fullstack` and `realtime` templates,
+  with the dependency rule enforced by Cargo.
+- [ ] Compact layout with the same four layer names for the `rest` template.
+- [ ] Infrastructure layer divided by concern, with the database adapter as
+  its own bounded module that owns the migrations.
+- [ ] `ag generate` writes each artifact into the layer it belongs to;
+  `ag generate --check` for CI.
+- [ ] Architecture chapter on project structure and updated first-API manual.
+
+Stage B — environment and secrets (`RFC-0020`):
+
+- [ ] `[env]` declaration in `ag.toml`; typed loader with fail-fast validation
+  that reports every problem at once.
+- [ ] `Secret<T>` type: redacted formatting, zeroed on drop, explicit access.
+- [ ] Encrypted per-environment secrets file with recipient management.
+- [ ] `ag env list/check/set/unset/recipients/keygen/export`.
+- [ ] Modules receive typed configuration instead of reading the process
+  environment directly (one crate per pull request).
+- [ ] Interactive environment form with masked secret fields.
+
+Stage C — installation (`RFC-0021`):
+
+- [ ] Release workflow that publishes static binaries for the four targets, a
+  checksum manifest and its detached signature.
+- [ ] Installer that detects system and architecture, verifies signature and
+  checksum, and needs no compiler. Closes issue #141.
+- [ ] `ag setup --check` and `ag setup` (detect, plan, confirm, apply, verify)
+  using the system package manager only.
+
+Stage D — remote console (`RFC-0021`):
+
+- [ ] `ag servers add/list/remove` (inventory without secrets).
+- [ ] `ag connect NAME` opening the server-side interface over SSH, and
+  `ag connect NAME -- COMMAND` for a single remote command.
+
+Stage E — machine interface (`RFC-0021`):
+
+- [ ] `--output json` on every command, with versioned schemas.
+- [ ] Documented exit-code table.
+- [ ] `ag describe` emitting the command tree, argument types and output
+  schemas.
+- [ ] `--plan` / `--apply PLAN_ID` on every command that changes state outside
+  the working directory; local audit log of mutating commands.
+
+### 4.8.3 Exit criteria
+
+- [ ] A project created from each template builds and runs in CI from a fresh
+  `ag new`, and a domain crate that imports a database or HTTP crate fails to
+  compile.
+- [ ] Starting an application with three invalid variables reports all three
+  and opens no listener; no test can make a secret value appear in logs or
+  command output.
+- [ ] On a clean server of each supported distribution, the verified installer
+  followed by `ag setup` produces a working installation with no manual step,
+  and a tampered binary or manifest is rejected.
+- [ ] From a second machine, `ag connect` reaches the server interface; the
+  same session works from a phone SSH client.
+- [ ] An automated client completes a create-configure-validate cycle using
+  only `ag describe` and JSON output, and cannot change server state without
+  an explicit plan identifier.
+- [ ] Stages A and B complete before Phase 5 stage 5-A starts; stages C to E
+  complete before the 0.5 release.
+
+### 4.8.4 Phase risks
+
+The main risk is **size**: this phase touches the scaffolder, every module's
+configuration and the release process. The mitigation is that the five stages
+are independent and each is delivered as several small pull requests; none
+requires the others except B on A.
+
+The second risk is **security regressions introduced in the name of
+convenience**, especially in installation and remote access. The mitigation is
+in the design: signature verification before anything is written, package
+manager only, SSH as the only transport with no new daemon or port, and plan
+before apply for every state change.
+
+The third risk is **breaking existing users** when generator paths and module
+constructors change. The mitigation is that no release has been published;
+the changes land before 0.5 and are recorded as pre-release breaking changes.
+
+---
+
 ## Phase 5 — `ag-cloud` simplified deployment
 
 **Objective.** Build the deployment subsystem in the style of Railway/Fly.io. Support for the four targets: docker-compose, fly, railway, k8s. This is the **public beta version (0.5)** milestone.
@@ -583,6 +699,8 @@ glyph set, a monochrome theme, four-platform CI and the degraded line mode.
   including the 24-hour fuzz run (issue #156) and the final benchmark evidence
   (issue #157).
 - [ ] RFC decision on the deployment targets supported in 1.0.
+- [ ] Phase 4.8 stages A and B complete (project layout and declared
+  environment), because deployment artifacts are generated from them.
 
 RFC prerequisites (rule 28), each approved before its stage starts:
 
@@ -599,6 +717,9 @@ RFC prerequisites (rule 28), each approved before its stage starts:
 - [ ] fly target: integration with flyctl.
 - [ ] railway target: integration with its API.
 - [ ] k8s target: generation of standard manifests.
+- [ ] Terraform integration: generated variable declarations and outputs for
+  the resources a project needs; the user's Terraform owns the resources
+  (`RFC-0019` section 4.6).
 - [ ] `ag deploy` command.
 - [ ] `ag rollback` command.
 - [ ] Database migrations pipeline integrated into the deployment.
@@ -986,6 +1107,7 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 | 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementada; `ag-domains` activo, evidencia de release/doc abierta |
 | 4.6  | Endurecimiento aditivo pre-Fase 5 (`ag-mail` MTA, `ag-workers`) | — | Implementada y verificada en CI; paridad live-DB y wiring de producer abiertos (issues #108/#109/#103/#112) |
 | 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | Propuesta (`RFC-0018`); sin código aún |
+| 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Propuesta (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin código aún |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
 | 7    | `ag-migrate` — importadores                | 2 meses           | Pendiente |
@@ -997,7 +1119,9 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 **Hito de versión beta pública (0.5):** final de fase 5 (~15 meses).
 **Hito de versión 1.0 estable:** final de fase 10 (~30 meses).
 
-Las Fases 4.5, 4.6 y 4.7 son aditivas: no mueven los dos hitos anteriores. La
+Las Fases 4.5, 4.6, 4.7 y 4.8 son aditivas: no mueven los dos hitos
+anteriores, aunque las etapas A y B de la Fase 4.8 cambian aquello sobre lo
+que construye la Fase 5 y son criterio de entrada de su etapa 5-A. La
 Fase 4.7 corre en paralelo con el cierre del gate pre-Fase 5 y con la Fase 5;
 sus etapas A y B son criterios de salida de la Fase 5 (sección 5.3) y su etapa
 C es criterio de entrada de la Fase 10 (sección 10.1).
@@ -1530,6 +1654,127 @@ el modo degradado por línea.
 
 ---
 
+## Fase 4.8 — Fundaciones del proyecto: capas, entorno, instalación y operación remota
+
+**Estado: propuesta (`RFC-0019`, `RFC-0020`, `RFC-0021`). No existe código.**
+Fase aditiva. Las reglas de mantenibilidad que la acompañan se proponen aparte
+en `RFC-0022` (gobernanza, no una fase).
+
+**Objetivo.** Dar a cada proyecto generado una estructura definida y forzada;
+hacer que la configuración y los secretos sean declarados, validados y seguros
+por defecto; y hacer que la herramienta se instale en un servidor con un único
+comando verificado y se opere desde cualquier otro dispositivo mediante la
+interfaz de terminal de la Fase 4.7, tanto por personas como por agentes
+automatizados. El despliegue (Fase 5) construye sobre las tres cosas.
+
+**Declaración de alcance fijada por esta fase (`RFC-0019`).** Anti-Gravital es
+una herramienta de backend. Se integra con Docker, Kubernetes y Terraform y no
+los reemplaza; ofrece gRPC como transporte opcional y clientes generados para
+consumidores Go, WebAssembly y Flutter; no renderiza interfaces de usuario.
+
+**Duración:** 2–3 meses.
+
+### 4.8.1 Criterios de entrada
+
+- [ ] `RFC-0019`, `RFC-0020` y `RFC-0021` aceptadas con sus preguntas abiertas
+  resueltas (layout por defecto, destino de `ag-ui`, gRPC y Go en el alcance,
+  almacenamiento de secretos por defecto, transporte remoto, alcance de
+  `ag setup`, custodia de la llave de release).
+- [ ] Etapa A de la Fase 4.7 completa (la fundación interactiva que usan estos
+  flujos).
+
+### 4.8.2 Entregables
+
+Etapa A — estructura del proyecto (`RFC-0019`):
+
+- [ ] Manifiesto de proyecto `ag.toml` leído por todos los comandos.
+- [ ] Layout de workspace por capas (dominio, aplicación, infraestructura,
+  interfaz, raíz de composición) para los templates `fullstack` y `realtime`,
+  con la regla de dependencias forzada por Cargo.
+- [ ] Layout compacto con los mismos cuatro nombres de capa para el template
+  `rest`.
+- [ ] Capa de infraestructura dividida por responsabilidad, con el adaptador
+  de base de datos como módulo acotado propio que posee las migraciones.
+- [ ] `ag generate` escribe cada artefacto en la capa que le corresponde;
+  `ag generate --check` para CI.
+- [ ] Capítulo de arquitectura sobre la estructura del proyecto y manual de la
+  primera API actualizado.
+
+Etapa B — entorno y secretos (`RFC-0020`):
+
+- [ ] Declaración `[env]` en `ag.toml`; cargador tipado con validación
+  fail-fast que reporta todos los problemas a la vez.
+- [ ] Tipo `Secret<T>`: formato redactado, borrado al liberar, acceso
+  explícito.
+- [ ] Archivo de secretos cifrado por entorno con gestión de destinatarios.
+- [ ] `ag env list/check/set/unset/recipients/keygen/export`.
+- [ ] Los módulos reciben configuración tipada en lugar de leer directamente
+  el entorno del proceso (un crate por pull request).
+- [ ] Formulario interactivo de entorno con campos secretos enmascarados.
+
+Etapa C — instalación (`RFC-0021`):
+
+- [ ] Workflow de release que publica binarios estáticos para los cuatro
+  targets, un manifiesto de checksums y su firma separada.
+- [ ] Instalador que detecta sistema y arquitectura, verifica firma y
+  checksum, y no necesita compilador. Cierra el issue #141.
+- [ ] `ag setup --check` y `ag setup` (detectar, planificar, confirmar,
+  aplicar, verificar) usando solo el gestor de paquetes del sistema.
+
+Etapa D — consola remota (`RFC-0021`):
+
+- [ ] `ag servers add/list/remove` (inventario sin secretos).
+- [ ] `ag connect NOMBRE` que abre la interfaz del lado servidor sobre SSH, y
+  `ag connect NOMBRE -- COMANDO` para un único comando remoto.
+
+Etapa E — interfaz de máquina (`RFC-0021`):
+
+- [ ] `--output json` en todos los comandos, con esquemas versionados.
+- [ ] Tabla documentada de códigos de salida.
+- [ ] `ag describe` que emite el árbol de comandos, tipos de argumentos y
+  esquemas de salida.
+- [ ] `--plan` / `--apply PLAN_ID` en todo comando que cambie estado fuera del
+  directorio de trabajo; log de auditoría local de los comandos que mutan.
+
+### 4.8.3 Criterios de salida
+
+- [ ] Un proyecto creado desde cada template compila y corre en CI a partir de
+  un `ag new` limpio, y un crate de dominio que importa un crate de base de
+  datos o de HTTP no compila.
+- [ ] Arrancar una aplicación con tres variables inválidas reporta las tres y
+  no abre ningún listener; ningún test logra que el valor de un secreto
+  aparezca en logs ni en la salida de un comando.
+- [ ] En un servidor limpio de cada distribución soportada, el instalador
+  verificado seguido de `ag setup` produce una instalación funcional sin
+  ningún paso manual, y un binario o manifiesto alterado es rechazado.
+- [ ] Desde una segunda máquina, `ag connect` alcanza la interfaz del
+  servidor; la misma sesión funciona desde un cliente SSH de teléfono.
+- [ ] Un cliente automatizado completa un ciclo crear-configurar-validar
+  usando solo `ag describe` y la salida JSON, y no puede cambiar el estado del
+  servidor sin un identificador de plan explícito.
+- [ ] Etapas A y B completas antes de iniciar la etapa 5-A de la Fase 5;
+  etapas C a E completas antes de la liberación de la 0.5.
+
+### 4.8.4 Riesgos de la fase
+
+El riesgo principal es el **tamaño**: esta fase toca el scaffolder, la
+configuración de todos los módulos y el proceso de release. La mitigación es
+que las cinco etapas son independientes y cada una se entrega como varias pull
+requests pequeñas; ninguna requiere a las otras salvo B sobre A.
+
+El segundo riesgo son las **regresiones de seguridad introducidas en nombre de
+la comodidad**, sobre todo en la instalación y el acceso remoto. La mitigación
+está en el diseño: verificación de firma antes de escribir nada, solo gestor
+de paquetes, SSH como único transporte sin daemon ni puerto nuevos, y plan
+antes de aplicar para todo cambio de estado.
+
+El tercer riesgo es **romper a usuarios existentes** cuando cambien las rutas
+del generador y los constructores de los módulos. La mitigación es que no se
+ha publicado ninguna versión; los cambios entran antes de la 0.5 y se
+registran como cambios incompatibles pre-release.
+
+---
+
 ## Fase 5 — `ag-cloud` despliegue simplificado
 
 **Objetivo.** Construir el subsistema de despliegue al estilo Railway/Fly.io. Soporte para los cuatro targets: docker-compose, fly, railway, k8s. Este es el hito de **versión beta pública (0.5)**.
@@ -1541,6 +1786,9 @@ el modo degradado por línea.
   bloqueantes en `pass`, incluida la corrida de fuzz de 24 horas (issue #156)
   y la evidencia final de benchmarks (issue #157).
 - [ ] Decisión RFC sobre los targets de despliegue soportados en la 1.0.
+- [ ] Etapas A y B de la Fase 4.8 completas (layout del proyecto y entorno
+  declarado), porque los artefactos de despliegue se generan a partir de
+  ellas.
 
 RFC previas (regla 28), cada una aprobada antes de iniciar su etapa:
 
@@ -1557,6 +1805,9 @@ RFC previas (regla 28), cada una aprobada antes de iniciar su etapa:
 - [ ] Target fly: integración con flyctl.
 - [ ] Target railway: integración con su API.
 - [ ] Target k8s: generación de manifests estándar.
+- [ ] Integración con Terraform: declaraciones de variables y outputs
+  generados para los recursos que necesita un proyecto; el Terraform del
+  usuario es dueño de los recursos (`RFC-0019` sección 4.6).
 - [ ] Comando `ag deploy`.
 - [ ] Comando `ag rollback`.
 - [ ] Pipeline de migraciones de base de datos integrado al despliegue.

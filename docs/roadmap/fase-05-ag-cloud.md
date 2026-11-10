@@ -2,7 +2,7 @@
 
 > Fuente verbatim: docs/master/ANTI-GRAVITAL-Hoja-de-Ruta.md
 > Indice: [docs/roadmap/README.md](./README.md)
-> Anterior: [fase-04-7-experiencia-interactiva-de-terminal.md](./fase-04-7-experiencia-interactiva-de-terminal.md)
+> Anterior: [fase-04-8-fundaciones-del-proyecto.md](./fase-04-8-fundaciones-del-proyecto.md)
 > Siguiente: [fase-06-ag-ai-knowledge-graph.md](./fase-06-ag-ai-knowledge-graph.md)
 
 ## Phase 5 — `ag-cloud` simplified deployment
@@ -16,6 +16,8 @@
   including the 24-hour fuzz run (issue #156) and the final benchmark evidence
   (issue #157).
 - [ ] RFC decision on the deployment targets supported in 1.0.
+- [ ] Phase 4.8 stages A and B complete (project layout and declared
+  environment), because deployment artifacts are generated from them.
 
 RFC prerequisites (rule 28), each approved before its stage starts:
 
@@ -32,6 +34,9 @@ RFC prerequisites (rule 28), each approved before its stage starts:
 - [ ] fly target: integration with flyctl.
 - [ ] railway target: integration with its API.
 - [ ] k8s target: generation of standard manifests.
+- [ ] Terraform integration: generated variable declarations and outputs for
+  the resources a project needs; the user's Terraform owns the resources
+  (`RFC-0019` section 4.6).
 - [ ] `ag deploy` command.
 - [ ] `ag rollback` command.
 - [ ] Database migrations pipeline integrated into the deployment.

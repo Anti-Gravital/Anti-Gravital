@@ -9,7 +9,7 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-11-10 (se anade la Fase 4.7 propuesta por RFC-0018; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
+Ultima actualizacion: 2026-11-10 (se anaden las Fases 4.7 y 4.8 propuestas por RFC-0018 a RFC-0021; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
 
 ---
 
@@ -443,6 +443,24 @@ decision del BDFL; no existe codigo. Fase aditiva: no mueve los hitos 0.5 ni
 - [ ] Etapa A: fundacion y asistente de `ag new`.
 - [ ] Etapa B: `ag config` (get/set/validate y formulario) y `ag new --with`.
 - [ ] Etapa C: pantalla de inicio de `ag` sin argumentos.
+
+---
+
+
+## Fase 4.8 - Fundaciones del proyecto
+
+Estado: Propuesta. `RFC-0019` (capas), `RFC-0020` (entorno y secretos) y
+`RFC-0021` (instalacion, consola remota, interfaz de maquina) esperan decision
+del BDFL; no existe codigo. Fase aditiva. Entregables y criterios en
+`fase-04-8-fundaciones-del-proyecto.md`.
+
+### Entregables (4.8.2)
+
+- [ ] Etapa A: `ag.toml` y layout por capas forzado por Cargo.
+- [ ] Etapa B: entorno declarado, `Secret<T>`, secretos cifrados, `ag env`.
+- [ ] Etapa C: binarios de release firmados, instalador verificado, `ag setup`.
+- [ ] Etapa D: `ag servers` y `ag connect` sobre SSH.
+- [ ] Etapa E: `--output json`, `ag describe`, plan/apply.
 
 ---
 

@@ -17,6 +17,7 @@ exige una fecha externa."
 | 4.5 | ag-mail + ag-domains: comunicacion y dominios | 1-2 meses | Implementada; ag-domains activo, evidencia de release/doc abierta |
 | 4.6 | MTA nativo de ag-mail (A/B/C) y motor ag-workers (D) | Aditiva | ag-workers S1-S5 disponible y verificado en CI; paridad PostgreSQL viva en Issues #108/#109/#103 |
 | 4.7 | Experiencia interactiva de terminal (TUI de ag) | 1-2 meses, aditiva | Propuesta (RFC-0018); sin codigo |
+| 4.8 | Fundaciones del proyecto: capas, entorno, instalacion, operacion remota | 2-3 meses, aditiva | Propuesta (RFC-0019/0020/0021); sin codigo |
 | 5 | ag-cloud y version 0.5 beta publica | 2 meses | Pendiente |
 | 6 | ag-ai y Knowledge Graph | 2 meses | Pendiente |
 | 7 | ag-migrate importadores | 2 meses | Pendiente |

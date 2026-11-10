@@ -39,6 +39,7 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
 | 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | Proposed (`RFC-0018`); no code yet |
+| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Proposed (`RFC-0019`, `RFC-0020`, `RFC-0021`); no code yet |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
 | 7     | `ag-migrate` — importers                   | 2 months           | Pending |
@@ -50,8 +51,9 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 **Public beta version milestone (0.5):** end of phase 5 (~15 months).
 **Stable version 1.0 milestone:** end of phase 10 (~30 months).
 
-Phases 4.5, 4.6 and 4.7 are additive: they do not move the two milestones
-above. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
+Phases 4.5, 4.6, 4.7 and 4.8 are additive: they do not move the two
+milestones above, although Phase 4.8 stages A and B change what Phase 5 builds
+on and are entry criteria of its stage 5-A. Phase 4.7 runs in parallel with the closing of the pre-Phase-5 gate and
 with Phase 5; its stages A and B are exit criteria of Phase 5 (section 5.3) and
 its stage C is an entry criterion of Phase 10 (section 10.1).
 

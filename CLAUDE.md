@@ -70,19 +70,26 @@ Jamas deben:
 anti-gravital/
 |
 |-- README.md
+|-- CHANGELOG.md
 |-- LICENSE
 |-- CONTRIBUTING.md
 |-- GOVERNANCE.md
 |-- SECURITY.md
 |-- CODE_OF_CONDUCT.md
 |-- CLAUDE.md
+|-- Cargo.toml / Cargo.lock
+|-- deny.toml / clippy.toml / rustfmt.toml / rust-toolchain.toml
+|-- install.sh / install.ps1
 |
 |-- docs/
 |   |-- master/
-|   |   |-- ANTI-GRAVITAL-Blueprint-v4.0.pdf
+|   |   |-- ANTI-GRAVITAL-Blueprint-v4.1.md   (canonico)
+|   |   |-- ANTI-GRAVITAL-Blueprint-v4.0.pdf  (artefacto historico)
 |   |   |-- ANTI-GRAVITAL-Arquitectura-Tecnica.md
-|   |   `-- ANTI-GRAVITAL-Hoja-de-Ruta.md
-|   |
+|   |   |-- ANTI-GRAVITAL-Hoja-de-Ruta.md
+|   |   `-- VERSION.md
+|   |-- adr/
+|   |-- rfc/
 |   |-- architecture/
 |   |-- roadmap/
 |   |-- modules/
@@ -90,7 +97,14 @@ anti-gravital/
 |   |-- benchmarks/
 |   |-- security/
 |   |-- governance/
+|   |-- audits/
+|   |-- diagrams/
+|   |-- graph/
+|   |-- manual/
+|   |-- pr-drafts/
 |   |-- examples/
+|   |-- fuzz/
+|   |-- superpowers/
 |   |-- es/
 |   `-- en/
 |
@@ -99,6 +113,12 @@ anti-gravital/
 |-- templates/
 |-- plugins/
 |-- benchmarks/
+|-- fuzz/
+|-- tests/
+|-- openapi/
+|-- checksums/
+|-- .cargo/
+|-- .github/
 `-- tools/
 ```
 
@@ -112,7 +132,9 @@ Orden de prioridad:
 
 1. `ANTI-GRAVITAL-Hoja-de-Ruta.md` define QUE se puede construir y CUANDO.
 2. `ANTI-GRAVITAL-Arquitectura-Tecnica.md` define COMO se construye.
-3. `ANTI-GRAVITAL-Blueprint-v4.0.pdf` define VISION, POSICIONAMIENTO y ALCANCE.
+3. `ANTI-GRAVITAL-Blueprint-v4.1.md` define VISION, POSICIONAMIENTO y ALCANCE.
+   El PDF v4.0 es un artefacto historico de presentacion: cuando difiera del
+   markdown, gobierna `v4.1.md` (ver `docs/master/VERSION.md`, politica #4).
 
 Si el codigo contradice la documentacion: el codigo esta mal.
 
@@ -548,7 +570,7 @@ Antes de marcar algo como terminado:
 - [ ] Tiene observabilidad si aplica.
 - [ ] Tiene manejo de errores correcto.
 - [ ] Tiene trazabilidad.
-- [ ] Mantiene coherencia con Anti-Gravital v4.0.
+- [ ] Mantiene coherencia con Anti-Gravital v4.1 (Blueprint canonico).
 
 ---
 

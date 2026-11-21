@@ -7,6 +7,37 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Security and dependency remediation
+
+Changed:
+
+- The RustCrypto generation was upgraded together: `p256` 0.14,
+  `elliptic-curve` 0.14, `jsonwebtoken` 12, `sha2` 0.11, `hmac` 0.13,
+  `ed25519-dalek` 3, `rsa` 0.10, `rand` 0.10 and `getrandom` 0.4. WebAuthn
+  ES256 verification now uses `Sec1Point` with explicit 32-byte coordinate
+  checks. This removes `crypto-bigint` 0.5.5 (RUSTSEC-2026-0387).
+- `sqlx` 0.9 replaces `runtime-tokio-rustls` with `runtime-tokio` plus
+  `tls-rustls-ring-webpki`. Dynamic SQL in the `ag-workers` PostgreSQL backend
+  is marked safe after audit: only static column lists are interpolated and
+  every runtime value is bound.
+- `lettre` 0.11.24 clears six SMTP advisories; `libsqlite3-sys` is locked at
+  0.39.0. `cargo audit` reports zero vulnerabilities.
+- `deny.toml` records dated ignores for RUSTSEC-2026-0440 (only reachable from
+  testcontainers dev-dependencies) and RUSTSEC-2026-0543 (`chrono`, tracked in
+  issue #185). The stale RUSTSEC-2026-0104 ignore was removed (issue #183).
+
+### Quality gate
+
+Changed:
+
+- The coverage gate now excludes the CLI dispatch and terminal plumbing files
+  produced by the RFC-0018 split of `ag-cli/src/main.rs`: `cli.rs`,
+  `commands/domains.rs`, `commands/mail.rs`, `commands/schema.rs`,
+  `commands/workers.rs`, `interactive.rs`, `tui/mod.rs` and `tui/terminal.rs`.
+  Project creation logic, `request.rs` and the TUI wizard state machine stay
+  measured. The exclusion restores the original "library code only" intent of
+  the gate after the refactor.
+
 ### ag-cli: interactive project creation wizard (`RFC-0018`, stage A)
 
 Added:

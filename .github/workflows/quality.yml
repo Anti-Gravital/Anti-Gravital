@@ -201,6 +201,11 @@ jobs:
       # targets are executable documentation/harnesses with no unit tests by
       # design, so counting them only distorts the denominator (each new
       # example lowered workspace coverage regardless of crate test quality).
+      # RFC-0018 split ag-cli's main.rs into cli.rs, commands/, interactive.rs
+      # and tui/. The command dispatch and terminal plumbing are the same
+      # binary glue as the excluded main.rs; they print output and delegate to
+      # tested crates. Real logic stays measured: commands/project.rs,
+      # request.rs and the TUI wizard state machine are all included.
       - name: run coverage with 80% gate
         run: >
           cargo tarpaulin --workspace --timeout 300 --fail-under 80
@@ -208,6 +213,14 @@ jobs:
           "examples/*" "benchmarks/*" "fuzz/*"
           "crates/*/benches/*" "crates/*/examples/*"
           "crates/ag-cli/src/main.rs"
+          "crates/ag-cli/src/cli.rs"
+          "crates/ag-cli/src/commands/domains.rs"
+          "crates/ag-cli/src/commands/mail.rs"
+          "crates/ag-cli/src/commands/schema.rs"
+          "crates/ag-cli/src/commands/workers.rs"
+          "crates/ag-cli/src/interactive.rs"
+          "crates/ag-cli/src/tui/mod.rs"
+          "crates/ag-cli/src/tui/terminal.rs"
           "crates/ag-lsp/src/main.rs"
           "crates/ag-realtime/src/ws.rs"
           "crates/ag-realtime/src/sse.rs"

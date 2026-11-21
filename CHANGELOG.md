@@ -21,6 +21,16 @@ Added (documentation only; no code):
 - `docs/diagrams/mcp-layer-flow.md` shows the agent-to-executor flow and the
   boundary with Fabric.
 
+### Native MTA and mixed TLS providers (issue #181)
+
+Fixed:
+
+- The native MTA now installs the process-level `ring` crypto provider before
+  `mail-send` builds its rustls client. Combining `ag-mail/mta` with
+  `ag-storage/s3` no longer panics with two linked crypto providers.
+  `cargo test --workspace --all-features` passes again and the release gate
+  Tests row was re-evaluated.
+
 ### Secure development default (issue #169)
 
 Changed:

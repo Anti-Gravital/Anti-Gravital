@@ -128,9 +128,21 @@ pub struct MtaSender {
     config: MtaConfig,
 }
 
+/// Selects the process-wide rustls provider.
+///
+/// `mail-send` builds its client configuration from the process default. When
+/// optional features link both providers (for example `ag-storage/s3` pulls
+/// `object_store` and `reqwest` with `aws-lc-rs`), the implicit choice panics.
+/// The workspace standardizes on `ring`, so it is installed once here.
+fn install_ring_provider() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
+}
+
 impl MtaSender {
     /// Builds the sender from its configuration.
     pub fn new(config: MtaConfig) -> Self {
+        install_ring_provider();
         Self { config }
     }
 

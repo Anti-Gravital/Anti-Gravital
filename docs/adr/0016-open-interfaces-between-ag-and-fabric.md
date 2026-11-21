@@ -53,5 +53,5 @@ lock-in.
 
 ## Status
 
-Accepted. This ADR is the architectural counterpart of the scope amendment in
-RFC-0025 of the Gravital Fabric repository.
+Accepted. This ADR is the architectural counterpart of RFC-0001 (scope and
+boundaries) in the separate Gravital Fabric repository.

@@ -35,6 +35,9 @@ auditabilidad por diff.
 - `mail-workers-dataflow.md` — flujo de correo y jobs (`ag-mail`/`ag-workers`).
 - `cli-interactive-flow.md` — resolucion de entradas de `ag new`, arquitectura de
   pantallas y pasos del asistente interactivo (`RFC-0018`).
+- `mcp-layer-flow.md` — flujo entre un agente conectado, el contrato MCP
+  compartido, los ejecutores de la CLI, el modo self-debug y el limite sin
+  dependencias con Gravital Fabric (`RFC-0024`, `ADR-0016`, `ADR-0017`).
 
 Las fuentes Mermaid van embebidas en su `.md` (bloque ```mermaid```), que
 GitHub renderiza y que se audita por diff. Se anaden mas diagramas a medida

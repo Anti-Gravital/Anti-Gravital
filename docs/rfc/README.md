@@ -87,3 +87,4 @@ como `superseded`.
 | 0021 | Instalacion en servidor con un comando, consola remota e interfaz de maquina | aceptada | `RFC-0021-server-install-remote-console-and-machine-interface.md` |
 | 0022 | Guardarrailes de mantenibilidad: reglas verificables contra la degradacion | aceptada | `RFC-0022-maintainability-guardrails.md` |
 | 0023 | Funciones serverless | aceptada | `RFC-0023-serverless-functions.md` |
+| 0024 | Interfaz de maquina MCP compartida con agentes por capacidades | aceptada | `RFC-0024-mcp-shared-machine-interface.md` |

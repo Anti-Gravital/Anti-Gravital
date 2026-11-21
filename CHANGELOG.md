@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Proposal: shared MCP machine interface (RFC-0024)
+
+Added (documentation only; no code):
+
+- `RFC-0024` defines a versioned MCP contract shared by Anti-Gravital and the
+  separate Gravital Fabric platform, with capability-scoped agents, plan/apply
+  for mutations, an audit trail and an opt-in self-debug tool group.
+- `ADR-0016` fixes the boundary: open versioned contracts and no compile-time
+  dependency between `ag-*` and `fabric-*` crates.
+- `ADR-0017` records that MCP never grants privilege by virtue of being a
+  machine and that debug tools are opt-in and stdio-only.
+- `docs/diagrams/mcp-layer-flow.md` shows the agent-to-executor flow and the
+  boundary with Fabric.
+
 ### Secure development default (issue #169)
 
 Changed:

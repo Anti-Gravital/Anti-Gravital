@@ -39,3 +39,5 @@ Consecuencias, Alternativas, Estado.
 | 0013 | ag-workers: modelo de ejecucion y autorizacion (Fase 4.6-D) | aceptado | `0013-ag-workers-execution-model.md` |
 | 0014 | Politica `#[non_exhaustive]` para enums de error publicos | aceptado | `0014-non-exhaustive-public-error-enums.md` |
 | 0015 | `docs/audits/` como contrato de release-gate y evidencia | aceptado | `0015-release-gate-audit-records.md` |
+| 0016 | Interfaces abiertas entre Anti-Gravital y Gravital Fabric | aceptado | `0016-open-interfaces-between-ag-and-fabric.md` |
+| 0017 | MCP como interfaz de maquina por capacidades | aceptado | `0017-mcp-capability-scoped-machine-interface.md` |

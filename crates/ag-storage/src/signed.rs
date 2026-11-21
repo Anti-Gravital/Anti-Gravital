@@ -8,7 +8,7 @@
 //! The signature covers: `key_bytes || expires_at_be_bytes`.
 
 use base64ct::{Base64Url, Encoding};
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;

@@ -444,7 +444,7 @@ mod tests {
 
     /// Generates a throwaway RSA key PEM so tests never embed a real key.
     fn test_key_pem() -> String {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let key = RsaPrivateKey::new(&mut rng, 2048).expect("rsa keygen");
         key.to_pkcs8_pem(rsa::pkcs8::LineEnding::LF)
             .expect("pkcs8 pem")

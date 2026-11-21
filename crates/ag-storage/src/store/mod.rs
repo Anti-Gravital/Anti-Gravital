@@ -51,7 +51,7 @@ impl NativeStore {
         let dir = Arc::clone(&self.dir);
         let key = PathBuf::from(key);
         let mut nonce = [0u8; 8];
-        getrandom::getrandom(&mut nonce).unwrap_or_default();
+        getrandom::fill(&mut nonce).unwrap_or_default();
 
         blocking_io(move || {
             let (parent, name) = open_parent_dir(&dir, &key, true)?;

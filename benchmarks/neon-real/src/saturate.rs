@@ -24,7 +24,7 @@ use axum::{
     routing::{get, patch, post},
     Json, Router,
 };
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::mpsc;
@@ -200,14 +200,14 @@ async fn saturation_worker(
 
     while !*stop.borrow() {
         let (op, params) = {
-            use rand::Rng;
-            let mut rng = rand::thread_rng();
+            use rand::RngExt;
+            let mut rng = rand::rng();
             let nc = state.client_ids.len();
             let nu = state.user_ids.len();
-            let op: u8 = rng.gen_range(0..100);
-            let ci = rng.gen_range(0..nc);
-            let ui = rng.gen_range(0..nu);
-            let ruc: u32 = rng.gen_range(10000000..99999999);
+            let op: u8 = rng.random_range(0..100);
+            let ci = rng.random_range(0..nc);
+            let ui = rng.random_range(0..nu);
+            let ruc: u32 = rng.random_range(10000000..99999999);
             (op, (ci, ui, ruc))
         };
 
@@ -232,7 +232,7 @@ async fn saturation_worker(
                 client.get(format!("{base_url}/health")).send().await
                     .map(|r| r.status().is_success()).unwrap_or(false)
             } else {
-                let idx = rand::thread_rng().gen_range(0..ids.len());
+                let idx = rand::rng().random_range(0..ids.len());
                 let id = ids[idx].clone();
                 drop(ids);
                 client.get(format!("{base_url}/invoices/{id}")).send().await
@@ -248,7 +248,7 @@ async fn saturation_worker(
             let ids = state.invoice_ids.read().await;
             if ids.is_empty() { drop(ids); true }
             else {
-                let idx = rand::thread_rng().gen_range(0..ids.len());
+                let idx = rand::rng().random_range(0..ids.len());
                 let id = ids[idx].clone();
                 drop(ids);
                 client.patch(format!("{base_url}/invoices/{id}/status"))

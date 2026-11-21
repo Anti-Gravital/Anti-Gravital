@@ -36,7 +36,7 @@ use super::suppress::{SuppressionList, SuppressionReason};
 fn new_job_id() -> String {
     static FALLBACK_SEQ: AtomicU64 = AtomicU64::new(0);
     let mut bytes = [0u8; 16];
-    if getrandom::getrandom(&mut bytes).is_err() {
+    if getrandom::fill(&mut bytes).is_err() {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())

@@ -74,11 +74,11 @@ psl = { version = "2", optional = true }
 
 # DNS provider adapter auth/serialization (feature-gated). All already present in
 # the workspace dependency tree; used here behind adapter features (RFC-0011 E).
-hmac = { version = "0.12", optional = true }
-sha2 = { version = "0.10", optional = true }
+hmac = { version = "0.13", optional = true }
+sha2 = { version = "0.11", optional = true }
 hex = { version = "0.4", optional = true }
 quick-xml = { version = "0.42", features = ["serialize"], optional = true }
-jsonwebtoken = { version = "11", optional = true }
+jsonwebtoken = { version = "12", optional = true }
 
 # ACME / Let's Encrypt + certificate parsing
 instant-acme = { version = "0.7", optional = true }
@@ -94,5 +94,5 @@ reqwest = { workspace = true }
 async-trait = { workspace = true }
 # Generate a throwaway RSA key at test time for the google-cloud-dns JWT path,
 # so no private key is ever embedded in the source tree.
-rsa = "0.9"
-rand = "0.8"
+rsa = "0.10"
+rand = { workspace = true }

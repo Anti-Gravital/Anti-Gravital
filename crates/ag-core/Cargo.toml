@@ -57,6 +57,7 @@ tracing-subscriber = { workspace = true }
 [dev-dependencies]
 criterion = { workspace = true }
 ed25519-dalek = { workspace = true }
+getrandom = { workspace = true }
 rand_core = { workspace = true }
 rcgen = { workspace = true }
 reqwest = { workspace = true }

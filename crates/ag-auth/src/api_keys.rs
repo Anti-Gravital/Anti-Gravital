@@ -22,7 +22,7 @@ use base64ct::{Base64Url, Encoding};
 /// ```
 pub fn generate(prefix: &str) -> (String, String) {
     let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).expect("failed to obtain entropy from the operating system");
+    getrandom::fill(&mut bytes).expect("failed to obtain entropy from the operating system");
     let encoded = Base64Url::encode_string(&bytes);
     let raw_key = format!("{prefix}_{encoded}");
     let key_hash = hash_key(&raw_key);

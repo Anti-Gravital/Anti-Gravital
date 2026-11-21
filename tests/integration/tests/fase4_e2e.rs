@@ -13,9 +13,10 @@ fn generate_ed25519_keypair() -> (String, String) {
     use ed25519_dalek::pkcs8::spki::der::pem::LineEnding;
     use ed25519_dalek::pkcs8::{EncodePrivateKey, EncodePublicKey};
     use ed25519_dalek::SigningKey;
-    use rand_core::OsRng;
 
-    let signing_key = SigningKey::generate(&mut OsRng);
+    let mut secret = [0u8; 32];
+    getrandom::fill(&mut secret).unwrap();
+    let signing_key = SigningKey::from_bytes(&secret);
     let priv_pem = signing_key
         .to_pkcs8_pem(LineEnding::LF)
         .unwrap()
@@ -29,7 +30,7 @@ fn generate_ed25519_keypair() -> (String, String) {
 
 fn uuid_like() -> String {
     let mut b = [0u8; 16];
-    getrandom::getrandom(&mut b).unwrap();
+    getrandom::fill(&mut b).unwrap();
     format!(
         "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
         u32::from_be_bytes(b[0..4].try_into().unwrap()),

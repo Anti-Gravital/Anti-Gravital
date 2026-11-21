@@ -149,8 +149,7 @@ impl WebAuthnRp {
         display_name: &str,
     ) -> Result<RegistrationChallenge, WebAuthnError> {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes)
-            .map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
+        getrandom::fill(&mut challenge_bytes).map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -221,8 +220,7 @@ impl WebAuthnRp {
         creds: &[StoredCredential],
     ) -> Result<AuthenticationChallenge, WebAuthnError> {
         let mut challenge_bytes = [0u8; 32];
-        getrandom::getrandom(&mut challenge_bytes)
-            .map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
+        getrandom::fill(&mut challenge_bytes).map_err(|e| WebAuthnError::Entropy(e.to_string()))?;
         let challenge_b64 = Base64Url::encode_string(&challenge_bytes);
 
         self.pending.insert(
@@ -465,17 +463,21 @@ fn verify_cose_signature(
         -7 => {
             // ES256 — P-256 ECDSA with SHA-256
             use p256::ecdsa::{signature::Verifier, DerSignature, VerifyingKey};
-            use p256::EncodedPoint;
+            use p256::Sec1Point;
 
             let x = get_bytes(-2).ok_or_else(|| WebAuthnError::Format("P-256 x absent".into()))?;
             let y = get_bytes(-3).ok_or_else(|| WebAuthnError::Format("P-256 y absent".into()))?;
+            let x: p256::FieldBytes = x
+                .as_slice()
+                .try_into()
+                .map_err(|_| WebAuthnError::Format("P-256 x must be 32 bytes".into()))?;
+            let y: p256::FieldBytes = y
+                .as_slice()
+                .try_into()
+                .map_err(|_| WebAuthnError::Format("P-256 y must be 32 bytes".into()))?;
 
-            let point = EncodedPoint::from_affine_coordinates(
-                x.as_slice().into(),
-                y.as_slice().into(),
-                false,
-            );
-            let vk = VerifyingKey::from_encoded_point(&point)
+            let point = Sec1Point::from_affine_coordinates(&x, &y, false);
+            let vk = VerifyingKey::from_sec1_point(&point)
                 .map_err(|_| WebAuthnError::InvalidSignature)?;
             let signature =
                 DerSignature::try_from(sig).map_err(|_| WebAuthnError::InvalidSignature)?;

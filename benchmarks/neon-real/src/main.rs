@@ -23,7 +23,7 @@ use axum::{
     routing::{get, patch, post},
     Json, Router,
 };
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::mpsc;
@@ -667,30 +667,30 @@ async fn run_worker(
     while !*stop.borrow() {
         // Generar valores aleatorios en contexto sincrono (sin await)
         let (op, params) = {
-            use rand::Rng;
-            let mut rng = rand::thread_rng();
+            use rand::RngExt;
+            let mut rng = rand::rng();
             let nc = seed.client_ids.len();
             let nu = seed.user_ids.len();
             let np = seed.product_ids.len();
-            let op_roll: u8 = rng.gen_range(0..100);
+            let op_roll: u8 = rng.random_range(0..100);
             let op = if op_roll < 35 { Op::CreateInvoice }
                 else if op_roll < 65 { Op::GetInvoice }
                 else if op_roll < 85 { Op::ListInvoices }
                 else { Op::UpdateStatus };
             let params = WorkerParams {
-                client_idx: rng.gen_range(0..nc),
-                user_idx: rng.gen_range(0..nu),
-                prod_idx: [rng.gen_range(0..np), rng.gen_range(0..np), rng.gen_range(0..np)],
-                recv_num: rng.gen_range(1000u32..9999),
-                ruc_num: rng.gen_range(10000000u32..99999999u32),
-                qty: [rng.gen_range(1u32..10), 1, rng.gen_range(1u32..5)],
+                client_idx: rng.random_range(0..nc),
+                user_idx: rng.random_range(0..nu),
+                prod_idx: [rng.random_range(0..np), rng.random_range(0..np), rng.random_range(0..np)],
+                recv_num: rng.random_range(1000u32..9999),
+                ruc_num: rng.random_range(10000000u32..99999999u32),
+                qty: [rng.random_range(1u32..10), 1, rng.random_range(1u32..5)],
                 price: [
-                    rng.gen_range(100u32..5000) as f64 / 100.0,
-                    rng.gen_range(5000u32..50000) as f64 / 100.0,
-                    rng.gen_range(2000u32..10000) as f64 / 100.0,
+                    rng.random_range(100u32..5000) as f64 / 100.0,
+                    rng.random_range(5000u32..50000) as f64 / 100.0,
+                    rng.random_range(2000u32..10000) as f64 / 100.0,
                 ],
-                status_idx: rng.gen_range(0usize..4),
-                list_status_idx: rng.gen_range(0usize..4),
+                status_idx: rng.random_range(0usize..4),
+                list_status_idx: rng.random_range(0usize..4),
             };
             (op, params)
         };
@@ -784,7 +784,7 @@ async fn do_get_invoice(
             .map(|r| r.status().is_success())
             .unwrap_or(false);
     }
-    let idx = rand::thread_rng().gen_range(0..ids.len());
+    let idx = rand::rng().random_range(0..ids.len());
     let id = ids[idx].clone();
     drop(ids);
 

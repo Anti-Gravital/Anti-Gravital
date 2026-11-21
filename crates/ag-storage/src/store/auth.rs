@@ -198,8 +198,10 @@ mod tests {
             use ed25519_dalek::pkcs8::spki::der::pem::LineEnding;
             use ed25519_dalek::pkcs8::{EncodePrivateKey, EncodePublicKey};
             use ed25519_dalek::SigningKey;
-            use rand_core::OsRng;
-            let sk = SigningKey::generate(&mut OsRng);
+            let mut secret = [0u8; 32];
+            getrandom::fill(&mut secret)
+                .expect("failed to obtain entropy from the operating system");
+            let sk = SigningKey::from_bytes(&secret);
             let vk = sk.verifying_key();
             (
                 sk.to_pkcs8_pem(LineEnding::LF).unwrap().to_string(),

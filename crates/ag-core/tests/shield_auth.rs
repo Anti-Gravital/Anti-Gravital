@@ -29,9 +29,8 @@ struct TestKeys {
 }
 
 fn generate_keys() -> TestKeys {
-    use rand_core::{OsRng, RngCore};
     let mut secret = [0u8; 32];
-    OsRng.fill_bytes(&mut secret);
+    getrandom::fill(&mut secret).unwrap();
     let signing_key = SigningKey::from_bytes(&secret);
     let verifying_key = signing_key.verifying_key();
     let public_pem = verifying_key.to_public_key_pem(LineEnding::LF).unwrap();

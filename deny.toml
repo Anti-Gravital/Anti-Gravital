@@ -29,6 +29,11 @@ ignore = [
     # JWT claims and SQL bindings. Removal condition: migration to a maintained
     # date/time crate, tracked in issue #185.
     { id = "RUSTSEC-2026-0543" },
+    # RUSTSEC-2026-0542: humantime is unmaintained. Under --all-features it is
+    # reachable from console-subscriber (ag-observe) and object_store
+    # (ag-storage/s3). It is a formatting helper, not a security boundary.
+    # Removal condition: those adapters drop humantime or it becomes maintained.
+    { id = "RUSTSEC-2026-0542" },
 ]
 
 [licenses]
@@ -53,6 +58,10 @@ allow = [
     "Unicode-DFS-2016",
     "Zlib",
     "CC0-1.0",
+    # NCSA: permissive OSI/FSF license used by libfuzzer-sys (rav1e dev path).
+    "NCSA",
+    # BSL-1.0: Boost Software License 1.0, used by xxhash-rust via redis.
+    "BSL-1.0",
 ]
 exceptions = []
 

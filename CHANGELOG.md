@@ -32,8 +32,10 @@ Changed:
 - `lettre` 0.11.24 clears six SMTP advisories; `libsqlite3-sys` is locked at
   0.39.0. `cargo audit` reports zero vulnerabilities.
 - `deny.toml` records dated ignores for RUSTSEC-2026-0440 (only reachable from
-  testcontainers dev-dependencies) and RUSTSEC-2026-0543 (`chrono`, tracked in
-  issue #185). The stale RUSTSEC-2026-0104 ignore was removed (issue #183).
+  testcontainers dev-dependencies), RUSTSEC-2026-0543 (`chrono`, tracked in
+  issue #185) and RUSTSEC-2026-0542 (`humantime` in adapter paths). It also
+  allows NCSA and BSL-1.0 for all-features builds (both OSI-approved). The
+  stale RUSTSEC-2026-0104 ignore was removed (issue #183).
 
 ### Quality gate
 

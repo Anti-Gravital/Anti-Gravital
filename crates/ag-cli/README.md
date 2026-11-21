@@ -68,9 +68,17 @@ Starts the server in development mode with hot reload via `cargo-watch`.
 Falls back to `cargo run` if `cargo-watch` is not installed.
 
 ```bash
-ag dev                    # listens on 0.0.0.0:8080
+ag dev                    # listens on 127.0.0.1:8080 (loopback only)
+ag dev --bind 0.0.0.0:8080 # explicit opt-in: all interfaces (containers, LAN)
 ag dev --bind 127.0.0.1:3000
 ```
+
+Generated project templates still bind `0.0.0.0:8080` because they are built
+for containers, where the process must accept traffic from outside its own
+network namespace. That is a deliberate, documented difference: `ag dev`
+protects the laptop by default, while a generated service is ready to run in a
+container. Change the listener in `src/main.rs` if you run a generated project
+directly on an untrusted network.
 
 ### `ag build [--target triple]`
 

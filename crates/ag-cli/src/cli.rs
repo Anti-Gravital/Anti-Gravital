@@ -46,8 +46,9 @@ pub(crate) enum Commands {
     /// Requires `cargo-watch` to be installed (`cargo install cargo-watch`).
     /// If it is not available, runs `cargo run` without automatic reloading.
     Dev {
-        /// Server listen address.
-        #[arg(long, default_value = "0.0.0.0:8080")]
+        /// Server listen address. Defaults to loopback; pass
+        /// `--bind 0.0.0.0:8080` explicitly to listen on all interfaces.
+        #[arg(long, default_value = "127.0.0.1:8080")]
         bind: String,
     },
 
@@ -401,4 +402,27 @@ pub(crate) enum MailCommands {
         #[arg(long, env = "AG_SMTP_PASS")]
         smtp_pass: Option<String>,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dev_bind_defaults_to_loopback() {
+        let cli = Cli::parse_from(["ag", "dev"]);
+        match cli.command {
+            Commands::Dev { bind } => assert_eq!(bind, "127.0.0.1:8080"),
+            _ => panic!("expected the dev command"),
+        }
+    }
+
+    #[test]
+    fn dev_bind_can_opt_in_to_all_interfaces() {
+        let cli = Cli::parse_from(["ag", "dev", "--bind", "0.0.0.0:8080"]);
+        match cli.command {
+            Commands::Dev { bind } => assert_eq!(bind, "0.0.0.0:8080"),
+            _ => panic!("expected the dev command"),
+        }
+    }
 }

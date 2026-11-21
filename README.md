@@ -233,7 +233,7 @@ through v0.8 (`worker` declarations). Full reference:
 | Command | Purpose |
 | --- | --- |
 | `ag new [NAME] [--template TYPE]` | Scaffold a project (`rest`, `realtime`, `fullstack`). Missing input opens a guided wizard in an interactive terminal; `--no-interactive`, `CI` or a non-terminal session never prompt |
-| `ag dev --bind 0.0.0.0:8080` | Run in development mode; uses cargo-watch when installed |
+| `ag dev [--bind ADDR]` | Run in development mode on `127.0.0.1:8080` by default (loopback only); pass `--bind 0.0.0.0:8080` to listen on all interfaces. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
 | `ag schema lint` | Validate a DSL schema and report diagnostics |
@@ -688,7 +688,7 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | Comando | Proposito |
 | --- | --- |
 | `ag new [NOMBRE] [--template TIPO]` | Crear un proyecto (`rest`, `realtime`, `fullstack`). Si falta un dato y la terminal es interactiva se abre un asistente guiado; con `--no-interactive`, `CI` o sin terminal nunca pregunta |
-| `ag dev --bind 0.0.0.0:8080` | Modo desarrollo; usa cargo-watch si esta instalado |
+| `ag dev [--bind DIR]` | Modo desarrollo; por defecto escucha en `127.0.0.1:8080` (solo loopback); `--bind 0.0.0.0:8080` para escuchar en todas las interfaces. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
 | `ag schema lint` | Validar un schema y reportar diagnostics |

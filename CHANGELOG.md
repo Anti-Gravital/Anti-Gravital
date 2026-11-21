@@ -7,6 +7,15 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Secure development default (issue #169)
+
+Changed:
+
+- `ag dev` now listens on `127.0.0.1:8080` by default instead of `0.0.0.0:8080`.
+  Listening on all interfaces requires the explicit `--bind 0.0.0.0:8080`
+  opt-in. Generated project templates keep `0.0.0.0:8080` for container use;
+  the difference is documented in `crates/ag-cli/README.md`.
+
 ### Security and dependency remediation
 
 Changed:

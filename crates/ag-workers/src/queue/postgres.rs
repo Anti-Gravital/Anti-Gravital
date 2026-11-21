@@ -137,20 +137,20 @@ impl PostgresQueue {
     ) -> Result<Vec<DeadLetterRecord>, QueueError> {
         let rows = match queue {
             Some(q) => {
-                sqlx::query(&format!(
+                sqlx::query(sqlx::AssertSqlSafe(format!(
                     "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
                  WHERE queue = $1 ORDER BY dead_lettered_at DESC LIMIT $2"
-                ))
+                )))
                 .bind(q)
                 .bind(limit)
                 .fetch_all(&self.pool)
                 .await
             }
             None => {
-                sqlx::query(&format!(
+                sqlx::query(sqlx::AssertSqlSafe(format!(
                     "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters \
                  ORDER BY dead_lettered_at DESC LIMIT $1"
-                ))
+                )))
                 .bind(limit)
                 .fetch_all(&self.pool)
                 .await
@@ -165,9 +165,9 @@ impl PostgresQueue {
         &self,
         job_id: JobId,
     ) -> Result<Option<DeadLetterRecord>, QueueError> {
-        let row = sqlx::query(&format!(
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
             "SELECT {DLQ_COLUMNS} FROM ag_worker_dead_letters WHERE id = $1"
-        ))
+        )))
         .bind(job_id.as_uuid())
         .fetch_optional(&self.pool)
         .await
@@ -377,7 +377,7 @@ impl QueueBackend for PostgresQueue {
              FROM due WHERE j.id = due.id \
              RETURNING {SELECT_COLUMNS_QUALIFIED_J}"
         );
-        let rows = sqlx::query(&sql)
+        let rows = sqlx::query(sqlx::AssertSqlSafe(sql))
             .bind(queue.as_str())
             .bind(limit as i64)
             .bind(worker.as_str())

@@ -433,7 +433,7 @@ impl GoogleCloudDnsProvider {
 #[cfg(test)]
 mod tests {
     use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey};
-    use rsa::RsaPrivateKey;
+    use rsa::PrivateKey;
     use wiremock::{
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
@@ -445,7 +445,7 @@ mod tests {
     /// Generates a throwaway RSA key PEM so tests never embed a real key.
     fn test_key_pem() -> String {
         let mut rng = rand::rng();
-        let key = RsaPrivateKey::new(&mut rng, 2048).expect("rsa keygen");
+        let key = PrivateKey::new(&mut rng, 2048).expect("rsa keygen");
         key.to_pkcs8_pem(rsa::pkcs8::LineEnding::LF)
             .expect("pkcs8 pem")
             .to_string()
@@ -487,7 +487,7 @@ mod tests {
             exp: 1_700_003_600,
         };
         let jwt = jsonwebtoken::encode(&Header::new(Algorithm::RS256), &claims, &key).unwrap();
-        let public = RsaPrivateKey::from_pkcs8_pem(&pem).unwrap().to_public_key();
+        let public = PrivateKey::from_pkcs8_pem(&pem).unwrap().to_public_key();
         let public_pem = public
             .to_public_key_pem(rsa::pkcs8::LineEnding::LF)
             .unwrap();

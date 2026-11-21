@@ -39,6 +39,10 @@ Changed:
 
 Changed:
 
+- Every cargo invocation in CI that resolves dependencies now uses `--locked`,
+  so a manifest change without a matching `Cargo.lock` fails the build (issue
+  #168, guardrail anticipated in RFC-0022 section 7).
+
 - The coverage gate now excludes the CLI dispatch and terminal plumbing files
   produced by the RFC-0018 split of `ag-cli/src/main.rs`: `cli.rs`,
   `commands/domains.rs`, `commands/mail.rs`, `commands/schema.rs`,

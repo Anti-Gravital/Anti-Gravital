@@ -58,10 +58,10 @@ jobs:
             ${{ runner.os }}-cargo-${{ matrix.target }}-
 
       - name: cargo build
-        run: cargo build --workspace --all-targets --target ${{ matrix.target }}
+        run: cargo build --locked --workspace --all-targets --target ${{ matrix.target }}
 
       - name: cargo test
-        run: cargo test --workspace --all-targets --target ${{ matrix.target }}
+        run: cargo test --locked --workspace --all-targets --target ${{ matrix.target }}
 
   # The native MTA and the managed API live behind the opt-in `mta` / `api`
   # features, off by default, so the matrix build above never exercises them.
@@ -89,10 +89,10 @@ jobs:
             ${{ runner.os }}-cargo-mta-
 
       - name: cargo build (mta + api)
-        run: cargo build -p ag-mail --features mta,api,minijinja
+        run: cargo build --locked -p ag-mail --features mta,api,minijinja
 
       - name: cargo test (mta + api)
-        run: cargo test -p ag-mail --features mta,api,minijinja
+        run: cargo test --locked -p ag-mail --features mta,api,minijinja
 
       - name: cargo clippy (mta + api)
-        run: cargo clippy -p ag-mail --features mta,api,minijinja --all-targets -- -D warnings
+        run: cargo clippy --locked -p ag-mail --features mta,api,minijinja --all-targets -- -D warnings

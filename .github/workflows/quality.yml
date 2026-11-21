@@ -84,7 +84,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-msrv-1.99.1-${{ hashFiles('**/Cargo.toml') }}
-      - run: cargo check --workspace --all-targets
+      - run: cargo check --locked --workspace --all-targets
 
   fmt:
     name: cargo fmt
@@ -113,7 +113,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-clippy-${{ hashFiles('**/Cargo.toml') }}
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
   audit:
     name: cargo audit

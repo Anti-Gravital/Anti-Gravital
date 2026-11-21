@@ -7,6 +7,17 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Master documentation consistency (issues #170, #172)
+
+Changed:
+
+- Blueprint v4.1 now describes `ag-mail`'s native outbound MTA, the
+  implemented `ag-cache` L1/L2 layers and the delivery state through Phase 4.7.
+- The Hoja de Ruta master states that its boxes describe the contract and that
+  verified state lives in `docs/roadmap/STATUS.md`; all boxes were reset to
+  unchecked and the derived files were regenerated.
+- Master hashes were updated in `VERSION.md` and `.github/workflows/docs.yml`.
+
 ### Proposal: shared MCP machine interface (RFC-0024)
 
 Added (documentation only; no code):

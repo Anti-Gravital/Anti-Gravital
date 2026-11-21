@@ -15,9 +15,9 @@ Each phase contains four blocks:
 3. **Exit criteria (gate)**: conditions that must be met before moving to the next phase. They function as blocking gates: if they are not met, there is no advancement. This is non-negotiable.
 4. **Phase-specific risks and mitigations**.
 
-The deliverables and exit criteria are expressed as checkable boxes. This document is kept in the repository and is updated by crossing off what has been accomplished. It serves as the project's public dashboard.
+The deliverables and exit criteria are expressed as checkable boxes. The boxes describe the contract of each phase, not its current state: the verified state of every box lives in `docs/roadmap/STATUS.md`, which is the operational dashboard.
 
-The main rule is: **a phase is not considered concluded until all of its exit criteria boxes are checked**. The project may be temporarily paused between phases, but it cannot skip steps due to external pressure or urgency.
+The main rule is: **a phase is not considered concluded until `docs/roadmap/STATUS.md` records all of its exit criteria as done**. The project may be temporarily paused between phases, but it cannot skip steps due to external pressure or urgency.
 
 ---
 

@@ -20,9 +20,9 @@ a new user reaches a running project without reading the manual first.
 
 ### 4.7.1 Entry criteria
 
-- [x] `RFC-0018` accepted, including its three open questions (interface
+- [ ] `RFC-0018` accepted, including its three open questions (interface
   language, gate position, behavior of bare `ag`).
-- [x] `ag-cli` split into modules with no behavior change, verified by the
+- [ ] `ag-cli` split into modules with no behavior change, verified by the
   existing command-tree test. The typed request and single executor exist for
   `ag new`; each other command gets its own when it gains an interactive flow.
 
@@ -30,19 +30,19 @@ a new user reaches a running project without reading the manual first.
 
 Stage A — foundation and project creation:
 
-- [x] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
+- [ ] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
   commands work with `--no-default-features`.
-- [x] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
+- [ ] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
   panic.
-- [x] `ag new` wizard: name with live validation, template with description,
+- [ ] `ag new` wizard: name with live validation, template with description,
   review screen, result printed after the interface closes. `NAME` becomes
   optional.
-- [x] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
+- [ ] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
   mode when not a terminal, when `CI` is set or when `TERM=dumb`.
-- [x] Equivalent non-interactive command printed at the end of every flow.
-- [x] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
-- [x] Degraded line-prompt mode below 80x24.
-- [x] A single interaction library in `ag-cli` (the previous prompt library is
+- [ ] Equivalent non-interactive command printed at the end of every flow.
+- [ ] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
+- [ ] Degraded line-prompt mode below 80x24.
+- [ ] A single interaction library in `ag-cli` (the previous prompt library is
   removed).
 
 Stage B — project configuration:
@@ -67,14 +67,14 @@ Cross-stage:
 Each box below is checked for the screens that exist (stage A) and applies
 again to every screen added by stages B and C.
 
-- [x] State-transition unit tests for every screen.
-- [x] Render tests at 80x24 and 120x40, color and monochrome, asserting on the
+- [ ] State-transition unit tests for every screen.
+- [ ] Render tests at 80x24 and 120x40, color and monochrome, asserting on the
   rendered buffer.
-- [x] Parity tests: the request built by a wizard equals the request parsed
+- [ ] Parity tests: the request built by a wizard equals the request parsed
   from its printed equivalent command.
-- [x] Non-interactive regression tests: no command blocks or emits escape
+- [ ] Non-interactive regression tests: no command blocks or emits escape
   sequences with stdin closed.
-- [x] Interaction flow diagram in `docs/diagrams/`.
+- [ ] Interaction flow diagram in `docs/diagrams/`.
 - [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, root
   `README.md` and the first-API manual chapter updated in the same pull
   request as each stage.

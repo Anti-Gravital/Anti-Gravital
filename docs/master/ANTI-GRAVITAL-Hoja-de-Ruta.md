@@ -22,9 +22,9 @@ Each phase contains four blocks:
 3. **Exit criteria (gate)**: conditions that must be met before moving to the next phase. They function as blocking gates: if they are not met, there is no advancement. This is non-negotiable.
 4. **Phase-specific risks and mitigations**.
 
-The deliverables and exit criteria are expressed as checkable boxes. This document is kept in the repository and is updated by crossing off what has been accomplished. It serves as the project's public dashboard.
+The deliverables and exit criteria are expressed as checkable boxes. The boxes describe the contract of each phase, not its current state: the verified state of every box lives in `docs/roadmap/STATUS.md`, which is the operational dashboard.
 
-The main rule is: **a phase is not considered concluded until all of its exit criteria boxes are checked**. The project may be temporarily paused between phases, but it cannot skip steps due to external pressure or urgency.
+The main rule is: **a phase is not considered concluded until `docs/roadmap/STATUS.md` records all of its exit criteria as done**. The project may be temporarily paused between phases, but it cannot skip steps due to external pressure or urgency.
 
 ---
 
@@ -328,60 +328,60 @@ experience. The introduction of this phase is made official in `ADR-0007`.
 
 ### 4.5.1 Entry criteria
 
-- [x] Phase 4 completed with all of its exit criteria checked.
-- [x] `ag-auth` exposes hooks/events for email verification, password
+- [ ] Phase 4 completed with all of its exit criteria checked.
+- [ ] `ag-auth` exposes hooks/events for email verification, password
   recovery and magic links.
-- [x] `ag-observe` records metrics and traces of asynchronous jobs.
-- [x] RFC approved for the initial scope of `ag-mail`. See RFC-0006.
-- [x] RFC approved for the initial scope of `ag-domains`. See RFC-0007.
+- [ ] `ag-observe` records metrics and traces of asynchronous jobs.
+- [ ] RFC approved for the initial scope of `ag-mail`. See RFC-0006.
+- [ ] RFC approved for the initial scope of `ag-domains`. See RFC-0007.
 
 ### 4.5.2 Deliverables
 
-- [x] `ag-mail` crate (deferred standard): `MailSender` trait + `SmtpSender`
+- [ ] `ag-mail` crate (deferred standard): `MailSender` trait + `SmtpSender`
   (`lettre` + `rustls`). 38 tests.
-- [x] HTML/plaintext templates: `MailTemplate` trait + `StringTemplate` with
+- [ ] HTML/plaintext templates: `MailTemplate` trait + `StringTemplate` with
   `{{var}}` substitution. External engines (askama, minijinja) integrable via
   trait. Compile-time var validation via `template::validate`.
-- [x] Email declaration in `schema.ag` (`mail` block). DSL v0.7.
-- [x] `ag-auth` → `ag-mail` integration for verification, recovery and
+- [ ] Email declaration in `schema.ag` (`mail` block). DSL v0.7.
+- [ ] `ag-auth` → `ag-mail` integration for verification, recovery and
   magic links. `AuthMailer` with `"mail"` feature.
-- [x] Asynchronous queue with retries and exponential backoff. `InMemoryQueue`
+- [ ] Asynchronous queue with retries and exponential backoff. `InMemoryQueue`
   backend. Persistent backend via `ag-data` deferred (TECH-DEBT documented).
-- [x] Metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_retry_total`,
+- [ ] Metrics towards `ag-observe`: `ag_mail_sent_total`, `ag_mail_retry_total`,
   `ag_mail_send_latency_seconds` (feature `"metrics"`).
-- [x] `ag-domains` crate (optional infra): `DnsProvider` trait with Cloudflare
+- [ ] `ag-domains` crate (optional infra): `DnsProvider` trait with Cloudflare
   adapter; declarative A/AAAA/CNAME/TXT/MX model. 28 tests.
-- [x] ACME support (Let's Encrypt) via `instant-acme`: `issue()` +
+- [ ] ACME support (Let's Encrypt) via `instant-acme`: `issue()` +
   `issue_with_credentials()` + `spawn_renewal_task()`. DNS-01 challenge.
   TECH-DEBT: `notAfter` parsing for exact renewal.
-- [x] Generation of SPF/DKIM/DMARC required by `ag-mail`. `apply_mail_records`
+- [ ] Generation of SPF/DKIM/DMARC required by `ag-mail`. `apply_mail_records`
   idempotent (`ag-mail` ↔ `ag-domains` cooperation without dependency cycle).
-- [x] Propagation verification against multiple public resolvers
+- [ ] Propagation verification against multiple public resolvers
   (`hickory-resolver`). `PropagationChecker` + `DEFAULT_RESOLVERS`.
-- [x] DSL v0.7: `mail`, `domain`, `template` blocks; compiler validates that
+- [ ] DSL v0.7: `mail`, `domain`, `template` blocks; compiler validates that
   `from` references a declared `domain`, provider is valid, vars exist in
   templates, and DMARC policy is valid.
-- [x] Update of the `ag-lsp` LSP for the new blocks: hover and completions for
+- [ ] Update of the `ag-lsp` LSP for the new blocks: hover and completions for
   `mail`/`domain`/`template` and their 7 properties.
-- [x] CLI commands: `ag domains check`, `ag domains sync`, `ag mail test`.
-- [x] `auth-mail-demo` example in `examples/`: three flows with `NullSender`.
-- [x] Documentation: "Configure domain, TLS and transactional email with
+- [ ] CLI commands: `ag domains check`, `ag domains sync`, `ag mail test`.
+- [ ] `auth-mail-demo` example in `examples/`: three flows with `NullSender`.
+- [ ] Documentation: "Configure domain, TLS and transactional email with
   Anti-Gravital". See `docs/manual/03-dominio-tls-correo.md`.
 
 ### 4.5.3 Exit criteria (gate before Phase 5)
 
-- [x] `ag-mail` sends transactional HTML and plaintext email from an
+- [ ] `ag-mail` sends transactional HTML and plaintext email from an
   Anti-Gravital project via the native sender **and** via at least one adapter.
-- [x] `ag-auth` uses `ag-mail` for email verification and password
+- [ ] `ag-auth` uses `ag-mail` for email verification and password
   recovery in the `auth-mail-demo` example.
-- [x] `ag-domains` implements functional `CloudflareProvider` with contract tests.
-- [x] `ag-domains` issues and renews TLS certificates via ACME (Let's Encrypt
+- [ ] `ag-domains` implements functional `CloudflareProvider` with contract tests.
+- [ ] `ag-domains` issues and renews TLS certificates via ACME (Let's Encrypt
   staging/production).
-- [x] `ag-domains` generates SPF/DKIM/DMARC required by `ag-mail`.
-- [x] `ag domains check`, `ag domains sync` and `ag mail test` compile and pass CI.
-- [x] 14 cross-module E2E tests in `tests/integration` (7 Phase 4 + 7 Phase 4.5).
-- [x] Zero circular dependencies (green CI job).
-- [x] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` and
+- [ ] `ag-domains` generates SPF/DKIM/DMARC required by `ag-mail`.
+- [ ] `ag domains check`, `ag domains sync` and `ag mail test` compile and pass CI.
+- [ ] 14 cross-module E2E tests in `tests/integration` (7 Phase 4 + 7 Phase 4.5).
+- [ ] Zero circular dependencies (green CI job).
+- [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo audit` and
   `cargo deny check` green.
 
 ### 4.5.4 Phase risks
@@ -455,9 +455,9 @@ to remove the ambiguity.
 
 ### 4.6.3 Exit criteria
 
-- [x] Mail A and Mail B merged behind opt-in features with the relay sender
+- [ ] Mail A and Mail B merged behind opt-in features with the relay sender
   still the default.
-- [x] Workers S1–S5 and S7 merged; the duplicated generic mail queue removed.
+- [ ] Workers S1–S5 and S7 merged; the duplicated generic mail queue removed.
 - [ ] Mail A gate of `RFC-0009`: a message delivered by the native MTA to a
   real external mailbox passes aligned SPF, DKIM and DMARC. Manual evidence
   recorded with date, commit and headers.
@@ -493,9 +493,9 @@ a new user reaches a running project without reading the manual first.
 
 ### 4.7.1 Entry criteria
 
-- [x] `RFC-0018` accepted, including its three open questions (interface
+- [ ] `RFC-0018` accepted, including its three open questions (interface
   language, gate position, behavior of bare `ag`).
-- [x] `ag-cli` split into modules with no behavior change, verified by the
+- [ ] `ag-cli` split into modules with no behavior change, verified by the
   existing command-tree test. The typed request and single executor exist for
   `ag new`; each other command gets its own when it gains an interactive flow.
 
@@ -503,19 +503,19 @@ a new user reaches a running project without reading the manual first.
 
 Stage A — foundation and project creation:
 
-- [x] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
+- [ ] `tui` Cargo feature in `ag-cli` (default on); the binary builds and all
   commands work with `--no-default-features`.
-- [x] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
+- [ ] Terminal guard that restores the terminal on exit, error, `Ctrl-C` and
   panic.
-- [x] `ag new` wizard: name with live validation, template with description,
+- [ ] `ag new` wizard: name with live validation, template with description,
   review screen, result printed after the interface closes. `NAME` becomes
   optional.
-- [x] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
+- [ ] Global `--no-interactive` flag and `AG_NO_TUI`; automatic non-interactive
   mode when not a terminal, when `CI` is set or when `TERM=dumb`.
-- [x] Equivalent non-interactive command printed at the end of every flow.
-- [x] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
-- [x] Degraded line-prompt mode below 80x24.
-- [x] A single interaction library in `ag-cli` (the previous prompt library is
+- [ ] Equivalent non-interactive command printed at the end of every flow.
+- [ ] Monochrome theme honoring `NO_COLOR`; ASCII and box-drawing glyphs only.
+- [ ] Degraded line-prompt mode below 80x24.
+- [ ] A single interaction library in `ag-cli` (the previous prompt library is
   removed).
 
 Stage B — project configuration:
@@ -540,14 +540,14 @@ Cross-stage:
 Each box below is checked for the screens that exist (stage A) and applies
 again to every screen added by stages B and C.
 
-- [x] State-transition unit tests for every screen.
-- [x] Render tests at 80x24 and 120x40, color and monochrome, asserting on the
+- [ ] State-transition unit tests for every screen.
+- [ ] Render tests at 80x24 and 120x40, color and monochrome, asserting on the
   rendered buffer.
-- [x] Parity tests: the request built by a wizard equals the request parsed
+- [ ] Parity tests: the request built by a wizard equals the request parsed
   from its printed equivalent command.
-- [x] Non-interactive regression tests: no command blocks or emits escape
+- [ ] Non-interactive regression tests: no command blocks or emits escape
   sequences with stdin closed.
-- [x] Interaction flow diagram in `docs/diagrams/`.
+- [ ] Interaction flow diagram in `docs/diagrams/`.
 - [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, root
   `README.md` and the first-API manual chapter updated in the same pull
   request as each stage.
@@ -1164,9 +1164,9 @@ Cada fase contiene cuatro bloques:
 3. **Criterios de salida (puerta)**: condiciones que deben cumplirse antes de pasar a la siguiente fase. Funcionan como puertas bloqueantes: si no se cumplen, no se avanza. Esto es no negociable.
 4. **Riesgos específicos de la fase y mitigaciones**.
 
-Los entregables y criterios de salida se expresan como casillas marcables. Este documento se mantiene en el repositorio y se actualiza tachando lo cumplido. Sirve como tablero de mando público del proyecto.
+Los entregables y criterios de salida se expresan como casillas marcables. Las casillas describen el contrato de cada fase, no su estado actual: el estado verificado de cada una vive en `docs/roadmap/STATUS.md`, que es el tablero operativo.
 
-La regla principal es: **una fase no se da por concluida hasta que todas sus casillas de criterio de salida están marcadas**. El proyecto puede pausarse temporalmente entre fases, pero no puede saltarse pasos por presión externa o por urgencia.
+La regla principal es: **una fase no se da por concluida hasta que `docs/roadmap/STATUS.md` registra todos sus criterios de salida como cumplidos**. El proyecto puede pausarse temporalmente entre fases, pero no puede saltarse pasos por presión externa o por urgencia.
 
 ---
 
@@ -1603,9 +1603,9 @@ las nombra de forma explícita para eliminar la ambigüedad.
 
 ### 4.6.3 Criterios de salida
 
-- [x] Correo A y Correo B fusionadas tras features opt-in, con el sender de
+- [ ] Correo A y Correo B fusionadas tras features opt-in, con el sender de
   relay como valor por defecto.
-- [x] Workers S1–S5 y S7 fusionadas; eliminada la cola genérica duplicada de
+- [ ] Workers S1–S5 y S7 fusionadas; eliminada la cola genérica duplicada de
   correo.
 - [ ] Gate de Correo A según `RFC-0009`: un mensaje entregado por el MTA nativo
   a un buzón externo real pasa SPF, DKIM y DMARC alineados. Evidencia manual
@@ -1644,9 +1644,9 @@ el manual.
 
 ### 4.7.1 Criterios de entrada
 
-- [x] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas (idioma de la
+- [ ] `RFC-0018` aceptada, incluidas sus tres preguntas abiertas (idioma de la
   interfaz, posición en las puertas, comportamiento de `ag` sin argumentos).
-- [x] `ag-cli` dividido en módulos sin cambio de comportamiento, verificado por
+- [ ] `ag-cli` dividido en módulos sin cambio de comportamiento, verificado por
   el test existente del árbol de comandos. La petición tipada y el ejecutor
   único existen para `ag new`; cada otro comando recibe los suyos cuando gane
   un flujo interactivo.
@@ -1655,21 +1655,21 @@ el manual.
 
 Etapa A — fundación y creación de proyecto:
 
-- [x] Feature de Cargo `tui` en `ag-cli` (activa por defecto); el binario
+- [ ] Feature de Cargo `tui` en `ag-cli` (activa por defecto); el binario
   compila y todos los comandos funcionan con `--no-default-features`.
-- [x] Guarda de terminal que restaura la terminal al salir, ante error, ante
+- [ ] Guarda de terminal que restaura la terminal al salir, ante error, ante
   `Ctrl-C` y ante panic.
-- [x] Asistente de `ag new`: nombre con validación en vivo, template con
+- [ ] Asistente de `ag new`: nombre con validación en vivo, template con
   descripción, pantalla de revisión, pantalla de resultado. `NAME` pasa a ser
   opcional.
-- [x] Flag global `--no-interactive` y variable `AG_NO_TUI`; modo no
+- [ ] Flag global `--no-interactive` y variable `AG_NO_TUI`; modo no
   interactivo automático cuando no hay terminal, cuando `CI` está definida o
   cuando `TERM=dumb`.
-- [x] Comando no interactivo equivalente impreso al final de cada flujo.
-- [x] Tema monocromo que respeta `NO_COLOR`; solo glifos ASCII y de trazado de
+- [ ] Comando no interactivo equivalente impreso al final de cada flujo.
+- [ ] Tema monocromo que respeta `NO_COLOR`; solo glifos ASCII y de trazado de
   cajas.
-- [x] Modo degradado de prompts por línea por debajo de 80x24.
-- [x] Una única librería de interacción en `ag-cli` (se retira la librería de
+- [ ] Modo degradado de prompts por línea por debajo de 80x24.
+- [ ] Una única librería de interacción en `ag-cli` (se retira la librería de
   prompts anterior).
 
 Etapa B — configuración del proyecto:
@@ -1697,14 +1697,14 @@ Transversales:
 Cada casilla siguiente está marcada para las pantallas que existen (etapa A)
 y vuelve a aplicar a cada pantalla que añadan las etapas B y C.
 
-- [x] Tests unitarios de transición de estado para cada pantalla.
-- [x] Tests de render a 80x24 y 120x40, en color y monocromo, que verifican el
+- [ ] Tests unitarios de transición de estado para cada pantalla.
+- [ ] Tests de render a 80x24 y 120x40, en color y monocromo, que verifican el
   buffer renderizado.
-- [x] Tests de paridad: la petición construida por un asistente es igual a la
+- [ ] Tests de paridad: la petición construida por un asistente es igual a la
   petición parseada desde su comando equivalente impreso.
-- [x] Tests de regresión no interactiva: ningún comando se bloquea ni emite
+- [ ] Tests de regresión no interactiva: ningún comando se bloquea ni emite
   secuencias de escape con stdin cerrado.
-- [x] Diagrama del flujo de interacción en `docs/diagrams/`.
+- [ ] Diagrama del flujo de interacción en `docs/diagrams/`.
 - [ ] `crates/ag-cli/README.md`, `docs/modules/ag-cli/README.md`, el
   `README.md` raíz y el capítulo del manual de la primera API actualizados en
   la misma pull request de cada etapa.
@@ -2315,7 +2315,7 @@ Esta hoja de ruta extendida no es un compromiso. Se documenta para señalar dire
 
 A modo de cierre, las cinco reglas que rigen este proceso de extremo a extremo:
 
-**Primera regla.** Una fase no se considera concluida hasta que todas sus casillas de criterio de salida están marcadas. Sin excepciones.
+**Primera regla.** Una fase no se considera concluida hasta que `docs/roadmap/STATUS.md` registra todos sus criterios de salida como cumplidos. Sin excepciones.
 
 **Segunda regla.** Si una fase requiere más tiempo del estimado, se extiende. Si el alcance original no es alcanzable, se reduce con un RFC público, no se relajan los criterios de calidad.
 

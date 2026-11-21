@@ -41,9 +41,9 @@ to remove the ambiguity.
 
 ### 4.6.3 Exit criteria
 
-- [x] Mail A and Mail B merged behind opt-in features with the relay sender
+- [ ] Mail A and Mail B merged behind opt-in features with the relay sender
   still the default.
-- [x] Workers S1–S5 and S7 merged; the duplicated generic mail queue removed.
+- [ ] Workers S1–S5 and S7 merged; the duplicated generic mail queue removed.
 - [ ] Mail A gate of `RFC-0009`: a message delivered by the native MTA to a
   real external mailbox passes aligned SPF, DKIM and DMARC. Manual evidence
   recorded with date, commit and headers.

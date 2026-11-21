@@ -68,8 +68,10 @@ In scope:
 
 Explicitly out of scope:
 
-- `ag-mail` is not a full MTA: no inbound, no IMAP/POP, no mailboxes, no
-  antispam, no IP reputation.
+- `ag-mail` has a native **outbound** MTA behind the `mta` and
+  `queue-postgres` features (RFC-0009 / ADR-0010): MX resolution,
+  ESMTP/STARTTLS delivery and DKIM signing. Inbound delivery, IMAP/POP,
+  mailboxes, antispam and IP reputation remain out of scope.
 - `ag-domains` is not a registrar and does not replace Terraform.
 - Anti-Gravital does not reinvent dominant infrastructure tools.
 
@@ -93,7 +95,7 @@ Dependency rules: `ag-core` depends on no Anti-Gravital crate; no circular
 dependencies; `ag-auth -> ag-mail` (not the reverse); `ag-cloud ->
 ag-domains` (non-rigid).
 
-### 5. Delivery state (close of Phase 4.5)
+### 5. Delivery state (close of Phase 4.7)
 
 Phases 1 through 4.5 have their technical implementation complete and
 merged to `main`:
@@ -113,11 +115,19 @@ Practical implementation decisions worth recording at blueprint level:
   (Apache-2.0). See `ADR-0006`.
 - Mail templating ships as a `MailTemplate` trait plus a `StringTemplate`
   implementation, allowing any engine (askama, minijinja) to be plugged in.
-- `ag-cache` ships L1 (moka); the native L2 (RESP2) is proposed in
-  `RFC-0005` and not yet implemented.
+- `ag-cache` ships L1 (moka) and a native RESP2 L2 (RFC-0005), with an
+  optional external backing behind the `redis-l2` feature.
 
-Phase 5 (`ag-cloud`) is next. The public beta (v0.5) milestone remains at
-the end of Phase 5.
+- Phase 4.6 — native outbound MTA and `ag-workers` (typed jobs, DLQ and
+  scheduling), DSL v0.8.
+- Phase 4.7 — interactive terminal experience (RFC-0018): stage A delivered;
+  stages B (`ag config`) and C (home screen) pending.
+
+Phase 5 (`ag-cloud`) opens when the pre-Phase-5 release gate closes. The
+additive Phase 4.8 (project foundations) and Phase 5.5 (functions) are
+accepted but not started; the shared capability-scoped MCP interface is
+defined in RFC-0024. The public beta (v0.5) milestone remains at the end of
+Phase 5.
 
 ### 6. Governance and source of truth
 
@@ -183,8 +193,10 @@ Dentro del alcance:
 
 Explicitamente fuera del alcance:
 
-- `ag-mail` no es un MTA completo: sin inbound, sin IMAP/POP, sin buzones,
-  sin antispam, sin reputacion de IP.
+- `ag-mail` cuenta con un MTA **outbound** nativo detras de las features
+  `mta` y `queue-postgres` (RFC-0009 / ADR-0010): resolucion MX, entrega
+  ESMTP/STARTTLS y firma DKIM. El correo entrante, IMAP/POP, los buzones,
+  el antispam y la reputacion de IP siguen fuera del alcance.
 - `ag-domains` no es un registrador y no reemplaza Terraform.
 - Anti-Gravital no reinventa herramientas de infraestructura dominantes.
 
@@ -209,7 +221,7 @@ Reglas de dependencia: `ag-core` no depende de ningun crate Anti-Gravital;
 sin dependencias circulares; `ag-auth -> ag-mail` (no al reves);
 `ag-cloud -> ag-domains` (no rigida).
 
-### 5. Estado de entrega (cierre de la Fase 4.5)
+### 5. Estado de entrega (cierre de la Fase 4.7)
 
 Las fases 1 a 4.5 tienen su implementacion tecnica completa y mergeada a
 `main`:
@@ -232,11 +244,18 @@ blueprint:
 - El templating de correo se ofrece como trait `MailTemplate` mas una
   implementacion `StringTemplate`, permitiendo conectar cualquier motor
   (askama, minijinja).
-- `ag-cache` entrega L1 (moka); el L2 nativo (RESP2) esta propuesto en
-  `RFC-0005` y aun no implementado.
+- `ag-cache` entrega L1 (moka) y un L2 nativo RESP2 (RFC-0005), con un
+  backend externo opcional detras de la feature `redis-l2`.
 
-La Fase 5 (`ag-cloud`) es la proxima. El hito de beta publica (v0.5)
-permanece al final de la Fase 5.
+- Fase 4.6 — MTA outbound nativo y `ag-workers` (jobs tipados, DLQ y
+  scheduling), DSL v0.8.
+- Fase 4.7 — experiencia interactiva de terminal (RFC-0018): etapa A
+  entregada; etapas B (`ag config`) y C (pantalla de inicio) pendientes.
+
+La Fase 5 (`ag-cloud`) se abre cuando cierre la puerta pre-Fase 5. Las fases
+aditivas 4.8 (fundaciones del proyecto) y 5.5 (funciones) estan aceptadas
+pero sin iniciar; la interfaz MCP compartida por capacidades se define en
+RFC-0024. El hito de beta publica (v0.5) permanece al final de la Fase 5.
 
 ### 6. Gobernanza y fuente de verdad
 

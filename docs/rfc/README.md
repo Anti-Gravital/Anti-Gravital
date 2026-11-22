@@ -88,3 +88,4 @@ como `superseded`.
 | 0022 | Guardarrailes de mantenibilidad: reglas verificables contra la degradacion | aceptada | `RFC-0022-maintainability-guardrails.md` |
 | 0023 | Funciones serverless | aceptada | `RFC-0023-serverless-functions.md` |
 | 0024 | Interfaz de maquina MCP compartida con agentes por capacidades | aceptada | `RFC-0024-mcp-shared-machine-interface.md` |
+| 0027 | chumsky 0.9 a 0.13/0.14 para el parser de Anti-DSL (enmienda de RFC-0003) | propuesta | `RFC-0027-chumsky-parser-upgrade.md` |

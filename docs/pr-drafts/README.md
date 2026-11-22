@@ -91,25 +91,12 @@ rama de herramienta IA (`claude-`, `gpt-`, `ai-`, `copilot-`): el job
 
 ## Indice
 
-Ramas con descriptor aceptando PR en este momento:
+No hay descriptores activos en este momento. Las ramas de trabajo se integran
+directamente en `main` y su descriptor se elimina al fusionarse; la trazabilidad
+del trabajo fusionado vive en el historial de git, el CHANGELOG y los Issues.
 
-- `community7/k8s`: `docs/pr-drafts/community7-k8s.md` (manifiestos opcionales
-  de Kubernetes para las familias de plantillas, ola 7).
-- `community8/dnsarch`: `docs/pr-drafts/community8-dnsarch.md` (contrato RFC-0033
-  del circuito dominio-despliegue y documentacion de extremo a extremo, ola 8,
-  solo diseno).
-- `community8/dnsdocs`: `docs/pr-drafts/community8-dnsdocs.md` (guia bilingue
-  del circulo dominio-despliegue y enlaces de navegacion, ola 8).
-- `community8/dnsapi`: `docs/pr-drafts/community8-dnsapi.md` (comandos locales
-  `ag dns plan|apply|status` y `ag domains attach` desde `ag.toml`, ola 8).
-- `community9/coredev`: `docs/pr-drafts/community9-coredev.md` (endurecimiento
-  de RFC-0020 fase B en ag-core: sin clones de secretos sin ceroizar y
-  validacion de entorno opcional al cargar la configuracion, ola 9).
-- `community9/clidev`: `docs/pr-drafts/community9-clidev.md` (`ag new --with`
-  y `ag env list|check`, RFC-0019/0020, ola 9).
-- `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
-  opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
-  cierra #178, ola 11).
-- `community12/i185`: `docs/pr-drafts/community12-i185.md` (monitor opt-in de
-  deriva del ultimo borde chrono con baseline y re-check de upstream; no cierra
-  #185, ola 12).
+Cuando una rama vaya a producir una pull request, anada aqui su fila con el
+formato `\`rama\`: \`docs/pr-drafts/rama.md\` (descripcion)` y retirela cuando la
+PR se fusione o se cierre. El job `descriptor closing-keywords` rechaza
+cualquier descriptor (salvo este `README.md`) sin una seccion
+`## Cierre de issues` con `Closes #NNN`, `Refs #NNN` o `Closes: none`.

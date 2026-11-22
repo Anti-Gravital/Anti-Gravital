@@ -26,6 +26,8 @@ fn snapshot(name: &str) -> &'static str {
         }
         "schema.diff" => include_str!("../../../docs/mcp/snapshots/schema.diff.json"),
         "workers.list" => include_str!("../../../docs/mcp/snapshots/workers.list.json"),
+        "dns.plan" => include_str!("../../../docs/mcp/snapshots/dns.plan.json"),
+        "dns.status" => include_str!("../../../docs/mcp/snapshots/dns.status.json"),
         "unsupported_command" => {
             include_str!("../../../docs/mcp/snapshots/unsupported_command.json")
         }
@@ -41,7 +43,11 @@ fn scratch_dir(label: &str) -> PathBuf {
 }
 
 fn write(dir: &Path, name: &str, contents: &str) {
-    std::fs::write(dir.join(name), contents).expect("write fixture");
+    let path = dir.join(name);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("create fixture parent");
+    }
+    std::fs::write(path, contents).expect("write fixture");
 }
 
 fn ag(args: &[&str], dir: &Path, env: &[(&str, &str)]) -> Output {
@@ -93,6 +99,13 @@ fn reference_schema() -> &'static str {
 
 fn current_schema() -> &'static str {
     "model Old {\n  id UUID @primary\n  title String\n}\nmodel New {\n  id UUID @primary\n}\n"
+}
+
+fn dns_manifest() -> &'static str {
+    "[project]\nname = \"demo\"\n\n[domain]\ndomain = \"api.example.com\"\nenvironment = \
+     \"production\"\nvisibility = \"public\"\ntls = \"managed_http01\"\ntarget = { kind = \
+     \"service\", ref = \"api\" }\n\n[domain.dns]\nCNAME = [{ name = \"api.example.com\", \
+     value = \"edge.example-cloud.net\" }]\n"
 }
 
 fn workers_schema() -> &'static str {
@@ -203,6 +216,38 @@ fn workers_list_matches_snapshot() {
 }
 
 #[test]
+fn dns_plan_matches_snapshot_without_network_or_writes() {
+    let dir = scratch_dir("dns-plan");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(
+        &["--output", "json", "dns", "plan"],
+        &dir,
+        &[
+            ("AG_CLOUDFLARE_TOKEN", "CANARY-NETWORK-TOKEN"),
+            ("AG_DNS_ZONE_ID", "CANARY-ZONE"),
+        ],
+    );
+    assert!(output.status.success(), "{output:?}");
+    assert_snapshot(&output, "dns.plan");
+    let value: serde_json::Value = serde_json::from_str(stdout(&output).trim()).expect("JSON");
+    assert!(value["data"]["plan_id"]
+        .as_str()
+        .unwrap()
+        .starts_with("dns-production-"));
+    assert_eq!(value["data"]["records"].as_array().unwrap().len(), 2);
+    assert!(!dir.join(".ag/dns/state.json").exists());
+}
+
+#[test]
+fn dns_status_matches_snapshot_when_not_applied() {
+    let dir = scratch_dir("dns-status");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(&["--output", "json", "dns", "status"], &dir, &[]);
+    assert!(output.status.success(), "{output:?}");
+    assert_snapshot(&output, "dns.status");
+}
+
+#[test]
 fn mutating_commands_refuse_json_before_doing_work() {
     let dir = scratch_dir("refuse-mutating");
     write(&dir, "schema.ag", clean_schema());
@@ -242,6 +287,14 @@ fn read_commands_without_a_shape_are_refused() {
     for args in [
         vec!["--output", "json", "domains", "list"],
         vec!["--output", "json", "workers", "doctor"],
+        vec![
+            "--output",
+            "json",
+            "dns",
+            "apply",
+            "--plan",
+            "dns-prod-canary",
+        ],
     ] {
         let output = ag(&args, &dir, &[]);
         assert_eq!(output.status.code(), Some(2), "{args:?}");
@@ -298,6 +351,28 @@ fn canary_secrets_are_never_echoed_by_a_refusal() {
 }
 
 #[test]
+fn dns_apply_refuses_json_without_creating_a_state_file() {
+    let dir = scratch_dir("dns-refuse");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(
+        &[
+            "--output",
+            "json",
+            "dns",
+            "apply",
+            "--plan",
+            "CANARY-PLAN-ID",
+        ],
+        &dir,
+        &[("AG_CLOUDFLARE_TOKEN", "CANARY-TOKEN")],
+    );
+    assert_eq!(output.status.code(), Some(2));
+    assert_snapshot(&output, "unsupported_command");
+    assert!(!dir.join(".ag/dns/state.json").exists());
+    assert!(!stdout(&output).contains("CANARY"));
+}
+
+#[test]
 fn every_supported_document_carries_the_contract_version() {
     let dir = scratch_dir("version");
     write(&dir, "schema.ag", clean_schema());
@@ -317,7 +392,7 @@ fn every_supported_document_carries_the_contract_version() {
         assert!(output.status.success(), "{args:?}: {output:?}");
         let value: serde_json::Value =
             serde_json::from_str(stdout(&output).trim()).expect("valid JSON");
-        assert_eq!(value["contract_version"], "0.1.0");
+        assert_eq!(value["contract_version"], "0.2.0");
         assert_eq!(value["status"], "ok");
         assert!(value.get("data").is_some());
         assert!(value.get("error").is_none());
@@ -333,11 +408,13 @@ fn snapshots_are_valid_json_with_a_matching_version() {
         "schema.lint.read_failed",
         "schema.diff",
         "workers.list",
+        "dns.plan",
+        "dns.status",
         "unsupported_command",
     ] {
         let value: serde_json::Value =
             serde_json::from_str(snapshot(name)).expect("snapshot is valid JSON");
-        assert_eq!(value["contract_version"], "0.1.0", "{name}");
+        assert_eq!(value["contract_version"], "0.2.0", "{name}");
     }
     // Keep the directory honest if a file is moved.
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOT_DIR);

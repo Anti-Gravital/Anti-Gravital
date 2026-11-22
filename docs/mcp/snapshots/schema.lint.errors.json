@@ -1,1 +1,1 @@
-{"contract_version":"0.1.0","command":"schema.lint","status":"ok","data":{"schema":"invalid.ag","result":"errors","error_count":1,"warning_count":0,"diagnostics":[{"severity":"error","message":"token inesperado: LBrace","hint":null,"span_start":6,"span_end":7}]}}
+{"contract_version":"0.2.0","command":"schema.lint","status":"ok","data":{"schema":"invalid.ag","result":"errors","error_count":1,"warning_count":0,"diagnostics":[{"severity":"error","message":"token inesperado: LBrace","hint":null,"span_start":6,"span_end":7}]}}

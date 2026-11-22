@@ -95,3 +95,5 @@ Ramas con descriptor aceptando PR en este momento:
 
 - `community7/k8s`: `docs/pr-drafts/community7-k8s.md` (manifiestos opcionales
   de Kubernetes para las familias de plantillas, ola 7).
+- `community8/dnsapi`: `docs/pr-drafts/community8-dnsapi.md` (comandos locales
+  `ag dns plan|apply|status` y `ag domains attach` desde `ag.toml`, ola 8).

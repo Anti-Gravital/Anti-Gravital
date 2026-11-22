@@ -34,7 +34,8 @@ Implemented through Phase 4.7. Nine top-level commands (plus bare `ag`):
 | bare `ag` | 4.7-C | Home screen that launches existing commands with keyboard navigation; prints help outside a terminal (`RFC-0018`) |
 | `ag generate` | 3 | Compile `schema.ag` into SQL, Rust, TypeScript and OpenAPI |
 | `ag schema lint`, `ag schema diff` | 3 | Schema diagnostics and breaking-change detection |
-| `ag domains ...` | 4.5 / `RFC-0011` | `check`, `sync`, `attach`, `instructions`, `export-zone`, `status`, `list`, `verify`, `detach`, `diagnose` |
+| `ag dns ...` | additive 4.8 / `RFC-0033` | `plan` (deterministic, offline), `apply` (plan-id gated, adapter opt-in), `status` (read-only); reads the `[domain]` table of `ag.toml` |
+| `ag domains ...` | 4.5 / `RFC-0011` | `check`, `sync`, `attach`, `instructions`, `export-zone`, `status`, `list`, `verify`, `detach`, `diagnose`; `attach` also accepts `--manifest ag.toml` |
 | `ag mail test` | 4.5 | Send a test message |
 | `ag workers ...` | 4.6 / `RFC-0012`, `RFC-0017` | `list`, and the operational group behind the default `workers-runtime` feature (`run`, `enqueue`, `queues`, `dlq`, `doctor`) |
 

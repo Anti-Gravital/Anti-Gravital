@@ -1,1 +1,1 @@
-{"contract_version":"0.1.0","command":"workers.list","status":"ok","data":{"schema":"workers.ag","workers":[{"name":"SendWelcomeEmail","queue":"mail","mode":"static","concurrency":4,"input":["user_id","email"],"retry_max_attempts":5}]}}
+{"contract_version":"0.2.0","command":"workers.list","status":"ok","data":{"schema":"workers.ag","workers":[{"name":"SendWelcomeEmail","queue":"mail","mode":"static","concurrency":4,"input":["user_id","email"],"retry_max_attempts":5}]}}

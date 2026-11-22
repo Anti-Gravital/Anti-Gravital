@@ -16,7 +16,7 @@ use std::io::{self, Write};
 ///
 /// Shapes are unstable until Anti-Gravital 0.5 (RFC-0021 risk table). Any
 /// change to a field name, type, presence or value set bumps this version.
-pub(crate) const CONTRACT_VERSION: &str = "0.1.0";
+pub(crate) const CONTRACT_VERSION: &str = "0.2.0";
 
 /// Value of the global `--output` flag.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -109,6 +109,45 @@ pub(crate) struct WorkersListData {
     pub(crate) workers: Vec<WorkerView>,
 }
 
+/// One validated record in `dns.plan` (RFC-0033).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsRecordView {
+    pub(crate) record_type: String,
+    pub(crate) name: String,
+    pub(crate) value: String,
+    pub(crate) ttl: u32,
+    pub(crate) is_ownership: bool,
+}
+
+/// Data of `dns.plan`. Contains no credential, zone id or path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsPlanData {
+    pub(crate) plan_id: String,
+    pub(crate) domain: String,
+    pub(crate) zone: String,
+    pub(crate) environment: String,
+    pub(crate) visibility: String,
+    pub(crate) project: String,
+    pub(crate) service: String,
+    pub(crate) target_kind: String,
+    pub(crate) tls: String,
+    pub(crate) records: Vec<DnsRecordView>,
+    pub(crate) notes: Vec<String>,
+}
+
+/// Data of `dns.status`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsStatusData {
+    pub(crate) environment: String,
+    pub(crate) applied: bool,
+    pub(crate) plan_id: Option<String>,
+    pub(crate) domain: Option<String>,
+    pub(crate) visibility: Option<String>,
+    pub(crate) provider: Option<String>,
+    pub(crate) record_count: usize,
+    pub(crate) in_sync: bool,
+}
+
 /// Writes one compact, deterministic JSON line to stdout.
 fn write_json<T: Serialize>(value: &T) {
     let text = serde_json::to_string(value).expect("versioned JSON shapes are serializable");
@@ -159,7 +198,7 @@ mod tests {
         };
         assert_eq!(
             serde_json::to_string(&value).expect("serialize"),
-            r#"{"contract_version":"0.1.0","command":"workers.list","status":"ok","data":{"schema":"schema.ag","workers":[]}}"#
+            r#"{"contract_version":"0.2.0","command":"workers.list","status":"ok","data":{"schema":"schema.ag","workers":[]}}"#
         );
     }
 
@@ -178,18 +217,18 @@ mod tests {
         let json = serde_json::to_string(&value).expect("serialize");
         assert_eq!(
             json,
-            r#"{"contract_version":"0.1.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"not available"}}"#
+            r#"{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"not available"}}"#
         );
         assert!(!json.contains("\"data\""));
     }
 
     #[test]
     fn contract_matches_the_published_schema() {
-        let schema = include_str!("../../../docs/mcp/cli-json-0.1.0.schema.json");
+        let schema = include_str!("../../../docs/mcp/cli-json-0.2.0.schema.json");
         let parsed: serde_json::Value = serde_json::from_str(schema).expect("valid schema JSON");
         assert_eq!(
             parsed["$id"].as_str(),
-            Some("https://anti-gravital.dev/mcp/cli-json-0.1.0.schema.json")
+            Some("https://anti-gravital.dev/mcp/cli-json-0.2.0.schema.json")
         );
         assert_eq!(
             parsed["properties"]["contract_version"]["const"].as_str(),

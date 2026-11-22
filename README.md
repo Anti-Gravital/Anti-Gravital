@@ -326,6 +326,10 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
 | `ag schema lint` | Validate a DSL schema and report diagnostics |
 | `ag schema diff REFERENCE` | Classify schema changes |
+| `ag dns plan [--manifest PATH] [--env ENV]` | Produce a deterministic, offline record plan from the `[domain]` table of `ag.toml` |
+| `ag dns apply --plan ID [--env ENV] [--provider NAME]` | Apply a reviewed plan to local state; a provider adapter runs only when explicitly named |
+| `ag dns status [--env ENV]` | Read-only report of the last applied plan and whether it is still in sync |
+| `ag domains attach [--manifest PATH] [--allow-wildcard]` | Attach a domain to a project from the manifest or flags, printing exact records (no credentials) |
 | `ag mail test --to ADDRESS` | Verify SMTP configuration |
 | `ag domains check --domain HOST` | Check DNS propagation |
 | `ag domains sync --zone-id ID` | Apply schema DNS records through the configured provider |
@@ -338,9 +342,10 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag workers doctor` | Check workers config and durable-backend connectivity |
 
 The global `--output json` flag produces versioned machine-readable output for
-the read-only commands `ag schema lint`, `ag schema diff` and `ag workers list`
-(contract `0.1.0`, documented in [docs/mcp/](docs/mcp/)). Other commands refuse
-it before doing any work; prose output is unchanged when the flag is absent.
+the read-only commands `ag schema lint`, `ag schema diff`, `ag workers list`,
+`ag dns plan` and `ag dns status` (contract `0.2.0`, documented in
+[docs/mcp/](docs/mcp/)). Other commands refuse it before doing any work; prose
+output is unchanged when the flag is absent.
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.
 `ag deploy`, `ag migrate` and `ag plugin` are future commands and are not in
@@ -878,6 +883,10 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
 | `ag schema lint` | Validar un schema y reportar diagnostics |
 | `ag schema diff REFERENCIA` | Clasificar cambios de schema |
+| `ag dns plan [--manifest RUTA] [--env ENV]` | Produce un plan de registros determinista y sin red desde la tabla `[domain]` de `ag.toml` |
+| `ag dns apply --plan ID [--env ENV] [--provider NOMBRE]` | Aplica un plan revisado al estado local; el adaptador solo se ejecuta si se nombra explicitamente |
+| `ag dns status [--env ENV]` | Informe de solo lectura del ultimo plan aplicado y de si sigue sincronizado |
+| `ag domains attach [--manifest RUTA] [--allow-wildcard]` | Adjunta un dominio al proyecto desde el manifest o flags e imprime los registros exactos (sin credenciales) |
 | `ag mail test --to DIRECCION` | Verificar la configuracion SMTP |
 | `ag domains check --domain HOST` | Verificar propagacion DNS |
 | `ag domains sync --zone-id ID` | Aplicar los registros DNS del schema via el proveedor configurado |
@@ -890,10 +899,10 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag workers doctor` | Verificar configuracion de workers y conectividad del backend durable |
 
 El flag global `--output json` produce salida versionada legible por maquinas
-para los comandos de solo lectura `ag schema lint`, `ag schema diff` y
-`ag workers list` (contrato `0.1.0`, documentado en [docs/mcp/](docs/mcp/)).
-Los demas comandos lo rechazan antes de actuar; la salida en prosa no cambia
-cuando el flag esta ausente.
+para los comandos de solo lectura `ag schema lint`, `ag schema diff`,
+`ag workers list`, `ag dns plan` y `ag dns status` (contrato `0.2.0`,
+documentado en [docs/mcp/](docs/mcp/)). Los demas comandos lo rechazan antes
+de actuar; la salida en prosa no cambia cuando el flag esta ausente.
 
 Ejecuta `ag COMANDO --help` para los flags y variables de entorno
 autoritativos. `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y

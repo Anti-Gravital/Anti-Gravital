@@ -57,6 +57,12 @@ impl Commands {
             Commands::Workers {
                 command: WorkersCommands::List { .. },
             } => Some("workers.list"),
+            Commands::Dns {
+                command: DnsCommands::Plan { .. },
+            } => Some("dns.plan"),
+            Commands::Dns {
+                command: DnsCommands::Status { .. },
+            } => Some("dns.status"),
             _ => None,
         }
     }
@@ -143,6 +149,15 @@ pub(crate) enum Commands {
     Schema {
         #[command(subcommand)]
         command: SchemaCommands,
+    },
+
+    /// Plan and apply a project's domain configuration from a local manifest.
+    ///
+    /// No network access or provider credential is used unless --provider is
+    /// passed explicitly. See `docs/dns/DOMAIN_LOOP.md`.
+    Dns {
+        #[command(subcommand)]
+        command: DnsCommands,
     },
 
     /// Operations on DNS domains.
@@ -312,6 +327,74 @@ pub(crate) enum DlqCommands {
     },
 }
 
+/// Sub-commands of `ag dns` (RFC-0033).
+#[derive(Subcommand)]
+pub(crate) enum DnsCommands {
+    /// Shows the deterministic record plan from the local manifest (no network).
+    Plan {
+        /// Project manifest with a [domain] table.
+        #[arg(
+            long,
+            default_value = crate::commands::dns::DEFAULT_MANIFEST
+        )]
+        manifest: PathBuf,
+        /// Environment to resolve (dev, staging, production, local). Defaults
+        /// to domain.environment in the manifest.
+        #[arg(long = "env")]
+        env: Option<String>,
+    },
+    /// Applies a reviewed plan to local state, optionally via an adapter.
+    ///
+    /// The exact plan id from `ag dns plan` is mandatory. Without --provider
+    /// this command performs no network operation.
+    Apply {
+        /// Project manifest with a [domain] table.
+        #[arg(
+            long,
+            default_value = crate::commands::dns::DEFAULT_MANIFEST
+        )]
+        manifest: PathBuf,
+        /// Environment to resolve. Defaults to domain.environment in the manifest.
+        #[arg(long = "env")]
+        env: Option<String>,
+        /// Plan id printed by `ag dns plan`.
+        #[arg(long)]
+        plan: String,
+        /// Resolved state path.
+        #[arg(
+            long,
+            default_value = crate::commands::dns::DEFAULT_STATE
+        )]
+        state: PathBuf,
+        /// Optional provider adapter. `none` (default) is fully offline.
+        #[arg(long, default_value = "none")]
+        provider: String,
+        /// Provider zone id (only used with --provider; never written to a file).
+        /// Defaults to AG_DNS_ZONE_ID.
+        #[arg(long, env = "AG_DNS_ZONE_ID")]
+        zone_id: Option<String>,
+    },
+    /// Reports the last applied plan and whether the manifest is in sync.
+    Status {
+        /// Project manifest with a [domain] table.
+        #[arg(
+            long,
+            default_value = crate::commands::dns::DEFAULT_MANIFEST
+        )]
+        manifest: PathBuf,
+        /// Resolved state path.
+        #[arg(
+            long,
+            default_value = crate::commands::dns::DEFAULT_STATE
+        )]
+        state: PathBuf,
+        /// Environment to report. Defaults to the one in the manifest, or
+        /// production when there is no manifest.
+        #[arg(long = "env")]
+        env: Option<String>,
+    },
+}
+
 /// Sub-commands of `ag domains`.
 #[derive(Subcommand)]
 pub(crate) enum DomainsCommands {
@@ -352,20 +435,29 @@ pub(crate) enum DomainsCommands {
     /// Native and manual: writes a local attachment store and produces the
     /// exact records to paste at your DNS provider. No credentials required.
     Attach {
-        /// Hostname to attach (e.g. example.com, api.example.com, *.example.com).
-        domain: String,
-        /// Project identifier.
+        /// Hostname to attach (e.g. example.com, api.example.com). Required
+        /// unless --manifest supplies domain.name.
+        domain: Option<String>,
+        /// Project identifier. Defaults to domain.project in the manifest.
         #[arg(long)]
-        project: String,
-        /// Environment identifier.
-        #[arg(long, default_value = "production")]
-        env: String,
-        /// Target service reference.
-        #[arg(long, default_value = "default")]
-        service: String,
-        /// Edge CNAME target host for subdomains/wildcards.
+        project: Option<String>,
+        /// Environment identifier. Defaults to domain.environment in the manifest.
+        #[arg(long)]
+        env: Option<String>,
+        /// Target service reference. Defaults to domain.service in the manifest.
+        #[arg(long)]
+        service: Option<String>,
+        /// Optional domain manifest (RFC-0033). When present, domain, project,
+        /// environment, service and edge host are read from it unless overridden.
+        #[arg(long)]
+        manifest: Option<PathBuf>,
+        /// Explicitly allow a wildcard hostname (off by default for manifests).
+        #[arg(long)]
+        allow_wildcard: bool,
+        /// Edge CNAME target host for subdomains/wildcards. Defaults to the
+        /// manifest's edge.host, or AG_EDGE_HOST.
         #[arg(long, env = "AG_EDGE_HOST")]
-        edge_host: String,
+        edge_host: Option<String>,
         /// Apex IP address (repeatable; A/AAAA records).
         #[arg(long = "ip")]
         ips: Vec<String>,
@@ -545,6 +637,9 @@ mod tests {
             (vec!["ag", "schema", "lint"], Some("schema.lint")),
             (vec!["ag", "schema", "diff", "ref.ag"], Some("schema.diff")),
             (vec!["ag", "workers", "list"], Some("workers.list")),
+            (vec!["ag", "dns", "plan"], Some("dns.plan")),
+            (vec!["ag", "dns", "status"], Some("dns.status")),
+            (vec!["ag", "dns", "apply", "--plan", "dns-prod-0"], None),
             (vec!["ag", "new", "demo"], None),
             (vec!["ag", "domains", "list"], None),
             (vec!["ag", "mail", "test", "--to", "a@example.com"], None),
@@ -617,6 +712,29 @@ mod tests {
                 matches!(cli.command, Some(Commands::Config { .. })),
                 "{args:?}"
             );
+        }
+    }
+
+    #[test]
+    fn dns_subcommands_parse_and_apply_requires_a_plan_id() {
+        for args in [
+            vec!["ag", "dns", "plan"],
+            vec!["ag", "dns", "status", "--env", "prod"],
+        ] {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert!(
+                matches!(cli.command, Some(Commands::Dns { .. })),
+                "{args:?}"
+            );
+        }
+        assert!(Cli::try_parse_from(["ag", "dns", "apply"]).is_err());
+        let cli =
+            Cli::try_parse_from(["ag", "dns", "apply", "--plan", "dns-prod-abc"]).expect("parse");
+        match cli.command {
+            Some(Commands::Dns {
+                command: DnsCommands::Apply { plan, .. },
+            }) => assert_eq!(plan, "dns-prod-abc"),
+            _ => panic!("expected the dns apply command"),
         }
     }
 

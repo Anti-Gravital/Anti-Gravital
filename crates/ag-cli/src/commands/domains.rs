@@ -172,15 +172,52 @@ pub(crate) fn print_instructions(ins: &ag_domains::instructions::DnsInstructions
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn cmd_domains_attach(
-    domain: &str,
-    project: &str,
-    env: &str,
-    service: &str,
-    edge_host: &str,
+    domain: Option<&str>,
+    project: Option<&str>,
+    env: Option<&str>,
+    service: Option<&str>,
+    manifest: Option<&Path>,
+    allow_wildcard: bool,
+    edge_host: Option<&str>,
     ips: &[String],
     state: &Path,
 ) -> Result<(), String> {
+    // A manifest, when supplied, is validated by the same loader as `ag dns
+    // plan` so an attachment can never be built from an invalid binding.
+    let hints = manifest
+        .map(|path| super::dns::manifest_attachment_hints(path, env))
+        .transpose()?;
+    let domain = domain
+        .or_else(|| hints.as_ref().map(|hints| hints.0.as_str()))
+        .ok_or_else(|| {
+            "hostname is required: pass it positionally or set domain.domain in --manifest"
+                .to_owned()
+        })?;
+    let project = project
+        .or_else(|| hints.as_ref().map(|hints| hints.3.as_str()))
+        .ok_or_else(|| {
+            "project is required: pass --project or set [project].name in --manifest".to_owned()
+        })?;
+    let env = env
+        .map(str::to_owned)
+        .or_else(|| hints.as_ref().map(|hints| hints.1.clone()))
+        .unwrap_or_else(|| "production".to_owned());
+    let service = service
+        .or_else(|| hints.as_ref().map(|hints| hints.2.as_str()))
+        .unwrap_or("default");
+    let edge_host = edge_host
+        .ok_or_else(|| "edge host is required: pass --edge-host or set AG_EDGE_HOST".to_owned())?;
+
     let hostname = Hostname::parse(domain).map_err(|e| e.to_string())?;
+    if hostname.ascii().starts_with("*.") && hints.is_some() && !allow_wildcard {
+        // The manifest loader already rejected wildcard domains unless
+        // domain.allow_wildcard is true; an explicit CLI flag is an additional
+        // gate for the attachment itself.
+        return Err(format!(
+            "refusing to attach wildcard '{}' without --allow-wildcard",
+            hostname.ascii()
+        ));
+    }
     let targets = parse_edge_targets(edge_host, ips)?;
     let store = open_store(state)?;
 

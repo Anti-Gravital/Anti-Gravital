@@ -34,9 +34,8 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 # WebAuthn: passkey-types (Apache-2.0) para tipos FIDO2/COSE.
-# OAuth2: oauth2 v5 sin feature reqwest; intercambio HTTP via reqwest 0.12.
+# OAuth2: cliente nativo Authorization Code + PKCE (RFC-0029), sin oauth2/chrono.
 passkey-types = { workspace = true }
-oauth2        = { workspace = true }
 ciborium      = { workspace = true }
 sha2          = { workspace = true }
 p256          = { workspace = true }
@@ -54,4 +53,5 @@ ag-mail = { path = "../ag-mail", version = "0.0.0", features = ["test-utils"] }
 tokio = { workspace = true }
 testcontainers = { workspace = true }
 testcontainers-modules = { workspace = true }
+wiremock = { workspace = true }
 rand_core = { workspace = true }

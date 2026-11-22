@@ -8,6 +8,30 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Wave 9 host benchmark evidence (issue #157)
+
+Added:
+
+- `docs/benchmarks/wave9-host-results.md`: real criterion results from the
+  wave-9 host at commit 7cbc28a (2026-11-22), with rule-17 metadata, 30 samples
+  per benchmark and standard deviation read from `estimates.json`. The hardware
+  is informative (i7-1255U, `powersave` governor), not the Stage 6 reference
+  class, so no design target is claimed.
+- `docs/benchmarks/raw/wave9-2026-11-22/`: metadata dump and curated estimates
+  summary for the run.
+- `scripts/run-benchmarks.sh`: one-command criterion run with configurable
+  sample count, a metadata dump and rule-17 standard-deviation extraction.
+
+Changed:
+
+- `docs/audits/PRE_FASE5_RELEASE_GATE.md`: the Benchmarks row now points at the
+  new evidence and remains `pending` with `Blocks Phase 5 = yes`.
+- `docs/benchmarks/README.md`: pointer to the wave-9 results.
+
+Not changed: no load-generator figure was collected (no load tool installed),
+and issue #157 stays open because the reference-hardware procedure in
+`docs/benchmarks/verification-package.md` is still unexecuted.
+
 ### Edge wildcard matching (issue #196)
 
 Fixed:

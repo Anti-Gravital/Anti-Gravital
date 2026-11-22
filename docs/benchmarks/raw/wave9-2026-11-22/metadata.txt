@@ -1,0 +1,25 @@
+date_utc=2026-11-22T13:02:07Z
+commit=7cbc28a35a5b0ceac033fbab4aefb5736d00fd99
+branch=community9/qabench
+dirty_files_at_measurement_time=0
+rustc=rustc 1.99.1 (58cf8f9c3 2026-10-13)
+cargo=cargo 1.99.1 (5f94df478 2026-08-27)
+toolchain=[toolchain] channel = "1.99.1" components = ["rustfmt", "clippy"] profile = "default"
+uname=Linux angel-nereira-HP-ProBook-440-14-inch-G9-Notebook-PC 7.0.0-44-generic #44-Ubuntu SMP PREEMPT_DYNAMIC Fri Nov  6 02:38:04 UTC 2026 x86_64 GNU/Linux
+os=Ubuntu 26.04.1 LTS
+kernel=7.0.0-44-generic
+cpu=12th Gen Intel(R) Core(TM) i7-1255U
+cpu_max_mhz=4700.0000
+physical_cores=10
+sockets=1
+logical_cpus=12
+ram=30Gi
+ulimit_n=524288
+somaxconn=4096
+governor=powersave
+load_tool=none (oha/wrk/bombardier/hey not installed in this environment)
+release_profile=codegen-units=1,lto=fat (root Cargo.toml)
+criterion=0.8.2
+criterion_flags=--sample-size 30 --warm-up-time 2 --measurement-time 3 --noplot
+cargo_env=CARGO_TARGET_DIR=shared scratch directory,CARGO_INCREMENTAL=0,CARGO_PROFILE_TEST_DEBUG=0
+hardware_class=informative (mobile notebook), NOT the Stage 6 reference class

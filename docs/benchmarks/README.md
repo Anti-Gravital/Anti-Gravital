@@ -58,3 +58,8 @@ de los harnesses esta en `docs/benchmarks/smoke-2026-11-22.md` y no constituye
 evidencia oficial. Hasta completar el procedimiento completo la fila
 `Benchmarks` del release gate permanece `pending`.
 
+Wave 9 (2026-11-22): `docs/benchmarks/wave9-host-results.md` records a real
+criterion run on informative hardware at commit 7cbc28a (30 samples, standard
+deviation taken from `estimates.json`). It is not Stage 6 evidence and does not
+change the pending gate state.
+

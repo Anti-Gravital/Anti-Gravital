@@ -1,0 +1,15 @@
+# Runtime configuration for {{name}}.
+# Documentation only: the generated binary reads the environment.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[jwt]
+# Lifetime of issued tokens, in seconds.
+ttl_secs = 3600
+
+# In production, provide persistent Ed25519 PEM keys instead of the
+# ephemeral demo keypair generated at startup:
+#   JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
+#   JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----..."

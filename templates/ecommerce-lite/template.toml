@@ -1,0 +1,4 @@
+name = "ecommerce-lite"
+description = "Compact product and order API derived from the ecommerce DSL example, with optional ag-data persistence"
+category = "api"
+external_requirements = ["DATABASE_URL"]

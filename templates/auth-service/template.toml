@@ -1,0 +1,4 @@
+name = "auth-service"
+description = "JWT issuance and verification with ag-auth plus API keys, served behind Shield"
+category = "api"
+external_requirements = []

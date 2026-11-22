@@ -1,0 +1,45 @@
+config {
+    project_name "{{name}}"
+    database "postgres"
+}
+
+model Record {
+    id    UUID   @primary @auto
+    name  String @min(1) @max(120)
+    value Int
+}
+
+request CreateRecordRequest {
+    name  String @min(1) @max(120)
+    value Int
+}
+
+response RecordResponse {
+    id    UUID
+    name  String
+    value Int
+}
+
+error NotFound { status 404 message "Record not found" }
+error InvalidInput { status 400 message "Invalid record payload" }
+
+endpoint ListRecords {
+    method GET
+    path /records
+    response RecordResponse
+}
+
+endpoint GetRecord {
+    method GET
+    path /records/{id}
+    response RecordResponse
+    errors [NotFound]
+}
+
+endpoint CreateRecord {
+    method POST
+    path /records
+    body CreateRecordRequest
+    response RecordResponse
+    errors [InvalidInput]
+}

@@ -1,0 +1,26 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "{{name}}"
+path = "src/main.rs"
+
+[features]
+default = []
+# Enable for real PostgreSQL persistence through ag-data + sqlx.
+# The default build needs no database and uses the in-memory store.
+postgres = ["dep:ag-data", "dep:sqlx"]
+
+[dependencies]
+ag-core = { git = "https://github.com/anti-gravital/anti-gravital", rev = "91a95ff61ed6ef4c9d3f1c9069357e97389d1382" }
+ag-data = { git = "https://github.com/anti-gravital/anti-gravital", rev = "91a95ff61ed6ef4c9d3f1c9069357e97389d1382", optional = true }
+axum = { version = "0.7", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1", features = ["v4", "serde"] }

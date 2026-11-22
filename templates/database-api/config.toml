@@ -1,0 +1,13 @@
+# Runtime configuration for {{name}}.
+# The TOML file is documentation for operators; the binary reads the
+# environment so the generated project needs no config parser dependency.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[database]
+# Set DATABASE_URL and build with --features postgres to use PostgreSQL.
+# Without it the service starts with an in-memory store and stays offline.
+# url = "postgresql://localhost/{{name}}"
+max_connections = 10

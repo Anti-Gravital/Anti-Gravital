@@ -1,0 +1,4 @@
+name = "multi-tenant-saas"
+description = "Tenant-scoped API with header/claim propagation and documented RLS strategy"
+category = "api"
+external_requirements = ["DATABASE_URL"]

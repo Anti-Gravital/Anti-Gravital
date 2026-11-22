@@ -1,0 +1,18 @@
+# Runtime configuration for {{name}}.
+# Documentation only: the generated binary reads the environment.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[storage]
+backend = "native"
+# Directory confined by cap-std; requests cannot escape this root.
+root = "./ag-store-data"
+max_object_size_mb = 100
+
+[capabilities]
+# Secret used to sign prefix capabilities. Required at startup.
+#   export STORAGE_SIGN_SECRET='a-long-random-value'
+algorithm = "hmac-sha256"
+default_ttl_secs = 3600

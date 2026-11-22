@@ -1,0 +1,4 @@
+name = "database-api"
+description = "CRUD REST API with ag-data, embedded migrations and an in-memory fallback"
+category = "api"
+external_requirements = ["DATABASE_URL"]

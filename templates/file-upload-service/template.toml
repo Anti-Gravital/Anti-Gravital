@@ -1,0 +1,4 @@
+name = "file-upload-service"
+description = "Capability-scoped uploads on ag-storage with signed prefix tokens and confinement checks"
+category = "api"
+external_requirements = ["STORAGE_SIGN_SECRET"]

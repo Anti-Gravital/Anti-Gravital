@@ -73,6 +73,13 @@ cerrar Fase 3 e historial de crashes encontrados y corregidos.
 Vistas verbatim de los capitulos 16, 15 y 17 del maestro de
 Arquitectura, respectivamente.
 
+### docs/audits/
+
+Registros de auditoria y revisiones independientes, no derivados verbatim de los
+maestros: recogen evidencia de verificacion y hallazgos sin modificar el
+contrato arquitectonico. Incluye `infrastructure-review-112-149-141.md`
+(revision de infraestructura de los issues #112, #149 y #141).
+
 ### docs/rfc/ y docs/adr/
 
 Procesos formales del proyecto: RFC para decisiones tecnicas

@@ -25,5 +25,6 @@ tempfile    = { workspace = true }
 ed25519-dalek = { workspace = true }
 rand_core   = { workspace = true }
 reqwest     = { workspace = true }
+rustls      = { workspace = true }
 bytes       = { workspace = true }
 getrandom   = { workspace = true }

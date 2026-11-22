@@ -316,6 +316,11 @@ impl OAuthClient {
 mod tests {
     use super::*;
 
+    fn http() -> reqwest::Client {
+        crate::install_ring_provider();
+        reqwest::Client::new()
+    }
+
     fn config_google() -> AuthConfig {
         AuthConfig {
             jwt_private_key_pem: "x".into(),
@@ -344,7 +349,7 @@ mod tests {
 
     #[test]
     fn authorization_url_google_contains_accounts_google() {
-        let http = reqwest::Client::new();
+        let http = http();
         let client = OAuthClient::from_config(&config_google(), http);
         let (url, _state, _verifier) = client
             .authorization_url(OAuthProvider::Google, "http://localhost/callback")
@@ -357,7 +362,7 @@ mod tests {
 
     #[test]
     fn authorization_url_unconfigured_returns_error() {
-        let http = reqwest::Client::new();
+        let http = http();
         let client = OAuthClient::from_config(&config_empty(), http);
         let result = client.authorization_url(OAuthProvider::Google, "http://localhost/callback");
         assert!(matches!(result, Err(OAuthError::ProviderNotConfigured(_))));
@@ -368,7 +373,7 @@ mod tests {
         let mut cfg = config_google();
         cfg.oauth_github_client_id = Some("github-id".into());
         cfg.oauth_github_client_secret = Some("github-secret".into());
-        let http = reqwest::Client::new();
+        let http = http();
         let client = OAuthClient::from_config(&cfg, http);
         let (url, _state, _verifier) = client
             .authorization_url(OAuthProvider::GitHub, "http://localhost/callback")
@@ -381,7 +386,7 @@ mod tests {
 
     #[test]
     fn pkce_verifier_is_different_each_call() {
-        let http = reqwest::Client::new();
+        let http = http();
         let client = OAuthClient::from_config(&config_google(), http);
         let (_, _, v1) = client
             .authorization_url(OAuthProvider::Google, "http://localhost/c")

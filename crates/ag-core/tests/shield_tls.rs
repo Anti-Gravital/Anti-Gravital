@@ -37,6 +37,8 @@ fn generate_cert_pair() -> (PathBuf, PathBuf) {
 
 #[tokio::test]
 async fn tls_disabled_serves_plain_http() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let shield = Shield::try_new(ShieldConfig::default()).unwrap();
     let app = shield.apply(Router::new().route("/ping", get(|| async { "pong" })));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -58,6 +60,8 @@ async fn tls_disabled_serves_plain_http() {
 
 #[tokio::test]
 async fn tls_enabled_serves_https() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (cert_path, key_path) = generate_cert_pair();
     let config = ShieldConfig {
         tls: TlsConfig {
@@ -91,8 +95,58 @@ async fn tls_enabled_serves_https() {
     handle.abort();
 }
 
+/// A real, verified TLS handshake through `reqwest` against the local rustls
+/// server. With `reqwest` built using `rustls-no-provider`, building a client
+/// without an installed provider panics, so this test fails in CI on a
+/// provider misconfiguration (including under `--all-features`, where other
+/// crates may still link `aws-lc-rs`; see ADR-0018).
+#[tokio::test]
+async fn reqwest_tls_handshake_uses_installed_ring_provider() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
+    assert!(
+        rustls::crypto::CryptoProvider::get_default().is_some(),
+        "ring must be installed before reqwest builds a client"
+    );
+
+    let (cert_path, key_path) = generate_cert_pair();
+    let cert_pem = std::fs::read(&cert_path).unwrap();
+    let config = ShieldConfig {
+        tls: TlsConfig {
+            enabled: true,
+            cert_path: Some(cert_path),
+            key_path: Some(key_path),
+        },
+        ..ShieldConfig::default()
+    };
+    let shield = Shield::try_new(config).unwrap();
+    let app = shield.apply(Router::new().route("/secure", get(|| async { "tls-ok" })));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let shield_clone = shield.clone();
+    let handle = tokio::spawn(async move {
+        let _ = shield_clone.serve(listener, app).await;
+    });
+
+    let cert = reqwest::Certificate::from_pem(&cert_pem).unwrap();
+    let client = reqwest::Client::builder()
+        .add_root_certificate(cert)
+        .build()
+        .unwrap();
+    let resp = client
+        .get(format!("https://localhost:{}/secure", addr.port()))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    assert_eq!(resp.text().await.unwrap(), "tls-ok");
+    handle.abort();
+}
+
 #[tokio::test]
 async fn tls_enabled_without_cert_paths_fails_construction() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let config = ShieldConfig {
         tls: TlsConfig {
             enabled: true,

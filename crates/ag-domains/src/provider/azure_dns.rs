@@ -73,6 +73,7 @@ impl AzureDnsProvider {
         base_url: impl Into<String>,
         login_url: impl Into<String>,
     ) -> Self {
+        super::install_ring_provider();
         let client = reqwest::Client::builder()
             .user_agent(concat!("ag-domains/", env!("CARGO_PKG_VERSION")))
             .timeout(std::time::Duration::from_secs(30))

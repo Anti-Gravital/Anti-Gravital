@@ -28,6 +28,8 @@ async fn start_server(cors: CorsConfig) -> (SocketAddr, tokio::task::JoinHandle<
 
 #[tokio::test]
 async fn cors_disabled_omits_headers() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cors = CorsConfig::default();
     let (addr, handle) = start_server(cors).await;
     let client = reqwest::Client::new();
@@ -44,6 +46,8 @@ async fn cors_disabled_omits_headers() {
 
 #[tokio::test]
 async fn cors_enabled_allows_listed_origin() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cors = CorsConfig {
         enabled: true,
         allow_origins: vec!["https://app.example.com".into()],
@@ -67,6 +71,8 @@ async fn cors_enabled_allows_listed_origin() {
 
 #[tokio::test]
 async fn cors_enabled_rejects_unlisted_origin() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cors = CorsConfig {
         enabled: true,
         allow_origins: vec!["https://app.example.com".into()],
@@ -91,6 +97,8 @@ async fn cors_enabled_rejects_unlisted_origin() {
 
 #[tokio::test]
 async fn cors_preflight_options_returns_204_with_allow_methods() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cors = CorsConfig {
         enabled: true,
         allow_origins: vec!["https://app.example.com".into()],

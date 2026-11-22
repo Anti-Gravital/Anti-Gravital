@@ -184,6 +184,8 @@ fn client() -> reqwest::Client {
 
 #[tokio::test]
 async fn valid_get_with_jwt_and_origin_passes_through_all_layers() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let token = sign_jwt(
         &AppClaims {
@@ -207,6 +209,8 @@ async fn valid_get_with_jwt_and_origin_passes_through_all_layers() {
 
 #[tokio::test]
 async fn valid_post_with_csrf_jwt_origin_validation_passes() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let token = sign_jwt(
         &AppClaims {
@@ -233,6 +237,8 @@ async fn valid_post_with_csrf_jwt_origin_validation_passes() {
 
 #[tokio::test]
 async fn invalid_jwt_is_blocked_at_auth_layer_with_401() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let resp = client()
         .get(format!("https://{}/me", fixture.addr))
@@ -249,6 +255,8 @@ async fn invalid_jwt_is_blocked_at_auth_layer_with_401() {
 
 #[tokio::test]
 async fn missing_csrf_on_post_is_blocked_with_403() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let token = sign_jwt(
         &AppClaims {
@@ -273,6 +281,8 @@ async fn missing_csrf_on_post_is_blocked_with_403() {
 
 #[tokio::test]
 async fn invalid_payload_is_blocked_with_422() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let token = sign_jwt(
         &AppClaims {
@@ -299,6 +309,8 @@ async fn invalid_payload_is_blocked_with_422() {
 
 #[tokio::test]
 async fn unlisted_origin_does_not_receive_allow_origin_header() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let fixture = start_full_pipeline().await;
     let token = sign_jwt(
         &AppClaims {

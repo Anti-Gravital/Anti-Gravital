@@ -41,6 +41,7 @@ impl CloudflareProvider {
     ///
     /// Useful in tests with wiremock: `CloudflareProvider::with_base_url(token, mock.uri())`.
     pub fn with_base_url(token: impl Into<String>, base_url: impl Into<String>) -> Self {
+        super::install_ring_provider();
         let client = reqwest::Client::builder()
             .user_agent(concat!("ag-domains/", env!("CARGO_PKG_VERSION")))
             // Bound every Cloudflare API call so a slow/unresponsive endpoint

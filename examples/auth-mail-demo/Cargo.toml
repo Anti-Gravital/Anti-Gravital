@@ -18,6 +18,7 @@ workspace = true
 ag-auth = { path = "../../crates/ag-auth", version = "0.0.0", features = ["mail"] }
 ag-mail = { path = "../../crates/ag-mail", version = "0.0.0", features = ["smtp", "test-utils"] }
 reqwest = { workspace = true }
+rustls  = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

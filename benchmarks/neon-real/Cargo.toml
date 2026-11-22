@@ -18,10 +18,15 @@ sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio",
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# rustls-no-provider: this benchmark runs in its own process and installs the
+# ring crypto provider explicitly (ADR-0018). Avoids linking aws-lc-rs.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-rand = { workspace = true }
+# Standalone workspace: mirror the root workspace rand 0.10 with sys_rng
+# (rand::rng() needs it). Inheriting `workspace = true` here never resolved.
+rand = { version = "0.10", features = ["sys_rng"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 

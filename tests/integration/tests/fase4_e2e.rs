@@ -80,6 +80,8 @@ fn make_jwt_claims(sub: &str, role: &str) -> ag_auth::Claims {
 
 #[test]
 fn test_observe_init() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let config = ag_observe::ObserveConfig::default();
     let result = ag_observe::init(&config);
     // Puede fallar con AlreadyInitialized si otro test lo llamo antes; nunca panic.
@@ -91,6 +93,8 @@ fn test_observe_init() {
 
 #[test]
 fn test_auth_jwt_sign_verify() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (priv_pem, pub_pem) = generate_ed25519_keypair();
     let config = make_auth_config(priv_pem, pub_pem);
     let auth = ag_auth::AgAuth::new(config, reqwest::Client::new())
@@ -114,6 +118,8 @@ fn test_auth_jwt_sign_verify() {
 
 #[test]
 fn test_auth_api_key_roundtrip() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (priv_pem, pub_pem) = generate_ed25519_keypair();
     let config = make_auth_config(priv_pem, pub_pem);
     let auth = ag_auth::AgAuth::new(config, reqwest::Client::new()).unwrap();
@@ -135,6 +141,8 @@ fn test_auth_api_key_roundtrip() {
 
 #[tokio::test]
 async fn test_cache_set_get_invalidate() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cache = ag_cache::l1::L1Cache::new(1024u64, Duration::from_secs(300));
 
     let value = b"perfil-del-usuario".to_vec();
@@ -162,6 +170,8 @@ async fn test_cache_set_get_invalidate() {
 
 #[tokio::test]
 async fn test_realtime_broadcast_receive() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     use ag_realtime::{AgRealtime, RealtimeConfig};
 
     let rt = AgRealtime::new(RealtimeConfig::default())
@@ -181,6 +191,8 @@ async fn test_realtime_broadcast_receive() {
 
 #[tokio::test]
 async fn test_storage_put_get_delete() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     use ag_storage::{AgStorage, StorageConfig};
     use bytes::Bytes;
 
@@ -228,6 +240,8 @@ async fn test_storage_put_get_delete() {
 
 #[tokio::test]
 async fn test_e2e_fase4_cross_module() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     use ag_cache::l1::L1Cache;
     use ag_realtime::{AgRealtime, RealtimeConfig};
     use ag_storage::{AgStorage, StorageConfig};

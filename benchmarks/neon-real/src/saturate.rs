@@ -193,6 +193,7 @@ async fn saturation_worker(
     tx: mpsc::Sender<Record>,
     stop: tokio::sync::watch::Receiver<bool>,
 ) {
+    let _ = rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .build()

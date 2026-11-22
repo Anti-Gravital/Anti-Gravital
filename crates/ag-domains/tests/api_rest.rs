@@ -36,6 +36,7 @@ async fn start() -> String {
 
 #[tokio::test]
 async fn full_attachment_lifecycle_over_http() {
+    ag_domains::provider::install_ring_provider();
     let base = start().await;
     let client = reqwest::Client::new();
 
@@ -97,6 +98,7 @@ async fn full_attachment_lifecycle_over_http() {
 
 #[tokio::test]
 async fn duplicate_hostname_conflicts() {
+    ag_domains::provider::install_ring_provider();
     let base = start().await;
     let client = reqwest::Client::new();
     let payload = serde_json::json!({"hostname": "dup.example.com", "project_id": "site"});
@@ -120,6 +122,7 @@ async fn duplicate_hostname_conflicts() {
 
 #[tokio::test]
 async fn invalid_hostname_is_400() {
+    ag_domains::provider::install_ring_provider();
     let base = start().await;
     let client = reqwest::Client::new();
     let resp = client
@@ -133,6 +136,7 @@ async fn invalid_hostname_is_400() {
 
 #[tokio::test]
 async fn emits_lifecycle_events() {
+    ag_domains::provider::install_ring_provider();
     let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
     let sink = Arc::new(InMemoryEventSink::new());
     let state =
@@ -171,6 +175,7 @@ async fn emits_lifecycle_events() {
 
 #[tokio::test]
 async fn verify_endpoint_marks_verified_and_emits_event() {
+    ag_domains::provider::install_ring_provider();
     let store: Arc<dyn AttachmentStore> = Arc::new(InMemoryStore::new());
     let sink = Arc::new(InMemoryEventSink::new());
     let state = ApiState::new(store, EdgeTargets::new("edge.example-cloud.net"))
@@ -215,6 +220,7 @@ async fn verify_endpoint_marks_verified_and_emits_event() {
 
 #[tokio::test]
 async fn verify_endpoint_default_does_not_grant() {
+    ag_domains::provider::install_ring_provider();
     // Default NullVerifier never confirms: ownership stays pending, no event.
     let base = start().await;
     let client = reqwest::Client::new();
@@ -244,6 +250,7 @@ async fn verify_endpoint_default_does_not_grant() {
 
 #[tokio::test]
 async fn lists_provider_capabilities() {
+    ag_domains::provider::install_ring_provider();
     let base = start().await;
     let client = reqwest::Client::new();
     let resp = client
@@ -262,6 +269,7 @@ async fn lists_provider_capabilities() {
 
 #[tokio::test]
 async fn unknown_id_is_404() {
+    ag_domains::provider::install_ring_provider();
     let base = start().await;
     let client = reqwest::Client::new();
     let resp = client

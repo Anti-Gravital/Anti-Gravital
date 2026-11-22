@@ -56,8 +56,10 @@ tracing = { workspace = true }
 idna = { workspace = true }
 uuid = { workspace = true }
 
-# Cloudflare adapter
+# Cloudflare adapter. reqwest 0.13 `rustls-no-provider` needs an explicit
+# process-default provider; installed by the adapter constructors (ADR-0018).
 reqwest = { workspace = true, optional = true }
+rustls  = { workspace = true }
 
 # REST API (feature "api")
 axum = { workspace = true, optional = true }

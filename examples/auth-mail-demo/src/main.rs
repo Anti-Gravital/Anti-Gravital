@@ -51,6 +51,8 @@ async fn main() {
         "MiApp Demo",
     ));
 
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let _auth = AgAuth::new(auth_config, reqwest::Client::new())
         .expect("configuracion de auth valida")
         .with_mail(Arc::clone(&mailer));

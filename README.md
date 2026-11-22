@@ -9,7 +9,7 @@ Rust/SQL/TypeScript/OpenAPI surface, and ship a small static binary.
 [![Quality](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml/badge.svg)](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Rust: 1.99+](https://img.shields.io/badge/rust-1.99%2B-orange.svg)](rust-toolchain.toml)
-[![Status: alpha v0.1.0-alpha.1](https://img.shields.io/badge/status-alpha-orange.svg)](docs/releases/0.1.0-alpha.1.md)
+[![Status: alpha v0.1.0-alpha.2](https://img.shields.io/badge/status-alpha-orange.svg)](docs/releases/0.1.0-alpha.2.md)
 
 [English](#english) | [Espanol](#espanol) — English is the canonical project
 language (ADR-0008). A full Spanish version follows the English one.
@@ -44,7 +44,7 @@ language (ADR-0008). A full Spanish version follows the English one.
 | --- | --- |
 | Language and runtime | Rust (MSRV 1.99.1) on Tokio, Axum, Tower and rustls |
 | License | Apache-2.0 |
-| Released version | Alpha `v0.1.0-alpha.1`, available for testing from source ([release notes](docs/releases/0.1.0-alpha.1.md)); no crates.io package, source install is the verified path |
+| Released version | Alpha `v0.1.0-alpha.2`, available for testing from source ([release notes](docs/releases/0.1.0-alpha.2.md)); no crates.io package, source install is the verified path |
 | Workspace | 19 `ag-*` crates plus the `ag` developer CLI (5 of them are reserved placeholders for later phases) |
 | Current position | Phases 0-4.5 implemented with their exit gates still open; additive Phase 4.6 in progress |
 | Production-ready | No. This is a testing alpha; the formal pre-Phase-5 release gate is OPEN ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
@@ -82,7 +82,7 @@ Docker image (measured 2026-05-21).
 
 ### Try it
 
-`v0.1.0-alpha.1` is an alpha release for testing, not for production. Install
+`v0.1.0-alpha.2` is an alpha release for testing, not for production. Install
 from source, scaffold a project, run it locally and generate code from a
 schema:
 
@@ -106,11 +106,11 @@ the `ag` commands are identical. Verify the checkout before running an
 installer with the [installation integrity procedure](docs/security/INSTALLATION_INTEGRITY.md).
 Full walkthrough: [Your first API](docs/manual/02-primera-api.md). Runnable
 prototypes: [`examples/`](examples/). Release notes:
-[`v0.1.0-alpha.1`](docs/releases/0.1.0-alpha.1.md).
+[`v0.1.0-alpha.2`](docs/releases/0.1.0-alpha.2.md).
 
 ### Alpha: what works and what does not yet work
 
-Works in `v0.1.0-alpha.1`:
+Works in `v0.1.0-alpha.2`:
 
 - Install from source with `install.sh`, `install.ps1` or `cargo install --path`.
 - Scaffold `rest`, `realtime` and `fullstack` projects with `ag new`.
@@ -547,7 +547,7 @@ technical constitution, and documentation takes precedence over code.
 | [`CLAUDE.md`](CLAUDE.md) | The technical constitution: governance rules, crate boundaries, workflow, quality gates |
 | [`docs/INDEX.md`](docs/INDEX.md) | Master index of all documentation |
 | [`docs/master/`](docs/master/) | The three master documents (Blueprint, Technical Architecture, Roadmap) — the source of truth |
-| [`docs/releases/0.1.0-alpha.1.md`](docs/releases/0.1.0-alpha.1.md) | Scope, known limitations and verification evidence for the alpha |
+| [`docs/releases/0.1.0-alpha.2.md`](docs/releases/0.1.0-alpha.2.md) | Scope, known limitations and verification evidence for the alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Live checkbox-level status of every phase |
 | [`docs/architecture/`](docs/architecture/) | Architecture chapters derived from the masters |
 | [`docs/rfc/`](docs/rfc/) and [`docs/adr/`](docs/adr/) | Design proposals and accepted decisions |
@@ -597,7 +597,7 @@ public issues.
 | --- | --- |
 | Lenguaje y runtime | Rust (MSRV 1.99.1) sobre Tokio, Axum, Tower y rustls |
 | Licencia | Apache-2.0 |
-| Version publicada | Alpha `v0.1.0-alpha.1` disponible para pruebas desde el codigo fuente ([notas de release](docs/releases/0.1.0-alpha.1.md)); sin paquete en crates.io; la instalacion desde el fuente es la ruta verificada |
+| Version publicada | Alpha `v0.1.0-alpha.2` disponible para pruebas desde el codigo fuente ([notas de release](docs/releases/0.1.0-alpha.2.md)); sin paquete en crates.io; la instalacion desde el fuente es la ruta verificada |
 | Workspace | 19 crates `ag-*` mas la CLI de desarrollo `ag` (5 de ellos son placeholders reservados para fases posteriores) |
 | Posicion actual | Fases 0-4.5 implementadas con sus puertas de salida aun abiertas; Fase aditiva 4.6 en curso |
 | Listo para produccion | No. Es un alpha de prueba; la puerta formal de release pre-Fase 5 esta ABIERTA ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
@@ -637,7 +637,7 @@ imagen Docker `FROM scratch` de 2.49 MB (medido el 2026-05-21).
 
 ### Probarlo
 
-`v0.1.0-alpha.1` es un alpha de prueba, no para produccion. Instala desde el
+`v0.1.0-alpha.2` es un alpha de prueba, no para produccion. Instala desde el
 codigo fuente, crea un proyecto, ejecutalo localmente y genera codigo desde un
 schema:
 
@@ -661,11 +661,11 @@ los comandos `ag` son identicos. Antes de ejecutar un instalador, verifica el
 checkout con el [procedimiento canonico de integridad](docs/security/INSTALLATION_INTEGRITY.md).
 Guia completa: [Tu primera API](docs/manual/02-primera-api.md). Prototipos
 ejecutables: [`examples/`](examples/). Notas de release:
-[`v0.1.0-alpha.1`](docs/releases/0.1.0-alpha.1.md).
+[`v0.1.0-alpha.2`](docs/releases/0.1.0-alpha.2.md).
 
 ### Alpha: que funciona y que aun no funciona
 
-Funciona en `v0.1.0-alpha.1`:
+Funciona en `v0.1.0-alpha.2`:
 
 - Instalar desde el fuente con `install.sh`, `install.ps1` o `cargo install --path`.
 - Crear proyectos `rest`, `realtime` y `fullstack` con `ag new`.
@@ -1080,7 +1080,7 @@ sobre el codigo.
 | [`CLAUDE.md`](CLAUDE.md) | La constitucion tecnica: reglas de gobernanza, limites entre crates, flujo de trabajo, puertas de calidad |
 | [`docs/INDEX.md`](docs/INDEX.md) | Indice maestro de toda la documentacion |
 | [`docs/master/`](docs/master/) | Los tres documentos maestros (Blueprint, Arquitectura Tecnica, Hoja de Ruta) — la fuente de verdad |
-| [`docs/releases/0.1.0-alpha.1.md`](docs/releases/0.1.0-alpha.1.md) | Alcance, limitaciones conocidas y evidencia de verificacion del alpha |
+| [`docs/releases/0.1.0-alpha.2.md`](docs/releases/0.1.0-alpha.2.md) | Alcance, limitaciones conocidas y evidencia de verificacion del alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Estado vivo a nivel de casilla de cada fase |
 | [`docs/architecture/`](docs/architecture/) | Capitulos de arquitectura derivados de los maestros |
 | [`docs/rfc/`](docs/rfc/) y [`docs/adr/`](docs/adr/) | Propuestas de diseno y decisiones aceptadas |

@@ -34,7 +34,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 edition = "2021"
 rust-version = "1.99.1"
 license = "Apache-2.0"
@@ -54,10 +54,10 @@ publish = false
 # chumsky) estan justificadas en RFC-0003 (compilador ag-dsl).
 # Los crates internos las referencian con `dep = { workspace = true }`.
 [workspace.dependencies]
-ag-core = { path = "crates/ag-core", version = "0.1.0-alpha.1" }
-ag-data = { path = "crates/ag-data", version = "0.1.0-alpha.1" }
-ag-dsl = { path = "crates/ag-dsl", version = "0.1.0-alpha.1" }
-ag-workers = { path = "crates/ag-workers", version = "0.1.0-alpha.1" }
+ag-core = { path = "crates/ag-core", version = "0.1.0-alpha.2" }
+ag-data = { path = "crates/ag-data", version = "0.1.0-alpha.2" }
+ag-dsl = { path = "crates/ag-dsl", version = "0.1.0-alpha.2" }
+ag-workers = { path = "crates/ag-workers", version = "0.1.0-alpha.2" }
 axum = { version = "0.8", default-features = false, features = ["http1", "http2", "tokio", "json", "matched-path", "query", "ws"] }
 async-nats = "0.52"
 rmp-serde  = "1"

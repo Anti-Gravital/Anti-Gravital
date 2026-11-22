@@ -2310,6 +2310,30 @@ Changed:
   shapes, a matching JSON Schema, snapshots and documentation. Mutating
   commands, including `dns apply`, refuse `--output json` before dispatch.
 
+## [0.1.0-alpha.2] - 2026-11-22
+
+Added:
+
+- Catalog of 33 templates (`ag new --template <name>`), with 29 metadata-backed
+  templates validated offline, plus a bilingual gallery and design conventions.
+- `ag deploy plan|apply|status` for local, network-free rendering of Docker and
+  Kubernetes artifacts, with plan ids and confined writes.
+- `ag dns plan|apply|status` and `ag domains attach` for the domain-to-deploy
+  loop: validated records, per-environment visibility (private by default),
+  no credentials in the repository and no live provider without opt-in.
+- Optional Docker/Kubernetes packaging, local compose stacks, proactive git
+  hooks and reproducible release/template/deploy/domain validation harnesses.
+
+Fixed:
+
+- Edge wildcard matching now requires a dot boundary (#196); wildcard domain
+  attachment always requires the explicit flag (#197); compose stacks bind
+  loopback and exclude secrets from images (#194, #195); `ag deploy` writes are
+  confined to `deploy/generated/` (#193).
+
+Security: checksums in the alpha installer provide integrity only. No release
+signature exists yet; issue #141 remains open.
+
 ## [0.1.0-alpha.1] - 2026-11-22
 
 Primer prerelease etiquetado. Version `0.1.0-alpha.1` tomada del manifest

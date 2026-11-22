@@ -8,6 +8,29 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Division de modulos CLI sobredimensionados (issue #189)
+
+Changed:
+
+- `crates/ag-cli/src/commands/deploy.rs` se dividio en
+  `deploy/{model,plan,apply,status,tests}.rs`: de 768 lineas a 30 lineas en el
+  modulo raiz (submodulos de 85, 199, 224, 81 y 204 lineas).
+- `crates/ag-cli/src/commands/dns.rs` se dividio en
+  `dns/{model,manifest,state,provider,commands,tests}.rs`: de 1234 lineas a 34
+  lineas en el modulo raiz (submodulos de 297, 330, 82, 99, 189 y 245 lineas).
+- La API `pub(crate)` de ambos modulos se conserva mediante re-exportaciones;
+  `main.rs` y `cli.rs` no necesitan cambios y no hay cambio de comportamiento.
+- Se eliminaron las dos entradas de `tools/file-size-allowlist.txt` que
+  cubrian estos archivos: la lista pasa de 20 a 18 excepciones.
+
+Verification: `bash tools/check-file-size.sh` (18 excepciones, ningun archivo
+sobre 600 lineas), `cargo test -p ag-cli`, `cargo test --workspace --all-features`,
+`cargo fmt --all -- --check` y `cargo clippy --workspace --all-targets
+--all-features -- -D warnings` en verde. `cargo audit` y `cargo deny check`
+siguen fallando por causas preexistentes y ajenas a este cambio
+(RUSTSEC-2026-0592 en `url` 2.5.8 transitiva, y advertencias
+`advisory-not-detected` en `deny.toml`); no se modificaron dependencias.
+
 ### Edge wildcard matching (issue #196)
 
 Fixed:

@@ -17,6 +17,13 @@ No other system dependencies are required for the `rest` template.
 
 ## Install the `ag` binary
 
+The alpha (`v0.1.0-alpha.1`) is installed from source: there is no crates.io
+package, and source install is the verified path. A prebuilt binary can also be
+fetched through the opt-in checksum-only alpha channel once it is verified
+end to end (#141). Use one of the methods below, then confirm the version with
+`ag --version`. See the
+[alpha release notes](../releases/0.1.0-alpha.1.md) for scope and limitations.
+
 ### Linux / macOS
 
 ```bash
@@ -51,6 +58,10 @@ ag --version
 ag --help
 ```
 
+On a clean checkout of the tagged alpha, `ag --version` reports
+`0.1.0-alpha.1`. Source checkouts between tags may report a different
+version; build from the tag to reproduce the release exactly.
+
 ## Create a project
 
 ```bash
@@ -73,8 +84,11 @@ cd my-api
 ag dev
 ```
 
-The server listens on `0.0.0.0:8080` by default. Install `cargo-watch` for
-automatic reloading on file changes:
+The server listens on `0.0.0.0:8080` by default. Note that `ag dev` passes
+`BIND=127.0.0.1:8080` by default but the generated templates currently ignore
+that variable and hardcode `0.0.0.0:8080` (issue #191). Treat the development
+server as network-exposed; do not run it on untrusted networks until this is
+fixed. Install `cargo-watch` for automatic reloading on file changes:
 
 ```bash
 cargo install cargo-watch
@@ -163,6 +177,14 @@ Anti-Gravital en ejecucion.
 
 ## Instalar el binario `ag`
 
+El alpha (`v0.1.0-alpha.1`) se instala desde el codigo fuente: no hay paquete
+en crates.io y la instalacion desde el fuente es la ruta verificada. Tambien
+se puede obtener un binario precompilado mediante el canal opt-in de solo
+checksums una vez verific integralmente (#141). Usa uno de los metodos
+siguientes y confirma la version con `ag --version`. Consulta las
+[notas de release del alpha](../releases/0.1.0-alpha.1.md) para alcance y
+limitaciones.
+
 ### Linux / macOS
 
 ```bash
@@ -189,6 +211,17 @@ cd Anti-Gravital
 cargo install --path crates/ag-cli --locked
 ```
 
+## Verificar
+
+```bash
+ag --version
+ag --help
+```
+
+En un checkout limpio del alpha etiquetado, `ag --version` muestra
+`0.1.0-alpha.1`. Los checkouts intermedios entre etiquetas pueden mostrar
+otra version; compila desde la etiqueta para reproducir el release exacto.
+
 ## Crear un proyecto
 
 ```bash
@@ -204,6 +237,11 @@ Si el terminal es interactivo, se te pedira elegir una plantilla
 cd mi-api
 ag dev
 ```
+
+El servidor escucha en `0.0.0.0:8080` por defecto. `ag dev` pasa
+`BIND=127.0.0.1:8080`, pero los templates generados ignoran esa variable y
+fijan `0.0.0.0:8080` (issue #191). Trata el servidor de desarrollo como
+expuesto a la red; no lo ejecutes en redes no confiables hasta corregirlo.
 
 ## Operar dominios adjuntos
 

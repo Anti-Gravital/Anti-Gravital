@@ -80,6 +80,12 @@ maestros: recogen evidencia de verificacion y hallazgos sin modificar el
 contrato arquitectonico. Incluye `infrastructure-review-112-149-141.md`
 (revision de infraestructura de los issues #112, #149 y #141).
 
+### docs/releases/
+
+Notas de las versiones etiquetadas, con alcance, limitaciones conocidas,
+evidencia de verificacion y ruta de actualizacion. Referencia:
+`docs/releases/0.1.0-alpha.1.md` (primer alpha, solo para pruebas).
+
 ### docs/rfc/ y docs/adr/
 
 Procesos formales del proyecto: RFC para decisiones tecnicas

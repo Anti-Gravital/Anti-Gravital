@@ -7,6 +7,22 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
+
+Changed:
+
+- `docs/roadmap/STATUS.md` records the verifiable state after wave 4 and the
+  alpha milestone: RFC-0018 stages B and C implemented (`ag config`, bare-`ag`
+  home screen; `ag new --with` is still absent, so stage B stays partial),
+  RFC-0021 stage E read-only `--output json` (contract 0.1.0), RFC-0019 stage A
+  opt-in layered template, RFC-0020 stage B `Secret<T>` plus declared env
+  loader. Phases 4.7 and 4.8 are not closed; RFC-0024 remains blocked on its
+  seven prerequisites and no MCP code is claimed.
+- The master `ANTI-GRAVITAL-Hoja-de-Ruta.md` status labels for Phases 4.7/4.8
+  were corrected in EN and ES. SHA-256 updated in `docs/master/VERSION.md` and
+  `.github/workflows/docs.yml` in the same change; derived files regenerated
+  with `tools/split-masters.sh`. The pre-Phase-5 gate and Phase 5 stay open.
+
 ### Local checks: no silent emoji skip (issue #190)
 
 Fixed:

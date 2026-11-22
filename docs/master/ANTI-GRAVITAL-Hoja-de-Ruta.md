@@ -45,8 +45,8 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
-| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | In progress: stage A implemented (`RFC-0018` accepted); stages B and C not started |
-| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Accepted (`RFC-0019`, `RFC-0020`, `RFC-0021`); not started |
+| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | In progress: stages A–C implemented (`RFC-0018`); external/platform criteria open (STATUS.md) |
+| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Accepted; stages A/B/E partial (opt-in layered, `Secret<T>`+env, read-only JSON); C/D open (STATUS.md) |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 5.5   | Serverless functions                       | 2 months           | Accepted (`RFC-0023`); not started |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |
@@ -481,8 +481,8 @@ production path until the Mail A gate has real evidence.
 
 ## Phase 4.7 — Interactive terminal experience (`ag` TUI)
 
-**Status: in progress (`RFC-0018` accepted 2026-11-10). Stage A is implemented;
-stages B and C are not started.** Additive phase.
+**Status: in progress (`RFC-0018` accepted 2026-11-10). Stages A, B and C are
+implemented; external, platform and binary-size exit criteria remain open.** Additive phase.
 
 **Objective.** Make creating and configuring a project discoverable and guided
 from the terminal, through a full-screen interactive interface in the `ag`
@@ -585,8 +585,8 @@ glyph set, a monochrome theme, four-platform CI and the degraded line mode.
 
 ## Phase 4.8 — Project foundations: layers, environment, installation and remote operation
 
-**Status: accepted 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); not
-started.** Additive phase. The maintainability rules that accompany it are in
+**Status: accepted 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); stages A, B
+and E partial; C, D and full E open.** Additive phase. The maintainability rules that accompany it are in
 `RFC-0022` (accepted; governance, not a phase).
 
 **Objective.** Give every generated project a defined, enforced structure;
@@ -1189,8 +1189,8 @@ el gate formal `PRE_FASE5_RELEASE_GATE.md`.
 | 4    | Módulos estándar (auth, data, realtime)    | 3 meses           | Implementada y probada; evidencia de escala y deuda documentada abiertas |
 | 4.5  | `ag-mail` + `ag-domains`: comunicación y dominios | 1–2 meses  | Implementada; `ag-domains` activo, evidencia de release/doc abierta |
 | 4.6  | Endurecimiento aditivo pre-Fase 5 (`ag-mail` MTA, `ag-workers`) | — | Implementada y verificada en CI; paridad live-DB y wiring de producer abiertos (issues #108/#109/#103/#112) |
-| 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | En curso: etapa A implementada (`RFC-0018` aceptada); etapas B y C sin iniciar |
-| 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Aceptada (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin iniciar |
+| 4.7  | Experiencia interactiva de terminal (TUI de `ag`) | 1–2 meses  | En curso: etapas A–C implementadas (`RFC-0018`); criterios externos/de plataforma abiertos (STATUS.md) |
+| 4.8  | Fundaciones del proyecto: capas, entorno, instalación, operación remota | 2–3 meses | Aceptada; etapas A/B/E parciales (layered opt-in, `Secret<T>`+env, JSON solo lectura); C/D abiertas (STATUS.md) |
 | 5    | `ag-cloud` — despliegue simplificado       | 2 meses           | Próxima |
 | 5.5  | Funciones serverless                       | 2 meses           | Aceptada (`RFC-0023`); sin iniciar |
 | 6    | `ag-ai` y Knowledge Graph                  | 2 meses           | Pendiente |
@@ -1632,8 +1632,8 @@ tenga evidencia real.
 
 ## Fase 4.7 — Experiencia interactiva de terminal (TUI de `ag`)
 
-**Estado: en curso (`RFC-0018` aceptada el 2026-11-10). La etapa A está
-implementada; las etapas B y C no se han iniciado.** Fase aditiva.
+**Estado: en curso (`RFC-0018` aceptada el 2026-11-10). Las etapas A, B y C están
+implementadas; los criterios externos, de plataforma y de tamano siguen abiertos.** Fase aditiva.
 
 **Objetivo.** Hacer que crear y configurar un proyecto sea descubrible y guiado
 desde la terminal, mediante una interfaz interactiva a pantalla completa en el
@@ -1747,8 +1747,8 @@ el modo degradado por línea.
 
 ## Fase 4.8 — Fundaciones del proyecto: capas, entorno, instalación y operación remota
 
-**Estado: aceptada el 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); sin
-iniciar.** Fase aditiva. Las reglas de mantenibilidad que la acompañan están
+**Estado: aceptada el 2026-11-10 (`RFC-0019`, `RFC-0020`, `RFC-0021`); etapas A, B
+y E parciales; C, D y el resto de E abiertas.** Fase aditiva. Las reglas de mantenibilidad que la acompañan están
 en `RFC-0022` (aceptada; gobernanza, no una fase).
 
 **Objetivo.** Dar a cada proyecto generado una estructura definida y forzada;

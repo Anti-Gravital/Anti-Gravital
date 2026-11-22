@@ -10,6 +10,7 @@ aun no etiquetados.
 
 
 
+
 ### Environment and visibility rules for the domain loop (wave 8)
 
 Added:
@@ -2197,6 +2198,37 @@ Changed:
   the one-command project-to-URL link and the environment/visibility config
   keys as planned work on other wave-8 branches. `ag deploy` remains
   unavailable in the alpha.
+
+### Domain-to-deploy link (wave 8)
+
+Added:
+
+- `deploy/link/render_ingress.py` and `deploy/link/link.sh`: one command from a
+  domain manifest to a rendered Kustomize artifact and a URL. The generator
+  emits a JSON6902 patch that sets the Ingress host, environment/visibility
+  annotations and TLS Secret from the canonical manifest defined in
+  `docs/dns/ENVIRONMENT_RULES.md` (ER-01..ER-11).
+- Exposure follows the explicit `visibility` field: `private` produces no
+  Ingress (ER-08), `vpn-only` records source CIDRs as annotations, and
+  `public` requires TLS and an internet CIDR (ER-05, ER-07). The `local`
+  plan is loopback-only with no DNS or TLS artifacts (ER-02a, ER-11).
+- `deploy/link/compose/local-host.yml`: optional Compose override for a local
+  custom hostname on loopback; no external proxy image is required.
+- `examples/domain-link/`: dependency-free HTTP mock, canonical manifest for
+  dev/staging/prod and `mock-hosts.sh` offline verification with
+  `curl --resolve` plus a no-Ingress check for a private service.
+- `docs/audits/domain-link-validation.md`: real verification evidence with
+  tool versions and honest SKIPs.
+
+Changed:
+
+- `docs/INDEX.md` points to the new link artifacts and their evidence.
+
+Verification: YAML parsed with PyYAML, `kustomize build` rendered all local,
+dev, staging, prod and private plans, `kubectl kustomize` output was
+byte-identical, `cargo run --offline` plus three `curl --resolve` checks and
+`docker compose config` passed. No DNS record, cluster apply, `/etc/hosts`
+edit or Docker build was performed; those remain explicit SKIPs.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

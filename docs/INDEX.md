@@ -145,6 +145,22 @@ compose por familia con variables de entorno y volumenes con nombre, una guia
 de adaptacion y evidencia de verificacion con SKIP explicito del build real
 cuando no hay demonio disponible. Referencia: `deploy/docker/README.md` y
 `deploy/docker/VERIFICATION.md`.
+### deploy/link/ y examples/domain-link/ (ola 8)
+Enlace del ultimo paso del andamiaje: artefactos de despliegue a una URL
+alcanzable. `deploy/link/render_ingress.py` lee el manifiesto de dominio
+canonico (`docs/dns/ENVIRONMENT_RULES.md`, reglas ER-01..ER-11) y genera un
+overlay de Kustomize con un parche JSON6902 que fija host/TLS del Ingress;
+`link.sh` es el comando unico que renderiza y muestra la URL. Expone solo
+los servicios con `visibility` explicita vpn-only o public: un servicio
+private no genera Ingress (ER-08). `deploy/link/compose/local-host.yml` es un
+override opcional para acceder con un host personalizado en local sin imagen
+proxy externa. `examples/domain-link/` contiene un servicio HTTP sin
+dependencias, un manifiesto con dev/staging/prod y `mock-hosts.sh`, que
+verifica los tres entornos sin red ni demonio mediante `curl --resolve`.
+La evidencia real esta en `docs/audits/domain-link-validation.md`.
+No se contacta a ningun proveedor DNS ni cluster: Kubernetes y Docker siguen
+siendo objetivos opcionales (regla 12 y ADR-0009).
+
 ### Guia de stacks locales (ola 7)
 `docs/templates/STACKS.md` relaciona caso de uso, stack, familia de plantilla,
 dependencia externa y puertos. Los archivos Compose estan en `deploy/stacks/`,

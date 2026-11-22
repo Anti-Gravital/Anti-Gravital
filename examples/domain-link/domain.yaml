@@ -1,0 +1,82 @@
+# Reference domain manifest for the offline domain-link example.
+# Normative contract: docs/dns/ENVIRONMENT_RULES.md (ER-01..ER-11).
+# Hosts use *.invalid (ER-10c): documentation-only names that never resolve
+# publicly. Ports are Service ports; the local mock maps them to loopback
+# ports in mock-hosts.sh, not in this manifest (ER-01 strict key set).
+schema_version: 1
+project: domain-link-demo
+default_visibility: private
+
+environments:
+  dev:
+    visibility_default: private
+    zone: dev.example.invalid
+    allowed_hosts:
+      - "*.dev.example.invalid"
+    allow_wildcard: true
+    tls:
+      required: true
+      termination: internal
+      min_version: "1.2"
+      hsts: false
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.dev.example.invalid
+        visibility: vpn-only
+        port: 8080
+        allow_sources:
+          - "10.42.0.0/16"
+      - name: metrics
+        visibility: private
+        port: 8080
+
+  staging:
+    visibility_default: private
+    zone: staging.example.invalid
+    allowed_hosts:
+      - "*.staging.example.invalid"
+    allow_wildcard: true
+    tls:
+      required: true
+      termination: edge
+      min_version: "1.2"
+      hsts: false
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.staging.example.invalid
+        visibility: vpn-only
+        port: 8080
+        allow_sources:
+          - "10.42.0.0/16"
+      - name: metrics
+        visibility: private
+        port: 8080
+
+  prod:
+    visibility_default: private
+    zone: example.invalid
+    allowed_hosts:
+      - "api.example.invalid"
+    allow_wildcard: false
+    tls:
+      required: true
+      termination: edge
+      min_version: "1.2"
+      hsts: true
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.example.invalid
+        visibility: public
+        port: 8080
+        allow_sources:
+          - "0.0.0.0/0"
+          - "::/0"
+      - name: metrics
+        visibility: private
+        port: 8080

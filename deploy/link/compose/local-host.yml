@@ -1,0 +1,29 @@
+# Optional Compose override for local custom-host access.
+#
+# Combine it with an existing family file. No proxy image is pulled: the
+# service is published on loopback only and the custom hostname is resolved
+# on the client machine (see deploy/link/README.md). Keep API_PORT in the
+# host_ip:hostPort form so the port is never exposed on all interfaces.
+#
+#   API_PORT=127.0.0.1:8080 \
+#   PUBLIC_BASE_URL=http://api.dev.example.invalid:8080 \
+#   docker compose -f deploy/docker/compose/api.yml \
+#                  -f deploy/link/compose/local-host.yml config
+#
+# Add one line to /etc/hosts for a persistent hostname (needs admin):
+#   127.0.0.1  api.dev.example.invalid
+# Or avoid admin entirely with a per-request DNS override:
+#   curl --resolve api.dev.example.invalid:8080:127.0.0.1 \
+#        http://api.dev.example.invalid:8080/health
+#
+# Optional alternative (NOT enabled here): if you need a real vhost on port
+# 80 with automatic local TLS, add a reverse proxy such as Caddy or nginx as
+# a separate service in your own compose file, route Host
+# api.dev.example.invalid to http://api:8080, and publish only 127.0.0.1:80.
+# That is a deliberate local choice, not a requirement of the link contract.
+
+services:
+  api:
+    environment:
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://api.dev.example.invalid:8080}"
+      AG_PUBLIC_HOST: "${AG_PUBLIC_HOST:-api.dev.example.invalid}"

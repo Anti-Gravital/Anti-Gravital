@@ -8,6 +8,7 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:
@@ -2744,6 +2745,19 @@ Corrected:
   and #198 open; #198 was closed 2026-11-22 after the `url` 2.5.9 upgrade.
 - #189 close condition now names the five current allowlist entries; the two
   wave-9 files (`deploy.rs`, `dns.rs`) are already split and off the list.
+
+### Independent DKIM verification opt-in check (issue #178)
+
+Added:
+
+- `scripts/check-dkim-independent.sh` and a manual-only
+  `.github/workflows/dkim-independent.yml` re-run the embedded DKIM
+  known-answer vectors with dkimpy 1.1.8 + PyNaCl 1.6.2 and report PASS, SKIP
+  or FAIL with exact tool versions; a missing dependency is never reported as
+  PASS. Default CI is unchanged. The real run, the controlled SKIP-path check
+  and the remaining real-mailbox condition for #178 are recorded in
+  `docs/audits/dkim-independent-ci.md`. Authorized by accepted RFC-0035. No
+  issue is closed by this change (`Refs #178`).
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

@@ -32,3 +32,10 @@ contract document, the `CONTRACT_VERSION` constant and the snapshots together.
 The product owner of this version is Anti-Gravital; Gravital Fabric publishes
 its own independently versioned contract under `docs/mcp/` in its repository
 (ADR-0016).
+| `cli-json-contract-0.2.0.md` | Current human-readable CLI JSON contract. |
+| `cli-json-contract-0.1.0.md` | Superseded contract, kept as a historical artifact. |
+| `cli-json-0.1.0.schema.json` | Superseded schema, kept as a historical artifact. |
+RFC-0021 stage E is being implemented incrementally. The current contract
+version is `0.2.0` (unstable until Anti-Gravital 0.5) and covers five read-only
+commands: `schema.lint`, `schema.diff`, `workers.list`, `dns.plan` and
+`dns.status`. The last two were added by the domain-to-deploy loop (RFC-0033).

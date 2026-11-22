@@ -1106,3 +1106,30 @@ por el proceso de [SECURITY.md](SECURITY.md), nunca por issues publicos.
 Apache License 2.0. See [LICENSE](LICENSE).
 
 Project initiated by Angel Nereira under Gravital Labs / Nereira Technology and Business Solutions.
+- No `ag deploy`, `ag migrate` or `ag plugin` (future phases).
+- **No deployment story.** `ag deploy`, secrets, logs and rollback arrive
+  (Phase 9) are also future commands; the current binary does not include
+  them.
+| `ag dns plan [--manifest PATH] [--env ENV]` | Produce a deterministic, offline record plan from the `[domain]` table of `ag.toml` |
+| `ag dns apply --plan ID [--env ENV] [--provider NAME]` | Apply a reviewed plan to local state; a provider adapter runs only when explicitly named |
+| `ag dns status [--env ENV]` | Read-only report of the last applied plan and whether it is still in sync |
+| `ag domains attach [--manifest PATH] [--allow-wildcard]` | Attach a domain to a project from the manifest or flags, printing exact records (no credentials) |
+`ag dns plan` and `ag dns status` (contract `0.2.0`, documented in
+[docs/mcp/](docs/mcp/)). Other commands refuse it before doing any work; prose
+output is unchanged when the flag is absent.
+`ag deploy`, `ag migrate` and `ag plugin` are future commands and are not in
+the current binary. Detailed workflows: [`ag-cli` guide](crates/ag-cli/README.md)
+and [domain CLI reference](docs/ag-domains/reference/cli.md).
+- No existen `ag deploy`, `ag migrate` ni `ag plugin` (fases futuras).
+- **Sin historia de despliegue.** `ag deploy`, secretos, logs y rollback
+  llegan con `ag-cloud` en la Fase 5. `ag migrate` (Fase 7) y `ag plugin`
+  (Fase 9) tambien son comandos futuros; el binario actual no los incluye.
+| `ag dns plan [--manifest RUTA] [--env ENV]` | Produce un plan de registros determinista y sin red desde la tabla `[domain]` de `ag.toml` |
+| `ag dns apply --plan ID [--env ENV] [--provider NOMBRE]` | Aplica un plan revisado al estado local; el adaptador solo se ejecuta si se nombra explicitamente |
+| `ag dns status [--env ENV]` | Informe de solo lectura del ultimo plan aplicado y de si sigue sincronizado |
+| `ag domains attach [--manifest RUTA] [--allow-wildcard]` | Adjunta un dominio al proyecto desde el manifest o flags e imprime los registros exactos (sin credenciales) |
+`ag workers list`, `ag dns plan` y `ag dns status` (contrato `0.2.0`,
+documentado en [docs/mcp/](docs/mcp/)). Los demas comandos lo rechazan antes
+de actuar; la salida en prosa no cambia cuando el flag esta ausente.
+autoritativos. `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y
+no estan en el binario actual. Flujos detallados:

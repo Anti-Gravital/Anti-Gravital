@@ -34,19 +34,68 @@ use clap::{CommandFactory, Parser};
 use cli::*;
 use commands::config::*;
 use commands::deploy::*;
+use commands::dns::*;
 use commands::domains::*;
 use commands::mail::*;
 use commands::project::*;
 use commands::schema::*;
 use commands::workers::*;
 use output::{OutputFormat, CONTRACT_VERSION};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 
 /// Project root for local commands. The current directory is a project root;
 /// no path is taken from an environment variable or from a plan id.
 fn project_root() -> PathBuf {
     std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+}
+
+/// Builds `dns.plan` data without printing prose. The loader is the single
+/// source of truth for both output paths, so they cannot drift apart.
+fn cmd_dns_json_plan(manifest: &Path, env: Option<&str>) -> Result<output::DnsPlanData, String> {
+    let plan = load_plan(manifest, env)?;
+    Ok(output::DnsPlanData {
+        plan_id: plan.plan_id,
+        domain: plan.domain,
+        zone: plan.zone,
+        environment: plan.environment.as_str().to_owned(),
+        visibility: plan.visibility.as_str().to_owned(),
+        project: plan.project,
+        service: plan.service,
+        target_kind: plan.target_kind.to_owned(),
+        tls: plan.tls.as_str().to_owned(),
+        records: plan
+            .records
+            .into_iter()
+            .map(|record| output::DnsRecordView {
+                record_type: record.record_type.to_string(),
+                name: record.name,
+                value: record.value,
+                ttl: record.ttl,
+                is_ownership: record.is_ownership,
+            })
+            .collect(),
+        notes: plan.notes,
+    })
+}
+
+/// Builds `dns.status` data without printing prose.
+fn cmd_dns_json_status(
+    manifest: &Path,
+    env: Option<&str>,
+    state: &Path,
+) -> Result<output::DnsStatusData, String> {
+    let status = resolve_status(manifest, env, state)?;
+    Ok(output::DnsStatusData {
+        environment: status.environment.as_str().to_owned(),
+        applied: status.applied,
+        plan_id: status.plan_id,
+        domain: status.domain,
+        visibility: status.visibility.map(|value| value.as_str().to_owned()),
+        provider: status.provider,
+        record_count: status.record_count,
+        in_sync: status.in_sync,
+    })
 }
 
 /// Runs a read-only command in JSON mode and returns its exit code.
@@ -62,7 +111,8 @@ fn run_json_command(command: &Commands) -> i32 {
             format!(
                 "--output json is not supported by this command in contract version \
                  {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, \
-                 workers.list, deploy.plan, deploy.status"
+                 workers.list, deploy.plan, deploy.status, \
+                 dns.plan, dns.status"
             ),
         );
         return 2;
@@ -97,6 +147,35 @@ fn run_json_command(command: &Commands) -> i32 {
         Commands::Workers {
             command: WorkersCommands::List { schema },
         } => match workers_report(schema) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Dns {
+            command: DnsCommands::Plan { manifest, env },
+        } => match cmd_dns_json_plan(manifest, env.as_deref()) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Dns {
+            command:
+                DnsCommands::Status {
+                    manifest,
+                    state,
+                    env,
+                },
+        } => match cmd_dns_json_status(manifest, env.as_deref(), state) {
             Ok(data) => {
                 output::emit(name, data);
                 0
@@ -284,6 +363,39 @@ fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
                 cmd_schema_diff(&schema, &reference).map_err(CliError::Failed)
             }
         },
+        Commands::Dns { command } => match command {
+            DnsCommands::Plan { manifest, env } => {
+                cmd_dns_plan(&manifest, env.as_deref()).map(|_| ())
+            }
+            DnsCommands::Apply {
+                manifest,
+                env,
+                plan,
+                state,
+                provider,
+                zone_id,
+            } => {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("failed to create the Tokio runtime");
+                rt.block_on(cmd_dns_apply(
+                    &manifest,
+                    env.as_deref(),
+                    &state,
+                    &plan,
+                    &provider,
+                    zone_id.as_deref(),
+                ))
+                .map(|_| ())
+            }
+            DnsCommands::Status {
+                manifest,
+                state,
+                env,
+            } => cmd_dns_status(&manifest, env.as_deref(), &state).map(|_| ()),
+        }
+        .map_err(CliError::Failed),
         Commands::Domains { command } => {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -309,11 +421,21 @@ fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
                     project,
                     env,
                     service,
+                    manifest,
+                    allow_wildcard,
                     edge_host,
                     ips,
                     state,
                 } => rt.block_on(cmd_domains_attach(
-                    &domain, &project, &env, &service, &edge_host, &ips, &state,
+                    domain.as_deref(),
+                    project.as_deref(),
+                    env.as_deref(),
+                    service.as_deref(),
+                    manifest.as_deref(),
+                    allow_wildcard,
+                    edge_host.as_deref(),
+                    &ips,
+                    &state,
                 )),
                 DomainsCommands::Instructions {
                     domain,
@@ -402,7 +524,7 @@ mod tests {
         assert_eq!(
             root_commands,
             [
-                "new", "dev", "build", "config", "generate", "schema", "domains", "mail",
+                "new", "dev", "build", "config", "generate", "schema", "dns", "domains", "mail",
                 "workers", "deploy",
             ]
         );

@@ -26,8 +26,8 @@ fn snapshot(name: &str) -> &'static str {
         }
         "schema.diff" => include_str!("../../../docs/mcp/snapshots/schema.diff.json"),
         "workers.list" => include_str!("../../../docs/mcp/snapshots/workers.list.json"),
-        "deploy.plan" => include_str!("../../../docs/mcp/snapshots/deploy.plan.json"),
-        "deploy.status" => include_str!("../../../docs/mcp/snapshots/deploy.status.json"),
+        "dns.plan" => include_str!("../../../docs/mcp/snapshots/dns.plan.json"),
+        "dns.status" => include_str!("../../../docs/mcp/snapshots/dns.status.json"),
         "unsupported_command" => {
             include_str!("../../../docs/mcp/snapshots/unsupported_command.json")
         }
@@ -43,7 +43,11 @@ fn scratch_dir(label: &str) -> PathBuf {
 }
 
 fn write(dir: &Path, name: &str, contents: &str) {
-    std::fs::write(dir.join(name), contents).expect("write fixture");
+    let path = dir.join(name);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("create fixture parent");
+    }
+    std::fs::write(path, contents).expect("write fixture");
 }
 
 fn ag(args: &[&str], dir: &Path, env: &[(&str, &str)]) -> Output {
@@ -95,6 +99,13 @@ fn reference_schema() -> &'static str {
 
 fn current_schema() -> &'static str {
     "model Old {\n  id UUID @primary\n  title String\n}\nmodel New {\n  id UUID @primary\n}\n"
+}
+
+fn dns_manifest() -> &'static str {
+    "[project]\nname = \"demo\"\n\n[domain]\ndomain = \"api.example.com\"\nenvironment = \
+     \"production\"\nvisibility = \"public\"\ntls = \"managed_http01\"\ntarget = { kind = \
+     \"service\", ref = \"api\" }\n\n[domain.dns]\nCNAME = [{ name = \"api.example.com\", \
+     value = \"edge.example-cloud.net\" }]\n"
 }
 
 fn workers_schema() -> &'static str {
@@ -205,6 +216,38 @@ fn workers_list_matches_snapshot() {
 }
 
 #[test]
+fn dns_plan_matches_snapshot_without_network_or_writes() {
+    let dir = scratch_dir("dns-plan");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(
+        &["--output", "json", "dns", "plan"],
+        &dir,
+        &[
+            ("AG_CLOUDFLARE_TOKEN", "CANARY-NETWORK-TOKEN"),
+            ("AG_DNS_ZONE_ID", "CANARY-ZONE"),
+        ],
+    );
+    assert!(output.status.success(), "{output:?}");
+    assert_snapshot(&output, "dns.plan");
+    let value: serde_json::Value = serde_json::from_str(stdout(&output).trim()).expect("JSON");
+    assert!(value["data"]["plan_id"]
+        .as_str()
+        .unwrap()
+        .starts_with("dns-production-"));
+    assert_eq!(value["data"]["records"].as_array().unwrap().len(), 2);
+    assert!(!dir.join(".ag/dns/state.json").exists());
+}
+
+#[test]
+fn dns_status_matches_snapshot_when_not_applied() {
+    let dir = scratch_dir("dns-status");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(&["--output", "json", "dns", "status"], &dir, &[]);
+    assert!(output.status.success(), "{output:?}");
+    assert_snapshot(&output, "dns.status");
+}
+
+#[test]
 fn mutating_commands_refuse_json_before_doing_work() {
     let dir = scratch_dir("refuse-mutating");
     write(&dir, "schema.ag", clean_schema());
@@ -244,6 +287,14 @@ fn read_commands_without_a_shape_are_refused() {
     for args in [
         vec!["--output", "json", "domains", "list"],
         vec!["--output", "json", "workers", "doctor"],
+        vec![
+            "--output",
+            "json",
+            "dns",
+            "apply",
+            "--plan",
+            "dns-prod-canary",
+        ],
     ] {
         let output = ag(&args, &dir, &[]);
         assert_eq!(output.status.code(), Some(2), "{args:?}");
@@ -300,6 +351,28 @@ fn canary_secrets_are_never_echoed_by_a_refusal() {
 }
 
 #[test]
+fn dns_apply_refuses_json_without_creating_a_state_file() {
+    let dir = scratch_dir("dns-refuse");
+    write(&dir, "ag.toml", dns_manifest());
+    let output = ag(
+        &[
+            "--output",
+            "json",
+            "dns",
+            "apply",
+            "--plan",
+            "CANARY-PLAN-ID",
+        ],
+        &dir,
+        &[("AG_CLOUDFLARE_TOKEN", "CANARY-TOKEN")],
+    );
+    assert_eq!(output.status.code(), Some(2));
+    assert_snapshot(&output, "unsupported_command");
+    assert!(!dir.join(".ag/dns/state.json").exists());
+    assert!(!stdout(&output).contains("CANARY"));
+}
+
+#[test]
 fn every_supported_document_carries_the_contract_version() {
     let dir = scratch_dir("version");
     write(&dir, "schema.ag", clean_schema());
@@ -335,6 +408,102 @@ fn snapshots_are_valid_json_with_a_matching_version() {
         "schema.lint.read_failed",
         "schema.diff",
         "workers.list",
+        "dns.plan",
+        "dns.status",
+        "unsupported_command",
+    ] {
+        let value: serde_json::Value =
+            serde_json::from_str(snapshot(name)).expect("snapshot is valid JSON");
+        assert_eq!(value["contract_version"], "0.2.0", "{name}");
+    }
+    // Keep the directory honest if a file is moved.
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOT_DIR);
+    assert!(
+        dir.is_dir(),
+        "missing snapshot directory: {}",
+        dir.display()
+    );
+}
+
+fn mutating_commands_refuse_json_before_doing_work_deploy() {
+    let dir = scratch_dir("refuse-mutating");
+    write(&dir, "schema.ag", clean_schema());
+
+    let new = ag(&["--output", "json", "new", "demo"], &dir, &[]);
+    assert_eq!(new.status.code(), Some(2));
+    assert_snapshot(&new, "unsupported_command");
+    assert!(
+        !dir.join("demo").exists(),
+        "a refused command created a project"
+    );
+
+    let generate = ag(
+        &[
+            "--output",
+            "json",
+            "generate",
+            "--schema",
+            "schema.ag",
+            "--output",
+            "generated",
+        ],
+        &dir,
+        &[],
+    );
+    assert_eq!(generate.status.code(), Some(2));
+    assert_snapshot(&generate, "unsupported_command");
+    assert!(
+        !dir.join("generated").exists(),
+        "a refused command wrote artifacts"
+    );
+}
+
+fn read_commands_without_a_shape_are_refused_deploy() {
+    let dir = scratch_dir("refuse-read");
+    for args in [
+        vec!["--output", "json", "domains", "list"],
+        vec!["--output", "json", "workers", "doctor"],
+    ] {
+        let output = ag(&args, &dir, &[]);
+        assert_eq!(output.status.code(), Some(2), "{args:?}");
+        assert_snapshot(&output, "unsupported_command");
+    }
+}
+
+fn every_supported_document_carries_the_contract_version_deploy() {
+    let dir = scratch_dir("version");
+    write(&dir, "schema.ag", clean_schema());
+    write(&dir, "workers.ag", workers_schema());
+    for args in [
+        vec!["--output", "json", "schema", "lint"],
+        vec![
+            "--output",
+            "json",
+            "workers",
+            "list",
+            "--schema",
+            "workers.ag",
+        ],
+    ] {
+        let output = ag(&args, &dir, &[]);
+        assert!(output.status.success(), "{args:?}: {output:?}");
+        let value: serde_json::Value =
+            serde_json::from_str(stdout(&output).trim()).expect("valid JSON");
+        assert_eq!(value["contract_version"], "0.2.0");
+        assert_eq!(value["status"], "ok");
+        assert!(value.get("data").is_some());
+        assert!(value.get("error").is_none());
+    }
+}
+
+fn snapshots_are_valid_json_with_a_matching_version_deploy() {
+    for name in [
+        "schema.lint.clean",
+        "schema.lint.warnings",
+        "schema.lint.errors",
+        "schema.lint.read_failed",
+        "schema.diff",
+        "workers.list",
         "deploy.plan",
         "deploy.status",
         "unsupported_command",
@@ -352,22 +521,6 @@ fn snapshots_are_valid_json_with_a_matching_version() {
     );
 }
 
-fn docker_project() -> PathBuf {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    static NEXT_DOCKER: AtomicUsize = AtomicUsize::new(0);
-    let dir = scratch_dir(&format!(
-        "deploy-json-{}",
-        NEXT_DOCKER.fetch_add(1, Ordering::Relaxed)
-    ));
-    write(&dir, "Cargo.toml", "[package]\nname = \"demo\"\n");
-    let docker = dir.join("deploy/docker");
-    std::fs::create_dir_all(&docker).expect("docker source directory");
-    std::fs::write(docker.join("Dockerfile"), "FROM scratch\n").expect("Dockerfile");
-    std::fs::write(docker.join("compose.yml"), "services: {}\n").expect("compose file");
-    dir
-}
-
-#[test]
 fn deploy_plan_and_status_match_snapshots() {
     let dir = docker_project();
     let plan = ag(
@@ -397,7 +550,6 @@ fn deploy_plan_and_status_match_snapshots() {
     assert_snapshot(&status, "deploy.status");
 }
 
-#[test]
 fn deploy_apply_refuses_json_without_writing() {
     let dir = docker_project();
     let output = ag(
@@ -418,4 +570,19 @@ fn deploy_apply_refuses_json_without_writing() {
         !dir.join("deploy/generated").exists(),
         "a refused apply wrote artifacts"
     );
+}
+
+fn docker_project() -> PathBuf {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static NEXT_DOCKER: AtomicUsize = AtomicUsize::new(0);
+    let dir = scratch_dir(&format!(
+        "deploy-json-{}",
+        NEXT_DOCKER.fetch_add(1, Ordering::Relaxed)
+    ));
+    write(&dir, "Cargo.toml", "[package]\nname = \"demo\"\n");
+    let docker = dir.join("deploy/docker");
+    std::fs::create_dir_all(&docker).expect("docker source directory");
+    std::fs::write(docker.join("Dockerfile"), "FROM scratch\n").expect("Dockerfile");
+    std::fs::write(docker.join("compose.yml"), "services: {}\n").expect("compose file");
+    dir
 }

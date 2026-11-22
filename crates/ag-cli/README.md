@@ -161,6 +161,28 @@ Verifies DNS propagation for a domain. Exits non-zero if fewer than
 Applies SPF/DKIM/DMARC records to the DNS provider idempotently.
 Reads zone ID and token from flags or environment variables.
 
+### Local domain loop (RFC-0033)
+
+The `[domain]` table of `ag.toml` is the canonical binding for a project in a
+given environment. `plan` is read-only and deterministic; `apply` is gated by
+the exact plan id and writes only `.ag/dns/state.json` unless a provider is
+explicitly requested:
+
+```bash
+ag dns plan
+ag dns plan --env production
+ag dns apply --plan dns-production-0123456789abcdef
+ag dns apply --plan dns-production-0123456789abcdef --provider cloudflare --zone-id ZONE
+ag dns status
+```
+
+Without `--provider` there is no network access. Tokens and provider zone ids
+are read from the environment and never from the manifest or generated files.
+`status` never contacts a provider. A private binding emits no public
+A/AAAA/CNAME record; a wildcard requires both `allow_wildcard = true` and
+`tls = "managed_dns01"`. `ag domains attach --manifest ag.toml` derives the
+host, project and environment from the same binding.
+
 ### Local domain attachment workflow
 
 These commands use the native JSON store at `.ag/domains.json` by default and
@@ -212,7 +234,7 @@ ag mail test --to me@example.com --smtp-host mail.example.com --smtp-port 587
 | Variable              | Used by                  | Default       | Description                        |
 |-----------------------|--------------------------|---------------|------------------------------------|
 | `AG_CLOUDFLARE_TOKEN` | `ag domains sync`        | —             | Cloudflare API token               |
-| `AG_DNS_ZONE_ID`      | `ag domains sync`        | —             | Cloudflare zone ID                 |
+| `AG_DNS_ZONE_ID`      | `ag domains sync`, `ag dns apply --provider cloudflare` | — | Cloudflare zone ID |
 | `AG_EDGE_HOST`        | Domain attach/instructions/export/diagnose | — | Edge CNAME target |
 | `AG_SMTP_HOST`        | `ag mail test`           | `localhost`   | SMTP host                          |
 | `AG_SMTP_PORT`        | `ag mail test`           | `587`         | SMTP port                          |
@@ -227,11 +249,12 @@ the address with the flag; `BIND` is not read as CLI configuration.
 ## Machine-readable output
 
 `ag --output json` (or `--output json` after a read subcommand) emits one
-versioned JSON line for `ag schema lint`, `ag schema diff` and `ag workers
-list`. The flag is refused with a versioned `unsupported_command` error before
-any mutating command does work. Prose output is unchanged when the flag is
-absent. The contract, its JSON Schema and byte-exact snapshots live in
-[`docs/mcp/`](../../docs/mcp/); contract version `0.1.0` is unstable until
+versioned JSON line for `ag schema lint`, `ag schema diff`, `ag workers list`,
+`ag dns plan` and `ag dns status`. The flag is refused with a versioned
+`unsupported_command` error before any mutating command does work. Prose output
+is unchanged when the flag is absent. The contract, its JSON Schema and
+byte-exact snapshots live in
+[`docs/mcp/`](../../docs/mcp/); contract version `0.2.0` is unstable until
 Anti-Gravital 0.5. For `ag generate`, whose directory flag owns `--output`,
 the same selector is exposed as `--output-format`.
 

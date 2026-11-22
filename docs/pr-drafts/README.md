@@ -100,3 +100,5 @@ Ramas con descriptor aceptando PR en este momento:
   solo diseno).
 - `community8/dnsdocs`: `docs/pr-drafts/community8-dnsdocs.md` (guia bilingue
   del circulo dominio-despliegue y enlaces de navegacion, ola 8).
+- `community8/dnsapi`: `docs/pr-drafts/community8-dnsapi.md` (comandos locales
+  `ag dns plan|apply|status` y `ag domains attach` desde `ag.toml`, ola 8).

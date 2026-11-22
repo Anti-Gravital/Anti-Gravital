@@ -1,1 +1,1 @@
-{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: schema.lint, schema.diff, workers.list, deploy.plan, deploy.status"}}
+{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: schema.lint, schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, dns.status"}}

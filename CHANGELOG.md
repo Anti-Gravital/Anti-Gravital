@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Edge wildcard matching (issue #196)
 
 Fixed:
@@ -14,7 +15,6 @@ Fixed:
 - `ag-edge` route, TLS and certificate wildcard matching now requires a dot
   boundary, so `notexample.com` no longer matches a `*.example.com` binding.
   Added a regression test; the `ag-edge` suite passes 23/23.
-
 
 ### Environment and visibility rules for the domain loop (wave 8)
 
@@ -2281,6 +2281,34 @@ credentials were injected and never appeared in output. A contract divergence
 between the envrules YAML manifest and the dnsapi TOML manifest is recorded as
 an integration item for the coordinator, not fixed by editing another role's
 files.
+
+### Local domain loop in the CLI (wave 8, RFC-0033)
+
+Added:
+
+- `ag dns plan [--manifest PATH] [--env ENV]`: resolves the `[domain]` table of
+  `ag.toml` into a domain binding and prints a deterministic plan id and record
+  set. No network access, no credentials and no writes.
+- `ag dns apply --plan ID [--env ENV] [--state PATH] [--provider NAME]
+  [--zone-id ID]`: requires the exact plan id, rejects drift before any write,
+  and writes a local resolved configuration under `.ag/dns/`. A provider adapter
+  runs only when `--provider` is passed explicitly; tokens and provider zone ids
+  come from the environment and never from generated files.
+- `ag dns status [--env ENV]`: read-only report of the last applied plan and
+  whether the manifest still produces the same id. No DNS egress.
+- `ag domains attach --manifest PATH`: derives host, project, environment and
+  service from the canonical manifest; wildcards still require an explicit
+  opt-in.
+- Validation for environment aliases (`prod` to `production`, `local` as an
+  empty binding), public/private visibility, TLS modes, TTL bounds and record
+  types. Private bindings never emit public A/AAAA/CNAME records; wildcards
+  require `allow_wildcard = true` and `managed_dns01`.
+
+Changed:
+
+- Versioned CLI JSON contract bumped to `0.2.0` with `dns.plan` and `dns.status`
+  shapes, a matching JSON Schema, snapshots and documentation. Mutating
+  commands, including `dns apply`, refuse `--output json` before dispatch.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

@@ -1,0 +1,1 @@
+{"contract_version":"0.2.0","command":"dns.status","status":"ok","data":{"environment":"production","applied":false,"plan_id":null,"domain":null,"visibility":null,"provider":null,"record_count":0,"in_sync":false}}

@@ -192,6 +192,45 @@ pub(crate) fn emit_error(command: &'static str, code: &'static str, message: imp
     });
 }
 
+/// One validated record in `dns.plan` (RFC-0033).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsRecordView {
+    pub(crate) record_type: String,
+    pub(crate) name: String,
+    pub(crate) value: String,
+    pub(crate) ttl: u32,
+    pub(crate) is_ownership: bool,
+}
+
+/// Data of `dns.plan`. Contains no credential, zone id or path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsPlanData {
+    pub(crate) plan_id: String,
+    pub(crate) domain: String,
+    pub(crate) zone: String,
+    pub(crate) environment: String,
+    pub(crate) visibility: String,
+    pub(crate) project: String,
+    pub(crate) service: String,
+    pub(crate) target_kind: String,
+    pub(crate) tls: String,
+    pub(crate) records: Vec<DnsRecordView>,
+    pub(crate) notes: Vec<String>,
+}
+
+/// Data of `dns.status`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DnsStatusData {
+    pub(crate) environment: String,
+    pub(crate) applied: bool,
+    pub(crate) plan_id: Option<String>,
+    pub(crate) domain: Option<String>,
+    pub(crate) visibility: Option<String>,
+    pub(crate) provider: Option<String>,
+    pub(crate) record_count: usize,
+    pub(crate) in_sync: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

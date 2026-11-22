@@ -129,7 +129,11 @@ ed25519-dalek = { version = "3", features = ["pkcs8", "pem", "rand_core"] }
 rand_core = "0.10"
 rand = { version = "0.10", features = ["sys_rng"] }
 rcgen = "0.14"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+# reqwest 0.13: `rustls-tls` no longer exists. `rustls` would pull aws-lc-rs
+# into the process; the workspace standardizes on ring (see ADR-0018). Use
+# `rustls-no-provider` and install ring explicitly before building a Client.
+# `form` and `query` are required by the ag-auth/ag-domains call sites.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "stream", "form", "query"] }
 tokio-test = "0.4"
 moka = { version = "0.12", features = ["future"] }
 tokio-stream = { version = "0.1", features = ["sync"] }

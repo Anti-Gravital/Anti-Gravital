@@ -39,6 +39,8 @@ fn enabled_config() -> CsrfConfig {
 
 #[tokio::test]
 async fn get_request_skips_csrf_check() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server(enabled_config()).await;
     let client = reqwest::Client::new();
     let resp = client
@@ -53,6 +55,8 @@ async fn get_request_skips_csrf_check() {
 
 #[tokio::test]
 async fn post_without_token_returns_403() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server(enabled_config()).await;
     let client = reqwest::Client::new();
     let resp = client
@@ -68,6 +72,8 @@ async fn post_without_token_returns_403() {
 
 #[tokio::test]
 async fn post_with_matching_header_and_cookie_passes() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server(enabled_config()).await;
     let client = reqwest::Client::new();
     let resp = client
@@ -84,6 +90,8 @@ async fn post_with_matching_header_and_cookie_passes() {
 
 #[tokio::test]
 async fn post_with_mismatched_token_returns_403() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server(enabled_config()).await;
     let client = reqwest::Client::new();
     let resp = client
@@ -99,6 +107,8 @@ async fn post_with_mismatched_token_returns_403() {
 
 #[tokio::test]
 async fn post_with_only_header_returns_403() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server(enabled_config()).await;
     let client = reqwest::Client::new();
     let resp = client
@@ -113,6 +123,8 @@ async fn post_with_only_header_returns_403() {
 
 #[tokio::test]
 async fn csrf_disabled_lets_post_through() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cfg = CsrfConfig {
         enabled: false,
         ..CsrfConfig::default()

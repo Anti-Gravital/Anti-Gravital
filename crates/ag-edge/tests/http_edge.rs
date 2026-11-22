@@ -49,6 +49,8 @@ fn client() -> reqwest::Client {
 
 #[tokio::test]
 async fn serves_acme_http01_challenge() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start().await;
     let resp = client()
         .get(format!("{base}/.well-known/acme-challenge/tok-123"))
@@ -61,6 +63,8 @@ async fn serves_acme_http01_challenge() {
 
 #[tokio::test]
 async fn unknown_challenge_token_is_404() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start().await;
     let resp = client()
         .get(format!("{base}/.well-known/acme-challenge/nope"))
@@ -72,6 +76,8 @@ async fn unknown_challenge_token_is_404() {
 
 #[tokio::test]
 async fn routes_known_custom_host() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start().await;
     let resp = client()
         .get(&base)
@@ -88,6 +94,8 @@ async fn routes_known_custom_host() {
 
 #[tokio::test]
 async fn unknown_host_fails_closed_404() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start().await;
     let resp = client()
         .get(&base)
@@ -100,6 +108,8 @@ async fn unknown_host_fails_closed_404() {
 
 #[tokio::test]
 async fn apex_redirects_to_canonical() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start().await;
     let resp = client()
         .get(format!("{base}/products"))
@@ -128,6 +138,8 @@ async fn start_redirect() -> (String, Http01ChallengeStore) {
 
 #[tokio::test]
 async fn redirect_upgrades_http_to_https_preserving_path_and_query() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (base, _ch) = start_redirect().await;
     let resp = client()
         .get(format!("{base}/products?page=2"))
@@ -144,6 +156,8 @@ async fn redirect_upgrades_http_to_https_preserving_path_and_query() {
 
 #[tokio::test]
 async fn redirect_serves_acme_challenge_over_http() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     // ACME HTTP-01 must NOT be redirected, or issuance breaks.
     let (base, _ch) = start_redirect().await;
     let resp = client()

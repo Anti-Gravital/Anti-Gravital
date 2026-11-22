@@ -30,6 +30,17 @@ pub mod azure_dns;
 #[cfg(feature = "namecheap")]
 pub mod namecheap;
 
+/// Installs `ring` as the process-wide rustls crypto provider.
+///
+/// DNS adapters build their own `reqwest::Client`. With reqwest 0.13 built
+/// using `rustls-no-provider`, building a client panics unless a default
+/// provider is installed. The installation is idempotent so it is safe in
+/// every adapter constructor and under `--all-features` (ADR-0018).
+pub fn install_ring_provider() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
+}
+
 /// Abstraction over any DNS provider.
 ///
 /// Adapters implement this trait. The ecosystem consumes it via

@@ -25,6 +25,8 @@ async fn start_server() -> (SocketAddr, tokio::task::JoinHandle<()>) {
 
 #[tokio::test]
 async fn hello_endpoint_responds_200_with_body() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server().await;
     let url = format!("http://{addr}/hello");
 
@@ -39,6 +41,8 @@ async fn hello_endpoint_responds_200_with_body() {
 
 #[tokio::test]
 async fn missing_route_responds_404() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server().await;
     let url = format!("http://{addr}/no-such-route");
 

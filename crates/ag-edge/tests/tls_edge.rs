@@ -10,6 +10,8 @@ use ag_edge::server::{serve_https, EdgeState};
 
 #[tokio::test]
 async fn serves_https_with_sni_selected_cert() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     // Self-signed cert for the test hostname.
     let ck = rcgen::generate_simple_self_signed(vec!["test.local".to_string()]).unwrap();
     let cert_pem = ck.cert.pem();

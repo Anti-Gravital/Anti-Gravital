@@ -16,6 +16,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1316,3 +1317,22 @@ Added:
   so no `protoc` is needed in multiplatform CI, and the blocking client needs
   no Tokio runtime. The stale `TECH-DEBT` markers in the workspace and
   `ag-observe` manifests were removed.
+
+### reqwest 0.13 with the ring provider (issue #177)
+
+Changed:
+
+- `reqwest` upgraded from 0.12 to 0.13 in the workspace and in the native
+  benchmark. The removed `rustls-tls` feature was replaced by
+  `rustls-no-provider`, plus `form` and `query` for the existing call sites.
+  The workspace keeps `ring` as its single crypto provider (ADR-0018).
+- Every composition point that builds a `reqwest` client now installs `ring`
+  as the process-default rustls provider with an idempotent pattern: ag-auth
+  OAuth, the ag-domains DNS adapters, the examples, the benchmark and the
+  affected tests. This preserves TLS verification and avoids the two-provider
+  failure already fixed for the native MTA (issue #181).
+- Added a test that performs a verified TLS handshake through `reqwest`
+  against a local rustls server, so a missing or wrong provider fails CI.
+- The standalone native benchmark manifest now declares its `rand` dependency
+  explicitly instead of trying to inherit a workspace that does not exist, so
+  its upgraded `reqwest` can actually be compiled and its lockfile refreshed.

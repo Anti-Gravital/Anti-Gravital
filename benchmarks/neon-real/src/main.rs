@@ -659,6 +659,7 @@ async fn run_worker(
     tx: mpsc::Sender<RequestRecord>,
     stop: tokio::sync::watch::Receiver<bool>,
 ) {
+    let _ = rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(15))
         .build()

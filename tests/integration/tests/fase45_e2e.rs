@@ -120,6 +120,8 @@ fn mail_requirements(domain: &str, dkim_selectors: Vec<&str>) -> MailDnsRequirem
 
 #[tokio::test]
 async fn test_mail_null_sender_captures_email() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let sender = Arc::new(NullSender::new());
     let email = EmailBuilder::new()
         .from(Address::new("from@example.com"))
@@ -142,6 +144,8 @@ async fn test_mail_null_sender_captures_email() {
 
 #[test]
 fn test_mail_template_renders_vars() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let tpl = StringTemplate::html_and_text(
         "Bienvenido {{nombre}}",
         "<p>Hola {{nombre}}, tu enlace es {{link}}</p>",
@@ -167,6 +171,8 @@ fn test_mail_template_renders_vars() {
 
 #[tokio::test]
 async fn test_mail_queue_enqueue_multiple() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let policy = RetryPolicy {
         max_retries: 2,
         base_delay: Duration::from_millis(10),
@@ -194,6 +200,8 @@ async fn test_mail_queue_enqueue_multiple() {
 
 #[tokio::test]
 async fn test_domains_apply_creates_spf_dkim_dmarc() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let provider = InMemoryDnsProvider::default();
     let req = mail_requirements("example.com", vec!["mail"]);
 
@@ -209,6 +217,8 @@ async fn test_domains_apply_creates_spf_dkim_dmarc() {
 
 #[tokio::test]
 async fn test_domains_apply_is_idempotent() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let provider = InMemoryDnsProvider::default();
     let req = mail_requirements("example.com", vec!["mail"]);
 
@@ -234,6 +244,8 @@ async fn test_domains_apply_is_idempotent() {
 
 #[tokio::test]
 async fn test_auth_mail_verification_flow() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let sender = Arc::new(NullSender::new());
     let sender_dyn: Arc<dyn MailSender> = sender.clone();
 
@@ -276,6 +288,8 @@ async fn test_auth_mail_verification_flow() {
 
 #[tokio::test]
 async fn test_auth_mail_all_three_flows() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let sender = Arc::new(NullSender::new());
     let sender_dyn: Arc<dyn MailSender> = sender.clone();
     let mailer = Arc::new(AuthMailer::new(sender_dyn, "noreply@x.com", "X"));

@@ -53,6 +53,8 @@ async fn start_server() -> (SocketAddr, tokio::task::JoinHandle<()>) {
 
 #[tokio::test]
 async fn valid_payload_returns_200() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server().await;
     let client = reqwest::Client::new();
     let resp = client
@@ -69,6 +71,8 @@ async fn valid_payload_returns_200() {
 
 #[tokio::test]
 async fn invalid_payload_returns_422_with_field_details() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server().await;
     let client = reqwest::Client::new();
     let resp = client
@@ -88,6 +92,8 @@ async fn invalid_payload_returns_422_with_field_details() {
 
 #[tokio::test]
 async fn malformed_json_returns_422() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let (addr, handle) = start_server().await;
     let client = reqwest::Client::new();
     let resp = client

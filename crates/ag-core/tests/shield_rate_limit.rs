@@ -31,6 +31,8 @@ async fn start_server(rl: RateLimitConfig) -> (SocketAddr, tokio::task::JoinHand
 
 #[tokio::test]
 async fn rate_limit_disabled_lets_all_requests_through() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let rl = RateLimitConfig::default();
     let (addr, handle) = start_server(rl).await;
     let client = reqwest::Client::new();
@@ -47,6 +49,8 @@ async fn rate_limit_disabled_lets_all_requests_through() {
 
 #[tokio::test]
 async fn rate_limit_enabled_blocks_after_burst() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let rl = RateLimitConfig {
         enabled: true,
         per_ip_rps: 1,
@@ -80,6 +84,8 @@ async fn rate_limit_enabled_blocks_after_burst() {
 
 #[tokio::test]
 async fn invalid_rate_limit_config_fails_construction() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let config = ShieldConfig {
         rate_limit: RateLimitConfig {
             enabled: true,

@@ -67,6 +67,9 @@ impl ProviderRegistry {
     ///
     /// `AI_DEFAULT_PROVIDER` overrides the default provider.
     pub fn from_env() -> Self {
+        let _ = rustls::crypto::CryptoProvider::install_default(
+            rustls::crypto::ring::default_provider(),
+        );
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()

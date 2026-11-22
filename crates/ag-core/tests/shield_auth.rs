@@ -81,6 +81,8 @@ async fn start_server(auth: AuthConfig) -> (SocketAddr, tokio::task::JoinHandle<
 
 #[tokio::test]
 async fn missing_authorization_returns_401() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let keys = generate_keys();
     let cfg = AuthConfig {
         enabled: true,
@@ -102,6 +104,8 @@ async fn missing_authorization_returns_401() {
 
 #[tokio::test]
 async fn valid_token_passes_and_handler_sees_claims() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let keys = generate_keys();
     let token = sign(
         &AppClaims {
@@ -132,6 +136,8 @@ async fn valid_token_passes_and_handler_sees_claims() {
 
 #[tokio::test]
 async fn expired_token_is_rejected() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let keys = generate_keys();
     let token = sign(
         &AppClaims {
@@ -161,6 +167,8 @@ async fn expired_token_is_rejected() {
 
 #[tokio::test]
 async fn token_signed_with_other_key_is_rejected() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let keys_a = generate_keys();
     let keys_b = generate_keys();
     let token = sign(
@@ -191,6 +199,8 @@ async fn token_signed_with_other_key_is_rejected() {
 
 #[tokio::test]
 async fn wrong_issuer_is_rejected() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let keys = generate_keys();
     let token = sign(
         &AppClaims {
@@ -221,6 +231,8 @@ async fn wrong_issuer_is_rejected() {
 
 #[tokio::test]
 async fn auth_disabled_lets_request_through_but_extractor_fails() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
     let cfg = AuthConfig::default();
     let (addr, handle) = start_server(cfg).await;
     let client = reqwest::Client::new();

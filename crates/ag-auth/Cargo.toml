@@ -42,6 +42,9 @@ sha2          = { workspace = true }
 p256          = { workspace = true }
 hmac          = { workspace = true }
 reqwest       = { workspace = true }
+# reqwest 0.13 `rustls-no-provider` needs an explicit process-default provider.
+# Installed here so AgAuth can accept caller-built clients safely (ADR-0018).
+rustls        = { workspace = true }
 ed25519-dalek = { workspace = true }
 url           = { workspace = true }
 

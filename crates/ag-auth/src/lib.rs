@@ -41,6 +41,18 @@ pub use webauthn::{
     StoredCredential, WebAuthnError, WebAuthnRp,
 };
 
+/// Installs `ring` as the process-wide rustls crypto provider.
+///
+/// `reqwest` 0.13 is built with `rustls-no-provider`, so building a client
+/// panics unless a default provider is installed. The installation is
+/// idempotent: a second call returns an error that is deliberately ignored,
+/// which keeps this safe at every composition point and under `--all-features`
+/// where other crates may still link `aws-lc-rs` (ADR-0018).
+pub(crate) fn install_ring_provider() {
+    let _ =
+        rustls::crypto::CryptoProvider::install_default(rustls::crypto::ring::default_provider());
+}
+
 /// Main facade of the authentication module.
 pub struct AgAuth {
     /// JWT signer/verifier.
@@ -64,6 +76,7 @@ impl AgAuth {
     /// - `http_client` is used internally for OAuth2 — the caller provides it
     ///   to allow configuration of timeouts, proxies and custom TLS.
     pub fn new(config: AuthConfig, http_client: reqwest::Client) -> Result<Self, AuthConfigError> {
+        install_ring_provider();
         let jwt = JwtSigner::new(
             config.jwt_private_key_pem.clone(),
             config.jwt_public_key_pem.clone(),
@@ -138,6 +151,7 @@ mod tests {
     }
 
     fn http() -> reqwest::Client {
+        install_ring_provider();
         reqwest::Client::new()
     }
 

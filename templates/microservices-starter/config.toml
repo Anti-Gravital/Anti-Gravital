@@ -1,0 +1,15 @@
+# Configuration for {{name}}. Select one service per process with SERVICE_ROLE.
+
+[service]
+role = "gateway"
+
+[gateway]
+bind = "127.0.0.1:8081"
+
+[worker]
+bind = "127.0.0.1:8082"
+
+[contract]
+# Shared request/response types live in src/contract.rs and are compiled into
+# both services. Keep this module dependency-free so it can be extracted later.
+schema_version = 1

@@ -1,0 +1,4 @@
+name = "object-storage-api"
+description = "Object storage API with local and pluggable bucket adapters."
+category = "infrastructure"
+external_requirements = ["S3_BUCKET"]

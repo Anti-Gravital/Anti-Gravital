@@ -1,0 +1,9 @@
+# Configuration for {{name}}. This scaffold reads settings from flags and the
+# environment; the file below documents the intended defaults.
+
+[cli]
+name = "{{name}}"
+default_output = "config.toml"
+
+[logging]
+level = "info"

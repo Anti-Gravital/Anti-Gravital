@@ -1,0 +1,4 @@
+name = "cli-tool"
+description = "Standalone CLI binary scaffold using clap and ag-core."
+category = "infrastructure"
+external_requirements = []

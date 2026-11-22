@@ -1,0 +1,11 @@
+# Configuration for {{name}}. Values are read from the environment.
+
+[server]
+bind = "127.0.0.1:8080"
+
+[observability]
+log_format = "pretty"
+prometheus_port = 9090
+# Reserved: setting OTEL_EXPORTER_OTLP_ENDPOINT makes the ag-observe init()
+# path fail explicitly until a real exporter is wired. Leave it unset.
+otlp_endpoint = ""

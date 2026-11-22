@@ -1,0 +1,4 @@
+name = "mail-service"
+description = "Transactional mail service with native SMTP/MTA senders."
+category = "infrastructure"
+external_requirements = ["AG_SMTP_HOST"]

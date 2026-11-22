@@ -5,6 +5,38 @@ semver (https://semver.org/). La primera version etiquetada es el
 prerelease `0.1.0-alpha.1`; las entradas bajo `[Unreleased]` son cambios
 aun no etiquetados.
 
+## [Unreleased]
+
+### Added
+
+- Seis plantillas de infraestructura bajo `templates/` (ola 6 del catalogo):
+  `mail-service`, `dns-manager`, `object-storage-api`, `monitoring-service`,
+  `microservices-starter` y `cli-tool`. Cada directorio incluye
+  `template.toml`, `README.md`, `Cargo.toml`, `config.toml` y codigo fuente.
+  Las dependencias `ag-*` quedan fijadas al rev
+  `91a95ff61ed6ef4c9d3f1c9069357e97389d1382`.
+  - `mail-service`: envio transaccional con `ag-mail` (relay SMTP nativo),
+    stub de configuracion DKIM y modo dry-run sin servidor de correo.
+  - `dns-manager`: CRUD de registros a traves del trait `DnsProvider` de
+    `ag-domains`, adaptador nativo en memoria y presets SPF/DKIM/DMARC.
+  - `object-storage-api`: URLs firmadas con `ag-storage` (HMAC-SHA256),
+    backend de filesystem por defecto y S3 documentado como via de produccion.
+  - `monitoring-service`: endpoints `/health`, `/ready` y `/metrics`. La
+    integracion con `ag-observe` es opt-in (feature `ag-observe`) para que el
+    build por defecto siga siendo offline.
+  - `microservices-starter`: dos servicios (gateway y worker) con un contrato
+    tipado compartido en `src/contract.rs`.
+  - `cli-tool`: binario `clap` con subcomandos y errores `AgError` de
+    `ag-core`.
+
+### Verification
+
+- Se andamiaron las seis plantillas en `/tmp/ag-infra-verify/<nombre>`
+  sustituyendo `{{name}}` en todos los archivos excepto `template.toml`, y se
+  ejecuto `cargo check --offline` con `CARGO_TARGET_DIR` compartido,
+  `CARGO_INCREMENTAL=0` y `CARGO_PROFILE_TEST_DEBUG=0`.
+- Resultado: 6/6 exitosos, sin warnings ni errores de compilacion.
+
 ## [0.1.0-alpha.1] - 2026-11-22
 
 Primer prerelease etiquetado. Version `0.1.0-alpha.1` tomada del manifest

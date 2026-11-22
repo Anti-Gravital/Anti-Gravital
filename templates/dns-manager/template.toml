@@ -1,0 +1,4 @@
+name = "dns-manager"
+description = "DNS record manager with a provider adapter and SPF/DKIM/DMARC output."
+category = "infrastructure"
+external_requirements = ["AG_CLOUDFLARE_TOKEN"]

@@ -5,6 +5,11 @@ the `ag` binary copies and renames when a project is created.
 
 ## Available templates
 
+The authoritative registry of all 33 templates, their categories, purposes and
+external requirements is [CATALOG.md](CATALOG.md). The four original templates
+are described below; every other name in the catalog is discovered at build
+time from its own `templates/<name>/` directory.
+
 Valid values for `ag new -t <template>`:
 
 - `rest`: minimal REST API on `ag-core` (`Shield` + axum) with one example `/`

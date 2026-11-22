@@ -7,8 +7,31 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Template catalog and data-driven scaffolding (wave 6)
 
+Added:
 
+- `templates/CATALOG.md`: authoritative registry of 33 template names with
+  categories, purposes, external requirements, owners and the `template.toml`
+  contract (including the `offline_check` and `limitations` extensions).
+- `crates/ag-cli/src/catalog.rs`: single source of truth shared by the clap
+  value parser, both interactive selectors and the scaffolder. Every catalog
+  name is accepted by `--template`; unknown names remain a usage error and
+  `rest` stays the non-interactive default.
+- `crates/ag-cli/build.rs` plus `crates/ag-cli/src/scaffold.rs`: template
+  directories are discovered and embedded at build time, so a new
+  `templates/<name>/` directory becomes scaffoldable without CLI code changes.
+  `.tmpl` suffix stripping and `{{name}}` substitution are preserved;
+  `template.toml` is metadata and is not copied into generated projects.
+- Wizard rendering for the long catalog: a six-entry window that follows the
+  selection, position and `more above`/`more below` hints, clamped navigation
+  and category/external-requirement information in the review step.
+
+Changed:
+
+- The four original templates are now scaffolded through the same generic
+  path as every cataloged template; their generated files are unchanged.
+- `templates/README.md` points to `CATALOG.md` as the full registry.
 
 
 ### Added

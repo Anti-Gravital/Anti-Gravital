@@ -13,6 +13,10 @@ fn taken(_: &str) -> bool {
     true
 }
 
+fn catalog_template(name: &str) -> Template {
+    Template::parse(name).expect("cataloged template")
+}
+
 fn type_name(wizard: &mut Wizard, name: &str) {
     for c in name.chars() {
         assert_eq!(wizard.update(Msg::Char(c)), None);
@@ -53,7 +57,7 @@ fn happy_path_submits_the_typed_request() {
         wizard.update(Msg::Enter),
         Some(Effect::Submit(NewProjectRequest {
             name: "my-api".into(),
-            template: Template::Realtime,
+            template: catalog_template("realtime"),
         }))
     );
 }
@@ -115,7 +119,7 @@ fn back_navigates_to_the_previous_step_and_keeps_the_input() {
     assert_eq!(wizard.update(Msg::Back), None);
     assert_eq!(wizard.step(), Step::Name);
     assert_eq!(wizard.name, "shop");
-    assert_eq!(wizard.request().template, Template::Fullstack);
+    assert_eq!(wizard.request().template, catalog_template("fullstack"));
 }
 
 #[test]
@@ -141,23 +145,28 @@ fn selection_stays_within_the_list() {
     let mut wizard = Wizard::new(Some("x".into()), None, free);
     assert_eq!(wizard.step(), Step::Template);
     wizard.update(Msg::Up);
-    assert_eq!(wizard.request().template, Template::Rest);
-    for _ in 0..10 {
+    assert_eq!(wizard.request().template, catalog_template("rest"));
+    // Walk past the end of a long catalog; the selection must clamp, not wrap.
+    for _ in 0..Template::ALL.len() + 10 {
         wizard.update(Msg::Down);
     }
-    // Down clamps at the last entry of Template::ALL, now the layered template.
-    assert_eq!(wizard.request().template, Template::Layered);
+    let last = Template::ALL.last().expect("catalog is not empty");
+    assert_eq!(wizard.request().template, *last);
 }
 
 #[test]
 fn prefilled_inputs_are_kept() {
-    let wizard = Wizard::new(Some("given".into()), Some(Template::Fullstack), free);
+    let wizard = Wizard::new(
+        Some("given".into()),
+        Some(catalog_template("fullstack")),
+        free,
+    );
     assert_eq!(wizard.step(), Step::Template);
     assert_eq!(
         wizard.request(),
         NewProjectRequest {
             name: "given".into(),
-            template: Template::Fullstack,
+            template: catalog_template("fullstack"),
         }
     );
 }
@@ -262,13 +271,17 @@ fn template_step_marks_the_selection_and_lists_its_files() {
 
 #[test]
 fn review_step_shows_exactly_what_will_be_created_and_the_command() {
-    let mut wizard = Wizard::new(Some("shop".into()), Some(Template::Fullstack), free);
+    let mut wizard = Wizard::new(
+        Some("shop".into()),
+        Some(catalog_template("fullstack")),
+        free,
+    );
     wizard.update(Msg::Enter);
     for (width, height) in [(80, 24), (120, 40)] {
         let screen = screen_text(&render(&wizard, &Theme::color(), width, height));
         assert!(screen.contains("Step 3 of 3: Review"), "{screen}");
         assert!(screen.contains("Directory: ./shop"), "{screen}");
-        for file in Template::Fullstack.files() {
+        for file in catalog_template("fullstack").files() {
             assert!(screen.contains(&format!("shop/{file}")), "{screen}");
         }
         assert!(
@@ -311,4 +324,81 @@ fn every_screen_is_ascii_or_box_drawing_only() {
             assert!(c.is_ascii() || box_drawing, "unexpected glyph {c:?}");
         }
     }
+}
+
+// ---- Long catalog handling ---------------------------------------------
+
+#[test]
+fn template_window_follows_the_selection_and_stays_in_bounds() {
+    let total = Template::ALL.len();
+    assert!(total > MAX_VISIBLE_TEMPLATES);
+
+    assert_eq!(template_window(0, total), (0, MAX_VISIBLE_TEMPLATES));
+    let middle = template_window(total / 2, total);
+    assert!(middle.0 > 0 && middle.1 < total);
+    assert_eq!(middle.1 - middle.0, MAX_VISIBLE_TEMPLATES);
+
+    let last = template_window(total - 1, total);
+    assert_eq!(last.1, total);
+    assert_eq!(last.1 - last.0, MAX_VISIBLE_TEMPLATES);
+
+    // An out-of-range selection is clamped and never produces an invalid range.
+    assert_eq!(template_window(usize::MAX, total), last);
+    assert_eq!(template_window(0, 0), (0, 0));
+    let short = template_window(0, 4);
+    assert_eq!(short, (0, 4));
+}
+
+#[test]
+fn every_catalog_name_can_be_reached_with_down() {
+    let mut wizard = Wizard::new(Some("x".into()), None, free);
+    assert_eq!(wizard.step(), Step::Template);
+    for (index, expected) in Template::ALL.iter().enumerate() {
+        assert_eq!(
+            wizard.request().template,
+            *expected,
+            "selection {index} differs from the catalog"
+        );
+        if index + 1 < Template::ALL.len() {
+            wizard.update(Msg::Down);
+        }
+    }
+}
+
+#[test]
+fn a_long_list_renders_scroll_hints_and_the_position() {
+    let total = Template::ALL.len();
+
+    let mut bottom = Wizard::new(Some("x".into()), None, free);
+    for _ in 0..total - 1 {
+        bottom.update(Msg::Down);
+    }
+    let screen = screen_text(&render(&bottom, &Theme::color(), 80, 24));
+    assert!(
+        screen.contains(&format!("Template {total} of {total}")),
+        "{screen}"
+    );
+    assert!(screen.contains(text::TEMPLATE_MORE_ABOVE), "{screen}");
+    assert!(screen.contains("testing-suite"), "{screen}");
+    assert!(!screen.contains("static-site"), "{screen}");
+
+    let middle = Wizard::new(
+        Some("x".into()),
+        Some(catalog_template("realtime-chat-v2")),
+        free,
+    );
+    let screen = screen_text(&render(&middle, &Theme::color(), 100, 30));
+    assert!(screen.contains(text::TEMPLATE_MORE_ABOVE), "{screen}");
+    assert!(screen.contains(text::TEMPLATE_MORE_BELOW), "{screen}");
+    assert!(screen.contains("> realtime-chat-v2"), "{screen}");
+}
+
+#[test]
+fn the_selected_template_is_visible_on_a_small_terminal() {
+    let mut wizard = Wizard::new(Some("x".into()), None, free);
+    for _ in 0..Template::ALL.len() - 1 {
+        wizard.update(Msg::Down);
+    }
+    let screen = screen_text(&render(&wizard, &Theme::color(), 80, 24));
+    assert!(screen.contains("testing-suite"), "{screen}");
 }

@@ -91,4 +91,7 @@ rama de herramienta IA (`claude-`, `gpt-`, `ai-`, `copilot-`): el job
 
 ## Indice
 
-No hay PRs abiertos con descriptor en este momento.
+Ramas con descriptor aceptando PR en este momento:
+
+- `community7/k8s`: `docs/pr-drafts/community7-k8s.md` (manifiestos opcionales
+  de Kubernetes para las familias de plantillas, ola 7).

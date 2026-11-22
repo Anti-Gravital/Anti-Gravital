@@ -88,6 +88,25 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 
 
+### Optional Kubernetes packaging for template families (wave 7)
+
+Added:
+
+- `deploy/k8s/`: a kustomization root, a hardened family-agnostic base and
+  five family overlays (`web`, `api`, `realtime`, `infrastructure`, `ai`).
+  Each overlay renders Namespace, ConfigMap, Service and Deployment with
+  resource requests/limits, TCP liveness and readiness probes, non-root and
+  read-only root filesystem, dropped capabilities and a registry-configurable
+  image via the kustomize `images` transform.
+- `deploy/k8s/optional/` provides HPA and Ingress components, disabled by
+  default, plus `deploy/k8s/examples/api-with-addons/` showing both enabled.
+- `deploy/k8s/SECRETS.md` documents external-secret and sealed-secret
+  injection without inline values. `deploy/k8s/EVIDENCE.md` records offline
+  rendering with kustomize 5.5.0, kubectl 1.37.1 and PyYAML 6.0.3, with
+  honest SKIPs and no cluster apply.
+- `docs/INDEX.md` links the new deployment documentation. A cluster remains
+  optional; native `cargo run` and `ag dev` are unchanged.
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:

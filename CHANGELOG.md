@@ -18,6 +18,26 @@ primera version etiquetada.
 
 
 
+### Committee decisions (RFC-0025, RFC-0027, issue #152)
+
+Added (documentation only; no code, no dependency, no phase change):
+
+- `ADR-0020` records the BDFL decision of 2026-11-22: RFC-0025 is accepted as
+  design and its implementation is deferred until Phase 5 opens and the
+  pre-Phase-5 release gate closes. Issue #154 stays open.
+- `ADR-0021` records the BDFL decision of 2026-11-22: RFC-0027 is accepted with
+  its recommendation to defer the chumsky upgrade. Keep `chumsky 0.9.3` until
+  the DSL v1.0 grammar freeze or a concrete blocker. Issue #180 stays open.
+- `docs/modules/ag-mail/managed-api-dx-design.md` records the 2026-11-22
+  decision to defer Mail C/D until the RFC-0009 Mail A gate has evidence or an
+  RFC-0009 amendment moves them out under Hoja de Ruta 4.6.3. Issue #152 stays
+  open.
+
+Changed:
+
+- Status lines in RFC-0025 section 10 and RFC-0027 section 9 now carry date and
+  decider (rule 28); the RFC and ADR indexes reflect the accepted statuses.
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):

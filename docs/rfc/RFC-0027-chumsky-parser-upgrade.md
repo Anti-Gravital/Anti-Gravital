@@ -1,17 +1,18 @@
 # RFC-0027 - chumsky 0.9 to 0.13/0.14 for the Anti-DSL parser (amendment to RFC-0003)
 
-- Status: proposed
+- Status: ACCEPTED (recommendation to DEFER). Decision recorded in ADR-0021
+  (2026-11-22, BDFL). Keep chumsky 0.9.3.
 - Author: Anti-Gravital community (dependency evaluation workstream), Gravital Labs
 - Draft date: 2026-11-21
-- Decision date: pending (comment period per `docs/rfc/README.md`)
+- Decision date: 2026-11-22 (comment period closed; `CLAUDE.md` rule 28)
 - Target phase: no new phase; amends the Fase 3 compiler stack decision
 - Affected modules/crates: `ag-dsl` (`parser.rs`, `diagnostics.rs`), `fuzz/`
   parser targets, `docs/rfc/RFC-0003` (amendment), `docs/benchmarks/`
 - Predecessor RFC: RFC-0003 (compiler base libraries), section 3.2, 4.1, 6 and 9
 - Related issue: #180
 - Reviewer: bajonivel
-- Comment period: open; the decision belongs to the technical committee
-  (Fase 4+ per `docs/rfc/README.md`)
+- Comment period: closed 2026-11-22. Decision recorded by the BDFL in
+  ADR-0021; see section 9.
 
 ## 1. Motivation
 
@@ -323,7 +324,14 @@ Under the recommended "defer" decision none of these PRs are created now.
 
 ## 9. Decision
 
-- Decisor: technical committee (decision pending).
+- Decisor: BDFL (Angel Nereira, project maintainer); recorded by the
+  architecture committee chair.
+- Decision date: 2026-11-22 (`CLAUDE.md` rule 28).
+- Result: ACCEPTED with the recommendation to **DEFER the upgrade. Stay on
+  chumsky 0.9.3 until the DSL v1.0 grammar freeze or a concrete blocker
+  appears** (ADR-0021). The workspace pin stays `chumsky = "0.9"` and
+  `Cargo.lock` stays at 0.9.3. Issue #180 stays open until the board
+  reconciles it; no gate is closed by this decision.
 - Recommendation of this RFC: **DEFER the upgrade. Stay on chumsky 0.9.3 until
   the DSL v1.0 grammar freeze or a concrete blocker appears.**
 - Rationale: 0.9.3 has no known advisory and the parser is working and fully

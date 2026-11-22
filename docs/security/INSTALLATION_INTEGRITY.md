@@ -236,7 +236,11 @@ in RFC-0030 section 4.6 and 4.9.
 manifest signing flow (generate a throwaway Ed25519 key, sign, verify, reject a
 tampered manifest) using the installed OpenSSL CLI. Its README records the tool
 provenance and `docs/security/RELEASE_SIGNING_TEST_EVIDENCE.md` records a real
-run. `docs/security/RELEASE_KEY_CEREMONY.md` describes the human ceremony,
-custody, publication and rotation steps. Neither creates a production key, a
+run. `scripts/check-release-signature.sh` is an opt-in verifier for that test
+signature: it reports PASS/SKIP/FAIL, prints a test-only banner on every run and
+returns SKIP (never PASS) when no key or manifest is supplied. It is not called
+by CI or the installers and is not a release-authenticity check.
+`docs/security/RELEASE_KEY_CEREMONY.md` describes the human ceremony, custody,
+publication and rotation steps. None of this creates a production key, a
 published fingerprint or a signed asset; issue #141 stays open until RFC-0030
 section 11 is satisfied.

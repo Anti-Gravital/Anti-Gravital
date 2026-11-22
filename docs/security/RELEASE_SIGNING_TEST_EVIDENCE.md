@@ -141,12 +141,123 @@ Output:
 EXIT=0
 ```
 
+## Check 5: opt-in signature verifier (`scripts/check-release-signature.sh`)
+
+This records a real run of the opt-in verifier added under issue #141. It uses
+the same throwaway test key as the signing tooling; it is **not** in CI, not
+called by the installers and not a production trust decision. The verifier
+always prints `TEST KEY ONLY - NOT A PRODUCTION SIGNATURE` before a verdict.
+
+Metadata for this run:
+
+```text
+=== metadata ===
+UTC 2026-11-22T17:01:34Z
+72b97adbdccf8cab3fbd5f411f54343beab40672
+Linux 7.0.0-44-generic x86_64 GNU/Linux
+OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)
+```
+
+Commands (from the worktree root; state dir and manifest under `/tmp/opencode`,
+outside the worktree):
+
+```bash
+export AG_SIGN_STATE_DIR=/tmp/opencode/ag-verify-i141-state
+export AG_TEST_RELEASE_PUBKEY=/tmp/opencode/ag-verify-i141-state/test-release.pub
+export AG_SIGNED_MANIFEST=/tmp/opencode/ag-verify-i141-installers.sha256
+bash tools/release-signing/release-signing.sh genkey
+cp checksums/installers.sha256 "$AG_SIGNED_MANIFEST"
+bash tools/release-signing/release-signing.sh sign "$AG_SIGNED_MANIFEST"
+bash scripts/check-release-signature.sh
+sed -i '1s/^./0/' "$AG_SIGNED_MANIFEST"
+bash scripts/check-release-signature.sh
+```
+
+Output (verbatim; exit codes real):
+
+```text
+=== 1/6 genkey ===
+[signing] TEST ONLY - NOT A PRODUCTION RELEASE KEY - RFC-0030 REHEARSAL
+[signing] generated test-only Ed25519 keypair in /tmp/opencode/ag-verify-i141-state
+[signing] test public key fingerprint (SHA-256 of DER SPKI): 2d9bd9d73ad91a0c324d350ced8f6d633866dcba1c4b62d9464e49ff9369c896
+[signing] private key is never printed and must never leave this temp directory
+EXIT=0
+=== 2/6 prepare manifest copy ===
+74411c2c8828b0bc796841e7ac8594a2e3f6c88b3601fda185357bba88434624  install.sh
+9f6022f7186bbed86b93ef4942edb170510ad709d5a42b348793401c3fc9274c  install.ps1
+EXIT=0
+=== 3/6 sign ===
+[signing] TEST ONLY - NOT A PRODUCTION RELEASE KEY - RFC-0030 REHEARSAL
+[signing] signed /tmp/opencode/ag-verify-i141-installers.sha256 -> /tmp/opencode/ag-verify-i141-installers.sha256.sig (raw Ed25519 signature, test key only)
+EXIT=0
+=== 4/6 verify via opt-in checker (expect PASS) ===
+[verify] TEST KEY ONLY - NOT A PRODUCTION SIGNATURE - RFC-0030 REHEARSAL
+repo.root=/home/angel-nereira/Github-local-angelnereira/worktrees12/i141
+input.pubkey=/tmp/opencode/ag-verify-i141-state/test-release.pub
+input.manifest=/tmp/opencode/ag-verify-i141-installers.sha256
+input.signature=/tmp/opencode/ag-verify-i141-installers.sha256.sig
+key.test_fingerprint_sha256=2d9bd9d73ad91a0c324d350ced8f6d633866dcba1c4b62d9464e49ff9369c896
+tool.openssl=OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)
+signature.verified=yes
+[verify] TEST KEY ONLY - NOT A PRODUCTION SIGNATURE - RFC-0030 REHEARSAL
+RESULT: PASS reason=test-signature-verified detail=TEST KEY ONLY - NOT A PRODUCTION SIGNATURE; rehearsal pass only, not release authenticity
+EXIT=0
+=== 5/6 tamper one byte ===
+04411c2c8828b0bc796841e7ac8594a2e3f6c88b3601fda185357bba88434624  install.sh
+9f6022f7186bbed86b93ef4942edb170510ad709d5a42b348793401c3fc9274c  install.ps1
+EXIT=0
+=== 6/6 verify tampered via opt-in checker (expect FAIL) ===
+[verify] TEST KEY ONLY - NOT A PRODUCTION SIGNATURE - RFC-0030 REHEARSAL
+repo.root=/home/angel-nereira/Github-local-angelnereira/worktrees12/i141
+input.pubkey=/tmp/opencode/ag-verify-i141-state/test-release.pub
+input.manifest=/tmp/opencode/ag-verify-i141-installers.sha256
+input.signature=/tmp/opencode/ag-verify-i141-installers.sha256.sig
+key.test_fingerprint_sha256=2d9bd9d73ad91a0c324d350ced8f6d633866dcba1c4b62d9464e49ff9369c896
+tool.openssl=OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)
+RESULT: FAIL reason=signature-mismatch detail=signature does not verify against these exact manifest bytes (tampering or wrong key/signature)
+--- openssl output (start) ---
+40372C45A8740000:error:030000EA:digital envelope routines:EVP_DigestVerify:provider signature failure:../crypto/evp/m_sigver.c:779:ED25519 digest_verify:
+Signature Verification Failure
+--- openssl output (end) ---
+EXIT=1
+```
+
+The valid signature is accepted and the one-byte tamper is rejected with a
+non-zero exit. Both verdicts carry the test-only banner. The fingerprint
+`2d9bd9d73ad91a0c324d350ced8f6d633866dcba1c4b62d9464e49ff9369c896` is a local
+throwaway key and has no trust value.
+
+### Absence is SKIP, never PASS
+
+With no inputs supplied, the verifier exits 0 but reports `SKIP`, not `PASS`.
+Since exit 0 can mean either PASS or SKIP, a caller must read the `RESULT:`
+line as the verdict:
+
+```bash
+env -u AG_TEST_RELEASE_PUBKEY -u AG_SIGNED_MANIFEST -u AG_MANIFEST_SIGNATURE \
+  bash scripts/check-release-signature.sh
+echo "EXIT=$?"
+```
+
+```text
+[verify] TEST KEY ONLY - NOT A PRODUCTION SIGNATURE - RFC-0030 REHEARSAL
+repo.root=/home/angel-nereira/Github-local-angelnereira/worktrees12/i141
+RESULT: SKIP reason=no-inputs-supplied detail=supply AG_TEST_RELEASE_PUBKEY and AG_SIGNED_MANIFEST to verify; absence is never PASS
+EXIT=0
+```
+
+A partial input set (public key only) also returns SKIP with the missing input
+named; a supplied-but-missing signature file returns FAIL. Both were exercised
+locally. None of these paths produces a PASS on absent material.
+
 ## What this evidence does not show
 
 - No production key was generated and no production fingerprint was published.
 - No out-of-band DNS TXT record or maintainer statement was created.
 - `RELEASE_KEY_CEREMONY.md` describes those human steps; they have not happened.
 - `.github/workflows/release.yml` was not modified and claims no signature.
+- The opt-in `scripts/check-release-signature.sh` is not called by CI or the
+  installers; its PASS is a rehearsal result, not release authenticity.
 - No release asset, tag or clean-machine install was produced.
 
 This rehearsal only proves that the local tooling can generate a test key,

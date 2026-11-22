@@ -35,13 +35,20 @@ Added:
   manifest. Key material is confined to a temp directory outside the
   repository; no cryptographic primitive is hand-rolled and no production key
   is created or published (#141, RFC-0030).
+- `scripts/check-release-signature.sh`: opt-in verifier for a TEST-KEY-only
+  manifest signature. It verifies a real signature and rejects a tampered
+  manifest, prints "TEST KEY ONLY - NOT A PRODUCTION SIGNATURE" on every run and
+  returns SKIP (never PASS) when no key or manifest is supplied. Not called by
+  CI or the installers (#141, RFC-0030).
 - `docs/security/RELEASE_KEY_CEREMONY.md`: human procedure for offline key
   generation, two-channel public-key publication, two-person custody, release
   signing hand-off, rotation, revocation and the CI-secret option that would
   require a successor RFC. The current design keeps the private key out of CI.
 - `docs/security/RELEASE_SIGNING_TEST_EVIDENCE.md`: verbatim output of a real
-  local genkey/sign/verify/tamper run, the repository-path guard and the
-  one-command selftest, with host metadata and exit codes.
+  local genkey/sign/verify/tamper run, the repository-path guard, the
+  one-command selftest and a new section with a real genkey -> sign ->
+  opt-in-verify -> tamper-reject run (PASS then FAIL) plus the SKIP-on-absence
+  check, with host metadata and exit codes.
 
 Issue #141 remains open: no production key, no out-of-band publication, no
 signed release asset and no clean-machine end-to-end run exist yet.

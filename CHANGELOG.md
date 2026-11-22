@@ -57,9 +57,13 @@ Fixed / tracked:
   `cert.rs`. Filed with reproduction and verification criteria; blocks wildcard
   hostnames until fixed. Not a wave-8 regression but reachable by the loop.
 
-Observation: at review time only the envrules design had been merged; the
-remaining wave-8 branch code was not available, so the branch-code audit is
-deferred to a follow-up of the committed tips.
+Issue #197: dnsapi `ag domains attach` skipped the `--allow-wildcard` opt-in
+when no manifest was supplied (reported against the uncommitted dnsapi worktree;
+re-verify on the committed tip).
+
+Observation: merged envrules, dnsarch, deplink and dnsdocs were audited; dnsapi
+was audited as an uncommitted worktree and dnsqa had no commit at review time,
+so those two are deferred to a follow-up.
 
 ### Deployment security fixes (issues #194, #195)
 

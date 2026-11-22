@@ -5,9 +5,9 @@
 - Base commit reviewed: `9675ad8`, rebased onto main `001e956` (envrules merged)
   and cross-checked against the unmerged dnsarch tip `4e96e4d`.
 - Scope: the existing DNS/domain provisioning infrastructure that wave 8 builds
-  on (`crates/ag-domains`, `crates/ag-edge`), the merged `envrules` design, the
-  committed `dnsarch` RFC-0033, and the designs published in the wave-8 notes
-  for `dnsapi`, `deplink`, `dnsqa` and `dnsdocs`.
+  on (`crates/ag-domains`, `crates/ag-edge`), the merged `envrules`, `dnsarch`,
+  `deplink` and `dnsdocs` work, the dnsapi worktree (uncommitted at review), and
+  the design published in the `dnsqa` note.
 - Method: read-only source inspection, repository content scans and string-logic
   reproduction. No files outside this role's worktree were edited.
 
@@ -15,15 +15,12 @@
 
 This review grades the security posture of the domain-to-deploy loop before it
 ships. It audits (a) the pre-existing provisioning code the loop reuses,
-(b) the merged `envrules` design files (`docs/dns/ENVIRONMENT_RULES.md` and
-`docs/dns/examples/domain-manifest.yaml`), (c) the committed `dnsarch` RFC-0033
-and `docs/dns/DOMAIN_LOOP.md`, and (d) the stated designs in
-`/tmp/opencode/agents/w8-*.md` for the branches not yet committed. Findings
-against the remaining committed wave-8 code (`dnsapi`, `deplink`, `dnsqa`,
-`dnsdocs`) are deferred; the "Requirements per component" section records the
-conditions each branch must satisfy, and the recommendation is conditional on a
-re-audit of those committed tips. One real defect was found in the pre-existing
-edge code and filed as issue #196.
+(b) the merged `envrules`, `dnsarch`, `deplink` and `dnsdocs` work, (c) the
+uncommitted `dnsapi` CLI worktree and (d) the `dnsqa` note. Two real defects were
+found: issue #196 in pre-existing edge code and issue #197 in the uncommitted
+dnsapi CLI. Findings are grounded in observed code at the commit tips recorded
+per component; the `dnsapi` finding must be re-verified on its committed tip and
+`dnsqa` must be audited after commit before a final whole-loop GO.
 
 ## Threat model
 
@@ -199,14 +196,27 @@ number. The coordinator has since renumbered the local deploy RFC to 0034
 4. No user-supplied provider URL / no live provider by default - SATISFIED.
 5. No credentials or zone ids in files - SATISFIED.
 
-### Component: `deplink` (design only)
+### Component: `deplink` (merged at `5c3bc48` / `a3e4add`)
 
-Design uses `schemaVersion` manifest with per-env host/TLS/visibility, `.test`
-hosts, loopback-only compose binding and a JSON6902 Ingress patch. These are
-sound: `.test` is reserved by RFC 6761, and no external proxy is required.
-Requirements: keep TLS opt-in explicit; never render a "secure/HTTPS" claim when
-`tls.enabled` is false; do not commit cert/key material into the generated
-overlay; preserve the wildcard boundary fix (E1) if wildcard hosts are routed.
+Reviewed `deploy/link/render_ingress.py` and `examples/domain-link/domain.yaml`.
+Strong points: strict schema keys, `private` defaults and unknown-visibility
+hard errors; ER-08 enforced (a `private` service never gets an Ingress rule even
+with a host); `public` requires TLS, ingress and an internet CIDR; `vpn-only`
+requires non-empty non-internet sources; TLS Secret is a name only; URL scheme
+and the `TLS=true|false` output follow the actual config, so HTTPS is not
+falsely claimed; hosts use RFC 2606 `.invalid` names. Notably its
+`host_allowed` one-label wildcard check uses `endswith("." + zone)` with a dot
+count, so it does NOT have the issue #196 boundary bug.
+
+#### P1 (observation, p3) - vpn-only source ranges are annotation-only
+
+For `vpn-only`, `render_ingress.py` writes the CIDRs only to a custom
+`anti-gravital.io/allow-sources` annotation and states in `deploy/link/README.md`
+that the annotation does not itself enforce access; the ingress controller or a
+NetworkPolicy must. This is honestly documented, so it is not a silent
+fail-open, but operators must be aware that a rendered `vpn-only` Ingress is not
+network-restricted by the generated artifacts alone. No issue filed; record as a
+deployment caveat.
 
 ### Component: `envrules` (merged into main at `f22ddb1`)
 
@@ -229,12 +239,29 @@ Requirement for implementers: the manifest *validator* (not just the document)
 must enforce ER-01..ER-11 - reject unknown visibility, bound `CIDR` syntax,
 require TLS for public, and never infer public from a host alone.
 
-### Component: `dnsqa`, `dnsdocs`
+### Component: `dnsdocs` (merged at `8da264f`)
 
-No committed code. `dnsqa` must assert the E1 boundary cases, the ownership gate
-and the no-real-DNS property in its local mock scenario. `dnsdocs` must not claim
-TLS for disabled attachments and must document the SSRF/credential constraints
-of D3/D4.
+Added `docs/dns/README.md` and manual/INDEX links. Scanned for overclaiming:
+no "TLS always/secure by default/HTTPS-only" assertions; TLS is described as
+environment-dependent. No credential or zone-id values present. No defect.
+
+### Component: `dnsqa` (committed at `01bb297`, unmerged)
+
+Reviewed `scripts/validate-domain-loop.sh` and `docs/audits/domain-loop-validation.md`.
+The harness is honest: it reports PASS/FAIL/SKIP, treats a missing command as
+FAIL (never SKIP), labels its fake-`ag` self-test as harness-only, records a
+baseline FAIL run, and builds the authoritative binary from the dnsapi worktree
+with a real no-network `bwrap` sandbox (12 PASS, 0 FAIL, 0 SKIP). Its credential
+leak scan searches captured output for sentinel tokens and provider API
+endpoints; plan ids and apply gates (missing/bogus plan id) are asserted. This
+is credible evidence for the offline path.
+
+#### Q1 (observation, p3) - missing wildcard and ownership assertions
+
+The harness does not assert the #196 wildcard boundary, the #197
+`--allow-wildcard` gate, or the ownership/pending-ownership status. Recommend
+adding those checks so the QA gate covers the two filed defects and the
+takeover-protection contract. No issue filed (coverage gap, not a false claim).
 
 ## Issues opened
 
@@ -256,7 +283,7 @@ of D3/D4.
   GO-with-follow-up on A2 (ownership/state reconciliation). Everything else in
   the reviewed code satisfies the provisioning, SSRF, plan/apply and offline
   checks.
-- Remaining wave-8 branches (`deplink`, `dnsqa`, `dnsdocs`): DEFERRED. Designs
-  are consistent with the requirements above, but code was not available at
-  review time. A follow-up audit of the committed tips is required before a
-  final GO.
+- Merged `deplink` and `dnsdocs`: GO with the P1 deployment caveat above.
+- Committed `dnsqa`: GO with the Q1 coverage-gap recommendation. Its evidence
+  is honest and reproducible; it is not a substitute for the #196/#197 fixes.
+- Whole-loop final GO remains blocked by #196 and #197.

@@ -81,7 +81,9 @@ fn without_modules_the_default_scaffold_is_unchanged() {
     let enabled = fs::read_to_string(enabled_dir.join("shop/ag.toml")).expect("enabled manifest");
     // Enabling a module that is already true is a no-op: both files are equal,
     // and neither gained a key that was absent from the original scaffold.
-    assert_eq!(plain, enabled);
+    // Normalize CRLF: Windows writers emit \r\n and the assertion is about
+    // content, not the platform's line-ending convention.
+    assert_eq!(plain.replace("\r\n", "\n"), enabled.replace("\r\n", "\n"));
     assert!(plain.contains("auth = false"));
     assert!(!plain.contains("mail ="));
 }

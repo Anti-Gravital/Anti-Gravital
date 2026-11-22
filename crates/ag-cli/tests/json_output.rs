@@ -429,7 +429,7 @@ fn snapshots_are_valid_json_with_a_matching_version() {
 
 #[test]
 fn mutating_commands_refuse_json_before_doing_work_deploy() {
-    let dir = scratch_dir("refuse-mutating");
+    let dir = scratch_dir("refuse-mutating-deploy");
     write(&dir, "schema.ag", clean_schema());
 
     let new = ag(&["--output", "json", "new", "demo"], &dir, &[]);
@@ -463,7 +463,7 @@ fn mutating_commands_refuse_json_before_doing_work_deploy() {
 
 #[test]
 fn read_commands_without_a_shape_are_refused_deploy() {
-    let dir = scratch_dir("refuse-read");
+    let dir = scratch_dir("refuse-read-deploy");
     for args in [
         vec!["--output", "json", "domains", "list"],
         vec!["--output", "json", "workers", "doctor"],
@@ -476,7 +476,7 @@ fn read_commands_without_a_shape_are_refused_deploy() {
 
 #[test]
 fn every_supported_document_carries_the_contract_version_deploy() {
-    let dir = scratch_dir("version");
+    let dir = scratch_dir("version-deploy");
     write(&dir, "schema.ag", clean_schema());
     write(&dir, "workers.ag", workers_schema());
     for args in [

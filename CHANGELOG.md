@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Security: url advisory (issue #198)
 
 Fixed:
@@ -15,7 +16,6 @@ Fixed:
   overflow in `Url::origin()` on nested `blob:` URLs). `cargo audit` reports
   0 vulnerabilities and `cargo deny check advisories` passes. The Audit and
   Deny rows of the pre-Phase-5 gate were re-evaluated with the new evidence.
-
 
 ### Issue board reconciliation and wave-9 cross-links
 
@@ -2365,6 +2365,32 @@ Changed:
 - Versioned CLI JSON contract bumped to `0.2.0` with `dns.plan` and `dns.status`
   shapes, a matching JSON Schema, snapshots and documentation. Mutating
   commands, including `dns apply`, refuse `--output json` before dispatch.
+
+### Local ACME mock harness (issues #87, #179)
+
+Added:
+
+- `scripts/acme-mock-harness.py` and `scripts/acme-mock-harness.sh`: an offline
+  RFC 8555-shaped mock on `127.0.0.1` that drives new order, authorization
+  pending/valid, DNS-01 challenge, finalize and certificate download, with a
+  JSON-line transcript and an exact state-sequence assertion. No CA, credentials
+  or external network are involved; the downloaded chain is self-signed locally.
+- `docs/ag-domains/acme-mock-evidence.md`: real captured output from three
+  consecutive passing runs, environment, reproducibility and the explicit
+  conditions that close #87 and #179.
+
+Changed:
+
+- `docs/ag-domains/how-to/acme-staging-test.md` now separates the runnable local
+  mock from the credentialed live staging run, and adds the mock to preflight.
+  Issue #87 stays open with `blocked`.
+- `docs/ag-domains/reference/instant-acme-0.8-migration.md` records a verified
+  line-number correction for the nine migration points; all still apply and the
+  dependency stays at 0.7. No production ACME code changed.
+
+Verification: `bash -n` on the wrapper, `python3 -m py_compile` on the harness,
+three runs ending `PASS` with exit 0, `git diff --check` and content scans. No
+staging run was performed and no certificate from a CA is claimed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

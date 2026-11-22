@@ -1,0 +1,40 @@
+name: dkim-independent
+
+# OPT-IN check for issue #178. This workflow is triggered manually only: it has
+# no push or pull_request trigger, so the default CI matrix and its green status
+# are unchanged. It installs a pinned, permissively licensed independent DKIM
+# verifier (dkimpy + PyNaCl) and runs scripts/check-dkim-independent.sh against
+# the vectors embedded in ag-mail.
+#
+# A PASS here means only that the offline embedded vectors verify with a second
+# implementation. It is NOT the real-mailbox gate for #178, which still needs a
+# delivery with the receiver's Authentication-Results header (port 25 egress).
+# See docs/rfc/RFC-0035-independent-dkim-ci.md and
+# docs/audits/dkim-independent-ci.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dkimpy:
+    name: independent dkimpy verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      # A venv avoids PEP 668 system-package restrictions on current runners.
+      # Activation and the check share one step because shell state does not
+      # persist between steps. Versions are pinned for reproducible evidence.
+      - name: Verify DKIM signatures with dkimpy (opt-in)
+        run: |
+          set -euo pipefail
+          python3 -m venv .venv-dkim
+          . .venv-dkim/bin/activate
+          python3 -m pip install --quiet dkimpy==1.1.8 pynacl==1.6.2
+          bash scripts/check-dkim-independent.sh

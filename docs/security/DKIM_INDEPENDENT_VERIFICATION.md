@@ -1,6 +1,7 @@
 # Independent DKIM verification for `ag-mail`
 
-Status: verifier available and recorded (2026-11-22). This document is the
+Status: verifier available and recorded (2026-11-22); an opt-in wrapper and a
+manual-only CI check were added afterwards (section 7). This document is the
 reproducible evidence for the second Done-when item of issue #178: a DKIM
 signature produced by the upgraded stack verifies with an implementation
 outside `mail-auth`.
@@ -125,3 +126,33 @@ verification step in that issue, sending through the native MTA to a real
 mailbox and recording the receiver's `Authentication-Results` header, is
 still manual because port 25 egress is blocked here. Issue #178 therefore
 stays open with `Refs #178` until that gate is recorded.
+
+## 7. Opt-in check wrapper and CI wiring
+
+`scripts/check-dkim-independent.sh` wraps the ignored test with explicit
+outcomes and exact tool versions:
+
+- `PASS` (exit 0): dkimpy + PyNaCl are available and both embedded vectors
+  verified. The wrapper requires two `dkim=pass` lines, no `dkim=fail` or
+  `dkim=error` line, and a zero cargo status; full test path plus `--exact`
+  prevents a zero-test run from being read as success.
+- `SKIP` (exit 0): python3, dkimpy or PyNaCl is unavailable. This is never
+  rendered as PASS; read the result line, not only the exit status.
+- `FAIL` (exit 1): a vector was rejected, the verifier errored, or cargo
+  failed.
+
+Run it from the repository root:
+
+```sh
+bash scripts/check-dkim-independent.sh
+```
+
+`.github/workflows/dkim-independent.yml` is `workflow_dispatch` only. It is
+not part of default CI and installs pinned `dkimpy==1.1.8` / `pynacl==1.6.2`
+in a temporary venv before running the wrapper. The CI change is authorized
+by `docs/rfc/RFC-0035-independent-dkim-ci.md` (accepted, comment period
+waived). A real recorded run, the controlled SKIP-path check and the exact
+condition to close #178 are in `docs/audits/dkim-independent-ci.md`.
+
+This is still offline known-answer evidence: no receiver is contacted and no
+`Authentication-Results` header is observed. It does not close #178.

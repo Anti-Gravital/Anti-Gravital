@@ -107,3 +107,6 @@ Ramas con descriptor aceptando PR en este momento:
   validacion de entorno opcional al cargar la configuracion, ola 9).
 - `community9/clidev`: `docs/pr-drafts/community9-clidev.md` (`ag new --with`
   y `ag env list|check`, RFC-0019/0020, ola 9).
+- `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
+  opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
+  cierra #178, ola 11).

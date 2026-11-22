@@ -7,6 +7,19 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Independent DKIM verification opt-in check (issue #178)
+
+Added:
+
+- `scripts/check-dkim-independent.sh` and a manual-only
+  `.github/workflows/dkim-independent.yml` re-run the embedded DKIM
+  known-answer vectors with dkimpy 1.1.8 + PyNaCl 1.6.2 and report PASS, SKIP
+  or FAIL with exact tool versions; a missing dependency is never reported as
+  PASS. Default CI is unchanged. The real run, the controlled SKIP-path check
+  and the remaining real-mailbox condition for #178 are recorded in
+  `docs/audits/dkim-independent-ci.md`. Authorized by accepted RFC-0035. No
+  issue is closed by this change (`Refs #178`).
+
 ### Terminal user journey fixes (issues #199, #200-#206)
 
 Fixed:

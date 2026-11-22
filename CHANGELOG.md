@@ -70,6 +70,10 @@ Added (documentation only; no code):
   dependency between `ag-*` and `fabric-*` crates.
 - `ADR-0017` records that MCP never grants privilege by virtue of being a
   machine and that debug tools are opt-in and stdio-only.
+- A readiness review recorded in `docs/audits/mcp-readiness-review.md` adds
+  seven implementation prerequisites to RFC-0024: machine output, plan/apply,
+  `Secret<T>`, typed executors for all command groups, a single plan model,
+  a contract-version owner, and no DNS egress in the stdio-only debug tools.
 - `docs/diagrams/mcp-layer-flow.md` shows the agent-to-executor flow and the
   boundary with Fabric.
 

@@ -167,7 +167,33 @@ commands disappear. The manifests and schemas remain as data. Rollback is
 triggered by an audit finding, a capability escalation or contract drift that
 cannot be fixed in a patch release.
 
-## 9. References
+## 9. Implementation prerequisites (review of 2026-11-21)
+
+A readiness review found that this revision does not yet contain the substrate
+the design assumes. The decision stands, but no MCP code is authorized until
+these prerequisites are met:
+
+1. `--output json` with versioned shapes, `--plan` and `--apply` (RFC-0021
+   stage E) and an audit sink exist in `ag-cli`.
+2. `Secret<T>` from RFC-0020 is available to the CLI executors.
+3. The request/executor split covers every command group, not only
+   `NewProjectRequest`. Today one of eight groups has a typed request.
+4. `deploy.*` tools stay unimplemented until Phase 5 (`ag-cloud`) exists. They
+   must not be used to expose the Fabric control plane through a second
+   contract (ADR-0016).
+5. The plan model is unified: a mutating tool either returns a plan identifier
+   for a follow-up apply call, or the `deploy.plan` / `deploy.apply` pair is
+   used consistently — not both in the same contract version.
+6. `contract_version` has a named owner in each product; Fabric and
+   Anti-Gravital publish compatible but independently versioned schemas.
+7. `debug.diagnostics` must not perform DNS egress while the interface is
+   documented as stdio-only; either resolve names before startup or document
+   the egress explicitly.
+
+The review (with the tool-by-tool mapping, capability manifest schema and
+nineteen test cases) is recorded in `docs/audits/mcp-readiness-review.md`.
+
+## 10. References
 
 - RFC-0021 (machine interface, plan/apply, audit trail).
 - RFC-0018 (one executor shared by CLI and TUI).

@@ -9,7 +9,7 @@ Rust/SQL/TypeScript/OpenAPI surface, and ship a small static binary.
 [![Quality](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml/badge.svg)](https://github.com/Anti-Gravital/Anti-Gravital/actions/workflows/quality.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Rust: 1.99+](https://img.shields.io/badge/rust-1.99%2B-orange.svg)](rust-toolchain.toml)
-[![Status: pre-release](https://img.shields.io/badge/status-pre--release-yellow.svg)](docs/roadmap/STATUS.md)
+[![Status: alpha v0.1.0-alpha.1](https://img.shields.io/badge/status-alpha-orange.svg)](docs/releases/0.1.0-alpha.1.md)
 
 [English](#english) | [Espanol](#espanol) — English is the canonical project
 language (ADR-0008). A full Spanish version follows the English one.
@@ -22,19 +22,21 @@ language (ADR-0008). A full Spanish version follows the English one.
 
 1. [Project at a glance](#project-at-a-glance)
 2. [What is Anti-Gravital](#what-is-anti-gravital)
-3. [What you can do today](#what-you-can-do-today)
-4. [What you cannot do yet](#what-you-cannot-do-yet)
-5. [What Anti-Gravital is not](#what-anti-gravital-is-not)
-6. [Quick start](#quick-start)
-7. [The Anti-DSL](#the-anti-dsl)
-8. [CLI reference](#cli-reference)
-9. [Architecture](#architecture)
-10. [Repository layout](#repository-layout)
-11. [Vision and engineering principles](#vision-and-engineering-principles)
-12. [Roadmap and phase model](#roadmap-and-phase-model)
-13. [Known limitations and release blockers](#known-limitations-and-release-blockers)
-14. [Documentation map](#documentation-map)
-15. [Contributing and security](#contributing-and-security)
+3. [Try it](#try-it)
+4. [Alpha: what works and what does not yet work](#alpha-what-works-and-what-does-not-yet-work)
+5. [What you can do today](#what-you-can-do-today)
+6. [What you cannot do yet](#what-you-cannot-do-yet)
+7. [What Anti-Gravital is not](#what-anti-gravital-is-not)
+8. [Quick start](#quick-start)
+9. [The Anti-DSL](#the-anti-dsl)
+10. [CLI reference](#cli-reference)
+11. [Architecture](#architecture)
+12. [Repository layout](#repository-layout)
+13. [Vision and engineering principles](#vision-and-engineering-principles)
+14. [Roadmap and phase model](#roadmap-and-phase-model)
+15. [Known limitations and release blockers](#known-limitations-and-release-blockers)
+16. [Documentation map](#documentation-map)
+17. [Contributing and security](#contributing-and-security)
 
 ### Project at a glance
 
@@ -42,14 +44,14 @@ language (ADR-0008). A full Spanish version follows the English one.
 | --- | --- |
 | Language and runtime | Rust (MSRV 1.99.1) on Tokio, Axum, Tower and rustls |
 | License | Apache-2.0 |
-| Released version | None yet. No crates.io releases, no binary releases; install from source only |
+| Released version | Alpha `v0.1.0-alpha.1`, available for testing from source ([release notes](docs/releases/0.1.0-alpha.1.md)); no crates.io package, source install is the verified path |
 | Workspace | 19 `ag-*` crates plus the `ag` developer CLI (5 of them are reserved placeholders for later phases) |
 | Current position | Phases 0-4.5 implemented with their exit gates still open; additive Phase 4.6 in progress |
-| Production-ready | No. The formal pre-Phase-5 release gate is OPEN ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
+| Production-ready | No. This is a testing alpha; the formal pre-Phase-5 release gate is OPEN ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
 | Live status | [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md), checkbox-level, updated with every roadmap PR |
 
-Status statements in this README were verified on 2026-06-12 against
-`docs/roadmap/STATUS.md` (last updated 2026-06-10). "Implemented" means the
+Status statements in this README were verified on 2026-11-22 against
+`docs/roadmap/STATUS.md` (last updated 2026-11-10). "Implemented" means the
 code and tests exist in this repository and pass CI; it is never a
 production-readiness certification.
 
@@ -77,6 +79,65 @@ JWT, rate limiting and code generation by hand on every project, you get:
 The result targets small, auditable deployments: the reference `todo-api`
 example builds to a 5.3 MB static MUSL binary and a 2.49 MB `FROM scratch`
 Docker image (measured 2026-05-21).
+
+### Try it
+
+`v0.1.0-alpha.1` is an alpha release for testing, not for production. Install
+from source, scaffold a project, run it locally and generate code from a
+schema:
+
+```bash
+# 1. Install (Git and Rust 1.99.1+ required)
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
+
+# 2. Scaffold a project (Windows: install with .\install.ps1, then use the same ag commands)
+ag new my-api --template rest
+
+# 3. Run locally (see the bind limitation below before exposing the server)
+cd my-api && ag dev
+
+# 4. Lint a schema and generate artifacts (from the project directory)
+ag schema lint --schema schema.ag
+ag generate --schema schema.ag --output generated
+```
+
+Windows users install with `.\install.ps1` (PowerShell) from the cloned repo;
+the `ag` commands are identical. Verify the checkout before running an
+installer with the [installation integrity procedure](docs/security/INSTALLATION_INTEGRITY.md).
+Full walkthrough: [Your first API](docs/manual/02-primera-api.md). Runnable
+prototypes: [`examples/`](examples/). Release notes:
+[`v0.1.0-alpha.1`](docs/releases/0.1.0-alpha.1.md).
+
+### Alpha: what works and what does not yet work
+
+Works in `v0.1.0-alpha.1`:
+
+- Install from source with `install.sh`, `install.ps1` or `cargo install --path`.
+- Scaffold `rest`, `realtime` and `fullstack` projects with `ag new`.
+- Run a local development server with `ag dev` (CLI default bind is
+  `127.0.0.1:8080`; current scaffolds bind all interfaces, issue #191).
+- Lint a `.ag` schema and generate Rust, SQL, TypeScript and OpenAPI with
+  `ag schema lint` and `ag generate`.
+- Build a release binary with `ag build`; inspect and validate config with
+  `ag config`.
+
+Does not yet work in the alpha:
+
+- No crates.io package. Prebuilt binaries are produced for four targets and an
+  opt-in alpha channel (`AG_INSTALLER_CHANNEL=alpha`) downloads one with a
+  SHA-256 check only; it makes no signature or authenticity claim and its
+  end-to-end verification is still pending (#141 remains open). Source install
+  is the verified path.
+- Do not expose the `ag dev` server on untrusted networks: the CLI default
+  bind is loopback, but generated scaffolds hardcode `0.0.0.0:8080` and ignore
+  the `BIND` variable (issue #191).
+- No `ag deploy`, `ag migrate` or `ag plugin` (future phases).
+- No MCP server or shared machine interface: the RFC-0024 prerequisites are
+  not met.
+- No production-readiness claim: the pre-Phase-5 gate is open and the
+  performance and 24-hour fuzz gates are pending.
+- Generated Rust handlers are stubs; your application supplies the logic.
+- Public APIs may change before 1.0; there is no SemVer stability promise yet.
 
 ### What you can do today
 
@@ -250,7 +311,7 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag` (no arguments) | In an interactive terminal, opens a home screen that launches existing commands; otherwise prints help |
 | `ag new [NAME] [--template TYPE]` | Scaffold a project (`rest`, `realtime`, `fullstack`). Missing input opens a guided wizard in an interactive terminal; `--no-interactive`, `CI` or a non-terminal session never prompt |
 | `ag config` | In a terminal, opens a full-screen form for `config.toml`. Non-interactive equivalents: `ag config get KEY`, `ag config set KEY VALUE` and `ag config validate` (the last exits non-zero on an invalid file, usable in CI). Secrets are never shown; key paths or environment-variable names only |
-| `ag dev [--bind ADDR]` | Run in development mode on `127.0.0.1:8080` by default (loopback only); pass `--bind 0.0.0.0:8080` to listen on all interfaces. Uses cargo-watch when installed |
+| `ag dev [--bind ADDR]` | Run in development mode; the CLI default bind is `127.0.0.1:8080`. Caveat: generated templates currently hardcode `0.0.0.0:8080` and ignore `BIND` (issue #191), so the server listens on all interfaces until fixed. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
 | `ag schema lint` | Validate a DSL schema and report diagnostics |
@@ -466,6 +527,7 @@ technical constitution, and documentation takes precedence over code.
 | [`CLAUDE.md`](CLAUDE.md) | The technical constitution: governance rules, crate boundaries, workflow, quality gates |
 | [`docs/INDEX.md`](docs/INDEX.md) | Master index of all documentation |
 | [`docs/master/`](docs/master/) | The three master documents (Blueprint, Technical Architecture, Roadmap) — the source of truth |
+| [`docs/releases/0.1.0-alpha.1.md`](docs/releases/0.1.0-alpha.1.md) | Scope, known limitations and verification evidence for the alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Live checkbox-level status of every phase |
 | [`docs/architecture/`](docs/architecture/) | Architecture chapters derived from the masters |
 | [`docs/rfc/`](docs/rfc/) and [`docs/adr/`](docs/adr/) | Design proposals and accepted decisions |
@@ -492,19 +554,21 @@ public issues.
 
 1. [El proyecto de un vistazo](#el-proyecto-de-un-vistazo)
 2. [Que es Anti-Gravital](#que-es-anti-gravital)
-3. [Que se puede hacer hoy](#que-se-puede-hacer-hoy)
-4. [Que no se puede hacer todavia](#que-no-se-puede-hacer-todavia)
-5. [Que NO es Anti-Gravital](#que-no-es-anti-gravital)
-6. [Inicio rapido](#inicio-rapido)
-7. [El Anti-DSL](#el-anti-dsl)
-8. [Referencia de la CLI](#referencia-de-la-cli)
-9. [Arquitectura](#arquitectura)
-10. [Estructura del repositorio](#estructura-del-repositorio)
-11. [Vision y principios de ingenieria](#vision-y-principios-de-ingenieria)
-12. [Hoja de ruta y modelo de fases](#hoja-de-ruta-y-modelo-de-fases)
-13. [Limitaciones conocidas y bloqueadores de release](#limitaciones-conocidas-y-bloqueadores-de-release)
-14. [Mapa de documentacion](#mapa-de-documentacion)
-15. [Contribuir y seguridad](#contribuir-y-seguridad)
+3. [Probarlo](#probarlo)
+4. [Alpha: que funciona y que aun no funciona](#alpha-que-funciona-y-que-aun-no-funciona)
+5. [Que se puede hacer hoy](#que-se-puede-hacer-hoy)
+6. [Que no se puede hacer todavia](#que-no-se-puede-hacer-todavia)
+7. [Que NO es Anti-Gravital](#que-no-es-anti-gravital)
+8. [Inicio rapido](#inicio-rapido)
+9. [El Anti-DSL](#el-anti-dsl)
+10. [Referencia de la CLI](#referencia-de-la-cli)
+11. [Arquitectura](#arquitectura)
+12. [Estructura del repositorio](#estructura-del-repositorio)
+13. [Vision y principios de ingenieria](#vision-y-principios-de-ingenieria)
+14. [Hoja de ruta y modelo de fases](#hoja-de-ruta-y-modelo-de-fases)
+15. [Limitaciones conocidas y bloqueadores de release](#limitaciones-conocidas-y-bloqueadores-de-release)
+16. [Mapa de documentacion](#mapa-de-documentacion)
+17. [Contribuir y seguridad](#contribuir-y-seguridad)
 
 ### El proyecto de un vistazo
 
@@ -512,14 +576,14 @@ public issues.
 | --- | --- |
 | Lenguaje y runtime | Rust (MSRV 1.99.1) sobre Tokio, Axum, Tower y rustls |
 | Licencia | Apache-2.0 |
-| Version publicada | Ninguna todavia. Sin releases en crates.io ni binarios; instalacion solo desde el codigo fuente |
+| Version publicada | Alpha `v0.1.0-alpha.1` disponible para pruebas desde el codigo fuente ([notas de release](docs/releases/0.1.0-alpha.1.md)); sin paquete en crates.io; la instalacion desde el fuente es la ruta verificada |
 | Workspace | 19 crates `ag-*` mas la CLI de desarrollo `ag` (5 de ellos son placeholders reservados para fases posteriores) |
 | Posicion actual | Fases 0-4.5 implementadas con sus puertas de salida aun abiertas; Fase aditiva 4.6 en curso |
-| Listo para produccion | No. La puerta formal de release pre-Fase 5 esta ABIERTA ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
+| Listo para produccion | No. Es un alpha de prueba; la puerta formal de release pre-Fase 5 esta ABIERTA ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
 | Estado vivo | [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md), a nivel de casilla, actualizado con cada PR de la hoja de ruta |
 
-Las afirmaciones de estado de este README se verificaron el 2026-06-12 contra
-`docs/roadmap/STATUS.md` (ultima actualizacion 2026-06-10). "Implementado"
+Las afirmaciones de estado de este README se verificaron el 2026-11-22 contra
+`docs/roadmap/STATUS.md` (ultima actualizacion 2026-11-10). "Implementado"
 significa que el codigo y sus tests existen en este repositorio y pasan CI;
 nunca es una certificacion de produccion.
 
@@ -549,6 +613,67 @@ en cada proyecto, se obtiene:
 El resultado apunta a despliegues pequenos y auditables: el ejemplo de
 referencia `todo-api` compila a un binario estatico MUSL de 5.3 MB y a una
 imagen Docker `FROM scratch` de 2.49 MB (medido el 2026-05-21).
+
+### Probarlo
+
+`v0.1.0-alpha.1` es un alpha de prueba, no para produccion. Instala desde el
+codigo fuente, crea un proyecto, ejecutalo localmente y genera codigo desde un
+schema:
+
+```bash
+# 1. Instalar (se requieren Git y Rust 1.99.1+)
+git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
+
+# 2. Crear un proyecto
+ag new mi-api --template rest
+
+# 3. Ejecutar localmente (vease la limitacion de bind mas abajo)
+cd mi-api && ag dev
+
+# 4. Validar un schema y generar artefactos (dentro del proyecto)
+ag schema lint --schema schema.ag
+ag generate --schema schema.ag --output generated
+```
+
+En Windows se instala con `.\install.ps1` (PowerShell) desde el repo clonado;
+los comandos `ag` son identicos. Antes de ejecutar un instalador, verifica el
+checkout con el [procedimiento canonico de integridad](docs/security/INSTALLATION_INTEGRITY.md).
+Guia completa: [Tu primera API](docs/manual/02-primera-api.md). Prototipos
+ejecutables: [`examples/`](examples/). Notas de release:
+[`v0.1.0-alpha.1`](docs/releases/0.1.0-alpha.1.md).
+
+### Alpha: que funciona y que aun no funciona
+
+Funciona en `v0.1.0-alpha.1`:
+
+- Instalar desde el fuente con `install.sh`, `install.ps1` o `cargo install --path`.
+- Crear proyectos `rest`, `realtime` y `fullstack` con `ag new`.
+- Ejecutar un servidor de desarrollo local con `ag dev` (el default de la CLI
+  es `127.0.0.1:8080`; los templates actuales enlazan todas las interfaces,
+  issue #191).
+- Validar un schema `.ag` y generar Rust, SQL, TypeScript y OpenAPI con
+  `ag schema lint` y `ag generate`.
+- Compilar un binario de release con `ag build`; inspeccionar y validar la
+  configuracion con `ag config`.
+
+Aun no funciona en el alpha:
+
+- No hay paquete en crates.io. Se producen binarios para cuatro targets y un
+  canal opt-in (`AG_INSTALLER_CHANNEL=alpha`) descarga uno con verificacion
+  SHA-256 unicamente; no afirma firma ni autenticidad y su verificacion
+  integral aun esta pendiente (#141 sigue abierto). La ruta verificada es la
+  instalacion desde el fuente.
+- No expongas el servidor de `ag dev` a redes no confiables: el default de la
+  CLI es loopback, pero los templates generados fijan `0.0.0.0:8080` e ignoran
+  la variable `BIND` (issue #191).
+- No existen `ag deploy`, `ag migrate` ni `ag plugin` (fases futuras).
+- No hay servidor MCP ni interfaz de maquina compartida: no se cumplen los
+  prerequisitos de RFC-0024.
+- No hay afirmacion de listo para produccion: la puerta pre-Fase 5 esta
+  abierta y las puertas de rendimiento y de fuzzing de 24 horas estan pendientes.
+- Los handlers Rust generados son stubs; la aplicacion aporta la logica.
+- Las APIs publicas pueden cambiar antes de 1.0; aun no hay promesa de
+  estabilidad SemVer.
 
 ### Que se puede hacer hoy
 
@@ -727,7 +852,7 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag` (sin argumentos) | En una terminal interactiva abre una pantalla de inicio que lanza comandos existentes; en cualquier otro caso imprime la ayuda |
 | `ag new [NOMBRE] [--template TIPO]` | Crear un proyecto (`rest`, `realtime`, `fullstack`). Si falta un dato y la terminal es interactiva se abre un asistente guiado; con `--no-interactive`, `CI` o sin terminal nunca pregunta |
 | `ag config` | En una terminal abre un formulario a pantalla completa para `config.toml`. Equivalentes no interactivos: `ag config get CLAVE`, `ag config set CLAVE VALOR` y `ag config validate` (este ultimo sale con codigo distinto de cero si el archivo es invalido, util en CI). Los secretos nunca se muestran; solo rutas de clave o nombres de variable de entorno |
-| `ag dev [--bind DIR]` | Modo desarrollo; por defecto escucha en `127.0.0.1:8080` (solo loopback); `--bind 0.0.0.0:8080` para escuchar en todas las interfaces. Usa cargo-watch si esta instalado |
+| `ag dev [--bind DIR]` | Modo desarrollo; el default de la CLI es `127.0.0.1:8080`. Advertencia: los templates generados fijan `0.0.0.0:8080` e ignoran `BIND` (issue #191), por lo que el servidor escucha en todas las interfaces hasta corregirlo. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
 | `ag schema lint` | Validar un schema y reportar diagnostics |
@@ -911,6 +1036,7 @@ sobre el codigo.
 | [`CLAUDE.md`](CLAUDE.md) | La constitucion tecnica: reglas de gobernanza, limites entre crates, flujo de trabajo, puertas de calidad |
 | [`docs/INDEX.md`](docs/INDEX.md) | Indice maestro de toda la documentacion |
 | [`docs/master/`](docs/master/) | Los tres documentos maestros (Blueprint, Arquitectura Tecnica, Hoja de Ruta) — la fuente de verdad |
+| [`docs/releases/0.1.0-alpha.1.md`](docs/releases/0.1.0-alpha.1.md) | Alcance, limitaciones conocidas y evidencia de verificacion del alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Estado vivo a nivel de casilla de cada fase |
 | [`docs/architecture/`](docs/architecture/) | Capitulos de arquitectura derivados de los maestros |
 | [`docs/rfc/`](docs/rfc/) y [`docs/adr/`](docs/adr/) | Propuestas de diseno y decisiones aceptadas |

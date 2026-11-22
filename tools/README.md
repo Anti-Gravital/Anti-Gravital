@@ -29,6 +29,9 @@ maintainability guardrails of RFC-0022.
   `docs/benchmarks/` and `docs/dsl/`. Idempotent.
 - `check-installers.sh`: verifies installer checksums, line endings and MSRV
   parity.
+- `release-signing/`: test-only rehearsal of the RFC-0030 signed-manifest flow
+  using the OpenSSL CLI and a throwaway Ed25519 key. It never creates or
+  publishes a production key and does not change the release workflow.
 
 ## Rules
 

@@ -7,6 +7,28 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Release signing rehearsal and key ceremony (issue #141)
+
+Added:
+
+- `tools/release-signing/release-signing.sh` and its README: local, test-only
+  Ed25519 rehearsal that generates a throwaway keypair with the installed
+  OpenSSL CLI, signs a checksum manifest, verifies it and rejects a tampered
+  manifest. Key material is confined to a temp directory outside the
+  repository; no cryptographic primitive is hand-rolled and no production key
+  is created or published (#141, RFC-0030).
+- `docs/security/RELEASE_KEY_CEREMONY.md`: human procedure for offline key
+  generation, two-channel public-key publication, two-person custody, release
+  signing hand-off, rotation, revocation and the CI-secret option that would
+  require a successor RFC. The current design keeps the private key out of CI.
+- `docs/security/RELEASE_SIGNING_TEST_EVIDENCE.md`: verbatim output of a real
+  local genkey/sign/verify/tamper run, the repository-path guard and the
+  one-command selftest, with host metadata and exit codes.
+
+Issue #141 remains open: no production key, no out-of-band publication, no
+signed release asset and no clean-machine end-to-end run exist yet.
+`.github/workflows/release.yml` is unchanged and claims no signature.
+
 ### Terminal user journey fixes (issues #199, #200-#206)
 
 Fixed:

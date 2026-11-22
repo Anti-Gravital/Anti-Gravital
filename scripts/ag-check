@@ -157,12 +157,13 @@ check_deny() { run_cmd_check deny "${AG_DENY_CMD:-cargo deny check}"; }
 # changing a master requires an ADR and a coordinated update of both files.
 # ---------------------------------------------------------------------------
 expected_master_hash() {
-    case "$1" in
-        ANTI-GRAVITAL-Blueprint-v4.0.pdf) printf '%s' '59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660';;
-        ANTI-GRAVITAL-Blueprint-v4.1.md) printf '%s' '36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82';;
-        ANTI-GRAVITAL-Arquitectura-Tecnica.md) printf '%s' '7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e';;
-        ANTI-GRAVITAL-Hoja-de-Ruta.md) printf '%s' 'd1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518';;
-    esac
+    # Single source of truth: the hash table in docs/master/VERSION.md.
+    # Hardcoding copies here drifted after the alpha roadmap update.
+    local version_file="docs/master/VERSION.md" row
+    [ -f "$version_file" ] || return 1
+    row="$(grep -F "\`$1\`" "$version_file" | head -n 1 || true)"
+    [ -n "$row" ] || return 1
+    printf '%s' "$row" | grep -oE '[0-9a-f]{64}' | tail -n 1
 }
 
 sha256_of() {

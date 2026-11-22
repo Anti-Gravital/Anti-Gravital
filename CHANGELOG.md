@@ -165,6 +165,30 @@ Tests:
   this change does **not** cover (plan/apply, audit sink, `Secret<T>`, typed
   requests for all groups, `ag describe`).
 
+### Interactive terminal experience, stages B and C (RFC-0018)
+
+Added:
+
+- `ag config` with a full-screen form for `config.toml` in interactive
+  terminals and exact non-interactive parity: `ag config get KEY`,
+  `ag config set KEY VALUE` and `ag config validate`. `validate` exits
+  non-zero on an invalid file so it can be used in CI.
+- A shared typed `ConfigRequest` and a single `execute_config` executor used
+  by both flags and the form (RFC-0018 principles 1 and 2). The edited keys
+  mirror `ag_core::ShieldConfig`; every write is validated with that loader
+  before an atomic replace, preserving unrelated keys and comments.
+- Bare `ag` in a terminal opens a home screen with keyboard navigation that
+  only launches existing commands and prints the command it runs.
+
+Changed:
+
+- The root `ag` command is now optional in the clap definition. Outside a
+  terminal, with `CI`, `AG_NO_TUI`, `TERM=dumb` or `--no-interactive`, bare
+  `ag` still prints help and every command behaves as before.
+- `ag config` normalizes the legacy `[bind] host/port` table emitted by older
+  project templates in memory, so scaffolded projects validate without
+  changing the templates.
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

@@ -32,6 +32,10 @@ tui = ["dep:ratatui"]
 workers-runtime = ["dep:ag-workers", "dep:sqlx"]
 
 [dependencies]
+# ag-core owns the canonical Shield configuration schema. `ag config` builds
+# its form and validates every write through ShieldConfig so there is no
+# second schema to keep in sync (RFC-0018 section 4.4).
+ag-core = { workspace = true }
 ag-dsl = { workspace = true }
 ag-domains = { path = "../ag-domains", version = "0.0.0", features = ["propagation", "cloudflare"] }
 ag-mail = { path = "../ag-mail", version = "0.0.0", features = ["smtp"] }
@@ -46,3 +50,6 @@ sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
+# Format-preserving edits of config.toml (RFC-0018 section 4.8). The crate is
+# already in the lock file as a transitive dependency of `toml`.
+toml_edit = "0.25"

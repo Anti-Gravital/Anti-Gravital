@@ -303,11 +303,26 @@ Resolution of the open questions:
 3. **Bare `ag`.** In an interactive terminal it opens the home screen
    (stage C). Outside a terminal it prints help as before.
 
-Implementation status: stage A is implemented (module split, `tui` feature,
-`ag new` wizard, `--no-interactive`). Stages B and C are not started.
-One deviation from section 4.8: `crossterm` is used through the re-export of
+Implementation status: stages A, B and C are implemented.
+
+- Stage A: module split, `tui` feature, `ag new` wizard, `--no-interactive`.
+- Stage B: `ag config get|set|validate`, format-preserving writes through
+  `toml_edit`, full-screen form with inline validation and a review step.
+  Both paths build a `ConfigRequest` and share the `execute_config` executor.
+  Keys mirror `ag_core::ShieldConfig` and every write is validated with the
+  runtime's own loader before an atomic replace. Secret material (inline PEM)
+  is not exposed; only file paths and claim names are editable.
+- Stage C: bare `ag` opens a keyboard-driven home screen. Selecting an entry
+  returns a command line that `main` re-parses through the real CLI; the
+  screen itself performs no work.
+
+Deviations from section 4.8: `crossterm` is used through the re-export of
 `ratatui` instead of being declared as a second direct dependency, so the two
-versions cannot diverge.
+versions cannot diverge. The project templates still emit a legacy
+`[bind] host/port` table that `ShieldConfig` cannot parse; stage B normalizes
+it in memory so scaffolded projects validate without touching the templates
+owned by another workstream in this wave. A follow-up should update the
+templates to the canonical `bind = "host:port"` form.
 
 ## 10. References
 

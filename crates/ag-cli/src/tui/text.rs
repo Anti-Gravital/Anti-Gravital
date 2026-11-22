@@ -5,6 +5,12 @@
 
 pub(crate) const PRODUCT: &str = "Anti-Gravital";
 pub(crate) const NEW_PROJECT: &str = "New project";
+pub(crate) const CONFIGURE_PROJECT: &str = "Configure project";
+
+pub(crate) const HOME_TITLE: &str = "Home";
+pub(crate) const HOME_IN_PROJECT: &str = "Project detected. What would you like to do?";
+pub(crate) const HOME_OUTSIDE_PROJECT: &str = "No project detected. What would you like to do?";
+pub(crate) const KEYS_HOME: &str = "Up/Down: select    Enter: run command    Esc/q: close";
 
 pub(crate) const STEP_NAME: &str = "Name";
 pub(crate) const STEP_TEMPLATE: &str = "Template";
@@ -30,6 +36,13 @@ pub(crate) const KEYS_NAME: &str = "Enter: continue    Esc: cancel";
 pub(crate) const KEYS_TEMPLATE: &str =
     "Up/Down: select    Enter: continue    Esc: back    q: cancel";
 pub(crate) const KEYS_REVIEW: &str = "Enter: create project    Esc: back    q: cancel";
+
+pub(crate) const STEP_FIELDS: &str = "Fields";
+pub(crate) const CONFIG_REVIEW_LABEL: &str = "Changes to write to config.toml";
+pub(crate) const KEYS_CONFIG_FIELDS: &str =
+    "Up/Down: select    Enter: edit    r: review    Esc/q: cancel";
+pub(crate) const KEYS_CONFIG_EDIT: &str = "Type: replace value    Enter: apply    Esc: cancel";
+pub(crate) const KEYS_CONFIG_REVIEW: &str = "Enter: save    Esc: back to fields    q: cancel";
 
 pub(crate) const ABORTED: &str = "Cancelled. Nothing was written.";
 pub(crate) const EQUIVALENT_COMMAND: &str = "Equivalent non-interactive command:";

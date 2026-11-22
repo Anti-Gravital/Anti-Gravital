@@ -101,6 +101,31 @@ output or compact-to-layered promotion. A fresh scaffold passes
 
 Refs #154.
 
+### Wave-4 CLI/config regression suite and STATUS reconciliation
+
+Added:
+
+- `crates/ag-cli/tests/wave4_regression.rs`: a suite for the wave-4 CLI/config
+  and machine-output work. `new_no_interactive_is_unchanged` runs unconditionally
+  and checks that `--no-interactive` is accepted at both positions, creates the
+  scaffold and fails with exit 2 and no side effects when the name is missing.
+  Five further tests cover `ag config get/set/validate`, refusal of
+  `--output json` on mutating commands, a version field in JSON output from
+  read commands, and the inward-only dependency direction of the generated
+  layered workspace. Each of those detects its feature at runtime and prints a
+  SKIP note when it is absent, so the suite is green on base `42db343` and
+  activates without a source change once the relevant branch merges.
+- `docs/audits/wave4-status-reconciliation.md`: maps wave-4 branches to
+  `docs/roadmap/STATUS.md` boxes, lists the exact evidence commands required
+  before each box can be checked, and records which boxes stay open even after
+  the merges because of deliberate branch-scope limits (`ag env`, `ag describe`
+  and plan/apply are not delivered by this wave).
+
+`STATUS.md` and `docs/master/` are intentionally left unchanged: no roadmap box
+is claimed as advanced before its code is merged and verified.
+
+Closes: none.
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

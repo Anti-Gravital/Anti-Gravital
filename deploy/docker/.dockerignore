@@ -1,0 +1,11 @@
+# Never bake local secrets or build artifacts into an image layer.
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+target
+**/target
+docs
+deploy/generated
+*.log

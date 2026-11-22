@@ -43,6 +43,8 @@ RUN rustup target add "${RUST_TARGET}"
 # Copy the whole context: this works both in the workspace (where sibling
 # crates are needed) and in a generated single-crate project. Add a
 # .dockerignore at the context root to skip .git/ and target/.
+# .dockerignore (shipped beside this file) must be copied to the build context
+# root so local .env files and target/ never enter the image (issue #195).
 COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

@@ -7,6 +7,16 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Deployment security fixes (issues #194, #195)
+
+Fixed:
+
+- All compose stacks publish host ports on `127.0.0.1` instead of all interfaces,
+  and PostgreSQL/Grafana passwords are now required environment variables with
+  no committed default values.
+- A `deploy/docker/.dockerignore` prevents `.env` files and build artifacts from
+  entering image layers; the Dockerfile documents that it must be copied to the
+  build context root.
 
 ### Optional Docker packaging for template families (wave 7)
 

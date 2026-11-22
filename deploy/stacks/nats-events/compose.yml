@@ -12,7 +12,7 @@ services:
       - -m
       - "8222"
     ports:
-      - "${NATS_PORT:-4222}:4222"
+      - "127.0.0.1:${NATS_PORT:-4222}:4222"
       - "127.0.0.1:${NATS_HTTP_PORT:-8222}:8222"
     volumes:
       - natsdata:/data

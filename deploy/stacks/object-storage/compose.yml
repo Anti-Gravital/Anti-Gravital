@@ -12,7 +12,7 @@ services:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${S3_BUCKET:-ag-local}
       COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
     ports:
-      - "${S3_PORT:-9090}:9090"
+      - "127.0.0.1:${S3_PORT:-9090}:9090"
     volumes:
       - s3data:/s3mockroot
     healthcheck:

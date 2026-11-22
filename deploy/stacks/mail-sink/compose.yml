@@ -9,8 +9,8 @@ services:
       MP_MAX_MESSAGES: ${MP_MAX_MESSAGES:-500}
       MP_DATABASE: /data/mailpit.db
     ports:
-      - "${MAIL_SMTP_PORT:-1025}:1025"
-      - "${MAIL_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAIL_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAIL_UI_PORT:-8025}:8025"
     volumes:
       - maildata:/data
     healthcheck:

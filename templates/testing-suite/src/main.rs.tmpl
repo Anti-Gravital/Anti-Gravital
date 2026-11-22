@@ -1,0 +1,9 @@
+//! Minimal binary so `cargo run` produces observable output.
+
+fn main() {
+    let phrase = "A man, a plan, a canal: Panama";
+    println!(
+        "{phrase:?} is a palindrome: {}",
+        testing_suite_lib::is_palindrome(phrase)
+    );
+}

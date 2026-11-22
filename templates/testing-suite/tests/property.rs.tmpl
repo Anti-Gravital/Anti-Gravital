@@ -1,0 +1,30 @@
+//! Property tests: invariants checked over generated inputs with proptest.
+
+use proptest::prelude::*;
+use testing_suite_lib::{is_palindrome, partition_by};
+
+proptest! {
+    #[test]
+    fn reversing_preserves_palindrome_classification(phrase in "[a-zA-Z ]{0,40}") {
+        let reversed: String = phrase.chars().rev().collect();
+        prop_assert_eq!(is_palindrome(&phrase), is_palindrome(&reversed));
+    }
+
+    #[test]
+    fn partition_keeps_all_values_and_respects_pivot(
+        values in prop::collection::vec(-1000i64..1000, 0..50),
+        pivot in -1000i64..1000,
+    ) {
+        let (below, rest) = partition_by(&values, pivot);
+        prop_assert_eq!(below.len() + rest.len(), values.len());
+        prop_assert!(below.iter().all(|v| *v < pivot));
+        prop_assert!(rest.iter().all(|v| *v >= pivot));
+
+        let mut rebuilt = below.clone();
+        rebuilt.extend_from_slice(&rest);
+        let mut expected = values.clone();
+        rebuilt.sort_unstable();
+        expected.sort_unstable();
+        prop_assert_eq!(rebuilt, expected);
+    }
+}

@@ -1,0 +1,4 @@
+name = "testing-suite"
+description = "Scaffold with unit, integration, property and benchmark test examples that build offline"
+category = "testing"
+external_requirements = []

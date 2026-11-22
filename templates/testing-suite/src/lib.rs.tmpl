@@ -1,0 +1,74 @@
+//! Small dependency-free helpers used to demonstrate the four test layers
+//! shipped by this template. The generated project builds fully offline with
+//! dev dependencies already present in the Anti-Gravital workspace cache.
+
+/// Normalises a phrase for comparison: ASCII alphanumeric characters are kept
+/// and lowercased, every other character is discarded.
+fn normalize(input: &str) -> String {
+    input
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// True when `input` reads the same forwards and backwards after normalisation.
+pub fn is_palindrome(input: &str) -> bool {
+    let normalized = normalize(input);
+    let bytes = normalized.as_bytes();
+    bytes.iter().eq(bytes.iter().rev())
+}
+
+/// Splits `values` into those strictly below `pivot` and the rest.
+/// Relative order is preserved inside each group.
+pub fn partition_by(values: &[i64], pivot: i64) -> (Vec<i64>, Vec<i64>) {
+    let mut below = Vec::new();
+    let mut above_or_equal = Vec::new();
+    for &value in values {
+        if value < pivot {
+            below.push(value);
+        } else {
+            above_or_equal.push(value);
+        }
+    }
+    (below, above_or_equal)
+}
+
+/// Number of lines in a UTF-8 file. An empty file has zero lines.
+pub fn count_lines(path: &std::path::Path) -> std::io::Result<usize> {
+    let content = std::fs::read_to_string(path)?;
+    Ok(if content.is_empty() {
+        0
+    } else {
+        content.lines().count()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn palindrome_ignores_case_and_punctuation() {
+        assert!(is_palindrome("A man, a plan, a canal: Panama"));
+        assert!(is_palindrome("No 'x' in Nixon"));
+    }
+
+    #[test]
+    fn non_palindrome_is_rejected() {
+        assert!(!is_palindrome("anti-gravital"));
+    }
+
+    #[test]
+    fn partition_preserves_order_and_multiset() {
+        let (below, rest) = partition_by(&[3, 1, 4, 1, 5], 3);
+        assert_eq!(below, vec![1, 1]);
+        assert_eq!(rest, vec![3, 4, 5]);
+    }
+
+    #[test]
+    fn empty_input_is_a_palindrome() {
+        assert!(is_palindrome(""));
+        assert!(is_palindrome("!!!"));
+    }
+}

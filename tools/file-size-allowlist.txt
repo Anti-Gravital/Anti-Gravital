@@ -22,6 +22,4 @@ crates/ag-storage/src/store/server.rs #142
 crates/ag-cli/src/cli.rs #189
 crates/ag-cli/src/config.rs #189
 crates/ag-core/src/env.rs #189
-crates/ag-cli/src/commands/deploy.rs #189
-crates/ag-cli/src/commands/dns.rs #189
 crates/ag-cli/src/main.rs #189

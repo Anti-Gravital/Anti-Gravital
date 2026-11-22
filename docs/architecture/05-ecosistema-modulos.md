@@ -25,7 +25,6 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-lsp`           | Anti-DSL Language Server (diagnostics, completion, hover) for `.ag` files | Core         |
 | `ag-mail`          | outbound SMTP, typed templates, send queues with retries, relay SMTP nativo, SPF/DKIM/DMARC helpers | Deferred standard |
 | `ag-workers`       | background execution engine: typed jobs, retries, DLQ, scheduling, worker pools | Deferred standard |
-| `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
 | `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
 | `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
 | `ag-edge`          | request-time edge data plane: hostname routing, SNI certificate selection, canonical/redirect policy | Optional infra |
@@ -34,7 +33,7 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-migrate`       | OpenAPI, Prisma, Django, FastAPI, Sequelize importers            | Optional             |
 | `ag-wasm-host`     | WASI plugin runtime on wasmtime                                  | Core                 |
 
-The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **20** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`).
+The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **19** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`); `ag-ui` was removed from the roster by `RFC-0019`.
 
 ### 5.2 Ecosystem diagram
 
@@ -75,7 +74,7 @@ The distinction between **core**, **standard**, **deferred standard**, and **opt
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
 │   │              Módulos opcionales                   │         │
-│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │           ag-cloud ─► ag-domains    ag-ai         │         │
 │   │  ag-mobile    ag-migrate                          │         │
 │   │                                                   │         │
 │   │  ag-domains: DnsProvider + ACME + adapters        │         │
@@ -153,7 +152,6 @@ anti-gravital/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
 │   ├── ag-workers/             # Fase 4.6-D — estándar diferido
-│   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
 │   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)

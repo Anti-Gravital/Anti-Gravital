@@ -88,3 +88,4 @@ como `superseded`.
 | 0022 | Guardarrailes de mantenibilidad: reglas verificables contra la degradacion | aceptada | `RFC-0022-maintainability-guardrails.md` |
 | 0023 | Funciones serverless | aceptada | `RFC-0023-serverless-functions.md` |
 | 0024 | Interfaz de maquina MCP compartida con agentes por capacidades | aceptada | `RFC-0024-mcp-shared-machine-interface.md` |
+| 0025 | ORM tipado, RLS y multi-tenancy generados desde el DSL para ag-data (Fase 5+) | propuesta, solo diseno; no implementada | `RFC-0025-ag-data-orm-rls.md` |

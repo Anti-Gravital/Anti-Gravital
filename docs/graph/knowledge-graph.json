@@ -3,13 +3,13 @@
   "title": "Anti-Gravital knowledge graph (curated, manual)",
   "description": "Initial machine-readable knowledge graph for the workspace, per CLAUDE.md rule 33. Curated by hand from the Cargo manifests, the CLI and the DSL pipeline. The auto-generated per-project graph (derived from the DSL AST, persisted to .ag/knowledge-graph.json) is a separate Phase 6 deliverable and does not replace this file.",
   "generated": "manual",
-  "updated": "2026-06-13",
+  "updated": "2026-11-21",
   "source_of_truth": "docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md and CLAUDE.md sections 14, 15, 20",
   "crate_classifications": {
     "nucleo": ["ag-core", "ag-dsl", "ag-cli", "ag-lsp", "ag-wasm-host"],
     "estandar": ["ag-auth", "ag-data", "ag-realtime", "ag-cache", "ag-storage", "ag-observe"],
     "estandar_diferido": ["ag-mail", "ag-workers"],
-    "opcionales": ["ag-ui", "ag-cloud", "ag-ai", "ag-mobile", "ag-migrate"],
+    "opcionales": ["ag-cloud", "ag-ai", "ag-mobile", "ag-migrate"],
     "opcionales_infraestructura": ["ag-domains", "ag-edge"]
   },
   "crates": [
@@ -26,7 +26,6 @@
     { "name": "ag-observe", "class": "estandar", "depends_on": [], "role": "Observability: tracing, Prometheus metrics. OTLP exporter deferred (issue #149)." },
     { "name": "ag-mail", "class": "estandar_diferido", "depends_on": ["ag-core", "ag-workers"], "role": "Outbound transactional email + native MTA (feature mta). NOT a full mail server. ag-mail does NOT depend on ag-auth." },
     { "name": "ag-workers", "class": "estandar_diferido", "depends_on": ["ag-data"], "role": "Background job execution: typed jobs, retries, DLQ, scheduling, worker pools. In-memory default, durable PostgreSQL opt-in via ag-data." },
-    { "name": "ag-ui", "class": "opcionales", "depends_on": [], "role": "UI surface (optional)." },
     { "name": "ag-cloud", "class": "opcionales", "depends_on": [], "role": "Deployment / cloud surface (Phase 5). Consumes ag-domains during `ag deploy` (seventh dependency rule)." },
     { "name": "ag-ai", "class": "opcionales", "depends_on": [], "role": "AI integration surface (Phase 6); future knowledge-graph generation." },
     { "name": "ag-mobile", "class": "opcionales", "depends_on": [], "role": "Mobile client surface (optional)." },

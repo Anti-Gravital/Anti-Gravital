@@ -43,7 +43,7 @@ language (ADR-0008). A full Spanish version follows the English one.
 | Language and runtime | Rust (MSRV 1.99.1) on Tokio, Axum, Tower and rustls |
 | License | Apache-2.0 |
 | Released version | None yet. No crates.io releases, no binary releases; install from source only |
-| Workspace | 20 `ag-*` crates plus the `ag` developer CLI (6 of them are reserved placeholders for later phases) |
+| Workspace | 19 `ag-*` crates plus the `ag` developer CLI (5 of them are reserved placeholders for later phases) |
 | Current position | Phases 0-4.5 implemented with their exit gates still open; additive Phase 4.6 in progress |
 | Production-ready | No. The formal pre-Phase-5 release gate is OPEN ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
 | Live status | [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md), checkbox-level, updated with every roadmap PR |
@@ -132,9 +132,10 @@ Be aware of these boundaries before adopting the project:
 - **No production certification.** The pre-Phase-5 release gate is open;
   performance targets and the 24-hour fuzz gate are still pending (see
   [Known limitations](#known-limitations-and-release-blockers)).
-- **Placeholder crates.** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`,
-  `ag-migrate` and `ag-wasm-host` exist only to reserve names and module
-  boundaries; their implementation begins in Phases 5-9.
+- **Placeholder crates.** `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`
+  and `ag-wasm-host` exist only to reserve names and module boundaries;
+  their implementation begins in Phases 5-9. `ag-ui` was removed from the
+  roster by `RFC-0019`.
 
 ### What Anti-Gravital is not
 
@@ -142,9 +143,10 @@ Anti-Gravital integrates with the dominant tools instead of replacing them.
 It does not reimplement PostgreSQL, Redis, NATS, object storage, Docker,
 Kubernetes, Terraform, Flutter or frontend frameworks. `ag-mail` sends
 transactional email; it is not an IMAP/POP mailbox host. `ag-domains`
-manages DNS/TLS workflows; it is not a domain registrar. Generated Rust
-handlers are deliberate stubs owned by your application — the framework
-never hides your business logic.
+manages DNS/TLS workflows; it is not a domain registrar. It does not render
+user interfaces either (`RFC-0019`): UI consumers get generated client SDKs.
+Generated Rust handlers are deliberate stubs owned by your application — the
+framework never hides your business logic.
 
 ### Quick start
 
@@ -316,7 +318,7 @@ whose implementation begins in a later phase.
 | Core | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, DSL compiler, developer CLI, editor LSP, WASI plugin host |
 | Standard | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, PostgreSQL data layer, events, cache, files/images, telemetry |
 | Deferred standard | `ag-mail`, `ag-workers` | Transactional mail and native MTA; background-job execution engine. Standard-tier maturity, not installed by default in templates |
-| Optional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, cloud deploy, AI/knowledge graph, mobile bridge, importers |
+| Optional | `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | Cloud deploy, AI/knowledge graph, mobile bridge, importers |
 | Optional infra | `ag-domains`, `ag-edge` | DNS/domain/TLS control plane and the request-time edge data plane |
 
 Every external service integration (NATS, S3, Cloudflare, third-party SMTP)
@@ -327,7 +329,7 @@ dependency is ever required to use a module (ADR-0009).
 
 ```text
 anti-gravital/
-|-- crates/        20 ag-* crates (Cargo workspace; see architecture map)
+|-- crates/        19 ag-* crates (Cargo workspace; see architecture map)
 |-- examples/      10 runnable example projects
 |-- templates/     project templates used by `ag new`
 |-- benchmarks/    benchmark harnesses and methodology
@@ -491,7 +493,7 @@ public issues.
 | Lenguaje y runtime | Rust (MSRV 1.99.1) sobre Tokio, Axum, Tower y rustls |
 | Licencia | Apache-2.0 |
 | Version publicada | Ninguna todavia. Sin releases en crates.io ni binarios; instalacion solo desde el codigo fuente |
-| Workspace | 20 crates `ag-*` mas la CLI de desarrollo `ag` (6 de ellos son placeholders reservados para fases posteriores) |
+| Workspace | 19 crates `ag-*` mas la CLI de desarrollo `ag` (5 de ellos son placeholders reservados para fases posteriores) |
 | Posicion actual | Fases 0-4.5 implementadas con sus puertas de salida aun abiertas; Fase aditiva 4.6 en curso |
 | Listo para produccion | No. La puerta formal de release pre-Fase 5 esta ABIERTA ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
 | Estado vivo | [docs/roadmap/STATUS.md](docs/roadmap/STATUS.md), a nivel de casilla, actualizado con cada PR de la hoja de ruta |
@@ -587,9 +589,10 @@ Limites a tener en cuenta antes de adoptar el proyecto:
 - **Sin certificacion de produccion.** La puerta pre-Fase 5 esta abierta;
   los targets de rendimiento y la puerta de fuzzing de 24 horas siguen
   pendientes (vease [Limitaciones conocidas](#limitaciones-conocidas-y-bloqueadores-de-release)).
-- **Crates placeholder.** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`,
-  `ag-migrate` y `ag-wasm-host` existen solo para reservar nombres y limites
-  de modulo; su implementacion comienza en las Fases 5-9.
+- **Crates placeholder.** `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate` y
+  `ag-wasm-host` existen solo para reservar nombres y limites de modulo;
+  su implementacion comienza en las Fases 5-9. `ag-ui` fue retirado del
+  roster por `RFC-0019`.
 
 ### Que NO es Anti-Gravital
 
@@ -597,9 +600,10 @@ Anti-Gravital se integra con las herramientas dominantes en lugar de
 reemplazarlas. No reimplementa PostgreSQL, Redis, NATS, object storage,
 Docker, Kubernetes, Terraform, Flutter ni frameworks frontend. `ag-mail`
 envia correo transaccional; no aloja buzones IMAP/POP. `ag-domains` gestiona
-flujos DNS/TLS; no es un registrador de dominios. Los handlers Rust generados
-son stubs deliberados propiedad de cada aplicacion — el framework nunca
-oculta la logica de negocio.
+flujos DNS/TLS; no es un registrador de dominios. Tampoco renderiza interfaces
+de usuario (`RFC-0019`): los consumidores de UI reciben SDKs cliente generados.
+Los handlers Rust generados son stubs deliberados propiedad de cada aplicacion
+— el framework nunca oculta la logica de negocio.
 
 ### Inicio rapido
 
@@ -727,7 +731,7 @@ cuya implementacion comienza en una fase posterior.
 | Nucleo | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`* | Shield/runtime, compilador DSL, CLI de desarrollo, LSP de editor, host de plugins WASI |
 | Estandar | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` | Auth, capa de datos PostgreSQL, eventos, cache, archivos/imagenes, telemetria |
 | Estandar diferido | `ag-mail`, `ag-workers` | Correo transaccional y MTA nativo; motor de ejecucion de jobs. Madurez de estandar, no instalados por defecto en los templates |
-| Opcional | `ag-ui`*, `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | UI/SSR, deploy cloud, IA/knowledge graph, bridge mobile, importadores |
+| Opcional | `ag-cloud`*, `ag-ai`*, `ag-mobile`*, `ag-migrate`* | Deploy cloud, IA/knowledge graph, bridge mobile, importadores |
 | Opcional infra | `ag-domains`, `ag-edge` | Plano de control DNS/dominios/TLS y plano de datos edge en tiempo de request |
 
 Toda integracion con un servicio externo (NATS, S3, Cloudflare, SMTP de
@@ -739,7 +743,7 @@ de modo que ninguna dependencia externa es requisito para usar un modulo
 
 ```text
 anti-gravital/
-|-- crates/        20 crates ag-* (workspace Cargo; ver mapa de arquitectura)
+|-- crates/        19 crates ag-* (workspace Cargo; ver mapa de arquitectura)
 |-- examples/      10 proyectos de ejemplo ejecutables
 |-- templates/     templates de proyecto usados por `ag new`
 |-- benchmarks/    harnesses de benchmark y metodologia

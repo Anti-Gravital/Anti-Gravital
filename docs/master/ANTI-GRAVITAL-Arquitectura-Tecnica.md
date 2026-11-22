@@ -102,7 +102,7 @@ This list is equally important. Anti-Gravital does **not** intend and will not i
 
 - **Replace Kubernetes.** For workloads that justify Kubernetes, Anti-Gravital deploys *on top of* Kubernetes like any other containerized binary. `ag-cloud` covers the range from Docker Compose up to Fly.io. When a team needs orchestration at the scale of hundreds of nodes, it uses Kubernetes and that is that.
 - **Replace Flutter or React Native.** Anti-Gravital is not a cross-platform UI framework. It is the ideal native backend *for* Flutter and React Native applications, with automatic generation of typed client SDKs, native authentication, realtime, offline sync, and streaming.
-- **Replace React, Vue, Svelte, or Next.js.** The `ag-ui` module offers SSR + HTMX for cases where a full JS stack is excessive, but it does not compete with established frontend frameworks. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend + Next.js (or equivalent) as frontend, communicating via the generated TypeScript client.
+- **Render user interfaces.** Anti-Gravital is a backend tool: it generates typed client SDKs for UI consumers instead of rendering views. The former `ag-ui` SSR crate was removed from the roster by `RFC-0019`; for SPA or rich SSR applications, use Next.js (or equivalent) as frontend, consuming the generated TypeScript client.
 - **Replace Docker.** It generates Dockerfiles. It runs in containers. It does not reinvent the OCI format.
 - **Replace PostgreSQL, Redis, MinIO, or NATS.** It integrates with them as standard external dependencies.
 - **Replace Terraform or Pulumi.** `ag-cloud` orchestrates simple deployments; for complex multi-cloud infrastructure with policies, declarative IaC, and shared modules, Terraform remains the correct tool. `ag-domains` (Phase 4.5) also does not replace Terraform: it orchestrates DNS and TLS for the domains declared in the project's `schema.ag`, it does not manage arbitrary DNS zones or shared infrastructure.
@@ -170,7 +170,6 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-lsp`           | Anti-DSL Language Server (diagnostics, completion, hover) for `.ag` files | Core         |
 | `ag-mail`          | outbound SMTP, typed templates, send queues with retries, relay SMTP nativo, SPF/DKIM/DMARC helpers | Deferred standard |
 | `ag-workers`       | background execution engine: typed jobs, retries, DLQ, scheduling, worker pools | Deferred standard |
-| `ag-ui`            | SSR with askama, selective hydration, HTMX integration           | Optional             |
 | `ag-cloud`         | Railway-like deployment orchestration, Dockerfile gen            | Optional             |
 | `ag-domains`       | DNS management via `DnsProvider` trait, adapters (Cloudflare), ACME certificates, deployment domains | Optional infra |
 | `ag-edge`          | request-time edge data plane: hostname routing, SNI certificate selection, canonical/redirect policy | Optional infra |
@@ -179,7 +178,7 @@ The most important architectural decision derived from the critical analysis of 
 | `ag-migrate`       | OpenAPI, Prisma, Django, FastAPI, Sequelize importers            | Optional             |
 | `ag-wasm-host`     | WASI plugin runtime on wasmtime                                  | Core                 |
 
-The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **20** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`).
+The distinction between **core**, **standard**, **deferred standard**, and **optional** is important. The core is the minimal set that defines what Anti-Gravital is. The standard modules cover 90% of the production needs of any backend service and are installed by default in the official templates. A **deferred standard** module (introduced by `ADR-0007`) has the maturity and scope of a standard but is NOT installed by default in the templates: it is incorporated when the project explicitly needs it. `ag-mail` is a deferred standard because most backends end up sending transactional mail (verification, recovery, magic links via `ag-auth`), but not every project uses it from minute zero. `ag-workers` (introduced by `RFC-0012` / `ADR-0013` in Phase 4.6-D) is the second deferred standard: most backends eventually need background execution (jobs, retries, scheduling), but not every project uses it from day one, so it has standard maturity without being installed by default in the templates. The optional modules are added when the project needs them; `ag-domains` is an infrastructure optional (it is consumed by `ag-cloud` during deployment) and `ag-cloud -> ag-domains` is a dependency documented in section 5.3. The ecosystem reached **17 crates** with the introduction of Phase 4.5 and has grown additively to **19** with `ag-lsp` (Phase 3 DSL tooling), `ag-edge` (`ADR-0012`) and `ag-workers` (`ADR-0013`); `ag-ui` was removed from the roster by `RFC-0019`.
 
 ### 5.2 Ecosystem diagram
 
@@ -220,7 +219,7 @@ The distinction between **core**, **standard**, **deferred standard**, and **opt
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
 │   │              Módulos opcionales                   │         │
-│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │           ag-cloud ─► ag-domains    ag-ai         │         │
 │   │  ag-mobile    ag-migrate                          │         │
 │   │                                                   │         │
 │   │  ag-domains: DnsProvider + ACME + adapters        │         │
@@ -298,7 +297,6 @@ anti-gravital/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
 │   ├── ag-workers/             # Fase 4.6-D — estándar diferido
-│   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
 │   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)
@@ -684,11 +682,12 @@ Each request traverses the whole system with a unique correlation ID that appear
 
 `tokio-console` is integrated in development mode for live inspection of the Tokio tasks.
 
-### 8.7 `ag-ui` — Optional Server-Side Rendering
+### 8.7 Scope decision: no UI module (`RFC-0019`)
 
-The SSR module exists for cases where a SPA frontend is excessive: internal dashboards, marketing pages, simple forms, and administrative interfaces. It is based on `askama` (build-time compiled templating, with verified types) and native integration with HTMX for interactivity without heavy JavaScript frameworks.
-
-This module is explicitly *not* a competitor of React, Vue, Svelte, or Next.js. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend with a Next.js (or other) frontend that consumes the generated TypeScript client.
+`ag-ui` (server-side rendering with askama and HTMX) was an empty skeleton and
+was removed from the roster by `RFC-0019` (section 9, decision 2). Anti-Gravital
+is a backend tool: the interface side is served by generated client SDKs
+(TypeScript, Dart, Go) and by external frontend frameworks.
 
 ### 8.8 `ag-mail` — Transactional communication (deferred standard)
 
@@ -1345,7 +1344,7 @@ Esta lista es igualmente importante. Anti-Gravital **no** intenta ni intentará:
 
 - **No reemplaza Kubernetes.** Para cargas que justifican Kubernetes, Anti-Gravital se despliega *sobre* Kubernetes como cualquier otro binario contenedorizado. `ag-cloud` cubre el rango Docker Compose hasta Fly.io. Cuando un equipo necesita orquestación a escala de cientos de nodos, usa Kubernetes y se acabó.
 - **No reemplaza Flutter ni React Native.** Anti-Gravital no es un framework de UI multiplataforma. Es el backend nativo ideal *para* aplicaciones Flutter y React Native, con generación automática de SDKs cliente tipados, autenticación nativa, realtime, offline sync y streaming.
-- **No reemplaza React, Vue, Svelte ni Next.js.** El módulo `ag-ui` ofrece SSR + HTMX para casos donde un stack JS completo es excesivo, pero no compite con frameworks frontend establecidos. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend + Next.js (o equivalente) como frontend, comunicándose vía cliente TypeScript generado.
+- **No renderiza interfaces de usuario.** Anti-Gravital es una herramienta backend: genera SDKs cliente tipados para los consumidores de UI en lugar de renderizar vistas. El antiguo crate `ag-ui` de SSR fue retirado del roster por `RFC-0019`; para aplicaciones SPA o SSR ricas se usa Next.js (o equivalente) como frontend, consumiendo el cliente TypeScript generado.
 - **No reemplaza Docker.** Genera Dockerfiles. Se ejecuta en contenedores. No reinventa el formato OCI.
 - **No reemplaza PostgreSQL, Redis, MinIO ni NATS.** Se integra con ellos como dependencias externas estándar.
 - **No reemplaza Terraform ni Pulumi.** `ag-cloud` orquesta despliegues simples; para infraestructura compleja multi-cloud con políticas, IaC declarativa y módulos compartidos, Terraform sigue siendo la herramienta correcta. `ag-domains` (Fase 4.5) tampoco reemplaza Terraform: orquesta DNS y TLS para los dominios declarados en el `schema.ag` del proyecto, no gestiona zonas DNS arbitrarias ni infraestructura compartida.
@@ -1413,7 +1412,6 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-lsp`           | Language Server del Anti-DSL (diagnostics, autocompletado, hover) para archivos `.ag` | Núcleo      |
 | `ag-mail`          | SMTP outbound, templates tipados, colas de envío con reintentos, relay SMTP nativo, helpers SPF/DKIM/DMARC | Estándar diferido |
 | `ag-workers`       | Motor de ejecución en segundo plano: jobs tipados, reintentos, DLQ, scheduling, worker pools | Estándar diferido |
-| `ag-ui`            | SSR con askama, hidratación selectiva, integración HTMX          | Opcional             |
 | `ag-cloud`         | Orquestación de despliegue Railway-like, Dockerfile gen          | Opcional             |
 | `ag-domains`       | Gestión DNS vía trait `DnsProvider`, adapters (Cloudflare), certificados ACME, dominios de despliegue | Opcional infra |
 | `ag-edge`          | Plano de datos edge en tiempo de request: routing por hostname, selección de certificado por SNI, política canónica/redirect | Opcional infra |
@@ -1422,7 +1420,7 @@ La decisión arquitectónica más importante derivada del análisis crítico del
 | `ag-migrate`       | Importadores OpenAPI, Prisma, Django, FastAPI, Sequelize         | Opcional             |
 | `ag-wasm-host`     | Runtime de plugins WASI sobre wasmtime                           | Núcleo               |
 
-La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. `ag-workers` (introducido por `RFC-0012` / `ADR-0013` en la Fase 4.6-D) es el segundo estándar diferido: la mayoría de los backends acaba necesitando ejecución en segundo plano (jobs, reintentos, scheduling), pero no todo proyecto la usa desde el primer día, así que tiene madurez de estándar sin instalarse por defecto en los templates. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema arrancó en **17 crates** con la introducción de la Fase 4.5 y ha crecido de forma aditiva hasta **20** con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge` (`ADR-0012`) y `ag-workers` (`ADR-0013`).
+La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opcional** es importante. El núcleo es el conjunto mínimo que define lo que es Anti-Gravital. Los módulos estándar cubren el 90% de las necesidades de producción de cualquier servicio backend y se instalan por defecto en los templates oficiales. Un módulo **estándar diferido** (introducido por `ADR-0007`) tiene la madurez y el alcance de un estándar pero NO se instala por defecto en los templates: se incorpora cuando el proyecto lo necesita explícitamente. `ag-mail` es estándar diferido porque la mayoría de los backends acaba enviando correo transaccional (verificación, recuperación, magic links vía `ag-auth`), pero no todo proyecto lo usa desde el minuto cero. `ag-workers` (introducido por `RFC-0012` / `ADR-0013` en la Fase 4.6-D) es el segundo estándar diferido: la mayoría de los backends acaba necesitando ejecución en segundo plano (jobs, reintentos, scheduling), pero no todo proyecto la usa desde el primer día, así que tiene madurez de estándar sin instalarse por defecto en los templates. Los módulos opcionales se añaden cuando el proyecto los necesita; `ag-domains` es opcional de infraestructura (lo consume `ag-cloud` durante el despliegue) y `ag-cloud → ag-domains` es una dependencia documentada en la sección 5.3. El ecosistema arrancó en **17 crates** con la introducción de la Fase 4.5 y ha crecido de forma aditiva hasta **19** con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge` (`ADR-0012`) y `ag-workers` (`ADR-0013`); `ag-ui` fue retirado del roster por `RFC-0019`.
 
 ### 5.2 Diagrama del ecosistema
 
@@ -1463,7 +1461,7 @@ La distinción entre **núcleo**, **estándar**, **estándar diferido** y **opci
 │            │                                                    │
 │   ┌────────▼──────────────────────────────────────────┐         │
 │   │              Módulos opcionales                   │         │
-│   │  ag-ui    ag-cloud ─► ag-domains    ag-ai         │         │
+│   │           ag-cloud ─► ag-domains    ag-ai         │         │
 │   │  ag-mobile    ag-migrate                          │         │
 │   │                                                   │         │
 │   │  ag-domains: DnsProvider + ACME + adapters        │         │
@@ -1554,7 +1552,6 @@ anti-gravital/
 │   ├── ag-observe/
 │   ├── ag-mail/                # Fase 4.5 — estándar diferido
 │   ├── ag-workers/             # Fase 4.6-D — estándar diferido
-│   ├── ag-ui/
 │   ├── ag-cloud/
 │   ├── ag-domains/             # Fase 4.5 — opcional infra
 │   ├── ag-edge/                # Fase 4.5 — opcional infra (data plane)
@@ -1945,11 +1942,12 @@ Cada request atraviesa todo el sistema con un correlation ID único que aparece 
 
 `tokio-console` se integra en modo desarrollo para inspección en vivo de las tareas Tokio.
 
-### 8.7 `ag-ui` — Server-Side Rendering opcional
+### 8.7 Decision de alcance: sin modulo de UI (`RFC-0019`)
 
-El módulo SSR existe para casos donde un frontend SPA es excesivo: dashboards internos, páginas de marketing, formularios simples, e interfaces administrativas. Está basado en `askama` (templating compilado en build time, con tipos verificados) e integración nativa con HTMX para interactividad sin frameworks JavaScript pesados.
-
-Este módulo es explícitamente *no* un competidor de React, Vue, Svelte o Next.js. Para aplicaciones SPA o SSR ricas, el patrón recomendado es Anti-Gravital como backend con un frontend Next.js (u otro) que consume el cliente TypeScript generado.
+`ag-ui` (renderizado del lado del servidor con askama y HTMX) era un esqueleto
+vacio y fue retirado del roster por `RFC-0019` (seccion 9, decision 2).
+Anti-Gravital es una herramienta backend: el lado de interfaz se sirve con SDKs
+cliente generados (TypeScript, Dart, Go) y frameworks frontend externos.
 
 ### 8.8 `ag-mail` — Comunicación transaccional (estándar diferido)
 

@@ -38,7 +38,7 @@
 - [ ] The repository receives its first unsolicited external star.
 - [ ] At least five external people have joined the Discord.
 - [ ] The monorepo's folder structure is defined and committed (although without functional content).
-- [ ] The Cargo workspace is initialized with the empty crates: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`.
+- [ ] The Cargo workspace is initialized with the empty crates: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host` (`ag-ui` was removed by `RFC-0019`).
 - [ ] The CI successfully builds the empty workspace on the four target platforms.
 - [ ] The landing page describes in one paragraph what the project is, what it is not, and where it is on the roadmap.
 

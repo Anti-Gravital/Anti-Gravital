@@ -1,6 +1,6 @@
 # Crate map (human-readable mirror of knowledge-graph.json)
 
-Curated view of the 20-crate workspace: classification, inter-crate
+Curated view of the 19-crate workspace: classification, inter-crate
 dependencies and role. Machine-readable source: `knowledge-graph.json`.
 Diagram: `docs/diagrams/workspace-dependencies.md`.
 
@@ -11,7 +11,7 @@ Diagram: `docs/diagrams/workspace-dependencies.md`.
 | Nucleo | `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host` |
 | Estandar | `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe` |
 | Estandar diferido | `ag-mail`, `ag-workers` |
-| Opcionales | `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate` |
+| Opcionales | `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate` |
 | Opcionales de infraestructura | `ag-domains`, `ag-edge` |
 
 ## Crates and direct dependencies
@@ -31,7 +31,6 @@ Diagram: `docs/diagrams/workspace-dependencies.md`.
 | `ag-observe` | estandar | (none) | Tracing + Prometheus metrics. OTLP deferred (issue #149). |
 | `ag-mail` | estandar diferido | `ag-core`, `ag-workers` | Outbound email + native MTA. Does NOT depend on `ag-auth`. |
 | `ag-workers` | estandar diferido | `ag-data` | Background jobs: retries, DLQ, scheduling. In-memory default, PostgreSQL opt-in. |
-| `ag-ui` | opcional | (none) | UI surface. |
 | `ag-cloud` | opcional | (none) | Deployment/cloud (Phase 5). Consumes `ag-domains` at `ag deploy` (seventh rule). |
 | `ag-ai` | opcional | (none) | AI integration (Phase 6); future knowledge-graph generation. |
 | `ag-mobile` | opcional | (none) | Mobile client surface. |

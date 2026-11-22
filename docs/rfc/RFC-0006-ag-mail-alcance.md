@@ -126,7 +126,7 @@ trait, no via dato compartido — `ag-domains` define su propia conversion).
 | Crate | Version | Feature | Justificacion |
 |---|---|---|---|
 | `lettre` | 0.11 | `smtp` (default) | SMTP transport async Tokio, TLS via rustls. Maduro, mantenido. |
-| `askama` | 0.12 | `templates` (default) | Reusado de `ag-ui`, mismo build-time templating. |
+| `askama` | 0.12 | `templates` (default) | Build-time compiled templates with verified types; direct dependency of `ag-mail` (`ag-ui` was removed from the roster by `RFC-0019`). |
 | (sin deps HTTP de adaptadores; los adaptadores de marca fueron retirados por ADR-0011) |
 | `tokio` | (workspace) | always | Runtime. |
 | `tracing` | (workspace) | always | Spans para observabilidad. |

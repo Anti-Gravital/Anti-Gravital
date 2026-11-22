@@ -87,8 +87,9 @@ progress due to external deliverables (Discord, landing, domain). Phase 5
 deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA milestone, which
 remains at the end of Phase 5. The ecosystem count goes from 15 to 17
 crates with the incorporation of `ag-mail` and `ag-domains`, and grows
-additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
-(`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard).
+additively to 19 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
+(`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard),
+after `ag-ui` was removed by `RFC-0019` (backend-only scope).
 
 > Phases 0-4.5 are technically implemented; formal completion is gated by the
 > pre-Phase-5 release gate. Outstanding technical debt that must be closed before
@@ -130,7 +131,7 @@ additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
 - [ ] The repository receives its first unsolicited external star.
 - [ ] At least five external people have joined the Discord.
 - [ ] The monorepo's folder structure is defined and committed (although without functional content).
-- [ ] The Cargo workspace is initialized with the empty crates: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`.
+- [ ] The Cargo workspace is initialized with the empty crates: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host` (`ag-ui` was removed by `RFC-0019`).
 - [ ] The CI successfully builds the empty workspace on the four target platforms.
 - [ ] The landing page describes in one paragraph what the project is, what it is not, and where it is on the roadmap.
 
@@ -604,7 +605,7 @@ for Go, WebAssembly and Flutter consumers; it does not render user interfaces.
 ### 4.8.1 Entry criteria
 
 - [ ] `RFC-0019`, `RFC-0020` and `RFC-0021` accepted with their open questions
-  resolved (default layout, fate of `ag-ui`, gRPC and Go in scope, default
+  resolved (default layout, `ag-ui` removal per `RFC-0019`, gRPC and Go in scope, default
   secret storage, remote transport, scope of `ag setup`, release key custody).
 - [ ] Phase 4.7 stage A complete (the interactive foundation these flows use).
 
@@ -1233,8 +1234,9 @@ iniciar hasta que cada fila bloqueante del gate pase.
 entregables de la Fase 4 ya completada. No adelanta el hito v0.5 BETA, que
 permanece al final de la Fase 5. La cuenta del ecosistema pasa de 15 a 17
 crates con la incorporación de `ag-mail` y `ag-domains`, y crece de forma
-aditiva a 20 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
-(`ADR-0012`) y `ag-workers` (`ADR-0013`, el segundo estándar diferido).
+aditiva a 19 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
+(`ADR-0012`) y `ag-workers` (`ADR-0013`, el segundo estándar diferido),
+tras retirar `ag-ui` por `RFC-0019` (alcance exclusivamente backend).
 
 > Las fases 0-4.5 están técnicamente implementadas; la completitud formal está
 > sujeta al gate de release pre-Fase 5. La deuda técnica pendiente que debe
@@ -1277,7 +1279,7 @@ aditiva a 20 con `ag-lsp` (tooling DSL de la Fase 3), `ag-edge`
 - [ ] El repositorio recibe su primer star externo no solicitado.
 - [ ] Al menos cinco personas externas se han unido al Discord.
 - [ ] La estructura de carpetas del monorepo está definida y commitada (aunque sin contenido funcional).
-- [ ] El workspace Cargo está inicializado con los crates vacíos: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host`.
+- [ ] El workspace Cargo está inicializado con los crates vacíos: `ag-core`, `ag-dsl`, `ag-cli`, `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`, `ag-storage`, `ag-observe`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`, `ag-wasm-host` (`ag-ui` fue retirado por `RFC-0019`).
 - [ ] El CI construye exitosamente el workspace vacío en las cuatro plataformas objetivo.
 - [ ] La landing page describe en un párrafo qué es el proyecto, qué no es, y dónde está en el roadmap.
 
@@ -1766,7 +1768,7 @@ consumidores Go, WebAssembly y Flutter; no renderiza interfaces de usuario.
 ### 4.8.1 Criterios de entrada
 
 - [ ] `RFC-0019`, `RFC-0020` y `RFC-0021` aceptadas con sus preguntas abiertas
-  resueltas (layout por defecto, destino de `ag-ui`, gRPC y Go en el alcance,
+  resueltas (layout por defecto, retirada de `ag-ui` por `RFC-0019`, gRPC y Go en el alcance,
   almacenamiento de secretos por defecto, transporte remoto, alcance de
   `ag setup`, custodia de la llave de release).
 - [ ] Etapa A de la Fase 4.7 completa (la fundación interactiva que usan estos

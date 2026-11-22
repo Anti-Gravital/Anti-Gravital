@@ -62,8 +62,8 @@ In scope:
   `ag-workers` (background job execution engine).
 - Optional infrastructure modules: `ag-domains` (DNS, ACME, SPF/DKIM/DMARC)
   and `ag-edge` (request-time edge data plane).
-- Optional modules planned for later phases: `ag-ui`, `ag-cloud`, `ag-ai`,
-  `ag-mobile`, `ag-migrate`.
+- Optional modules planned for later phases: `ag-cloud`, `ag-ai`,
+  `ag-mobile`, `ag-migrate`. UI rendering is out of scope (`RFC-0019`).
 - A WASI plugin system.
 
 Explicitly out of scope:
@@ -78,7 +78,8 @@ Explicitly out of scope:
 ### 4. Ecosystem at a glance
 
 The ecosystem started at 17 crates in four tiers and has grown additively to
-20 with `ag-lsp`, `ag-edge` and `ag-workers`:
+19 with `ag-lsp`, `ag-edge` and `ag-workers`; `ag-ui` was removed from the
+roster by `RFC-0019` (backend-only scope):
 
 - **Core:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`.
 - **Standard:** `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`,
@@ -87,7 +88,7 @@ The ecosystem started at 17 crates in four tiers and has grown additively to
   installed by default in official templates; added when a project needs
   them). `ag-mail` does not depend on `ag-auth`; `ag-workers` is consumed by
   `ag-mail`/`ag-cli` behind features, never the reverse.
-- **Optional:** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
+- **Optional:** `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
   and the optional-infrastructure crates `ag-domains` (consumed optionally
   by `ag-cloud` during `ag deploy`) and `ag-edge` (request-time data plane).
 
@@ -187,8 +188,9 @@ Dentro del alcance:
   `ag-workers` (motor de ejecucion de jobs en segundo plano).
 - Modulos opcionales de infraestructura: `ag-domains` (DNS, ACME,
   SPF/DKIM/DMARC) y `ag-edge` (plano de datos edge en tiempo de request).
-- Modulos opcionales planeados para fases posteriores: `ag-ui`,
-  `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`.
+- Modulos opcionales planeados para fases posteriores: `ag-cloud`,
+  `ag-ai`, `ag-mobile`, `ag-migrate`. El renderizado de UI esta fuera del
+  alcance (`RFC-0019`).
 - Un sistema de plugins WASI.
 
 Explicitamente fuera del alcance:
@@ -203,7 +205,8 @@ Explicitamente fuera del alcance:
 ### 4. El ecosistema de un vistazo
 
 El ecosistema arranco en 17 crates en cuatro niveles y ha crecido de forma
-aditiva a 20 con `ag-lsp`, `ag-edge` y `ag-workers`:
+aditiva a 19 con `ag-lsp`, `ag-edge` y `ag-workers`; `ag-ui` fue retirado
+del roster por `RFC-0019` (alcance exclusivamente backend):
 
 - **Nucleo:** `ag-core`, `ag-dsl`, `ag-cli`, `ag-lsp`, `ag-wasm-host`.
 - **Estandar:** `ag-auth`, `ag-data`, `ag-realtime`, `ag-cache`,
@@ -212,7 +215,7 @@ aditiva a 20 con `ag-lsp`, `ag-edge` y `ag-workers`:
   instalados por defecto en los templates oficiales; se incorporan cuando el
   proyecto los necesita). `ag-mail` no depende de `ag-auth`; `ag-workers` lo
   consumen `ag-mail`/`ag-cli` detras de features, nunca al reves.
-- **Opcionales:** `ag-ui`, `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
+- **Opcionales:** `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate`,
   y los crates opcionales de infraestructura `ag-domains` (consumido
   opcionalmente por `ag-cloud` durante `ag deploy`) y `ag-edge` (plano de
   datos en tiempo de request).

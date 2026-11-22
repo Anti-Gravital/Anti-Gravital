@@ -157,25 +157,22 @@ write_manifest() {
     mkdir -p "$(dirname "$dest")"
     cat > "$dest" <<EOF
 # Offline domain-loop fixture for environment '$env_name'.
-[domain]
-name = "$host"
-environment = "$env_name"
-visibility = "$visibility"
-project = "domain-loop-fixture"
-service = "api"
+[project]
+name = "domain-loop-fixture"
 
 [provider]
 name = "none"
 
-[edge]
-host = "edge.example.test"
-
-[[records]]
-type = "CNAME"
-name = "$host"
-value = "edge.example.test"
-ttl = 300
+[domain]
+domain = "$host"
+environment = "$env_name"
 visibility = "$visibility"
+tls = "disabled"
+target = { kind = "service", ref = "api" }
+
+[[domain.dns.TXT]]
+name = "_ag-domain.$host"
+value = "ag-verification=offline-$env_name"
 
 [[records]]
 type = "TXT"
@@ -565,7 +562,7 @@ if [ "$CLI_READY" -eq 0 ]; then
     report FAIL ag-dns-status-offline 1 "ag dns status not available (no dns subcommand)"
 else
     status_out=$(run_in_sandbox "$PROJECT" "$AG" dns status \
-        --manifest .ag/dns/prod.toml --environment prod 2>&1)
+        --manifest .ag/dns/prod.toml --env prod 2>&1)
     status_rc=$?
     observe "$status_out"
     net_error=$(printf '%s\n' "$status_out" \
@@ -599,7 +596,7 @@ else
                 --manifest .ag/dns/prod.toml --output json 2>&1)
         else
             jout=$(run_in_sandbox "$PROJECT" "$AG" dns status \
-                --manifest .ag/dns/prod.toml --environment prod --output json 2>&1)
+                --manifest .ag/dns/prod.toml --env prod --output json 2>&1)
         fi
         jrc=$?
         observe "$jout"
@@ -686,7 +683,7 @@ try:
 except Exception as exc:
     print("applied state missing or invalid: " + str(exc)); raise SystemExit(1)
 applied = state.get("applied", {})
-prod_entry = applied.get("prod", {})
+prod_entry = applied.get("production", applied.get("prod", {}))
 if prod_entry.get("visibility") != "public":
     problems.append("applied prod entry is not public")
 for e in envs:
@@ -705,7 +702,7 @@ for e in envs:
     if not re.search(r"(?m)^Visibility:\s+" + re.escape(expected) + r"\s*$", text):
         problems.append("{} plan lacks an exact '{}' visibility line".format(e, expected))
     if expected == "private":
-        if "no public-only records" not in text:
+        if "no public-only records" not in text and "no public A/AAAA/CNAME record is planned" not in text:
             problems.append("{} private plan lacks fail-closed note".format(e))
         if re.search(r"(?m)^\S+\s+\S+\s+\S+\s+\d+\s+public\s*$", text):
             problems.append("{} private plan emitted a public record".format(e))

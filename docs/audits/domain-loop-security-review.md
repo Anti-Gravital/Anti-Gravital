@@ -2,26 +2,28 @@
 
 - Reviewer role: dnssec (read-only audit; no push, no merge)
 - Date: 2026-11-22
-- Base commit reviewed: `9675ad8` (all `community8/*` branches were still at
-  this tip at review time; no wave-8 commits were available to audit).
+- Base commit reviewed: `9675ad8`, rebased onto main `001e956` (envrules merged)
+  and cross-checked against the unmerged dnsarch tip `4e96e4d`.
 - Scope: the existing DNS/domain provisioning infrastructure that wave 8 builds
-  on (`crates/ag-domains`, `crates/ag-edge`) plus the *designs* published in the
-  wave-8 notes for `dnsapi`, `deplink`, `envrules`, `dnsarch`, `dnsqa` and
-  `dnsdocs`.
+  on (`crates/ag-domains`, `crates/ag-edge`), the merged `envrules` design, the
+  committed `dnsarch` RFC-0033, and the designs published in the wave-8 notes
+  for `dnsapi`, `deplink`, `dnsqa` and `dnsdocs`.
 - Method: read-only source inspection, repository content scans and string-logic
   reproduction. No files outside this role's worktree were edited.
 
 ## Scope and limitation
 
 This review grades the security posture of the domain-to-deploy loop before it
-ships. At the time of review every wave-8 branch (`dnsapi`, `deplink`,
-`envrules`, `dnsarch`, `dnsqa`, `dnsdocs`) was at the base commit, so this
-document audits (a) the pre-existing provisioning code the loop reuses and
-(b) the stated designs in `/tmp/opencode/agents/w8-*.md`. Findings against
-committed wave-8 code are necessarily deferred; the "Requirements per
-component" section records the conditions each branch must satisfy, and the
-recommendation is conditional on a re-audit of the committed tips. One real
-defect was found in the pre-existing edge code and filed as issue #196.
+ships. It audits (a) the pre-existing provisioning code the loop reuses,
+(b) the merged `envrules` design files (`docs/dns/ENVIRONMENT_RULES.md` and
+`docs/dns/examples/domain-manifest.yaml`), (c) the committed `dnsarch` RFC-0033
+and `docs/dns/DOMAIN_LOOP.md`, and (d) the stated designs in
+`/tmp/opencode/agents/w8-*.md` for the branches not yet committed. Findings
+against the remaining committed wave-8 code (`dnsapi`, `deplink`, `dnsqa`,
+`dnsdocs`) are deferred; the "Requirements per component" section records the
+conditions each branch must satisfy, and the recommendation is conditional on a
+re-audit of those committed tips. One real defect was found in the pre-existing
+edge code and filed as issue #196.
 
 ## Threat model
 
@@ -45,7 +47,7 @@ defect was found in the pre-existing edge code and filed as issue #196.
 | No credentials / zone ids committed | PASS | Repository-wide scan found no `CF_TOKEN`, `API_TOKEN`, `ZONE_ID`, password or key values; only placeholder env names in template docs. |
 | No wildcard records by default | PASS | `instructions.rs` emits a wildcard CNAME only for an explicitly wildcard hostname; apex/subdomain output is A/AAAA/CNAME + ownership TXT. |
 | Ownership verification before apply | PASS (library) / REQUIREMENT (CLI) | TXT proof at `_ag-domain.<registrable>` with UUID token; `NullVerifier` fails closed; activation requires `OwnershipStatus::Verified`. `dnsapi` must still gate `apply` on Verified status. |
-| Private-by-default / default-deny visibility | PASS (design) / REQUIREMENT (CLI) | `envrules` design specifies `private` default, unknown -> private, no implicit public. Must be enforced by manifest validation. |
+| Private-by-default / default-deny visibility | PASS (merged design) / REQUIREMENT (validator) | `envrules` (merged `f22ddb1`) specifies `private` default, unknown -> private, no implicit public, TLS required for public. Must be enforced by the manifest validator. |
 | No SSRF through user-supplied provider URLs | REQUIREMENT | Adapter `with_base_url`/`with_endpoints` accept arbitrary URLs (including `http://`) and attach API tokens. Safe as test seams; `dnsapi` must never expose them via config without https + allowlist. |
 | Plan/apply cannot be bypassed | PASS (library) / REQUIREMENT (CLI) | `ZoneAdapter::apply` takes an explicit `ZonePlan`; `diff` is pure. `dnsapi` must not add a direct-apply shortcut and must scope `observed` before `diff`. |
 | No real DNS calls in local/tests | PASS | Live paths are `#[ignore]` or wiremock/mock resolvers; `lookup_observed(Mx)` short-circuits before any lookup. |
@@ -128,14 +130,22 @@ network, add authentication and bind to loopback.
 while holding `private_key_pem: String`. No current code logs these values, but
 a future `Debug` format would print key material. Consider a redacted `Debug`.
 
-### Component: `dnsarch` (design only)
+### Component: `dnsarch` (committed, tip `4e96e4d`)
 
-No committed code. Design task is RFC-0033 + `docs/dns/DOMAIN_LOOP.md`.
-Observation: the `dnsarch` note says "RFC-0033 (verify next free number)", while
-the `deplink` note states RFC-0033 is already used by wave 7
-(`RFC-0033-local-deploy-artifact-rendering.md`). The coordinator must resolve
-the number collision at integration; the security contract itself is not
-affected.
+RFC-0033 section 4.7 defines a sound security contract: no credentials in the
+repository (env var names / `Secret<T>` only, redacted output), no wildcard by
+default (`allow_wildcard = false`, DNS-01 required), fail-closed (`NullVerifier`
+default, stale plan id aborts apply, link targets must be HTTPS on a host
+allowlist - an explicit SSRF guard), and zone-takeover prevention via ownership
+proof plus a 30-day tombstone. Sections 4.5/4.6 keep private bindings free of
+public records and the validation/plan/rendering path offline. This satisfies
+the audit requirements at the design level.
+
+Observation (RFC numbering): the `deplink` note claims RFC-0033 was taken by
+wave 7 (`RFC-0033-local-deploy-artifact-rendering.md`). `dnsarch` verified no
+such file or git history exists and that 0032 was the highest number, so 0033 is
+free. The coordinator should confirm no collision at merge; the security
+contract itself is unaffected.
 
 ### Component: `dnsapi` (design only - highest risk)
 
@@ -160,14 +170,26 @@ Requirements: keep TLS opt-in explicit; never render a "secure/HTTPS" claim when
 `tls.enabled` is false; do not commit cert/key material into the generated
 overlay; preserve the wildcard boundary fix (E1) if wildcard hosts are routed.
 
-### Component: `envrules` (design only)
+### Component: `envrules` (merged into main at `f22ddb1`)
 
-Design specifies environments local/dev/staging/prod, visibility
-`private|vpn-only|public`, `private` default, unknown/missing -> private, and no
-runtime selector variable. This satisfies default-deny. Requirements: the
-manifest validator must reject unknown visibility values and must not infer
-`public` from the presence of a host alone; `vpn-only` CIDR lists must be
-validated; no private key in the manifest.
+Reviewed `docs/dns/ENVIRONMENT_RULES.md` and the example manifest. The design is
+default-deny and machine-checkable: `default_visibility` and every
+`visibility_default` must be `private` (ER-03), missing/unknown visibility
+resolves to private and unknown values are a hard error (ER-04), `public`
+requires host + TLS + ingress + an explicit internet CIDR (ER-05/ER-07),
+`vpn-only` maps to private plus a CIDR allowlist (ER-07/4.8), private keys never
+appear in the manifest (ER-SECRET), and `--env` is explicit with no runtime
+selector variable (ER-11). The example uses `*.invalid` documentation hosts and
+no real credentials. This satisfies default-deny at the design level.
+
+Observation (low): the example permits single-label wildcards in dev and staging
+(`allow_wildcard: true`). That is intentional, but it is exactly the surface
+exposed by issue #196; the wildcard boundary fix must land before any such
+binding reaches a real edge. No defect in the envrules files themselves.
+
+Requirement for implementers: the manifest *validator* (not just the document)
+must enforce ER-01..ER-11 - reject unknown visibility, bound `CIDR` syntax,
+require TLS for public, and never infer public from a host alone.
 
 ### Component: `dnsqa`, `dnsdocs`
 
@@ -187,7 +209,10 @@ of D3/D4.
   the D3/D4/D5 constraints are respected by the CLI layer.
 - Edge routing/TLS (`ag-edge`): NO-GO for wildcard hostnames until issue #196 is
   fixed and verified. Non-wildcard paths are unaffected.
-- Wave-8 branches: DEFERRED. Designs are consistent with the security
-  requirements above, but branch code was not available at review time. A
-  follow-up audit of the committed tips is required before a final GO, with
-  special attention to the `dnsapi` requirements 1-5.
+- Merged wave-8 design (`envrules`): GO with the validator requirement above.
+- Committed design (`dnsarch`): GO as a security contract; implementation in
+  `dnsapi` still needs verification.
+- Remaining wave-8 branches (`dnsapi`, `deplink`, `dnsqa`, `dnsdocs`): DEFERRED.
+  Designs are consistent with the requirements above, but branch code was not
+  available at review time. A follow-up audit of the committed tips is required
+  before a final GO, with special attention to the `dnsapi` requirements 1-5.

@@ -1,0 +1,99 @@
+//! Observability dashboard on ag-core with a JSON metrics endpoint.
+//!
+//! The sample metrics are embedded constants. The HTML page and the JSON API
+//! read from the same `METRICS` value, so they never disagree. No metrics
+//! agent, database or external service is required to start.
+
+use ag_core::Shield;
+use axum::{
+    http::{header, HeaderValue},
+    response::{Html, Response},
+    routing::get,
+    Json, Router,
+};
+use serde::Serialize;
+
+const STYLES_CSS: &str = include_str!("../static/styles.css");
+
+#[derive(Serialize)]
+struct Metric {
+    name: &'static str,
+    value: f64,
+    unit: &'static str,
+}
+
+#[derive(Serialize)]
+struct Metrics {
+    service: &'static str,
+    metrics: &'static [Metric],
+}
+
+const METRICS: Metrics = Metrics {
+    service: "{{name}}",
+    metrics: &[
+        Metric { name: "requests_total", value: 12480.0, unit: "count" },
+        Metric { name: "error_rate", value: 0.12, unit: "percent" },
+        Metric { name: "p99_latency", value: 42.0, unit: "ms" },
+        Metric { name: "uptime", value: 99.95, unit: "percent" },
+    ],
+};
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/", get(index_handler))
+        .route("/api/metrics", get(metrics_handler))
+        .route("/styles.css", get(styles_handler))
+        .route("/health", get(|| async { "ok" }));
+    let app = shield.apply(router);
+
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("dashboard serving on http://{bind}");
+    shield.serve(listener, app).await
+}
+
+async fn index_handler() -> Html<String> {
+    let mut rows = String::new();
+    for metric in METRICS.metrics {
+        rows.push_str(&format!(
+            "<tr><td>{}</td><td class=\"value\">{} {}</td></tr>",
+            metric.name, metric.value, metric.unit
+        ));
+    }
+    let html = format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+         <title>{{name}} dashboard</title>\
+         <link rel=\"stylesheet\" href=\"/styles.css\"></head>\
+         <body><main><h1>Dashboard: {{name}}</h1>\
+         <p><a href=\"/api/metrics\">JSON metrics</a></p>\
+         <table><thead><tr><th>Metric</th><th>Value</th></tr></thead>\
+         <tbody>{}</tbody></table></main></body></html>",
+        rows
+    );
+    Html(html)
+}
+
+async fn metrics_handler() -> Json<&'static Metrics> {
+    Json(&METRICS)
+}
+
+async fn styles_handler() -> Response {
+    Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )
+        .body(STYLES_CSS.into())
+        .expect("valid CSS response")
+}

@@ -104,9 +104,20 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### Web project templates (wave 6)
 
+Added:
 
-
+- Six offline-capable web templates under `templates/`: `static-site`
+  (embedded HTML/CSS), `marketing-site` (landing sections and about page),
+  `blog` (embedded posts with list, detail and JSON API), `docs-site`
+  (generated sidebar and topic pages), `dashboard` (HTML metrics page plus
+  JSON endpoint) and `admin-panel` (fail-closed stub auth gate). Each ships
+  `template.toml`, `README.md`, a pinned `Cargo.toml.tmpl`, `config.toml.tmpl`,
+  `src/main.rs.tmpl` and embedded static assets. All use `ag-core` Shield and
+  axum 0.7 with no `DATABASE_URL` or external service. Verified: all six
+  scaffold and pass `cargo check --offline` with zero warnings, plus real
+  server/curl smoke tests for their routes.
 
 ### Template catalog gallery (wave 6)
 

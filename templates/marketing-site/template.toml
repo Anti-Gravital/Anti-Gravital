@@ -1,0 +1,4 @@
+name = "marketing-site"
+description = "Landing page with hero, features and call-to-action sections on ag-core."
+category = "web"
+external_requirements = []

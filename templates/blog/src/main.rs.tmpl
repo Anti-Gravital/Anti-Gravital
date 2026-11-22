@@ -1,0 +1,120 @@
+//! Small blog served by ag-core with posts embedded in the binary.
+//!
+//! Posts are a static, trusted `const` slice. The list, detail pages and JSON
+//! API all read from that single source. No database or external service is
+//! required. Replace the slice with a real data layer when the project grows.
+
+use ag_core::Shield;
+use axum::{
+    extract::Path,
+    http::{header, HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
+    routing::get,
+    Json, Router,
+};
+use serde::Serialize;
+
+const STYLES_CSS: &str = include_str!("../static/styles.css");
+
+#[derive(Serialize)]
+struct Post {
+    id: &'static str,
+    title: &'static str,
+    summary: &'static str,
+    body: &'static str,
+}
+
+const POSTS: &[Post] = &[
+    Post {
+        id: "hello-world",
+        title: "Hello, world",
+        summary: "Why this blog exists and what you will find here.",
+        body: "This is the first post. It is stored in src/main.rs and embedded \
+               into the binary at compile time.",
+    },
+    Post {
+        id: "embedded-data",
+        title: "Embedded data, zero setup",
+        summary: "Serving content without a database.",
+        body: "Because the posts are a Rust constant, the server starts with no \
+               migrations, no connection string and no external dependency.",
+    },
+];
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/", get(index_handler))
+        .route("/posts/:id", get(post_handler))
+        .route("/api/posts", get(posts_api_handler))
+        .route("/styles.css", get(styles_handler));
+    let app = shield.apply(router);
+
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("blog serving on http://{bind}");
+    shield.serve(listener, app).await
+}
+
+fn page(title: &str, content: &str) -> String {
+    format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+         <title>{title} - {{name}}</title>\
+         <link rel=\"stylesheet\" href=\"/styles.css\"></head>\
+         <body><main><nav><a href=\"/\">All posts</a> | <a href=\"/api/posts\">JSON</a></nav>\
+         {content}</main></body></html>"
+    )
+}
+
+async fn index_handler() -> Html<String> {
+    let mut items = String::new();
+    for post in POSTS {
+        items.push_str(&format!(
+            "<article><h2><a href=\"/posts/{}\">{}</a></h2><p>{}</p></article>",
+            post.id, post.title, post.summary
+        ));
+    }
+    let body = format!("<h1>{{name}}</h1>{}", items);
+    Html(page("Blog", &body))
+}
+
+async fn post_handler(Path(id): Path<String>) -> Response {
+    match POSTS.iter().find(|post| post.id == id) {
+        Some(post) => {
+            let body = format!(
+                "<h1>{}</h1><p>{}</p><p><a href=\"/\">Back</a></p>",
+                post.title, post.body
+            );
+            Html(page(post.title, &body)).into_response()
+        }
+        None => (
+            StatusCode::NOT_FOUND,
+            Html(page("Not found", "<h1>Post not found</h1>")),
+        )
+            .into_response(),
+    }
+}
+
+async fn posts_api_handler() -> Json<&'static [Post]> {
+    Json(POSTS)
+}
+
+async fn styles_handler() -> Response {
+    Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )
+        .body(STYLES_CSS.into())
+        .expect("valid CSS response")
+}

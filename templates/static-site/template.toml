@@ -1,0 +1,4 @@
+name = "static-site"
+description = "Minimal static HTML/CSS site served from embedded assets on ag-core."
+category = "web"
+external_requirements = []

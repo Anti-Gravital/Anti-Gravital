@@ -1,0 +1,52 @@
+//! Static site served from assets embedded into the binary at compile time.
+//!
+//! There is no database and no external service. The HTML and CSS live in
+//! `static/` and are included with `include_str!`, so the generated binary is
+//! self-contained and can be deployed as a single file.
+
+use ag_core::Shield;
+use axum::{
+    http::{header, HeaderValue},
+    response::{Html, Response},
+    routing::get,
+    Router,
+};
+
+const INDEX_HTML: &str = include_str!("../static/index.html");
+const STYLES_CSS: &str = include_str!("../static/styles.css");
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/", get(index_handler))
+        .route("/styles.css", get(styles_handler));
+    let app = shield.apply(router);
+
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("static site serving on http://{bind}");
+    shield.serve(listener, app).await
+}
+
+async fn index_handler() -> Html<&'static str> {
+    Html(INDEX_HTML)
+}
+
+async fn styles_handler() -> Response {
+    Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )
+        .body(STYLES_CSS.into())
+        .expect("valid CSS response")
+}

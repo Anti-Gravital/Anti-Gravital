@@ -3,23 +3,52 @@
 use super::schema::read_schema;
 #[allow(unused_imports)]
 use crate::cli::*;
+use crate::output::{WorkerView, WorkersListData};
 use std::path::Path;
 
-/// Lists the background workers declared in a schema. Reads and compiles the schema;
-/// requires no database or running backend.
-pub(crate) fn cmd_workers_list(schema_path: &Path) -> Result<(), String> {
-    let source = read_schema(schema_path)?;
-    let schema = ag_dsl::compile(&source).map_err(|diags| {
+/// Compiles the schema for the read-only worker listing, preserving the
+/// historical error text used by the prose command.
+fn compile_workers_schema(source: &str, schema_path: &Path) -> Result<ag_dsl::ast::Schema, String> {
+    ag_dsl::compile(source).map_err(|diags| {
         let mut msg = format!(
             "{} error(s) in '{}':\n",
             diags.iter().filter(|d| d.is_error()).count(),
             schema_path.display()
         );
         for d in &diags {
-            msg.push_str(&format!("  {}\n", d.display(&source)));
+            msg.push_str(&format!("  {}\n", d.display(source)));
         }
         msg
-    })?;
+    })
+}
+
+/// Builds the versioned `workers.list` result without printing prose.
+pub(crate) fn workers_report(schema_path: &Path) -> Result<WorkersListData, String> {
+    let source = read_schema(schema_path)?;
+    let schema = compile_workers_schema(&source, schema_path)?;
+    let workers = schema
+        .workers
+        .iter()
+        .map(|w| WorkerView {
+            name: w.name.value.clone(),
+            queue: w.queue.clone().unwrap_or_else(|| "default".to_owned()),
+            mode: w.mode.clone().unwrap_or_else(|| "static".to_owned()),
+            concurrency: w.concurrency,
+            input: w.input.iter().map(|f| f.name.value.clone()).collect(),
+            retry_max_attempts: w.retry.as_ref().and_then(|r| r.max_attempts),
+        })
+        .collect();
+    Ok(WorkersListData {
+        schema: schema_path.display().to_string(),
+        workers,
+    })
+}
+
+/// Lists the background workers declared in a schema. Reads and compiles the schema;
+/// requires no database or running backend.
+pub(crate) fn cmd_workers_list(schema_path: &Path) -> Result<(), String> {
+    let source = read_schema(schema_path)?;
+    let schema = compile_workers_schema(&source, schema_path)?;
 
     if schema.workers.is_empty() {
         println!("No workers declared in '{}'.", schema_path.display());

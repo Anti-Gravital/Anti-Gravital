@@ -10,6 +10,14 @@
 > schema file, request type, executor, transport or dependency was added. This
 > document is a design/contract review only. Its proposals require the RFC
 > amendment described in section 10 before any of them become normative.
+>
+> **Implementation update (2026-11-21).** The read-only part of prerequisite 1
+> has landed: `ag --output json` now emits a versioned shape (contract `0.1.0`)
+> for `schema.lint`, `schema.diff` and `workers.list`, with byte-exact snapshots
+> and a refusal for every other command. See section 12. The rest of
+> prerequisite 1 (`--plan` / `--apply`, audit sink), prerequisite 2 (`Secret<T>`)
+> and prerequisite 3 (typed requests for all groups) remain open. No MCP code is
+> authorised yet.
 
 ## 1. Verdict
 
@@ -45,7 +53,7 @@ RFC sets out to prevent. Stage F must be preceded by the stage E/B substrate
 
 | RFC-0024 assumption | Repository evidence on `0c4d808` | Status |
 | --- | --- | --- |
-| A versioned JSON shape exists per command (4.2) | `cli.rs` has no `--output` flag; all output is `println!` in `commands/*.rs` | Missing |
+| A versioned JSON shape exists per command (4.2) | Update 2026-11-21: contract `0.1.0` in `docs/mcp/` covers three read commands with snapshots; all other commands still have prose only | Partial (3 of the read tools) |
 | Every mutating command has a plan id and explicit apply (4.1.2, 4.2) | No `--plan`/`--apply` in `cli.rs`; no plan store anywhere | Missing |
 | The same local audit log is used by RFC-0021 mutating commands (4.3) | No audit record type or log writer in `ag-cli`, `ag-core` or `ag-observe` | Missing |
 | MCP tools call the same request types and executors as CLI and TUI (4.1.3) | Only `ag new` has a request/executor pair; TUI itself only covers `ag new` (`tui/new_wizard/`) | Partially true (1 of 8 groups) |
@@ -340,7 +348,10 @@ The `debug` group is the highest-risk part of the surface. Required boundaries:
 
 1. Implement RFC-0021 stage E in `ag-cli`: `--output json` with a versioned
    shape per command, stable exit codes and `ag describe`. Without it there is
-   no shape to reuse and no self-description to negotiate.
+   no shape to reuse and no self-description to negotiate. **Update
+   2026-11-21:** the JSON shapes, snapshots and the 0/1/2 exit codes for three
+   read commands are done (section 12); `ag describe`, the full exit-code table
+   and shapes for the remaining commands are still missing.
 2. Implement the plan/apply framework: a single plan store and a single
    append-only audit log in `ag-cli`, used by every mutating CLI command first.
    MCP must be a caller of this framework, never a second implementation.
@@ -481,3 +492,57 @@ Governing rules: CLAUDE.md sections 4, 16, 19, 22, 26, 28, 33 and the ADR-0008
 language policy (this document is in canonical technical English). This review
 proposes no scope change and implements no feature; all proposals remain
 subject to the RFC amendment in section 10.
+
+## 12. Implementation update: read-only JSON substrate (2026-11-21)
+
+This section records what a later change actually implemented. It does not
+change the verdict of section 1: the MCP surface itself is still blocked.
+
+### 12.1 Now satisfied
+
+- **Prerequisite 1, read-only portion.** `ag --output json` emits a versioned
+  document with `contract_version = "0.1.0"`, a stable `command` name, a
+  `status` discriminator and either `data` or a typed `error`. The three covered
+  commands are `schema.lint`, `schema.diff` and `workers.list`. Their shapes,
+  JSON Schema and byte-exact snapshots are published in `docs/mcp/` and
+  asserted by `crates/ag-cli/tests/json_output.rs` (12 integration tests).
+- **Machine-safe refusal.** Every other command, including all mutating ones,
+  refuses `--output json` before dispatch with exit code 2 and a closed
+  `unsupported_command` message. The tests assert that a refused `ag new` and a
+  refused `ag generate` create nothing, and that a canary secret passed as an
+  argument or environment value never appears in stdout or stderr (RFC-0020,
+  RFC-0024 section 4.1.5).
+- **Exit codes (partial).** JSON mode uses 0 for success, 1 for read or
+  validation failure and 2 for usage/unsupported. `schema.lint` emits its
+  diagnostics as data and exits 1 when errors exist. The remaining categories
+  in RFC-0021 (precondition, remote failure) are undefined until their commands
+  exist.
+- **Prose parity.** With the flag absent, output is unchanged. A test pins the
+  exact clean-lint prose line.
+
+### 12.2 Still open (unchanged)
+
+- Prerequisite 1, remaining: `--plan` / `--apply`, the single plan store and the
+  shared append-only audit sink. No mutating command has a plan identifier.
+- Prerequisite 2: `Secret<T>` from RFC-0020 in the CLI executors. The refusal
+  path never echoes secrets, but sensitive arguments are still plain strings.
+- Prerequisite 3: typed request/executor pairs for all command groups. This
+  change adds read-only report builders, not the general request pipeline.
+- Prerequisites 4-7 and the open questions Q1-Q7 in section 10 are untouched.
+
+### 12.3 Deliberate scope boundary
+
+No MCP server, transport, capability manifest, tool registry, `ag describe`,
+plan/apply or agent protocol code was added. `schema.describe`, `config.get`,
+`project.list` and `project.describe` have no CLI counterpart and therefore no
+shape in `0.1.0`; inventing one here would violate the "no feature outside the
+documentation" rule. The next step is a separate RFC-0021 stage E change (and
+the RFC-0024 amendment for Q1-Q7), not an MCP implementation.
+
+### 12.4 Contract ownership
+
+Anti-Gravital owns `0.1.0`; the owner field is the `CONTRACT_VERSION` constant
+in `crates/ag-cli/src/output.rs`, mirrored by `docs/mcp/cli-json-0.1.0.md`,
+`docs/mcp/cli-json-0.1.0.schema.json` and `docs/mcp/snapshots/`. Fabric
+publishes its own independently versioned contract (ADR-0016). This answers the
+mechanism half of Q5; the shared bump policy still needs the RFC amendment.

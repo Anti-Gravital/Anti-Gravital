@@ -126,6 +126,45 @@ is claimed as advanced before its code is merged and verified.
 
 Closes: none.
 
+### Versioned `--output json` for read commands (RFC-0021 stage E, RFC-0024 prerequisite)
+
+Added:
+
+- Global `--output json` for the read-only commands `ag schema lint`,
+  `ag schema diff` and `ag workers list`. Each emits one compact, deterministic
+  JSON line with `contract_version` (`0.1.0`), `command`, `status` and either
+  `data` or a typed `error`. Prose output is unchanged when the flag is absent.
+- Versioned contract under `docs/mcp/`: human-readable reference, JSON Schema
+  (draft 2020-12) and byte-exact snapshots asserted by
+  `crates/ag-cli/tests/json_output.rs`. The constant, schema and snapshots move
+  together on every contract bump.
+- Mutating commands and read commands without a versioned shape refuse
+  `--output json` before dispatch (exit code 2, `unsupported_command`), so no
+  file, database or network operation is reached. Refusal messages are closed
+  strings; a canary-secret test proves no argument or environment value is
+  echoed.
+- Stable exit codes in JSON mode: 0 success, 1 read or validation failure,
+  2 usage/unsupported. `schema.lint` reports diagnostics as data and exits 1
+  when errors are present.
+
+Changed:
+
+- Schema diff now computes one structured change list shared by prose and JSON;
+  the `[BREAKING]` / `[additive]` prefixes are derived from it, so the two
+  outputs cannot drift.
+- `ag generate` keeps its documented `--output DIR` flag. Because the global
+  format selector owns that long name, this subcommand exposes the selector as
+  `--output-format`; `ag --output json generate` still works and is refused.
+
+Tests:
+
+- 12 integration snapshot tests (per command, error paths, refusal, no side
+  effects, prose parity, secret canary) plus parser and envelope unit tests.
+- `cargo test --workspace --all-features`, `fmt`, `clippy -D warnings`, `audit`
+  and `deny` run green; see the MCP readiness review for the prerequisites
+  this change does **not** cover (plan/apply, audit sink, `Secret<T>`, typed
+  requests for all groups, `ag describe`).
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

@@ -571,7 +571,7 @@ fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::{CommandFactory, Parser, Subcommand};
+    use clap::{CommandFactory, Parser};
 
     #[test]
     fn dns_help_is_a_complete_description() {

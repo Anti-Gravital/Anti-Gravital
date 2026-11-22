@@ -197,6 +197,8 @@ fn env_json_shapes_are_versioned_and_redacted() {
     assert_eq!(value["command"], "env.list");
     assert_eq!(value["status"], "ok");
     assert!(value["data"]["variables"].is_array());
+    assert_eq!(value["data"]["variables"][0]["type"], "string");
+    assert!(!stdout(&list).contains("\"ty\""), "{}", stdout(&list));
     assert!(!stdout(&list).contains("8080"));
 
     let check = ag(&["env", "check", "--output", "json"], &dir);
@@ -206,7 +208,38 @@ fn env_json_shapes_are_versioned_and_redacted() {
     assert_eq!(value["status"], "ok");
     assert_eq!(value["data"]["ok"], false);
     assert_eq!(value["data"]["problems"].as_array().map(Vec::len), Some(1));
+    assert_eq!(value["data"]["problems"][0]["type"], "string");
     assert!(!stdout(&check).contains("8080"));
+}
+
+#[test]
+fn env_check_json_matches_the_published_fixture_byte_for_byte() {
+    // Mirrors docs/mcp/snapshots/env.check.json (mcpdev, contract 0.2.0).
+    let dir = scratch("env-check-fixture");
+    write_manifest(
+        &dir,
+        "[env.MISSING]\ntype = \"url\"\n\n\
+         [env.PRESENT1]\ntype = \"string\"\n\n\
+         [env.PRESENT2]\ntype = \"int\"\ndefault = 7\n",
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_ag"))
+        .args(["env", "check", "--env", "dev", "--output", "json"])
+        .env_remove("MISSING")
+        .env("PRESENT1", "ready")
+        .current_dir(&dir)
+        .stdin(Stdio::null())
+        .output()
+        .expect("run ag");
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(
+        stdout(&output).trim_end(),
+        concat!(
+            r#"{"contract_version":"0.2.0","command":"env.check","status":"ok","#,
+            r#""data":{"manifest":"ag.toml","environment":"dev","ok":false,"#,
+            r#""resolved_count":2,"problems":[{"name":"MISSING","type":"url","#,
+            r#""reason":"missing"}]}}"#
+        )
+    );
 }
 
 #[test]

@@ -70,6 +70,7 @@ impl EnvRequest {
 pub(crate) struct EnvVariableView {
     pub(crate) name: String,
     /// One of `string`, `int`, `bool`, `url`, `duration`, `path`.
+    #[serde(rename = "type")]
     pub(crate) ty: &'static str,
     pub(crate) required: bool,
     pub(crate) secret: bool,
@@ -92,6 +93,7 @@ pub(crate) struct EnvListData {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct EnvProblemView {
     pub(crate) name: String,
+    #[serde(rename = "type")]
     pub(crate) ty: &'static str,
     /// `missing`, `invalid_syntax` or `not_unicode`.
     pub(crate) reason: &'static str,
@@ -114,8 +116,9 @@ pub(crate) struct EnvCheckData {
     pub(crate) manifest: String,
     pub(crate) environment: Option<String>,
     pub(crate) ok: bool,
-    /// Resolved variables on success. The loader does not expose a partial
-    /// result on failure, so this is zero when `ok` is false.
+    /// Variables that resolved successfully. On failure the loader exposes no
+    /// partial result, so each declaration is validated on its own to count
+    /// the ones that would still resolve.
     pub(crate) resolved_count: usize,
     pub(crate) problems: Vec<EnvProblemView>,
 }
@@ -279,6 +282,18 @@ pub(crate) fn check_data(request: &EnvRequest) -> Result<EnvCheckData, EnvComman
         Err(error) => {
             let mut data = shared();
             data.ok = false;
+            // The loader returns one aggregate error and no partial result.
+            // Validate each declaration on its own through the same loader so
+            // the count reflects what would resolve even when others fail.
+            data.resolved_count = loader
+                .declarations()
+                .iter()
+                .filter(|declaration| {
+                    EnvLoader::new(vec![(*declaration).clone()])
+                        .load_process()
+                        .is_ok()
+                })
+                .count();
             data.problems = error
                 .problems()
                 .iter()

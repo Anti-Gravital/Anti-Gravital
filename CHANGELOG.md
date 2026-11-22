@@ -8,6 +8,37 @@ primera version etiquetada.
 ## [Unreleased]
 
 
+### Opt-in layered project template (RFC-0019 stage A)
+
+Added:
+
+- `ag new <name> --template layered` scaffolds a four-crate Cargo workspace
+  (`domain`, `app`, `infra`, `api`) plus a binary composition root and an
+  `ag.toml` manifest. Dependencies point inward only: `domain` is pure Rust,
+  `app` declares trait ports, `infra` implements them with `ag-data`, and `api`
+  owns HTTP transport through `ag-core`. Sibling crates are aliased in
+  `Cargo.toml`, so generated Rust identifiers are stable for any project name.
+- `crates/ag-cli/tests/layered.rs` scaffolds into a scratch directory and
+  asserts the dependency direction, the manifest contents and that the three
+  default templates stay unchanged.
+
+Changed:
+
+- The `--template` value parser, the `Template` enum and the interactive
+  wizard now offer `layered` as a fourth, opt-in choice. `rest` remains the
+  non-interactive default and `ag dev` is unaffected.
+- Two TUI wizard test expectations were updated for the longer template list:
+  the clamped last selection is now `layered`, and the template-step frame is
+  tall enough to show the full file list.
+- `templates/README.md` documents the new layout, the dependency rule and the
+  manifest.
+
+Scope note: stage A does not add an `ag.toml` reader, layer-aware generator
+output or compact-to-layered promotion. A fresh scaffold passes
+`cargo metadata --no-deps` and `cargo check` against the pinned `rev`.
+
+Refs #154.
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

@@ -7,11 +7,22 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Design proposal: oauth2 replacement, unblock for chrono removal (issue #185)
 
+Added (documentation only; no code, no manifest change, no phase change):
 
-
-
-
+- `RFC-0029` evaluates concrete replacements for `oauth2 5.0.0`, whose
+  non-optional chrono dependency blocks issue #185 and RFC-0026. Evidence:
+  crates.io still reports 5.0.0 as newest; upstream 5.1.0 on `main` also
+  depends on chrono; PR #355 is open and unmerged because chrono is in the
+  public API.
+- The RFC recommends a small native Authorization Code + PKCE client in
+  `ag-auth` using dependencies already present (base64ct, sha2, getrandom,
+  url, reqwest). It records the token endpoint, PKCE S256, CSRF state and
+  refresh compatibility contract, plus golden tests and rollback.
+- The RFC index gains the missing RFC-0026 row and the new RFC-0029 row.
+- Issue #185 remains open and is referenced with `Refs #185`; the deny ignore
+  is unchanged until every chrono edge is gone.
 
 
 

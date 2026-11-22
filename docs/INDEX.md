@@ -115,3 +115,6 @@ Para saber que esta pendiente en cada momento, consulte
 `docs/roadmap/STATUS.md`. Ese archivo agrega el estado de cada casilla
 de cada fase y se actualiza con cada pull request que avanza la hoja
 de ruta.
+Registros de verificacion tecnica y revisiones de bajo nivel. Incluye
+las puertas `PRE_FASE5_RELEASE_GATE.md` y `pre-fase5-*.md`, y la revision
+`low-level-review-178-180.md` (stack de correo e RFC de chumsky).

@@ -235,6 +235,29 @@ native sqlx 0.9 support once the `time` feature is enabled; sqlx 0.9 has no
 SQL boundary. If the date/time type changes, the DSL type mapping, the
 generated `use` line and the SQL feature set must change in the same PR.
 
+Measured serialization constraints for that decision (chrono 0.4.45 versus
+time 0.3.55, compiled side by side):
+
+- `time::OffsetDateTime`'s default `serde` output is a numeric array such as
+  `[2025,2,4,0,0,0,0,0,0]`, not an RFC 3339 string. Generated serde-derived
+  models must annotate every timestamp field with
+  `#[serde(with = "time::serde::rfc3339")]` (and
+  `time::serde::rfc3339::option` for optional fields), otherwise the JSON wire
+  contract changes silently from a string to an array.
+- With that annotation, whole-second and full-nanosecond values match chrono's
+  serde strings byte for byte. Fractional seconds with trailing zeros do not:
+  chrono emits `2025-01-02T04:00:00.100Z`, time emits
+  `2025-01-02T04:00:00.1Z`. The contract must be decided explicitly, not
+  inferred from a round-trip test.
+- Explicit formatting also differs: chrono `to_rfc3339()` spells UTC as
+  `+00:00`, time's `Rfc3339` formatter as `Z`. This affects the ARI parsing
+  tests in `ag-domains`.
+- Non-UTC inputs normalized to UTC produce identical serde strings in both
+  crates.
+
+The generated ORM must therefore treat the exact timestamp string as part of
+the public data contract and keep golden-string tests for it.
+
 Two query-verification modes are possible:
 
 - Default: derive `sqlx::FromRow` on generated models and use the runtime-checked
@@ -321,6 +344,7 @@ abstractions; `ag-data` remains the single sanctioned sqlx boundary.
 | RLS disabled or owner-bypass active in production | Cross-tenant data leak | `FORCE ROW LEVEL SECURITY`, runtime role without `BYPASSRLS`, explicit predicate in generated SQL as second layer. |
 | A generated repository omits the tenant filter | Cross-tenant data leak | Mandatory `TenantContext` argument, `WITH CHECK` policy, `ag generate --check` gate, two-tenant live tests. |
 | Generated type mapping drifts from the date/time decision | Generated projects do not compile | Single source of truth in `ag-dsl::ast::rust_type`; change mapping, imports and sqlx features together. |
+| A date/time replacement changes the JSON shape of generated models | Silent API contract break for every client | Explicit `serde` adapter on every generated timestamp field, golden-string tests including a trailing-zero fraction, and a regenerated example in CI. |
 | Backfill of an existing table locks writers | Operational outage | Expand/contract migrations and a documented concurrency decision (section 5.3). |
 | Ambiguous admin scope becomes a general bypass | Audit gap and data exposure | Named constructor, explicit audit handle, audit event on every use; no ambient admin mode. |
 

@@ -22,6 +22,9 @@ Added (documentation only; no code and no phase change):
 - The note records the data-model constraints for issue #185: the DSL
   `Timestamp` mapping is a hidden chrono dependency, sqlx 0.9 supports `time`
   but not `jiff`, and serialized date/time formats need golden-string tests.
+  It includes the measured result that `time::OffsetDateTime` needs an explicit
+  `serde` adapter to keep RFC 3339 strings, and that trailing-zero fractions
+  still differ from chrono's output.
 
 ### Master documentation consistency (issues #170, #172)
 

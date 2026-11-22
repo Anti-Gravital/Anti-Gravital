@@ -5,6 +5,14 @@ produced. This document is the reproducible procedure and the empty results
 template. It does not report a pass, and it does not replace the final report
 at `docs/benchmarks/pre-fase5-performance.md`.
 
+The single-command runner for the reference procedure is
+`./scripts/run-benchmarks.sh --reference`. Its fail-closed host profile,
+required tooling, artifact layout and empty evidence template are defined in
+`docs/benchmarks/reference-host.md`. The command sequence below remains the
+authoritative description of what is measured; the runner automates the metadata
+capture, the criterion suites, the standard-deviation extraction and the
+end-to-end load phase.
+
 ## Why the gate is still pending
 
 `docs/audits/PRE_FASE5_RELEASE_GATE.md` keeps the `Benchmarks` row `pending`

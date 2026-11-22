@@ -14,6 +14,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1273,3 +1274,27 @@ Added:
 Known limitation: there is still no release key or out-of-band publication
 channel, so this is a trust-boundary hook rather than a trust anchor. Issue #141
 remains open; see `docs/security/INSTALLATION_INTEGRITY.md`.
+
+### Verification packages for blocked gates (issues #156, #157)
+
+Added:
+
+- `docs/fuzz/24h-gate-verification.md`: exact commands, environment, artifact
+  paths and empty results template for the 24-hour gate over all seven fuzz
+  targets. The gate stays blocked; no 24-hour result is claimed.
+- `docs/fuzz/results/2026-11-22-smoke.md`: real 30-second-per-target smoke of
+  the seven harnesses (6,659,636 executions, exit 0, no crashes) on informative
+  hardware, explicitly not extrapolated to the 24-hour gate.
+- `docs/benchmarks/verification-package.md`: reproducible Stage 6 procedure,
+  metadata commands, artifact paths and rule-17 results template.
+- `docs/benchmarks/smoke-2026-11-22.md`: real reduced-sample criterion output
+  for `ag-core` and `ag-workers`, labelled as harness smoke, not Stage 6
+  evidence.
+
+Changed:
+
+- `fuzz/Cargo.lock` regenerated to match `fuzz/Cargo.toml` (the checked-in lock
+  omitted current dependencies such as `ag-workers`), so fuzz runs start from
+  a clean tree.
+- Release gate `Fuzz 24h` and `Benchmarks` rows now point to the verification
+  packages; both remain `pending`.

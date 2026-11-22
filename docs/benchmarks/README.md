@@ -48,3 +48,13 @@ La versión 1.0 estable se libera solo cuando se cumplen los siguientes hitos:
 | `measurement-2026-05-22-neon-real.md` | 2026-05-22 | 3 | Benchmark 2 horas contra Neon PostgreSQL serverless. 255 805 requests, 0 errores, peak 43 req/s. |
 | `measurement-2026-05-22-neon-saturacion.md` | 2026-05-22 | 3 | Prueba de saturacion. Estable a 800 workers, quiebre a 1600 por pool de conexiones. |
 
+## Pendiente: evidencia final de Stage 6 (issue #157)
+
+El procedimiento reproducible (entorno, comandos, rutas de artefactos y
+plantilla de resultados con todos los campos de la regla 17) esta en
+`docs/benchmarks/verification-package.md`. El informe final debe escribirse en
+`docs/benchmarks/pre-fase5-performance.md`. La corrida reducida de verificacion
+de los harnesses esta en `docs/benchmarks/smoke-2026-11-22.md` y no constituye
+evidencia oficial. Hasta completar el procedimiento completo la fila
+`Benchmarks` del release gate permanece `pending`.
+

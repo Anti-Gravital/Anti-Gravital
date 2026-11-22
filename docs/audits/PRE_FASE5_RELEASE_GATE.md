@@ -28,9 +28,9 @@ means a `fail` or `pending` on that row forbids advancing.
 | Audit | fail | `cargo audit` exit 1 on 2026-11-10: 15 vulnerabilities from advisories published after the 2026-05-29 pass; 13 resolved by lockfile updates the same day, 2 remain (`crypto-bigint` RUSTSEC-2026-0387, `libsqlite3-sys` RUSTSEC-2026-0459); tracked in issue #173 | yes | 3 |
 | Deny | fail | `cargo deny check` exit 1 on 2026-11-10: advisories FAILED (`crypto-bigint` RUSTSEC-2026-0387, issue #173; `astral-tokio-tar` unmaintained RUSTSEC-2026-0440, issue #174); bans, licenses and sources ok | yes | 3 |
 | Fuzz smoke | pass | 6 targets (3 DSL + fuzz_resp/storage_key/signed_url), ~9.3M runs, 0 crashes, 2026-05-29 | yes | 4 |
-| Fuzz 24h | pending | manual gate; command in `pre-fase5-fuzzing.md`; tracked in issue #156 | yes | 4 |
+| Fuzz 24h | pending | manual gate not executed; commands, environment, artifact paths and empty results template in `docs/fuzz/24h-gate-verification.md`; 30 s smoke of all 7 targets in `docs/fuzz/results/2026-11-22-smoke.md`; tracked in issue #156 | yes | 4 |
 | Coverage | pass | `cargo tarpaulin --workspace --fail-under 80` (excludes test files + binary mains): 80.05%, 3210/4010 lines, exit 0, 2026-05-30 | yes | 5 |
-| Benchmarks | pending | `docs/benchmarks/pre-fase5-performance.md`; tracked in issue #157 | yes | 6 |
+| Benchmarks | pending | final report `docs/benchmarks/pre-fase5-performance.md` not yet written; reproducible procedure and empty results template in `docs/benchmarks/verification-package.md`, reduced-sample smoke in `docs/benchmarks/smoke-2026-11-22.md`; tracked in issue #157 | yes | 6 |
 | Examples | pass | Stage 9 (`pre-fase5-examples.md`): 4 binaries build, self-contained ones run as documented, `ecommerce-api` regen reproducible (`diff -rq` identical), 3 `ag new` templates scaffold clean, docs honest, 2026-05-29 | yes | 9 |
 | Security | pass | Stage 3 (`pre-fase5-security.md`) + Stage 8 per-module (`pre-fase5-security-modules.md`): all 10 functional crates pass, 2026-05-29 | yes | 3/8 |
 | API/DX | pass | Stage 2 architecture (`pre-fase5-architecture.md`) + module API review (Stage 8); footguns documented, 2026-05-29 | yes | 2 |

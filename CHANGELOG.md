@@ -7,7 +7,34 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Observability scopes and component health (RFC-0038)
 
+Added:
+
+- `AG_PROJECT_ID`: optional bounded project scope (1-64 characters from
+  `[A-Za-z0-9_.-]`), validated at startup. Invalid values return
+  `ObserveError::InvalidScope` without printing the value. When set, it is a
+  constant `project` label on every Prometheus metric and a `project.id`
+  attribute on the OTLP resource (RFC-0038, ADR-0009, ADR-0019).
+- `HealthRegistry`, `ComponentHealth`, `HealthSnapshot`, `liveness_handler`
+  and `readiness_handler` in `ag-observe`: native, on-demand component health
+  with 200/503 readiness, no collector, poller or external service.
+- Tests for scope validation, label rendering, OTLP resource attribute,
+  readiness aggregation and liveness independence. `cargo test -p ag-observe`
+  passes with and without the `otlp` feature; `cargo clippy` and `cargo fmt`
+  are green.
+
+Changed:
+
+- `crates/ag-observe/README.md`: corrected the documented environment variables
+  (`LOG_LEVEL` was not read, `LOG_FORMAT` default is `pretty`) and documented
+  the new scope and health API.
+- `docs/architecture/14-observabilidad-ag-observe.md` and the master technical
+  architecture: added section 14.4 distinguishing the implemented scope from
+  the target design, so the docs no longer claim metrics or correlation IDs
+  that the crate does not produce.
+
+Refs RFC-0038. No external service, cost or protected path is involved.
 
 ### Chrono edge drift monitor (issue #185)
 

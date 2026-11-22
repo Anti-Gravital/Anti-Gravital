@@ -27,5 +27,18 @@ The repository includes pre-configured Grafana dashboards in JSON that the opera
 
 In development mode, `tokio-console` is enabled automatically. It allows the developer to connect to the process and see in real time which tasks are running, which are blocked, where resources are being consumed. It is a tremendously useful debugging tool that exists only in Rust with Tokio.
 
+### 14.4 Implemented scope and project scopes (RFC-0038, verified 2026-11-22)
+
+Sections 14.1 to 14.3 describe the target design. The following is the scope actually implemented in `crates/ag-observe`:
+
+- Metrics: `ag_requests_total`, `ag_request_duration_seconds`, `ag_db_pool_size`, `ag_db_pool_idle` and `ag_active_connections`, exposed by `/metrics`. Percentiles, error rate by code, Redis pool metrics and process/runtime gauges are **not** recorded by the crate; the corresponding dashboard panels are aspirational until implemented.
+- Logs: structured `pretty` or `json` output to stdout. The `info` filter is the default. Export to Loki or Datadog and a correlation ID on every log line are **not** implemented; the OTLP layer is opt-in and requires the `otlp` Cargo feature plus an endpoint.
+- Traces: OTLP/HTTP with pre-generated protobufs, off by default, no `protoc` and no mandatory collector (ADR-0019, RFC-0028).
+- `tokio-console` is opt-in via the `dev-console` feature and `AG_DEV_CONSOLE`, not automatic.
+
+Project scope: `AG_PROJECT_ID` is an optional bounded label (1-64 characters from `[A-Za-z0-9_.-]`). It is validated at startup; an invalid value returns `ObserveError::InvalidScope` without printing the value. When set, it becomes a constant `project` label on every Prometheus metric and a `project.id` attribute on the OTLP resource. It is a logical label, not a security boundary or a tenant identifier.
+
+Component health: `HealthRegistry` holds named synchronous checks. `liveness_handler` returns 200 without evaluating dependencies; `readiness_handler` returns 200 or 503 with a JSON body containing `status`, `project` and each component result. Evaluation is on demand when the endpoint is scraped: no poller, scheduler or external service is added (ADR-0009).
+
 ---
 

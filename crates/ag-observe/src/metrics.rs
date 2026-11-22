@@ -6,12 +6,20 @@ use std::sync::OnceLock;
 
 static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
 
-pub(crate) fn install_prometheus_recorder() {
+fn prometheus_builder(project_id: Option<&str>) -> PrometheusBuilder {
+    let mut builder = PrometheusBuilder::new();
+    if let Some(project) = project_id {
+        builder = builder.add_global_label("project", project.to_string());
+    }
+    builder
+}
+
+pub(crate) fn install_prometheus_recorder(project_id: Option<&str>) {
     if PROMETHEUS_HANDLE.get().is_some() {
         return;
     }
 
-    if let Ok(handle) = PrometheusBuilder::new().install_recorder() {
+    if let Ok(handle) = prometheus_builder(project_id).install_recorder() {
         let _ = PROMETHEUS_HANDLE.set(handle);
     }
 }
@@ -101,6 +109,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn prometheus_builder_adds_the_project_label() {
+        use metrics::{Key, Metadata, Recorder};
+        let recorder = prometheus_builder(Some("demo")).build_recorder();
+        let key = Key::from_name("probe_total");
+        let metadata = Metadata::new("test", metrics::Level::INFO, None);
+        recorder.register_counter(&key, &metadata).increment(1);
+
+        let rendered = recorder.handle().render();
+        assert!(
+            rendered.contains("project=\"demo\""),
+            "rendered metrics should carry the project label: {rendered}"
+        );
+    }
+
+    #[test]
     fn record_request_does_not_panic() {
         record_request("GET", "/health", 200, 0.001);
     }
@@ -143,7 +166,7 @@ mod tests {
 
     #[test]
     fn render_metrics_includes_recorded_requests_after_init() {
-        install_prometheus_recorder();
+        install_prometheus_recorder(None);
         record_request("GET", "/health", 200, 0.001);
 
         let rendered = render_metrics().expect("prometheus exporter should be initialized");

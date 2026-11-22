@@ -30,12 +30,17 @@
 //! | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | With the `otlp` feature, full traces URL (e.g. `http://localhost:4318/v1/traces`); without it, `init()` returns an error |
 //! | `SERVICE_NAME` | `ag-service` | Value of the `service.name` resource attribute when OTLP export is enabled |
 //! | `AG_DEV_CONSOLE` | `false` | Enables tokio-console (feature `dev-console`) |
+//! | `AG_PROJECT_ID` | none | Bounded project scope label (1-64 chars, `[A-Za-z0-9_.-]`) added to metrics and OTLP traces |
 
 pub mod config;
+pub mod health;
 pub mod layer;
 pub mod metrics;
 
-pub use config::{LogFormat, ObserveConfig};
+pub use config::{is_valid_project_id, LogFormat, ObserveConfig};
+pub use health::{
+    liveness_handler, readiness_handler, ComponentHealth, HealthRegistry, HealthSnapshot,
+};
 pub use layer::{init, ObserveError};
 pub use metrics::{
     dec_active_connections, inc_active_connections, metrics_handler, record_request, set_db_pool,

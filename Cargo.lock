@@ -303,6 +303,7 @@ dependencies = [
  "opentelemetry_sdk",
  "rustls",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-opentelemetry",

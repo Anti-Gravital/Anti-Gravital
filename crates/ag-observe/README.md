@@ -36,8 +36,9 @@ Expone metricas en formato Prometheus text en `/metrics`.
 
 ### Tracing estructurado
 
-- Formato `json` (produccion) o `text` (desarrollo) via `LOG_FORMAT`.
-- Nivel de log configurable via `LOG_LEVEL` (default: `info`).
+- Formato `json` (produccion) o `pretty` (desarrollo) via `LOG_FORMAT`.
+- Filtro de nivel via `RUST_LOG` del `tracing-subscriber` (default: `info`).
+  No se lee una variable `LOG_LEVEL`.
 - Integra con `tracing` y sus macros (`info!`, `warn!`, `error!`, etc.).
 
 ### OpenTelemetry OTLP (feature opt-in `otlp`)
@@ -77,15 +78,55 @@ ag_observe::init(&ag_observe::ObserveConfig::from_env())?;
 - Registro global de metricas via `metrics` + `metrics-exporter-prometheus`.
 - `metrics_handler` para Axum expone el texto Prometheus en `/metrics`.
 
+## Alcance por proyecto (RFC-0038)
+
+`AG_PROJECT_ID` es una etiqueta opcional y acotada (1-64 caracteres de
+`[A-Za-z0-9_.-]`) que identifica el proyecto de forma logica. No es un limite
+de seguridad ni un identificador multi-tenant. Se valida al arrancar: un valor
+invalido hace que `init()` devuelva `ObserveError::InvalidScope` **sin imprimir
+el valor**. Cuando esta definida:
+
+- se anade como etiqueta constante `project` a todas las metricas Prometheus;
+- se anade como atributo `project.id` al recurso OpenTelemetry cuando la
+  feature `otlp` esta activa.
+
+Los valores no acotados se rechazan para evitar crecimiento ilimitado de series.
+
+## Salud de componentes (RFC-0038)
+
+`HealthRegistry` registra compruebas sincronicas por nombre y expone dos
+handlers para Axum:
+
+```rust
+use ag_observe::{HealthRegistry, ComponentHealth, readiness_handler, liveness_handler};
+use axum::{Router, routing::get, extract::State};
+
+let health = HealthRegistry::new(std::env::var("AG_PROJECT_ID").ok());
+health.register("database", || ComponentHealth::new("database", true));
+
+let app = Router::new()
+    .route("/health", get(liveness_handler))
+    .route("/ready", get(readiness_handler))
+    .with_state(health);
+```
+
+`/health` devuelve 200 sin evaluar dependencias. `/ready` devuelve 200 si todos
+los componentes estan sanos y 503 si alguno falla; el cuerpo JSON incluye
+`status`, `project` y la lista de componentes. No hay collector, poller ni
+servicio externo: las comprobaciones se evaluan cuando se consulta el endpoint
+(ADR-0009). Las comprobaciones no deben devolver secretos ni datos personales.
+
 ## Variables de entorno
 
 | Variable | Default | Descripcion |
 |---|---|---|
-| `SERVICE_NAME` | `ag-service` | Nombre del servicio en trazas |
-| `LOG_LEVEL` | `info` | Nivel de log (`trace`, `debug`, `info`, `warn`, `error`) |
-| `LOG_FORMAT` | `text` | `text` o `json` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `""` | Con la feature `otlp`, activa la exportacion OTLP/HTTP. Sin ella, `init()` falla explicitamente |
 | `SERVICE_NAME` | `ag-service` | Valor del atributo `service.name` cuando se activa OTLP |
+| `RUST_LOG` | `info` | Filtro de nivel de `tracing-subscriber` |
+| `LOG_FORMAT` | `pretty` | `pretty` o `json` |
+| `PROMETHEUS_PORT` | `9090` | Puerto del endpoint `/metrics` |
+| `AG_PROJECT_ID` | none | Etiqueta de proyecto acotada (1-64 chars, `[A-Za-z0-9_.-]`) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | none | Con la feature `otlp`, activa la exportacion OTLP/HTTP. Sin ella, `init()` falla explicitamente |
+| `AG_DEV_CONSOLE` | `false` | Activa tokio-console con la feature `dev-console` |
 
 ## Referencias
 
@@ -93,4 +134,5 @@ ag_observe::init(&ag_observe::ObserveConfig::from_env())?;
 - Arquitectura: `docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md` seccion 14.
 - Capitulo navegable: `docs/architecture/14-observabilidad-ag-observe.md`.
 - Decision de transporte OTLP: `docs/adr/0019-ag-observe-otlp-transport.md`.
+- Alcance y salud de componentes: `docs/rfc/RFC-0038-observability-scopes-and-health.md`.
 - Constitucion tecnica: `CLAUDE.md`.

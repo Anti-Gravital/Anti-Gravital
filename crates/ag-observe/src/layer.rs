@@ -1,6 +1,6 @@
 //! Construction of the composed tracing subscriber.
 
-use crate::config::{LogFormat, ObserveConfig};
+use crate::config::{is_valid_project_id, LogFormat, ObserveConfig};
 use crate::metrics::install_prometheus_recorder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -12,6 +12,8 @@ pub enum ObserveError {
     AlreadyInitialized,
     /// Error configuring the OTLP exporter.
     OtlpSetup(String),
+    /// The configured project scope is invalid. The value is never printed.
+    InvalidScope,
 }
 
 impl std::fmt::Display for ObserveError {
@@ -21,11 +23,29 @@ impl std::fmt::Display for ObserveError {
                 write!(f, "the tracing subscriber was already initialized")
             }
             ObserveError::OtlpSetup(msg) => write!(f, "error configuring OTLP: {msg}"),
+            ObserveError::InvalidScope => write!(
+                f,
+                "AG_PROJECT_ID is invalid: expected 1-64 characters from [A-Za-z0-9_.-]; value withheld"
+            ),
         }
     }
 }
 
 impl std::error::Error for ObserveError {}
+
+/// Builds the OpenTelemetry resource with the optional project scope.
+#[cfg(feature = "otlp")]
+fn build_resource(project_id: Option<&str>) -> opentelemetry_sdk::Resource {
+    let service_name = std::env::var("SERVICE_NAME").unwrap_or_else(|_| "ag-service".to_string());
+    let mut builder = opentelemetry_sdk::Resource::builder().with_service_name(service_name);
+    if let Some(project) = project_id {
+        builder = builder.with_attribute(opentelemetry::KeyValue::new(
+            "project.id",
+            project.to_string(),
+        ));
+    }
+    builder.build()
+}
 
 /// Builds the OTLP trace layer using the HTTP/protobuf transport.
 ///
@@ -36,6 +56,7 @@ impl std::error::Error for ObserveError {}
 #[cfg(feature = "otlp")]
 fn build_otlp_layer<S>(
     endpoint: &str,
+    project_id: Option<&str>,
 ) -> Result<Box<dyn tracing_subscriber::Layer<S> + Send + Sync>, ObserveError>
 where
     S: tracing::Subscriber
@@ -63,10 +84,7 @@ where
             ObserveError::OtlpSetup(format!("failed to build the OTLP HTTP exporter: {err}"))
         })?;
 
-    let service_name = std::env::var("SERVICE_NAME").unwrap_or_else(|_| "ag-service".to_string());
-    let resource = opentelemetry_sdk::Resource::builder()
-        .with_service_name(service_name)
-        .build();
+    let resource = build_resource(project_id);
 
     let provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
@@ -109,7 +127,13 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
         )));
     }
 
-    install_prometheus_recorder();
+    if let Some(project) = &config.project_id {
+        if !is_valid_project_id(project) {
+            return Err(ObserveError::InvalidScope);
+        }
+    }
+
+    install_prometheus_recorder(config.project_id.as_deref());
 
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -121,7 +145,9 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
             #[cfg(feature = "otlp")]
             let registry = {
                 let otlp_layer = match &config.otlp_endpoint {
-                    Some(endpoint) => Some(build_otlp_layer(endpoint)?),
+                    Some(endpoint) => {
+                        Some(build_otlp_layer(endpoint, config.project_id.as_deref())?)
+                    }
                     None => None,
                 };
                 registry.with(otlp_layer)
@@ -137,7 +163,9 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
             #[cfg(feature = "otlp")]
             let registry = {
                 let otlp_layer = match &config.otlp_endpoint {
-                    Some(endpoint) => Some(build_otlp_layer(endpoint)?),
+                    Some(endpoint) => {
+                        Some(build_otlp_layer(endpoint, config.project_id.as_deref())?)
+                    }
                     None => None,
                 };
                 registry.with(otlp_layer)
@@ -151,6 +179,7 @@ pub fn init(config: &ObserveConfig) -> Result<(), ObserveError> {
     tracing::info!(
         prometheus_port = config.prometheus_port,
         otlp = cfg!(feature = "otlp") && config.otlp_endpoint.is_some(),
+        project = config.project_id.as_deref().unwrap_or(""),
         "observability initialized"
     );
 
@@ -196,11 +225,23 @@ mod tests {
 
     #[cfg(feature = "otlp")]
     #[test]
+    fn otlp_resource_carries_the_project_attribute() {
+        let resource = build_resource(Some("demo"));
+        let value = resource
+            .get(&opentelemetry::Key::new("project.id"))
+            .expect("project.id attribute must be present");
+        assert_eq!(value.to_string(), "demo");
+    }
+
+    #[cfg(feature = "otlp")]
+    #[test]
     fn build_otlp_layer_accepts_http_endpoint() {
         // Building the exporter creates an HTTP client but does not contact the
         // collector, so no external service is needed for this test.
-        let layer =
-            build_otlp_layer::<tracing_subscriber::Registry>("http://127.0.0.1:4318/v1/traces");
+        let layer = build_otlp_layer::<tracing_subscriber::Registry>(
+            "http://127.0.0.1:4318/v1/traces",
+            Some("test-project"),
+        );
         assert!(layer.is_ok());
     }
 
@@ -213,6 +254,19 @@ mod tests {
         };
         let result = init(&config);
         assert!(result.is_ok() || matches!(result, Err(ObserveError::AlreadyInitialized)));
+    }
+
+    #[test]
+    fn init_rejects_invalid_project_scope_without_printing_it() {
+        let config = ObserveConfig {
+            project_id: Some("bad/scope".to_string()),
+            ..ObserveConfig::default()
+        };
+        let result = init(&config);
+        assert!(matches!(result, Err(ObserveError::InvalidScope)));
+        let message = ObserveError::InvalidScope.to_string();
+        assert!(!message.contains("bad/scope"));
+        assert!(message.contains("AG_PROJECT_ID"));
     }
 
     #[test]

@@ -1045,6 +1045,18 @@ The repository includes pre-configured Grafana dashboards in JSON that the opera
 
 In development mode, `tokio-console` is enabled automatically. It allows the developer to connect to the process and see in real time which tasks are running, which are blocked, where resources are being consumed. It is a tremendously useful debugging tool that exists only in Rust with Tokio.
 
+### 14.4 Implemented scope and project scopes (RFC-0038, verified 2026-11-22)
+
+Sections 14.1 to 14.3 describe the target design. The following is the scope actually implemented in `crates/ag-observe`:
+
+- Metrics: `ag_requests_total`, `ag_request_duration_seconds`, `ag_db_pool_size`, `ag_db_pool_idle` and `ag_active_connections`, exposed by `/metrics`. Percentiles, error rate by code, Redis pool metrics and process/runtime gauges are **not** recorded by the crate; the corresponding dashboard panels are aspirational until implemented.
+- Logs: structured `pretty` or `json` output to stdout with an `info` default filter. Export to Loki or Datadog and a correlation ID on every log line are **not** implemented. The OTLP trace layer is opt-in (feature `otlp` plus endpoint), uses HTTP/protobuf, needs no `protoc` and requires no mandatory collector (ADR-0019, RFC-0028).
+- `tokio-console` is opt-in via the `dev-console` feature and `AG_DEV_CONSOLE`, not automatic.
+
+Project scope: `AG_PROJECT_ID` is an optional bounded label (1-64 characters from `[A-Za-z0-9_.-]`), validated at startup. An invalid value returns `ObserveError::InvalidScope` without printing the value. When set, it becomes a constant `project` label on every Prometheus metric and a `project.id` attribute on the OTLP resource. It is a logical label, not a security boundary or a tenant identifier.
+
+Component health: `HealthRegistry` holds named synchronous checks. `liveness_handler` returns 200 without evaluating dependencies; `readiness_handler` returns 200 or 503 with a JSON body containing `status`, `project` and each component result. Evaluation is on demand when the endpoint is scraped: no poller, scheduler or external service is added (ADR-0009).
+
 ---
 
 ## 15. Security model
@@ -2387,6 +2399,18 @@ El repositorio incluye dashboards Grafana pre-configurados en JSON que el operad
 ### 14.3 Inspección en vivo con tokio-console
 
 En modo desarrollo, `tokio-console` se habilita automáticamente. Permite al desarrollador conectarse al proceso y ver en tiempo real qué tasks están ejecutándose, cuáles están bloqueadas, dónde se están consumiendo los recursos. Es una herramienta de debugging tremendamente útil que existe solo en Rust con Tokio.
+
+### 14.4 Alcance implementado y ámbito por proyecto (RFC-0038, verificado 2026-11-22)
+
+Las secciones 14.1 a 14.3 describen el diseño objetivo. Lo efectivamente implementado en `crates/ag-observe` es:
+
+- Métricas: `ag_requests_total`, `ag_request_duration_seconds`, `ag_db_pool_size`, `ag_db_pool_idle` y `ag_active_connections` en `/metrics`. Los percentiles, la tasa de errores por código, las métricas de Redis y las de runtime **no** están implementadas; los paneles correspondientes son aspiracionales.
+- Logs: salida estructurada `pretty` o `json` a stdout con filtro `info` por defecto. La exportación a Loki o Datadog y el correlation ID en cada línea **no** están implementados. La capa OTLP es opt-in (feature `otlp` más endpoint), usa HTTP/protobuf, no requiere `protoc` ni un collector obligatorio (ADR-0019, RFC-0028).
+- `tokio-console` es opt-in mediante la feature `dev-console` y `AG_DEV_CONSOLE`, no automático.
+
+Ámbito por proyecto: `AG_PROJECT_ID` es una etiqueta opcional y acotada (1-64 caracteres de `[A-Za-z0-9_.-]`), validada al arrancar. Un valor inválido devuelve `ObserveError::InvalidScope` sin imprimirlo. Cuando está definida, se añade como etiqueta constante `project` a todas las métricas Prometheus y como atributo `project.id` al recurso OTLP. Es una etiqueta lógica, no un límite de seguridad ni un identificador de tenant.
+
+Salud de componentes: `HealthRegistry` registra comprobaciones síncronas por nombre. `liveness_handler` devuelve 200 sin evaluar dependencias; `readiness_handler` devuelve 200 o 503 con un cuerpo JSON que incluye `status`, `project` y cada componente. La evaluación ocurre cuando se consulta el endpoint: no se añaden poller, planificador ni servicio externo (ADR-0009).
 
 ---
 

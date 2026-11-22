@@ -7,6 +7,20 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Alpha release security review (wave 5)
+
+Added:
+
+- `docs/audits/alpha-release-security-review.md`: read-only audit of the alpha
+  release path and generated prototypes. Installer downloads are verified
+  before execution, no signing is claimed without a key, `--output json` keeps
+  the secret canary clean (12/12 tests), and workflows SHA-pin actions with
+  least privilege. Two defects are recorded: generated templates bind
+  `0.0.0.0` despite the documented loopback default (#191), and the release
+  checksum manifest format does not match what the alpha installer parses
+  (#192). Four observations cover same-channel manifests, tag interpolation,
+  docs drift and the scaffold's pinned git dependency.
+
 ### Local checks: no silent emoji skip (issue #190)
 
 Fixed:

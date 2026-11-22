@@ -1,0 +1,24 @@
+# Local SMTP capture for ag-mail / ag auth verification flows.
+# Captured messages are viewable in the web UI. No real mail leaves the host.
+# See README.md for ports and connection settings.
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27.11
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: ${MP_MAX_MESSAGES:-500}
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "${MAIL_SMTP_PORT:-1025}:1025"
+      - "${MAIL_UI_PORT:-8025}:8025"
+    volumes:
+      - maildata:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  maildata:

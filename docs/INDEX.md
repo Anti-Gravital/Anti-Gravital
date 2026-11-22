@@ -118,6 +118,15 @@ y evidencia de verificacion.
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.
 
+### Guia de stacks locales (ola 7)
+
+`docs/templates/STACKS.md` relaciona caso de uso, stack, familia de plantilla,
+dependencia externa y puertos. Los archivos Compose estan en `deploy/stacks/`,
+con un `README.md` por stack y una guia comun. Cada stack usa `.env.example`
+sin secretos, volumenes con nombre y healthchecks. La evidencia de verificacion
+(YAML y `docker compose config`, sin servicios iniciados) esta en
+`deploy/stacks/VERIFICATION.md`.
+
 ## Politica de derivados
 
 Si un derivado contradice un maestro, gana el maestro. Para corregir

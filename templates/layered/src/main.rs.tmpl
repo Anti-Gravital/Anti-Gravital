@@ -19,7 +19,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A real project replaces this with an ag-data backed repository.
     let _repository = InMemoryItemRepository::default();
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
-    tracing::info!("listening on http://0.0.0.0:8080");
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("listening on http://{bind}");
     api::serve(listener, "{{name}}").await
 }

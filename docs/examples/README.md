@@ -21,6 +21,14 @@ entrega.
 | 4.6-D | `workers-postgres` | Entregado (requiere `DATABASE_URL` para el camino durable) |
 | 8 | `flutter-fullstack` | Pendiente |
 
+## Guia de prototipo alpha
+
+La guia [Build an offline prototype with the alpha](alpha-prototype.md)
+recorre de cero a una API local en ejecucion y un SDK generado, sin servicios
+externos. Incluye la matriz de que ejemplos y plantillas necesitan
+infraestructura externa y cuales funcionan sin ella, ademas de la evidencia de
+verificacion. Es la entrada recomendada para probar el alpha.
+
 ## Reglas
 
 - Cada ejemplo es minimo pero completo. No incluye codigo de

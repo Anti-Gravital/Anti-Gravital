@@ -158,3 +158,13 @@ configuracion, secretos (RFC-0020), limite plantilla/adaptador, composicion,
 ruta de actualizacion, matriz Docker/Kubernetes y checklist para nuevas
 plantillas. La tabla de decision bilingue del catalogo esta en
 `docs/templates/README.md` y `docs/templates/GALLERY.md` (ola 6).
+### deploy/docker/
+Empaquetado opcional en contenedores para las familias de plantillas
+(`web`, `api`, `realtime`, `infrastructure` y `ai`). No es obligatorio:
+`cargo run` y `ag dev` siguen siendo la ruta de desarrollo por defecto.
+Incluye un `Dockerfile.template` multi-etapa con builder en `rust:1.99.1`,
+runtime `scratch`, usuario no root, `EXPOSE` explicito y `HEALTHCHECK`, un
+compose por familia con variables de entorno y volumenes con nombre, una guia
+de adaptacion y evidencia de verificacion con SKIP explicito del build real
+cuando no hay demonio disponible. Referencia: `deploy/docker/README.md` y
+`deploy/docker/VERIFICATION.md`.

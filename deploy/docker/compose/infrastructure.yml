@@ -1,0 +1,26 @@
+# Infrastructure family: a background worker (queue, jobs, scheduled tasks).
+# Optional deployment target only; `cargo run` / `ag dev` remain the dev path.
+# Workers expose no HTTP port, so the image HEALTHCHECK is disabled and the
+# orchestrator should use a process/supervision check instead.
+name: ag-infra
+
+services:
+  worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.template
+      args:
+        PACKAGE: ${INFRA_PACKAGE:-workers-basic}
+        BINARY: ${INFRA_BINARY:-workers-basic}
+    image: ${INFRA_IMAGE:-ag-infra:local}
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+      DATABASE_URL: ${WORKER_DATABASE_URL:-}
+    volumes:
+      - infra-spool:/var/lib/ag/spool
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+volumes:
+  infra-spool:

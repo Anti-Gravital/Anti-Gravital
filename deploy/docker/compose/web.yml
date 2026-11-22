@@ -1,0 +1,32 @@
+# Web family: a generated web/UI service built from the reusable Dockerfile.
+# Optional deployment target only; `cargo run` / `ag dev` remain the dev path.
+# Copy this file into a generated project and adjust the build args.
+name: ag-web
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.template
+      args:
+        PACKAGE: ${WEB_PACKAGE:-realtime-chat}
+        BINARY: ${WEB_BINARY:-realtime-chat}
+    image: ${WEB_IMAGE:-ag-web:local}
+    environment:
+      PORT: "3000"
+      BIND: 0.0.0.0:3000
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - web-assets:/var/cache/ag-web
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/wget -q -O /dev/null http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  web-assets:

@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1.7
+# Anti-Gravital - reusable container packaging (OPTIONAL deployment target).
+#
+# `cargo run` and `ag dev` remain the default development path. This file is a
+# packaging reference for teams that choose Docker as a deployment target
+# (CLAUDE.md rule 12: integrate, never replace).
+#
+# Build arguments (set with `docker build --build-arg` or Compose `build.args`):
+#   RUST_IMAGE  - builder toolchain image (default rust:1.99.1)
+#   RUST_TARGET - static build target (default x86_64-unknown-linux-musl)
+#   PACKAGE     - Cargo package to build (default todo-api)
+#   BINARY      - executable name inside target/<target>/release (default todo-api)
+#
+# Runtime settings supplied as environment variables, not baked secrets:
+#   PORT        - HTTP port used by the HEALTHCHECK probe (default 8080)
+#   HEALTH_PATH - HTTP path used by the HEALTHCHECK probe (default /health)
+#   EXPOSE below is documentation only; set PORT/BIND and Compose `ports` for
+#   the real published port. Edit EXPOSE to match a generated project.
+#
+# No credential, token or API key is written into any layer. Secrets are
+# injected at runtime through the environment or a mounted secret file.
+
+ARG RUST_IMAGE=rust:1.99.1
+ARG RUST_TARGET=x86_64-unknown-linux-musl
+
+# --- stage 1: build a fully static Rust binary -----------------------------
+FROM ${RUST_IMAGE} AS builder
+ARG RUST_TARGET
+ARG PACKAGE=todo-api
+ARG BINARY=todo-api
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends musl-tools ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy the toolchain file first so rustup selects the pinned channel before
+# the target is installed. The repository pins 1.99.1.
+COPY rust-toolchain.toml ./
+RUN rustup target add "${RUST_TARGET}"
+
+# Copy the whole context: this works both in the workspace (where sibling
+# crates are needed) and in a generated single-crate project. Add a
+# .dockerignore at the context root to skip .git/ and target/.
+COPY . .
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/build/target \
+    cargo build --locked --release --target "${RUST_TARGET}" -p "${PACKAGE}" \
+    && mkdir -p /out \
+    && cp "target/${RUST_TARGET}/release/${BINARY}" /out/service
+
+# --- stage 2: minimal static probe used only by HEALTHCHECK ----------------
+# A scratch image has no shell and no wget. Busybox provides a static sh and
+# wget; only /bin/sh, /bin/busybox, /bin/wget and /tmp reach the final image.
+FROM busybox:1.36-musl AS probe
+RUN ln -sf /bin/busybox /bin/wget \
+    && ln -sf /bin/busybox /bin/sh \
+    && mkdir -p /tmp \
+    && chmod 1777 /tmp
+
+# --- stage 3: minimal runtime ----------------------------------------------
+FROM scratch
+LABEL org.opencontainers.image.title="Anti-Gravital service" \
+      org.opencontainers.image.description="Static Rust service built from the reusable Anti-Gravital Dockerfile" \
+      org.opencontainers.image.source="https://github.com/Anti-Gravital/Anti-Gravital"
+
+COPY --from=builder /out/service /app/service
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=probe /bin/busybox /bin/busybox
+COPY --from=probe /bin/wget /bin/wget
+COPY --from=probe /bin/sh /bin/sh
+COPY --from=probe /tmp /tmp
+
+# Trust store for outbound TLS (for example an AI adapter calling an API).
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV PORT=8080
+ENV HEALTH_PATH=/health
+
+# Drop root. Numeric ids keep the image shell-free of account databases and
+# work on scratch.
+USER 65532:65532
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD /bin/wget -q -O /dev/null http://127.0.0.1:${PORT}${HEALTH_PATH}
+
+ENTRYPOINT ["/app/service"]

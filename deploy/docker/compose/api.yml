@@ -1,0 +1,53 @@
+# API family: an HTTP API plus a durable PostgreSQL dependency.
+# Optional deployment target only; `cargo run` / `ag dev` remain the dev path.
+# POSTGRES_PASSWORD is required and is never stored in the image or this file.
+name: ag-api
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.template
+      args:
+        PACKAGE: ${API_PACKAGE:-todo-api}
+        BINARY: ${API_BINARY:-todo-api}
+    image: ${API_IMAGE:-ag-api:local}
+    environment:
+      PORT: "8080"
+      BIND: 0.0.0.0:8080
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-todos}
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - api-uploads:/var/lib/ag/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/wget -q -O /dev/null http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-todos}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-todos}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  api-uploads:

@@ -1,0 +1,36 @@
+# AI family: an AI backend adapter service. No key is baked into the image.
+# Optional deployment target only; `cargo run` / `ag dev` remain the dev path.
+# AI_API_KEY is required at config time; set AI_BASE_URL for a compatible
+# local endpoint. Change the target env var if the generated project uses a
+# different provider variable.
+name: ag-ai
+
+services:
+  ai:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.template
+      args:
+        PACKAGE: ${AI_PACKAGE:-ai-backend}
+        BINARY: ${AI_BINARY:-ai-backend}
+    image: ${AI_IMAGE:-ag-ai:local}
+    environment:
+      PORT: "3001"
+      BIND: 0.0.0.0:3001
+      OPENAI_API_KEY: ${AI_API_KEY:?set AI_API_KEY}
+      OPENAI_BASE_URL: ${AI_BASE_URL:-}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${AI_PORT:-3001}:3001"
+    volumes:
+      - ai-cache:/var/cache/ag/ai
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/wget -q -O /dev/null http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  ai-cache:

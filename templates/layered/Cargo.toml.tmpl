@@ -1,0 +1,29 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "{{name}}"
+path = "src/main.rs"
+
+# Four layer crates plus the root composition binary. Dependencies point
+# inward only (RFC-0019 section 4.1). Each layer is a Cargo package, so an
+# illegal dependency is a compiler error rather than a convention breach.
+[workspace]
+members = [
+    "crates/domain",
+    "crates/app",
+    "crates/infra",
+    "crates/api",
+]
+resolver = "2"
+
+[dependencies]
+domain = { package = "{{name}}-domain", path = "crates/domain" }
+app = { package = "{{name}}-app", path = "crates/app" }
+infra = { package = "{{name}}-infra", path = "crates/infra" }
+api = { package = "{{name}}-api", path = "crates/api" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

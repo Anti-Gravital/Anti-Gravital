@@ -1,7 +1,7 @@
 //! Unified `ag` binary of the Anti-Gravital ecosystem.
 //!
 //! Phase 2 commands:
-//! - `ag new <name> [--template rest|realtime|fullstack]`
+//! - `ag new <name> [--template rest|realtime|fullstack|layered]`
 //! - `ag dev [--bind host:port]`
 //! - `ag build [--target triple]`
 //!

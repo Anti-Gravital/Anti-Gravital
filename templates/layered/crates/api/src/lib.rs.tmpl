@@ -1,0 +1,40 @@
+//! Interface layer for {{name}}.
+//!
+//! Transport: HTTP routes and extractors on top of ag-core. Maps transport
+//! types to the use cases in `app`. It never imports `infra` or `sqlx`.
+
+use ag_core::Shield;
+use axum::{routing::get, Json, Router};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct Health {
+    status: &'static str,
+    service: &'static str,
+}
+
+fn routes(service: &'static str) -> Router {
+    Router::new().route(
+        "/health",
+        get(move || async move {
+            Json(Health {
+                status: "ok",
+                service,
+            })
+        }),
+    )
+}
+
+/// Applies the Shield middleware stack and serves the router on `listener`.
+///
+/// The composition root calls this function; it never builds transport state
+/// itself.
+pub async fn serve(
+    listener: tokio::net::TcpListener,
+    service: &'static str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let shield = Shield::with_defaults();
+    let app = shield.apply(routes(service));
+    shield.serve(listener, app).await?;
+    Ok(())
+}

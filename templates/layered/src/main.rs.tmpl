@@ -1,0 +1,25 @@
+//! Composition root for {{name}}.
+//!
+//! This is the only place allowed to name concrete adapters. It builds the
+//! infrastructure, hands it to the application use cases and starts the
+//! interface layer. See RFC-0019 section 4.1.
+
+use infra::InMemoryItemRepository;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    // The composition root wires the concrete adapter into the application.
+    // A real project replaces this with an ag-data backed repository.
+    let _repository = InMemoryItemRepository::default();
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    tracing::info!("listening on http://0.0.0.0:8080");
+    api::serve(listener, "{{name}}").await
+}

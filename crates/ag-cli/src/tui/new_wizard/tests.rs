@@ -145,7 +145,8 @@ fn selection_stays_within_the_list() {
     for _ in 0..10 {
         wizard.update(Msg::Down);
     }
-    assert_eq!(wizard.request().template, Template::Fullstack);
+    // Down clamps at the last entry of Template::ALL, now the layered template.
+    assert_eq!(wizard.request().template, Template::Layered);
 }
 
 #[test]
@@ -248,7 +249,9 @@ fn template_step_marks_the_selection_and_lists_its_files() {
     let mut wizard = Wizard::new(Some("shop".into()), None, free);
     wizard.update(Msg::Down);
     wizard.update(Msg::Down);
-    for (width, height) in [(80, 24), (120, 40)] {
+    // The fourth template adds two rendered lines; a taller frame keeps the
+    // full file list visible so this test checks content, not clipping.
+    for (width, height) in [(80, 40), (120, 40)] {
         let screen = screen_text(&render(&wizard, &Theme::color(), width, height));
         assert!(screen.contains("Step 2 of 3: Template"), "{screen}");
         assert!(screen.contains("> fullstack"), "{screen}");

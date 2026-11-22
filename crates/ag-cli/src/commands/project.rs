@@ -25,6 +25,31 @@ const FULLSTACK_CONFIG_TOML: &str =
 const FULLSTACK_MIGRATION: &str =
     include_str!("../../../../templates/fullstack/migrations/0001_init.sql.tmpl");
 
+// Opt-in layered workspace (RFC-0019 stage A). Kept separate from the three
+// default templates so `ag new` behaviour stays unchanged.
+const LAYERED_AG_TOML: &str = include_str!("../../../../templates/layered/ag.toml.tmpl");
+const LAYERED_CARGO_TOML: &str = include_str!("../../../../templates/layered/Cargo.toml.tmpl");
+const LAYERED_CONFIG_TOML: &str = include_str!("../../../../templates/layered/config.toml.tmpl");
+const LAYERED_MAIN_RS: &str = include_str!("../../../../templates/layered/src/main.rs.tmpl");
+const LAYERED_DOMAIN_CARGO_TOML: &str =
+    include_str!("../../../../templates/layered/crates/domain/Cargo.toml.tmpl");
+const LAYERED_DOMAIN_LIB_RS: &str =
+    include_str!("../../../../templates/layered/crates/domain/src/lib.rs.tmpl");
+const LAYERED_APP_CARGO_TOML: &str =
+    include_str!("../../../../templates/layered/crates/app/Cargo.toml.tmpl");
+const LAYERED_APP_LIB_RS: &str =
+    include_str!("../../../../templates/layered/crates/app/src/lib.rs.tmpl");
+const LAYERED_INFRA_CARGO_TOML: &str =
+    include_str!("../../../../templates/layered/crates/infra/Cargo.toml.tmpl");
+const LAYERED_INFRA_LIB_RS: &str =
+    include_str!("../../../../templates/layered/crates/infra/src/lib.rs.tmpl");
+const LAYERED_INFRA_MIGRATION: &str =
+    include_str!("../../../../templates/layered/crates/infra/migrations/0001_init.sql.tmpl");
+const LAYERED_API_CARGO_TOML: &str =
+    include_str!("../../../../templates/layered/crates/api/Cargo.toml.tmpl");
+const LAYERED_API_LIB_RS: &str =
+    include_str!("../../../../templates/layered/crates/api/src/lib.rs.tmpl");
+
 /// Why `ag new` could not produce a project.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum NewError {
@@ -79,7 +104,7 @@ pub(crate) fn resolve_new_request(
         })),
         (None, _) => Err(NewError::Usage(
             "the project name is required when the session is not interactive.\n\
-             usage: ag new <NAME> [--template rest|realtime|fullstack]"
+             usage: ag new <NAME> [--template rest|realtime|fullstack|layered]"
                 .to_owned(),
         )),
     }
@@ -105,6 +130,7 @@ pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), String> {
         Template::Rest => scaffold_rest(name, project_dir),
         Template::Realtime => scaffold_realtime(name, project_dir),
         Template::Fullstack => scaffold_fullstack(name, project_dir),
+        Template::Layered => scaffold_layered(name, project_dir),
     }?;
 
     println!();
@@ -306,5 +332,34 @@ pub(crate) fn scaffold_fullstack(name: &str, dir: &Path) -> Result<(), String> {
         &dir.join("migrations/0001_init.sql"),
         &apply_template(FULLSTACK_MIGRATION, name),
     )?;
+    Ok(())
+}
+
+/// Scaffolds the opt-in layered workspace (RFC-0019 section 4.2).
+///
+/// This function is additive: it is reached only through `--template layered`
+/// and never changes what the three default templates produce.
+pub(crate) fn scaffold_layered(name: &str, dir: &Path) -> Result<(), String> {
+    let files: &[(&str, &str)] = &[
+        ("ag.toml", LAYERED_AG_TOML),
+        ("Cargo.toml", LAYERED_CARGO_TOML),
+        ("config.toml", LAYERED_CONFIG_TOML),
+        ("src/main.rs", LAYERED_MAIN_RS),
+        ("crates/domain/Cargo.toml", LAYERED_DOMAIN_CARGO_TOML),
+        ("crates/domain/src/lib.rs", LAYERED_DOMAIN_LIB_RS),
+        ("crates/app/Cargo.toml", LAYERED_APP_CARGO_TOML),
+        ("crates/app/src/lib.rs", LAYERED_APP_LIB_RS),
+        ("crates/infra/Cargo.toml", LAYERED_INFRA_CARGO_TOML),
+        ("crates/infra/src/lib.rs", LAYERED_INFRA_LIB_RS),
+        (
+            "crates/infra/migrations/0001_init.sql",
+            LAYERED_INFRA_MIGRATION,
+        ),
+        ("crates/api/Cargo.toml", LAYERED_API_CARGO_TOML),
+        ("crates/api/src/lib.rs", LAYERED_API_LIB_RS),
+    ];
+    for (relative, template) in files {
+        write_file(&dir.join(relative), &apply_template(template, name))?;
+    }
     Ok(())
 }

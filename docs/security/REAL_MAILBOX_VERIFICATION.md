@@ -212,5 +212,7 @@ alone never means a verified delivery.
 - `docs/security/DKIM_INDEPENDENT_VERIFICATION.md`: offline independent verifier.
 - `docs/audits/dkim-independent-ci.md`: recorded offline evidence and gate
   closure condition.
+- `docs/audits/mail-delivery-gate.md`: recorded SKIP/FAIL runs of the delivery
+  checker and the exact external evidence still required.
 - RFC-0009 sections 4.3 and 4.8: DKIM signing and the local-sink smoke test.
 - RFC-0035: authorization for the opt-in DKIM CI check.

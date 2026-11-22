@@ -7,7 +7,8 @@ Add a reproducible real-mailbox verification kit for ag-mail with an opt-in, hon
 - Documentos relacionados: `docs/security/REAL_MAILBOX_VERIFICATION.md`,
   `docs/security/REAL_MAILBOX_RESULTS_TEMPLATE.md`,
   `docs/security/DKIM_INDEPENDENT_VERIFICATION.md`,
-  `docs/audits/dkim-independent-ci.md`, RFC-0009 secciones 4.3 y 4.8,
+  `docs/audits/dkim-independent-ci.md`, `docs/audits/mail-delivery-gate.md`,
+  RFC-0009 secciones 4.3 y 4.8,
   RFC-0035, `CHANGELOG.md`, CLAUDE.md reglas 17, 18, 19, 26 y 28.
 
 ## Cambios
@@ -24,7 +25,8 @@ Add a reproducible real-mailbox verification kit for ag-mail with an opt-in, hon
   evidencia; FAIL si la evidencia existe pero es contradictoria; PASS de
   `wire` siempre imprime `gate.real_mailbox=NOT_SATISFIED`.
 - `docs/security/DKIM_INDEPENDENT_VERIFICATION.md`: enlace al kit de la puerta
-  pendiente. `CHANGELOG.md`: entrada bajo `[Unreleased]`.
+  pendiente. `docs/audits/mail-delivery-gate.md`: evidencia real de SKIP y
+  pruebas controladas de FAIL/wire. `CHANGELOG.md`: entrada bajo `[Unreleased]`.
 
 ## Plan de prueba
 

@@ -28,6 +28,8 @@ Added:
   or the local sink is unreachable, when identities are absent, or when no
   evidence is recorded. Wire-scope PASS explicitly prints
   `gate.real_mailbox=NOT_SATISFIED`; only real-mailbox scope can PASS the gate.
+- `docs/audits/mail-delivery-gate.md`: recorded real SKIP runs and controlled
+  FAIL/wire tests, with the exact external evidence still required.
 
 Issue #178 stays open with `Refs #178`: no real mailbox was contacted here and
 no receiving-MTA `Authentication-Results` header was recorded.

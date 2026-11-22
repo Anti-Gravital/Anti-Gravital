@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::ids::{JobKind, QueueName};
 use crate::job::NewJob;
@@ -42,7 +42,7 @@ pub struct Schedule {
     /// Interval between ticks.
     pub interval: Duration,
     /// When the next tick is due.
-    pub next_run_at: DateTime<Utc>,
+    pub next_run_at: OffsetDateTime,
     /// Misfire handling.
     pub misfire: MisfirePolicy,
 }
@@ -55,10 +55,9 @@ impl Schedule {
         payload: PayloadBytes,
         payload_version: u16,
         interval: Duration,
-        now: DateTime<Utc>,
+        now: OffsetDateTime,
     ) -> Self {
-        let step =
-            chrono::Duration::from_std(interval).unwrap_or_else(|_| chrono::Duration::zero());
+        let step = SignedDuration::try_from(interval).unwrap_or(SignedDuration::ZERO);
         Self {
             kind: kind.into(),
             queue: queue.into(),
@@ -72,13 +71,12 @@ impl Schedule {
 
     /// Advances `next_run_at` past `now` according to the misfire policy, returning the
     /// number of ticks to emit now (0 or 1 in v1).
-    fn advance(&mut self, now: DateTime<Utc>) -> u32 {
+    fn advance(&mut self, now: OffsetDateTime) -> u32 {
         if self.next_run_at > now {
             return 0;
         }
-        let step = chrono::Duration::from_std(self.interval)
-            .unwrap_or_else(|_| chrono::Duration::seconds(1));
-        let step = step.max(chrono::Duration::milliseconds(1));
+        let step = SignedDuration::try_from(self.interval).unwrap_or(SignedDuration::seconds(1));
+        let step = step.max(SignedDuration::milliseconds(1));
         match self.misfire {
             MisfirePolicy::Skip => {
                 // Jump to the next future tick, dropping any missed ones.
@@ -122,7 +120,7 @@ impl ScheduleTick {
 pub trait ScheduleStore: Send + Sync {
     /// Atomically claims all schedules due at `now`, advancing each so the same tick is
     /// never handed out twice (the singleton property), and returns their ticks.
-    async fn claim_due(&self, now: DateTime<Utc>) -> Result<Vec<ScheduleTick>, QueueError>;
+    async fn claim_due(&self, now: OffsetDateTime) -> Result<Vec<ScheduleTick>, QueueError>;
 }
 
 /// In-memory schedule store (single process: trivially singleton).
@@ -148,7 +146,7 @@ impl MemoryScheduleStore {
 
 #[async_trait]
 impl ScheduleStore for MemoryScheduleStore {
-    async fn claim_due(&self, now: DateTime<Utc>) -> Result<Vec<ScheduleTick>, QueueError> {
+    async fn claim_due(&self, now: OffsetDateTime) -> Result<Vec<ScheduleTick>, QueueError> {
         let mut schedules = self.schedules.lock().expect("schedule mutex poisoned");
         let mut ticks = Vec::new();
         for s in schedules.iter_mut() {
@@ -175,7 +173,7 @@ pub async fn run_scheduler<S>(
     S: ScheduleStore,
 {
     while !shutdown.is_triggered() {
-        match store.claim_due(Utc::now()).await {
+        match store.claim_due(OffsetDateTime::now_utc()).await {
             Ok(ticks) => {
                 for tick in ticks {
                     if let Err(e) = backend.enqueue(tick.into_new_job()).await {
@@ -236,7 +234,7 @@ impl PostgresScheduleStore {
 #[cfg(feature = "postgres")]
 #[async_trait]
 impl ScheduleStore for PostgresScheduleStore {
-    async fn claim_due(&self, now: DateTime<Utc>) -> Result<Vec<ScheduleTick>, QueueError> {
+    async fn claim_due(&self, now: OffsetDateTime) -> Result<Vec<ScheduleTick>, QueueError> {
         use sqlx::Row;
         // Claim every due schedule and advance it to the next future tick (skip
         // semantics), atomically, so concurrent processes never double-fire.
@@ -286,7 +284,7 @@ impl ScheduleStore for PostgresScheduleStore {
 mod tests {
     use super::*;
 
-    fn schedule(now: DateTime<Utc>) -> Schedule {
+    fn schedule(now: OffsetDateTime) -> Schedule {
         Schedule::every(
             "cleanup",
             "maintenance",
@@ -299,7 +297,7 @@ mod tests {
 
     #[tokio::test]
     async fn claims_due_tick_once() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let store = MemoryScheduleStore::new();
         store.register(schedule(now));
 
@@ -307,7 +305,7 @@ mod tests {
         assert!(store.claim_due(now).await.unwrap().is_empty());
 
         // Due after the interval: exactly one tick, and not handed out again.
-        let later = now + chrono::Duration::milliseconds(15);
+        let later = now + SignedDuration::milliseconds(15);
         let ticks = store.claim_due(later).await.unwrap();
         assert_eq!(ticks.len(), 1);
         assert_eq!(ticks[0].kind.as_str(), "cleanup");
@@ -319,32 +317,32 @@ mod tests {
 
     #[test]
     fn skip_policy_drops_missed_ticks() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let mut s = schedule(now);
         s.misfire = MisfirePolicy::Skip;
         // Far in the future relative to a 10ms interval: many ticks missed.
-        let far = now + chrono::Duration::seconds(5);
+        let far = now + SignedDuration::seconds(5);
         assert_eq!(s.advance(far), 1);
         assert!(s.next_run_at > far, "skipped to the next future tick");
     }
 
     #[test]
     fn run_once_policy_catches_up_once() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let mut s = schedule(now);
         s.misfire = MisfirePolicy::RunOnce;
-        let far = now + chrono::Duration::seconds(5);
+        let far = now + SignedDuration::seconds(5);
         assert_eq!(s.advance(far), 1);
         assert!(s.next_run_at > far, "rescheduled past the catch-up point");
     }
 
     #[tokio::test]
     async fn schedule_tick_builds_new_job() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let store = MemoryScheduleStore::new();
         store.register(schedule(now));
         let ticks = store
-            .claim_due(now + chrono::Duration::milliseconds(15))
+            .claim_due(now + SignedDuration::milliseconds(15))
             .await
             .unwrap();
         let job = ticks.into_iter().next().unwrap().into_new_job();

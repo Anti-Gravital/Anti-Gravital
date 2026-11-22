@@ -53,7 +53,7 @@ replaces per-module queues, extracted from the proven pattern already in `ag-mai
 | Async trait | `async-trait` | `JobHandler`, `QueueBackend`. |
 | Payload encoding | `rmp-serde` | Compact, schema-tolerant `BYTEA`; versioned. |
 | Durable backend | `ag-data` (`sqlx`, Postgres) | `postgres` feature; `FOR UPDATE SKIP LOCKED`. Reuses `ag-data` pool + migrations. |
-| Timestamps / ids | `chrono`, `uuid` | `postgres` feature. |
+| Timestamps / ids | `time`, `uuid` | `time::OffsetDateTime` for wall-clock fields (RFC-0026); `uuid` for ids. |
 | Cancellation | `tokio-util` | `CancellationToken` for cooperative cancellation (new workspace dep, ADR-0013). |
 | Concurrency | `tokio` | Tasks, `spawn_blocking` + `Semaphore` for CPU-bound jobs. |
 | Observability | `ag-observe` (`metrics`, `tracing`) | Bounded metric labels; `tenant_id` is never a label. |

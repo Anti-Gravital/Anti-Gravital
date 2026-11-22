@@ -141,7 +141,7 @@ pub enum AttachmentLifecycle {
 /// A domain attachment record.
 ///
 /// Timestamps are Unix epoch seconds to avoid coupling the core record to the
-/// optional `chrono` dependency (which is gated behind the `acme` feature).
+/// optional date/time dependency (which is gated behind the `acme` feature).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DomainAttachment {
     /// Opaque attachment id (`dom_<uuid-simple>`).

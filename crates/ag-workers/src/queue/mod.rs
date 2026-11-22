@@ -12,8 +12,8 @@ pub mod memory;
 pub mod postgres;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use thiserror::Error;
+use time::OffsetDateTime;
 
 use crate::ids::{JobId, QueueName, WorkerId};
 use crate::job::{JobEnvelope, NewJob};
@@ -67,7 +67,7 @@ impl QueueDepth {
 #[derive(Debug, Clone)]
 pub struct RetryDecision {
     /// When the job becomes eligible again.
-    pub available_at: DateTime<Utc>,
+    pub available_at: OffsetDateTime,
     /// Redactable summary of the failure, stored on the job.
     pub last_error: Option<String>,
 }

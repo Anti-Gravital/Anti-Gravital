@@ -23,7 +23,7 @@ async fn scheduler_enqueues_interval_jobs() {
         ag_workers::encode::<Unit>(&Unit {}).unwrap(),
         1,
         Duration::from_millis(10),
-        chrono::Utc::now(),
+        time::OffsetDateTime::now_utc(),
     ));
 
     let shutdown = Shutdown::new();

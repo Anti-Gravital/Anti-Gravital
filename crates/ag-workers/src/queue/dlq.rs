@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use time::OffsetDateTime;
 
 use crate::ids::{JobId, JobKind, QueueName};
 use crate::job::JobEnvelope;
@@ -76,12 +76,12 @@ pub struct DeadLetter {
     /// Why the job was dead-lettered.
     pub reason: DeadLetterReason,
     /// When it was moved to the dead-letter queue.
-    pub dead_lettered_at: DateTime<Utc>,
+    pub dead_lettered_at: OffsetDateTime,
 }
 
 impl DeadLetter {
     /// Builds a dead-letter entry stamped at `now`.
-    pub fn new(envelope: JobEnvelope, reason: DeadLetterReason, now: DateTime<Utc>) -> Self {
+    pub fn new(envelope: JobEnvelope, reason: DeadLetterReason, now: OffsetDateTime) -> Self {
         Self {
             envelope,
             reason,
@@ -112,7 +112,7 @@ pub struct DeadLetterRecord {
     /// Last error summary, if any (redactable; never raw secrets).
     pub last_error: Option<String>,
     /// When the job was originally created.
-    pub created_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
     /// When it was moved to the dead-letter queue.
-    pub dead_lettered_at: DateTime<Utc>,
+    pub dead_lettered_at: OffsetDateTime,
 }

@@ -7,7 +7,7 @@
 
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use time::{OffsetDateTime, SignedDuration};
 
 /// Configuration of retry behavior for a job or queue.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,17 +63,17 @@ impl RetryPolicy {
     }
 
     /// Returns the timestamp at which a job becomes eligible again after `attempt`.
-    pub fn next_available_at(&self, now: DateTime<Utc>, attempt: u32) -> DateTime<Utc> {
+    pub fn next_available_at(&self, now: OffsetDateTime, attempt: u32) -> OffsetDateTime {
         let delay = self.delay_for(attempt);
-        now + chrono::Duration::from_std(delay).unwrap_or_else(|_| chrono::Duration::zero())
+        now + SignedDuration::try_from(delay).unwrap_or(SignedDuration::ZERO)
     }
 
     /// Returns `true` if a job created at `created_at` has exceeded `max_age` by `now`.
-    pub fn is_expired(&self, created_at: DateTime<Utc>, now: DateTime<Utc>) -> bool {
+    pub fn is_expired(&self, created_at: OffsetDateTime, now: OffsetDateTime) -> bool {
         match self.max_age {
             Some(max_age) => {
-                let age = now.signed_duration_since(created_at);
-                match chrono::Duration::from_std(max_age) {
+                let age = now - created_at;
+                match SignedDuration::try_from(max_age) {
                     Ok(limit) => age > limit,
                     Err(_) => false,
                 }
@@ -127,15 +127,15 @@ mod tests {
     #[test]
     fn expiry_respects_max_age() {
         let p = policy();
-        let created = Utc::now();
+        let created = OffsetDateTime::now_utc();
         assert!(!p.is_expired(created, created));
-        assert!(p.is_expired(created, created + chrono::Duration::seconds(11)));
+        assert!(p.is_expired(created, created + SignedDuration::seconds(11)));
     }
 
     #[test]
     fn next_available_at_advances() {
         let p = policy();
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         assert!(p.next_available_at(now, 1) > now);
     }
 }

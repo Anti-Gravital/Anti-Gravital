@@ -17,9 +17,9 @@
 //! ```
 
 use async_trait::async_trait;
-use chrono::Utc;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::{
     error::AgDomainsError,
@@ -101,7 +101,7 @@ impl GoogleCloudDnsProvider {
 
     /// Mints a service-account JWT and exchanges it for an OAuth2 access token.
     async fn access_token(&self) -> Result<String, AgDomainsError> {
-        let now = Utc::now().timestamp();
+        let now = OffsetDateTime::now_utc().unix_timestamp();
         let claims = JwtClaims {
             iss: &self.service_account_email,
             scope: SCOPE,

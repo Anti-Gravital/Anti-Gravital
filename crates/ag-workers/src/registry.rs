@@ -229,7 +229,7 @@ mod tests {
 
         let env = NewJob::encode::<Greeting>("greet", "default", &Greeting { name: "ada".into() })
             .unwrap()
-            .into_envelope(chrono::Utc::now());
+            .into_envelope(time::OffsetDateTime::now_utc());
 
         let before = CALLS.load(Ordering::SeqCst);
         let outcome = registry.dispatch(test_ctx(&env), &env).await.unwrap();
@@ -246,7 +246,7 @@ mod tests {
         let mut env =
             NewJob::encode::<Greeting>("greet", "default", &Greeting { name: "ada".into() })
                 .unwrap()
-                .into_envelope(chrono::Utc::now());
+                .into_envelope(time::OffsetDateTime::now_utc());
         env.kind = JobKind::new("does_not_exist");
 
         let err = registry.dispatch(test_ctx(&env), &env).await.unwrap_err();
@@ -266,7 +266,7 @@ mod tests {
             PayloadBytes::from_vec(vec![0xff, 0x00]),
             1,
         )
-        .into_envelope(chrono::Utc::now());
+        .into_envelope(time::OffsetDateTime::now_utc());
         env.id = JobId::new();
         env.queue = QueueName::new("default");
 

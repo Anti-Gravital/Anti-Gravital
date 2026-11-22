@@ -8,8 +8,8 @@
 
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 use crate::payload::{encode, JobPayload, PayloadBytes, PayloadError};
@@ -182,17 +182,17 @@ pub struct JobEnvelope {
     /// Per-attempt execution timeout.
     pub timeout: Duration,
     /// When the job was scheduled, if it was a delayed/scheduled enqueue.
-    pub scheduled_at: Option<DateTime<Utc>>,
+    pub scheduled_at: Option<OffsetDateTime>,
     /// When the job becomes eligible to be leased.
-    pub available_at: DateTime<Utc>,
+    pub available_at: OffsetDateTime,
     /// When the job was created.
-    pub created_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
     /// When the job was last updated.
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: OffsetDateTime,
     /// Worker currently holding the lease, if leased.
     pub locked_by: Option<WorkerId>,
     /// When the current lease expires, if leased.
-    pub lock_until: Option<DateTime<Utc>>,
+    pub lock_until: Option<OffsetDateTime>,
     /// Optional deduplication key (unique per queue when configured).
     pub dedup_key: Option<String>,
     /// Optional tenant context.
@@ -212,7 +212,7 @@ impl JobEnvelope {
     pub fn transition_to(&mut self, to: JobStatus) -> bool {
         if self.status.can_transition_to(to) {
             self.status = to;
-            self.updated_at = Utc::now();
+            self.updated_at = OffsetDateTime::now_utc();
             true
         } else {
             false
@@ -344,11 +344,9 @@ impl NewJob {
     /// Materializes the request into a [`JobEnvelope`] with timestamps relative to
     /// `now`. The initial status is `Scheduled` for a delayed/scheduled job and
     /// `Queued` otherwise.
-    pub fn into_envelope(self, now: DateTime<Utc>) -> JobEnvelope {
+    pub fn into_envelope(self, now: OffsetDateTime) -> JobEnvelope {
         let available_at = match self.delay {
-            Some(delay) => {
-                now + chrono::Duration::from_std(delay).unwrap_or_else(|_| chrono::Duration::zero())
-            }
+            Some(delay) => now + SignedDuration::try_from(delay).unwrap_or(SignedDuration::ZERO),
             None => now,
         };
         let is_delayed = available_at > now || self.scheduled;
@@ -441,7 +439,7 @@ mod tests {
     fn envelope_transition_stamps_and_guards() {
         let mut env = NewJob::encode::<P>("k", "q", &P { x: 1 })
             .unwrap()
-            .into_envelope(Utc::now());
+            .into_envelope(OffsetDateTime::now_utc());
         assert_eq!(env.status, JobStatus::Queued);
         assert_eq!(env.payload_version, 3);
         assert!(env.transition_to(JobStatus::Leased));
@@ -455,7 +453,7 @@ mod tests {
     fn delayed_enqueue_starts_scheduled() {
         let env = NewJob::new("k", "q", PayloadBytes::from_vec(vec![]), 1)
             .with_delay(Duration::from_secs(60))
-            .into_envelope(Utc::now());
+            .into_envelope(OffsetDateTime::now_utc());
         assert_eq!(env.status, JobStatus::Scheduled);
         assert!(env.available_at > env.created_at);
     }
@@ -464,7 +462,7 @@ mod tests {
     fn attempts_exhausted_check() {
         let mut env = NewJob::new("k", "q", PayloadBytes::from_vec(vec![]), 1)
             .with_max_attempts(2)
-            .into_envelope(Utc::now());
+            .into_envelope(OffsetDateTime::now_utc());
         assert!(!env.attempts_exhausted());
         env.attempts = 2;
         assert!(env.attempts_exhausted());
@@ -513,7 +511,7 @@ mod tests {
             .with_dedup_key("dk-1")
             .with_tenant(TenantId::new("acme"))
             .with_trace_id("trace-9")
-            .into_envelope(Utc::now());
+            .into_envelope(OffsetDateTime::now_utc());
         assert_eq!(env.priority, JobPriority::High);
         assert_eq!(env.max_attempts, 7);
         assert_eq!(env.timeout, Duration::from_secs(42));
@@ -526,7 +524,7 @@ mod tests {
     fn explicit_scheduled_sets_scheduled_at() {
         let env = NewJob::new("k", "q", PayloadBytes::from_vec(vec![]), 1)
             .scheduled()
-            .into_envelope(Utc::now());
+            .into_envelope(OffsetDateTime::now_utc());
         assert_eq!(env.status, JobStatus::Scheduled);
         assert!(env.scheduled_at.is_some());
     }

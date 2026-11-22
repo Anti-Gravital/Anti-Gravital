@@ -8,9 +8,9 @@
 
 use ag_data::DbPool;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use sqlx::postgres::PgRow;
 use sqlx::{Postgres, Row};
+use time::OffsetDateTime;
 
 use crate::ids::{JobId, JobKind, QueueName, TenantId, WorkerId};
 use crate::job::{JobEnvelope, JobPriority, JobStatus, NewJob};
@@ -81,7 +81,7 @@ impl PostgresQueue {
         tx: &mut ag_data::AgTx,
         job: NewJob,
     ) -> Result<JobId, QueueError> {
-        let env = job.into_envelope(Utc::now());
+        let env = job.into_envelope(OffsetDateTime::now_utc());
         bind_insert(&env)
             .execute(tx.as_executor())
             .await
@@ -343,7 +343,7 @@ fn rows_to_outcome(rows: &[PgRow]) -> Result<BulkDlqOutcome, QueueError> {
 #[async_trait]
 impl QueueBackend for PostgresQueue {
     async fn enqueue(&self, job: NewJob) -> Result<JobId, QueueError> {
-        let env = job.into_envelope(Utc::now());
+        let env = job.into_envelope(OffsetDateTime::now_utc());
         bind_insert(&env)
             .execute(&self.pool)
             .await
@@ -525,13 +525,13 @@ fn row_to_envelope(row: &PgRow) -> Result<JobEnvelope, QueueError> {
         timeout: std::time::Duration::from_millis(timeout_ms.max(0) as u64),
         scheduled_at: row.try_get("scheduled_at").map_err(backend_err)?,
         available_at: row
-            .try_get::<DateTime<Utc>, _>("available_at")
+            .try_get::<OffsetDateTime, _>("available_at")
             .map_err(backend_err)?,
         created_at: row
-            .try_get::<DateTime<Utc>, _>("created_at")
+            .try_get::<OffsetDateTime, _>("created_at")
             .map_err(backend_err)?,
         updated_at: row
-            .try_get::<DateTime<Utc>, _>("updated_at")
+            .try_get::<OffsetDateTime, _>("updated_at")
             .map_err(backend_err)?,
         locked_by: locked_by.map(WorkerId::from_string),
         lock_until: row.try_get("lock_until").map_err(backend_err)?,
@@ -554,10 +554,10 @@ fn row_to_dead_letter(row: &PgRow) -> Result<DeadLetterRecord, QueueError> {
         reason: row.try_get("reason").map_err(backend_err)?,
         last_error: row.try_get("last_error").map_err(backend_err)?,
         created_at: row
-            .try_get::<DateTime<Utc>, _>("created_at")
+            .try_get::<OffsetDateTime, _>("created_at")
             .map_err(backend_err)?,
         dead_lettered_at: row
-            .try_get::<DateTime<Utc>, _>("dead_lettered_at")
+            .try_get::<OffsetDateTime, _>("dead_lettered_at")
             .map_err(backend_err)?,
     })
 }

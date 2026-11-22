@@ -13,13 +13,13 @@
 
 use std::time::Duration;
 
-use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use instant_acme::{
     Account, AccountCredentials, AuthorizationStatus, ChallengeType, Identifier, LetsEncrypt,
     NewAccount, NewOrder, OrderStatus,
 };
 use rcgen::{CertificateParams, DistinguishedName, KeyPair};
 use serde::{Deserialize, Serialize};
+use time::{OffsetDateTime, SignedDuration};
 use tracing::{error, info, warn};
 
 use crate::{
@@ -150,7 +150,7 @@ where
     const CHECK_INTERVAL_SECS: u64 = 86_400; // 24 h fallback on error
 
     tokio::spawn(async move {
-        let mut not_after: Option<DateTime<Utc>> = None;
+        let mut not_after: Option<OffsetDateTime> = None;
         let mut ari_info: Option<ari::RenewalInfo> = None;
 
         loop {
@@ -158,9 +158,12 @@ where
             // back to `notAfter` minus the threshold. Run immediately on first
             // pass (no certificate yet).
             let sleep_secs = match not_after {
-                Some(exp) => {
-                    ari::next_renewal_sleep(ari_info.as_ref(), exp, renew_before_days, Utc::now())
-                }
+                Some(exp) => ari::next_renewal_sleep(
+                    ari_info.as_ref(),
+                    exp,
+                    renew_before_days,
+                    OffsetDateTime::now_utc(),
+                ),
                 None => 0,
             };
 
@@ -184,7 +187,7 @@ where
                     // `None` keeps the `notAfter` schedule.
                     ari_info = renewal_info_for(&cert);
                     if let Some(exp) = not_after {
-                        let days = (exp - Utc::now()).num_days().max(0);
+                        let days = (exp - OffsetDateTime::now_utc()).whole_days().max(0);
                         set_cert_days_until_expiry(&config.domain, days);
                         info!(
                             domain = config.domain,
@@ -212,15 +215,15 @@ where
 // ---- internal helpers -------------------------------------------------------
 
 /// Parses the `notAfter` field from the first PEM certificate in `cert_chain_pem`.
-pub fn parse_not_after(cert_chain_pem: &str) -> Result<DateTime<Utc>, AgDomainsError> {
+pub fn parse_not_after(cert_chain_pem: &str) -> Result<OffsetDateTime, AgDomainsError> {
     let (_, pem) = x509_parser::pem::parse_x509_pem(cert_chain_pem.as_bytes())
         .map_err(|e| AgDomainsError::Acme(format!("PEM parse error: {e}")))?;
     let cert = pem
         .parse_x509()
         .map_err(|e| AgDomainsError::Acme(format!("X509 parse error: {e}")))?;
     let ts = cert.validity().not_after.timestamp();
-    DateTime::from_timestamp(ts, 0)
-        .ok_or_else(|| AgDomainsError::Acme("notAfter timestamp out of range".to_owned()))
+    OffsetDateTime::from_unix_timestamp(ts)
+        .map_err(|_| AgDomainsError::Acme("notAfter timestamp out of range".to_owned()))
 }
 
 /// Returns how many seconds to sleep before the next renewal attempt.
@@ -229,17 +232,17 @@ pub fn parse_not_after(cert_chain_pem: &str) -> Result<DateTime<Utc>, AgDomainsE
 /// returns the gap minus the threshold. Returns 0 when already inside the
 /// renewal window or when the certificate is expired.
 pub fn seconds_until_renewal(
-    not_after: DateTime<Utc>,
+    not_after: OffsetDateTime,
     renew_before_days: u64,
-    now: DateTime<Utc>,
+    now: OffsetDateTime,
 ) -> u64 {
-    let threshold = ChronoDuration::days(renew_before_days as i64);
-    let remaining = not_after.signed_duration_since(now);
+    let threshold = SignedDuration::days(renew_before_days as i64);
+    let remaining = not_after - now;
     if remaining <= threshold {
         return 0;
     }
     let sleep = remaining - threshold;
-    sleep.num_seconds().max(0) as u64
+    sleep.whole_seconds().max(0) as u64
 }
 
 async fn issue_order<P: DnsProvider>(
@@ -428,11 +431,10 @@ mod tests {
 
     #[test]
     fn parse_not_after_reads_certificate_validity() {
-        use chrono::Datelike;
         use rcgen::{CertificateParams, KeyPair};
 
         let mut params = CertificateParams::new(vec!["example.com".to_string()]).unwrap();
-        let target_year = Utc::now().year() + 1;
+        let target_year = OffsetDateTime::now_utc().year() + 1;
         params.not_after = rcgen::date_time_ymd(target_year, 1, 1);
         let key = KeyPair::generate().unwrap();
         let cert = params.self_signed(&key).unwrap();
@@ -449,8 +451,8 @@ mod tests {
 
     #[test]
     fn seconds_until_renewal_respects_threshold() {
-        let now = Utc::now();
-        let not_after = now + ChronoDuration::days(30);
+        let now = OffsetDateTime::now_utc();
+        let not_after = now + SignedDuration::days(30);
         let renew_before_days = 10u64;
 
         // 30 days left, threshold is 10 days → should sleep 20 days
@@ -461,9 +463,9 @@ mod tests {
 
     #[test]
     fn seconds_until_renewal_past_threshold_returns_zero() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         // cert expires in 5 days, threshold is 10 → already past threshold
-        let not_after = now + ChronoDuration::days(5);
+        let not_after = now + SignedDuration::days(5);
         let secs = seconds_until_renewal(not_after, 10, now);
         assert_eq!(secs, 0);
     }

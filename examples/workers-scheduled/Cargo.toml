@@ -17,6 +17,6 @@ workspace = true
 [dependencies]
 ag-workers = { path = "../../crates/ag-workers", version = "0.0.0" }
 async-trait = { workspace = true }
-chrono = { workspace = true }
+time = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }

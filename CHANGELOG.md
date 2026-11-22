@@ -7,6 +7,18 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Low-level reviews (issues #178, #180, #181)
+
+Added:
+
+- `docs/audits/low-level-review-178-180.md` records the read-only review of
+  the mail protocol stack upgrade, the DKIM and rustls provider semantics,
+  the #181 process-level ring fix, and the chumsky 0.9 to 0.13 RFC inputs.
+  It documents the required `mail-auth` 0.15 feature set, the
+  `mail-send/dkim` version conflict, the DKIM independent-verifier gap, the
+  `allow_invalid_certs` connector trap in `mail-send` 0.7, and the missing
+  DSL benchmark and fuzz baseline. No issue was closed by this review.
+
 ### Master documentation consistency (issues #170, #172)
 
 Changed:

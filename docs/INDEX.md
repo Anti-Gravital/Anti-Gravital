@@ -79,6 +79,12 @@ Procesos formales del proyecto: RFC para decisiones tecnicas
 importantes y ADR para decisiones arquitectonicas estables. Plantillas
 en `docs/rfc/template.md` y `docs/adr/template.md`.
 
+### docs/audits/
+
+Registros de verificacion tecnica y revisiones de bajo nivel. Incluye
+las puertas `PRE_FASE5_RELEASE_GATE.md` y `pre-fase5-*.md`, y la revision
+`low-level-review-178-180.md` (stack de correo e RFC de chumsky).
+
 ### docs/diagrams/, docs/graph/, docs/examples/
 
 Espacios reservados para diagramas, knowledge graph y catalogo de

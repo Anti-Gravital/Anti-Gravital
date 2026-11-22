@@ -10,6 +10,7 @@ aun no etiquetados.
 
 
 
+
 ### CLI help and domain guide fixes (issues #200, #201, #202)
 
 Fixed:
@@ -2659,6 +2660,21 @@ Reported:
 - Issue #205: the README still documents the fixed and CLOSED issue #191 as
   present, claiming generated scaffolds hardcode `0.0.0.0:8080` and ignore
   `BIND`. The English and Spanish sections are both stale. No issue was closed.
+
+### Installer user journey evidence (wave 10)
+
+Added:
+
+- `docs/audits/install-user-journey.md`: real terminal evidence for the
+  documented `bash install.sh` source path and the opt-in `alpha` channel
+  against a local `file://` fake release. Records exact commands, verbatim
+  stdout/stderr, exit codes, timings, installed files, `ag --version`, and
+  fail-closed cases for invalid checksums, missing entries, missing binaries,
+  missing base URL, unknown channel and tampered out-of-band manifests.
+- Issues #203, #204 and #206 opened for reproducible findings from the journey:
+  stale alpha version in the installation manual; hardcoded `~/.cargo/bin` path
+  in source-channel messages; two full release builds (21 min 22 s measured)
+  with no time expectation. No issue was closed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

@@ -42,3 +42,14 @@ anterior y siguiente.
    anadir contexto, hagalo en una RFC o en un ADR.
 3. Para citas en codigo o en pull requests, prefiera referenciar el
    archivo derivado correspondiente a referenciar el maestro completo.
+
+## Anexos de diseno (no verbatim)
+
+Los siguientes archivos viven aqui por conveniencia de navegacion, pero
+**no** son capitulos derivados del maestro y `tools/split-masters.sh` no los
+genera ni los sobrescribe:
+
+- `ag-mail-managed-api-design.md`: modelo de recursos, limite outbound y
+  composicion de la API gestionada de `ag-mail` (diseno, sin codigo;
+  issue #152). El contrato HTTP cannico esta en
+  `docs/modules/ag-mail/managed-api-dx-design.md`.

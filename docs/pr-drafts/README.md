@@ -110,3 +110,6 @@ Ramas con descriptor aceptando PR en este momento:
 - `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
   opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
   cierra #178, ola 11).
+- `community12/i152`: `docs/pr-drafts/community12-i152.md` (anexo de
+  arquitectura de la API gestionada de `ag-mail`: modelo de recursos y
+  compuertas G1-G5; solo diseno, no cierra #152, ola 12).

@@ -1,0 +1,272 @@
+#!/usr/bin/env bash
+# Anti-Gravital local verification gate.
+#
+# Runs the same classes of checks as CI before a push: descriptor presence and
+# closing keyword, formatting, lint, tests, dependency audit and deny, master
+# document hashes, and prohibited content. It is intentionally explicit:
+# nothing is downloaded, nothing is installed, and no check is ever reported
+# as passed when it was skipped.
+#
+# Usage:
+#   scripts/ag-check                 run every check (used by the pre-push hook)
+#   scripts/ag-check --only a,b     run only the named checks
+#   scripts/ag-check --skip a,b     run every check except the named ones
+#   scripts/ag-check --list         print the available check names
+#
+# Each check can be re-pointed at a different command with AG_FMT_CMD,
+# AG_CLIPPY_CMD, AG_TEST_CMD, AG_AUDIT_CMD and AG_DENY_CMD. AG_CHECK_ROOT and
+# AG_DEFAULT_BRANCH override the detected repository root and default branch.
+set -uo pipefail
+
+AG_ROOT="${AG_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+cd "$AG_ROOT" || exit 2
+
+AG_DEFAULT_BRANCH="${AG_DEFAULT_BRANCH:-main}"
+DRAFTS_DIR="docs/pr-drafts"
+CHECKS=(descriptors fmt clippy test audit deny masters prohibited)
+
+FAILURES=0
+SKIPS=0
+PASSES=0
+
+pass() { printf 'PASS: %s\n' "$1"; PASSES=$((PASSES + 1)); }
+fail() { printf 'FAIL: %s - %s\n' "$1" "$2" >&2; FAILURES=$((FAILURES + 1)); }
+skip() { printf 'SKIP: %s (not selected)\n' "$1"; SKIPS=$((SKIPS + 1)); }
+check_done() { local before=$2; [ "$FAILURES" -eq "$before" ] && pass "$1"; }
+
+usage() {
+    cat <<'EOF'
+ag-check [--only a,b] [--skip a,b] [--list] [--help]
+
+Checks: descriptors fmt clippy test audit deny masters prohibited
+
+Skipped checks are always reported as SKIP, never as PASS. Passing a check
+requires the underlying command to exit 0 or the invariant to hold.
+EOF
+}
+
+MODE="all"
+SELECTED=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --only)
+            [ -n "${2:-}" ] || { echo "ag-check: --only needs a check list." >&2; exit 2; }
+            [ "$MODE" = "all" ] || { echo "ag-check: --only and --skip are exclusive." >&2; exit 2; }
+            MODE="only"; SELECTED="$2"; shift 2;;
+        --skip)
+            [ -n "${2:-}" ] || { echo "ag-check: --skip needs a check list." >&2; exit 2; }
+            [ "$MODE" = "all" ] || { echo "ag-check: --only and --skip are exclusive." >&2; exit 2; }
+            MODE="skip"; SELECTED="$2"; shift 2;;
+        --list) printf '%s\n' "${CHECKS[@]}"; exit 0;;
+        --help|-h) usage; exit 0;;
+        *) echo "ag-check: unknown argument '$1'." >&2; usage >&2; exit 2;;
+    esac
+done
+
+name_in_list() {
+    local needle=$1 item
+    local IFS=','
+    for item in $SELECTED; do
+        [ "$item" = "$needle" ] && return 0
+    done
+    return 1
+}
+
+validate_selection() {
+    local n item bad=0 found
+    local IFS=','
+    for item in $SELECTED; do
+        found=0
+        for n in "${CHECKS[@]}"; do [ "$n" = "$item" ] && found=1; done
+        if [ "$found" -eq 0 ]; then
+            echo "ag-check: unknown check '$item'." >&2
+            bad=1
+        fi
+    done
+    [ "$bad" -eq 0 ] || exit 2
+}
+
+should_run() {
+    local n=$1
+    case "$MODE" in
+        all) return 0;;
+        only) name_in_list "$n";;
+        skip) ! name_in_list "$n";;
+    esac
+}
+
+validate_selection
+
+# ---------------------------------------------------------------------------
+# Descriptor: every PR descriptor must declare issue closure, and a working
+# branch must carry the descriptor named after its flattened branch.
+# ---------------------------------------------------------------------------
+check_descriptors() {
+    local before=$FAILURES f br flat
+    shopt -s nullglob
+    for f in "$DRAFTS_DIR"/*.md; do
+        [ "$(basename "$f")" = "README.md" ] && continue
+        grep -q '^## Resumen' "$f" || fail descriptors "$f: missing '## Resumen' section."
+        grep -q '^## Plan de prueba' "$f" || fail descriptors "$f: missing '## Plan de prueba' section."
+        grep -q '^## Cierre de issues' "$f" || fail descriptors "$f: missing '## Cierre de issues' section."
+        grep -qiE '^[[:space:]>*-]*(closes|fixes|resolves)[[:space:]:]+(#[0-9]+|none|ninguno)\b' "$f" \
+            || fail descriptors "$f: missing closing keyword (Closes #NNN / Closes: none)."
+    done
+    shopt -u nullglob
+
+    # symbolic-ref works on an unborn branch too; rev-parse does not.
+    br="$(git symbolic-ref --quiet --short HEAD 2>/dev/null \
+        || git rev-parse --abbrev-ref HEAD 2>/dev/null \
+        || printf 'HEAD')"
+    br="$(printf '%s' "$br" | head -n 1)"
+    if [ "$br" != "$AG_DEFAULT_BRANCH" ] && [ "$br" != "HEAD" ]; then
+        flat="${br//\//-}"
+        [ -f "$DRAFTS_DIR/$flat.md" ] || fail descriptors "missing descriptor $DRAFTS_DIR/$flat.md on branch $br."
+    fi
+    check_done descriptors "$before"
+}
+
+# ---------------------------------------------------------------------------
+# Cargo-backed checks. Commands are overridable so they can be tested without
+# a Rust toolchain; an override that is not exercised cannot make a check pass.
+# ---------------------------------------------------------------------------
+run_cmd_check() {
+    local name=$1 cmd=$2 out before=$FAILURES
+    if [[ "$cmd" == cargo* ]] && ! command -v cargo >/dev/null 2>&1; then
+        fail "$name" "cargo not found in PATH."
+        return
+    fi
+    out="$(mktemp)"
+    if bash -c "$cmd" >"$out" 2>&1; then
+        pass "$name"
+    else
+        fail "$name" "command exited non-zero: $cmd"
+        sed 's/^/    /' "$out" >&2
+    fi
+    rm -f "$out"
+}
+
+check_fmt() { run_cmd_check fmt "${AG_FMT_CMD:-cargo fmt --all -- --check}"; }
+check_clippy() { run_cmd_check clippy "${AG_CLIPPY_CMD:-cargo clippy --workspace --all-targets -- -D warnings}"; }
+check_test() { run_cmd_check test "${AG_TEST_CMD:-cargo test --workspace}"; }
+check_audit() { run_cmd_check audit "${AG_AUDIT_CMD:-cargo audit}"; }
+check_deny() { run_cmd_check deny "${AG_DENY_CMD:-cargo deny check}"; }
+
+# ---------------------------------------------------------------------------
+# Master document integrity. Expected values mirror .github/workflows/docs.yml;
+# changing a master requires an ADR and a coordinated update of both files.
+# ---------------------------------------------------------------------------
+expected_master_hash() {
+    case "$1" in
+        ANTI-GRAVITAL-Blueprint-v4.0.pdf) printf '%s' '59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660';;
+        ANTI-GRAVITAL-Blueprint-v4.1.md) printf '%s' '36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82';;
+        ANTI-GRAVITAL-Arquitectura-Tecnica.md) printf '%s' '7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e';;
+        ANTI-GRAVITAL-Hoja-de-Ruta.md) printf '%s' 'd1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518';;
+    esac
+}
+
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+check_masters() {
+    local before=$FAILURES mf path expected got
+    local masters=(
+        ANTI-GRAVITAL-Blueprint-v4.0.pdf
+        ANTI-GRAVITAL-Blueprint-v4.1.md
+        ANTI-GRAVITAL-Arquitectura-Tecnica.md
+        ANTI-GRAVITAL-Hoja-de-Ruta.md
+    )
+    for mf in "${masters[@]}"; do
+        path="docs/master/$mf"
+        if [ ! -f "$path" ]; then
+            fail masters "$path: file not found."
+            continue
+        fi
+        expected="$(expected_master_hash "$mf")"
+        if ! got="$(sha256_of "$path")"; then
+            fail masters "no SHA-256 tool available (sha256sum or shasum required)."
+            return
+        fi
+        [ "$got" = "$expected" ] || fail masters "$path: SHA-256 mismatch (expected $expected, got $got)."
+    done
+    check_done masters "$before"
+}
+
+# ---------------------------------------------------------------------------
+# Prohibited content: the same policy enforced by .github/workflows/docs.yml.
+# The checker scripts are excluded because their own regexes and fixtures are
+# policy source, the same way docs.yml is excluded in CI.
+# ---------------------------------------------------------------------------
+is_excluded() {
+    case "$1" in
+        ./CLAUDE.md|.git/*|./.git/*|./target/*) return 0;;
+        ./.githooks/commit-msg|./.githooks/pre-push|./scripts/ag-check|./scripts/install-hooks.sh|./tests/hooks/test-hooks.sh) return 0;;
+        ./.github/workflows/docs.yml|./docs/adr/0011-politica-marcas-comerciales.md|./docs/rfc/RFC-0010-ag-mail-superficie-sin-marcas.md) return 0;;
+    esac
+    return 1
+}
+
+check_prohibited() {
+    local before=$FAILURES f
+    local ai_pattern brand_pattern emoji_pattern
+    ai_pattern='co-authored-by:.*(claude|codex|openai|anthropic|copilot|opencode|chatgpt|gemini|bard)|generated (with|by) (claude|codex|openai|copilot|opencode)|https?://(claude\.ai|chatgpt\.com)/'
+    brand_pattern='\b(Resend|Postmark|Svix)\b|\bSES\b|(Resend|Ses|Postmark)Sender'
+    emoji_pattern='[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]'
+
+    while IFS= read -r -d '' f; do
+        is_excluded "$f" && continue
+        # -I skips binary files (for example the master PDF), which would
+        # otherwise produce false positives on byte-pattern scans.
+        if grep -IqiE "$ai_pattern" "$f" 2>/dev/null; then
+            fail prohibited "$f: AI-tool attribution or chat-session URL."
+        fi
+        if grep -IqE "$brand_pattern" "$f" 2>/dev/null; then
+            fail prohibited "$f: retired third-party brand name (ADR-0011)."
+        fi
+        if printf '%s' 'x' | grep -qP 'x' 2>/dev/null && grep -IPq "$emoji_pattern" "$f" 2>/dev/null; then
+            fail prohibited "$f: emoji in tracked content."
+        fi
+    done < <(find . -type f -not -path './.git/*' -not -path './target/*' -print0 2>/dev/null)
+
+    if ! git ls-files docs/pr-drafts 2>/dev/null | grep -qE '/(claude|gpt|ai|copilot|chatgpt|gemini|bard)-'; then
+        :
+    else
+        fail prohibited "descriptor with a prohibited AI branch prefix in docs/pr-drafts/."
+    fi
+    check_done prohibited "$before"
+}
+
+for c in "${CHECKS[@]}"; do
+    if ! should_run "$c"; then
+        skip "$c"
+        continue
+    fi
+    case "$c" in
+        descriptors) check_descriptors;;
+        fmt) check_fmt;;
+        clippy) check_clippy;;
+        test) check_test;;
+        audit) check_audit;;
+        deny) check_deny;;
+        masters) check_masters;;
+        prohibited) check_prohibited;;
+    esac
+done
+
+printf 'Summary: PASS=%d FAIL=%d SKIP=%d\n' "$PASSES" "$FAILURES" "$SKIPS"
+if [ "$FAILURES" -ne 0 ]; then
+    echo "ag-check: FAILED." >&2
+    exit 1
+fi
+if [ "$SKIPS" -ne 0 ]; then
+    echo "ag-check: completed with skipped checks (not a full pass)."
+fi
+echo "ag-check: all selected checks passed."
+exit 0

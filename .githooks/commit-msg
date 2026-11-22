@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Anti-Gravital local commit-msg hook.
+# Enforces the repository commit policy: subject <= 256 characters, no AI-tool
+# attribution, no chat-session URLs, no emojis. Opt-in via scripts/install-hooks.sh.
+set -uo pipefail
+
+MSG_FILE="${1:-}"
+if [ -z "$MSG_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+    echo "commit-msg: expected a readable message file as the first argument." >&2
+    exit 1
+fi
+
+SUBJECT="$(head -n 1 "$MSG_FILE")"
+MSG="$(cat "$MSG_FILE")"
+FAILED=0
+
+if [ "${#SUBJECT}" -gt 256 ]; then
+    echo "commit-msg: subject is ${#SUBJECT} characters; the limit is 256." >&2
+    FAILED=1
+fi
+
+# Reject attribution to coding assistants and links to their chat sessions.
+# Built as one regex so a single scan covers both commit trailers and prose.
+AI_PATTERN='co-authored-by:.*(claude|codex|openai|anthropic|copilot|opencode|chatgpt|gemini|bard)|generated (with|by) (claude|codex|openai|copilot|opencode)|https?://(claude\.ai|chatgpt\.com)/'
+if printf '%s' "$MSG" | grep -qiE "$AI_PATTERN"; then
+    echo "commit-msg: AI-tool attribution or chat-session URL is not allowed." >&2
+    FAILED=1
+fi
+
+# Emoji detection: Perl handles UTF-8 on every platform; GNU grep -P is the
+# fallback. If neither is available, fail loudly instead of passing silently.
+has_emoji() {
+    local text=$1
+    if command -v perl >/dev/null 2>&1; then
+        printf '%s' "$text" | perl -CSD -ne '$f = 1 if /[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]/; END { exit($f ? 0 : 1) }'
+        return $?
+    fi
+    if printf '%s' 'test' | grep -qP 't' 2>/dev/null; then
+        printf '%s' "$text" | grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]'
+        return $?
+    fi
+    return 2
+}
+
+has_emoji "$MSG"
+EMOJI_STATUS=$?
+if [ "$EMOJI_STATUS" -eq 0 ]; then
+    echo "commit-msg: emojis are not allowed in commit messages." >&2
+    FAILED=1
+elif [ "$EMOJI_STATUS" -eq 2 ]; then
+    echo "commit-msg: emoji check unavailable (install Perl or GNU grep -P)." >&2
+    FAILED=1
+fi
+
+exit "$FAILED"

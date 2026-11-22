@@ -7,6 +7,28 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Opt-in local verification workflow
+
+Added:
+
+- `.githooks/commit-msg` enforces the 256-character subject limit and rejects
+  AI-tool attribution, chat-session URLs and emojis in commit messages.
+- `.githooks/pre-push` runs `scripts/ag-check` and propagates its exit code, so
+  a failed check blocks the push without a silent bypass.
+- `scripts/ag-check` validates the branch descriptor and its closing keyword,
+  `fmt`, `clippy`, `test`, `audit`, `deny`, master-document SHA-256 hashes and
+  prohibited content. Skipped checks are always reported as `SKIP`, never as
+  passed. `--only`, `--skip` and `--list` support targeted runs; command
+  overrides (`AG_*_CMD`) keep the checks testable without a Rust toolchain.
+- `scripts/install-hooks.sh` sets `core.hooksPath` in the local git config only,
+  downloads nothing and prints the removal command. Documented in
+  `CONTRIBUTING.md` (English and Spanish).
+- `tests/hooks/test-hooks.sh`: 34 standalone assertions covering both hooks,
+  descriptor logic, hash and policy checks, command overrides, install/removal
+  and exit-code propagation. No network and no cargo required.
+
+This is a local, opt-in developer aid. It does not modify `.github/` or any
+master document, so no RFC is required.
 
 
 

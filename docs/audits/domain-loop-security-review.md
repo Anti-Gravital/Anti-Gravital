@@ -152,6 +152,12 @@ false at its default. The resulting attachment emits a wildcard CNAME and sets
 by default" contract and is the surface made dangerous by issue #196. Filed
 with reproduction and verification criteria.
 
+Re-check: after dnsapi refactored its worktree, the condition was renamed from
+`plan.is_some()` to `hints.is_some()` but `hints` is still derived solely from
+the `--manifest` path, so the bypass remains. The manifest path was improved
+(wildcards now also require `tls = managed_dns01`), but the no-manifest attach
+path is still ungated; issue #197 remains open.
+
 #### A2 (observation, p3) - partial ownership integration and partial provider writes
 
 `ag dns apply` writes declared records directly through the Cloudflare CRUD

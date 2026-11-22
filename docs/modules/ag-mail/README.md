@@ -115,6 +115,14 @@ Not implemented yet; forward plan, not a capability claim.
   email-sending endpoints (`/emails`, `/emails/batch`, `/domains`,
   `/api-keys`, `/webhooks`, marketing objects), BLAKE3 API keys via `ag-auth`,
   idempotency, batch, scheduling; HMAC-SHA256 signed webhooks.
+
+The precise contract for this surface (endpoints, request/response shapes,
+error model, idempotency, capability-scoped agent access and the exact gate
+condition to start) is specified in
+[`managed-api-dx-design.md`](managed-api-dx-design.md). It is a design
+proposal tracked by issue #152; it makes no capability claim and ships no
+code until the RFC-0009 Mail A gate and the RFC-0024 amendment described
+there are satisfied.
 - Per-tenant egress IP pools with weighted round-robin warm-up; suppression
   lists (hard bounce / complaint / unsubscribe).
 - Deliverability hardening (continuous, Phase 5+): MTA-STS, TLS-RPT, ARC,

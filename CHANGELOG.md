@@ -9,6 +9,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1178,3 +1179,16 @@ Added (documentation only; no code or dependency change):
 - Recommendation: defer the migration until the DSL v1.0 grammar freeze or a
   concrete blocker (advisory, unfixable DX defect or measured bottleneck). No
   parser code, manifests or generated artifacts were changed by this proposal.
+
+### Managed email API DX design (issue #152)
+
+Added (documentation only; no code):
+
+- `docs/modules/ag-mail/managed-api-dx-design.md` fixes the precise managed
+  REST surface before implementation: versioned endpoints and marketing
+  objects, request/response shapes, an RFC 9457 problem+json error model,
+  tenant-scoped idempotency, capability-scoped agent access per RFC-0024,
+  the `ag new -> ag dev` ergonomics guarantee, and the exact gate condition
+  to start. Mail C/D remain design-only; the RFC-0009 Mail A deliverability
+  gate has no external evidence yet and RFC-0024 needs a mail/marketing
+  tool-group amendment. The module sheet now indexes the design.

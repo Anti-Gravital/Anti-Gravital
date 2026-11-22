@@ -1,0 +1,13 @@
+# Example: API family with both optional add-ons enabled.
+# This is the only tree in deploy/k8s that enables HPA and Ingress; the
+# family overlays under ../overlays do not reference them by default.
+# Copy this directory into your own repository to customize it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../overlays/api
+
+components:
+  - ../../optional/hpa
+  - ../../optional/ingress

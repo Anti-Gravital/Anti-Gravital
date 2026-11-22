@@ -127,6 +127,17 @@ de cada nombre depende del cableado del catalogo en la CLI.
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.
 
+### deploy/k8s/
+
+Empaquetado opcional de Kubernetes para las familias de plantillas (web, api,
+realtime, infrastructure y ai). No es un requisito: el camino por defecto
+sigue siendo `ag new`, `cargo run` y `ag dev` (regla 12 de CLAUDE.md y
+ADR-0009). Contiene una raiz de kustomize, una base comun endurecida, un
+overlay por familia, componentes opcionales de HPA e Ingress desactivados
+por defecto, `README.md` con comandos de apply/delete, `SECRETS.md` con el
+patron de inyeccion de secretos sin valores enlinea y `EVIDENCE.md` con la
+verificacion offline real (sin despliegue en cluster).
+
 ## Politica de derivados
 
 Si un derivado contradice un maestro, gana el maestro. Para corregir

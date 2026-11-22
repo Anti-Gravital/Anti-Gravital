@@ -1,0 +1,15 @@
+# Kubernetes packaging entry point for Anti-Gravital template families.
+#
+# This root renders only the family-agnostic base. It exists so the directory
+# is buildable with `kustomize build deploy/k8s` without extra arguments.
+# For a concrete deployment, build one of the overlays instead:
+#   kustomize build deploy/k8s/overlays/web
+#
+# A cluster is optional. Native development (`ag new`, `cargo run`, `ag dev`)
+# remains the default and does not read any file under deploy/k8s.
+# See README.md and SECRETS.md before applying anything.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - base

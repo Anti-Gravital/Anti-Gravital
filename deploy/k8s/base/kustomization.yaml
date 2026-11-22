@@ -1,0 +1,12 @@
+# Family-agnostic hardened base shared by every overlay.
+# It is never applied directly: build an overlay under ../overlays/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: anti-gravital
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

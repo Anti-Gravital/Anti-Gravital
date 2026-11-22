@@ -1,0 +1,12 @@
+# Non-secret configuration only. No credentials belong in this object.
+# The generated templates read BIND at runtime and otherwise default to
+# 127.0.0.1:8080, which is unreachable from a Service inside a pod network.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: template-config
+  labels:
+    app.kubernetes.io/part-of: anti-gravital
+data:
+  BIND: "0.0.0.0:8080"
+  RUST_LOG: "info"

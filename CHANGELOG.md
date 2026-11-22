@@ -7,6 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Lockfile reproducibility audit (wave 10)
+
+Added:
+
+- `docs/audits/lockfile-user-journey.md`: definitive list of the four committed
+  `Cargo.lock` files with SHA-256 hashes and `cargo metadata --locked --offline`
+  results, exact drift-reproduction commands, script-by-script `--locked`
+  coverage, timings and remediation steps. All four locks resolve under
+  `--locked` at commit `72fa9d8`; none is stale.
+- Issue #199 (reported, not fixed): `scripts/run-fuzz-window.sh`,
+  `scripts/run-benchmarks.sh` and the release-build line of `install.sh` omit
+  `--locked` and can silently rewrite a stale committed lockfile, the exact
+  failure mode recorded in wave 9's `fuzz/Cargo.lock` regeneration.
+
+The audit does not change any gate result. Issues #156 and #157 stay open.
+
 ### Fuzz window automation and partial evidence (wave 9, issue #156)
 
 Added:

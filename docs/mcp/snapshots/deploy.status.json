@@ -1,0 +1,1 @@
+{"contract_version":"0.2.0","command":"deploy.status","status":"ok","data":{"generated":true,"target":"docker","plan_id":"dpl-docker-f92da6dd89e90510","project":"demo","files":["deploy/generated/docker/Dockerfile","deploy/generated/docker/compose.yml"],"current_plan_id":"dpl-docker-f92da6dd89e90510","in_sync":true,"sources_available":true}}

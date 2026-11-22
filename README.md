@@ -120,6 +120,9 @@ Works in `v0.1.0-alpha.1`:
   `ag schema lint` and `ag generate`.
 - Build a release binary with `ag build`; inspect and validate config with
   `ag config`.
+- Render authored Docker/Kubernetes artifacts locally with
+  `ag deploy plan --target docker|k8s`, review the plan id and write the files
+  with `ag deploy apply --plan ID` (alpha, local only: no cluster or runtime).
 
 Does not yet work in the alpha:
 
@@ -131,7 +134,8 @@ Does not yet work in the alpha:
 - Do not expose the `ag dev` server on untrusted networks: the CLI default
   bind is loopback, but generated scaffolds hardcode `0.0.0.0:8080` and ignore
   the `BIND` variable (issue #191).
-- No `ag deploy`, `ag migrate` or `ag plugin` (future phases).
+- `ag deploy` only renders local artifacts; cluster deployment with
+  `ag-cloud`, plus `ag migrate` and `ag plugin`, belongs to future phases.
 - No MCP server or shared machine interface: the RFC-0024 prerequisites are
   not met.
 - No production-readiness claim: the pre-Phase-5 gate is open and the
@@ -182,10 +186,11 @@ capabilities above.
 
 Be aware of these boundaries before adopting the project:
 
-- **No deployment story.** `ag deploy`, secrets, logs and rollback arrive
+- **No cluster deployment.** `ag deploy` (RFC-0033) only copies authored
+  Docker/Kubernetes artifacts into `deploy/generated/`; it runs no container
+  and makes no API call. Secrets, live deployment, logs and rollback arrive
   with `ag-cloud` in Phase 5. `ag migrate` (Phase 7) and `ag plugin`
-  (Phase 9) are also future commands; the current binary does not include
-  them.
+  (Phase 9) are also future commands.
 - **No package-manager install.** Nothing is published to crates.io yet;
   you build from source with the audited installer scripts.
 - **No stable-API promise.** Public APIs can still change until Phase 10
@@ -336,16 +341,21 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag workers queues` | Show queue depths on the durable backend |
 | `ag workers dlq list\|inspect\|retry\|purge` | Inspect and manage the dead-letter queue |
 | `ag workers doctor` | Check workers config and durable-backend connectivity |
+| `ag deploy plan --target docker\|k8s` | Print a deterministic, read-only plan (file list, sizes, fingerprints and plan id) from authored artifacts (alpha, local only) |
+| `ag deploy apply --plan ID` | Write that exact plan under `deploy/generated/`; refuses malformed or stale plan ids |
+| `ag deploy status` | Report generated files and whether the applied plan is still current |
 
 The global `--output json` flag produces versioned machine-readable output for
-the read-only commands `ag schema lint`, `ag schema diff` and `ag workers list`
-(contract `0.1.0`, documented in [docs/mcp/](docs/mcp/)). Other commands refuse
-it before doing any work; prose output is unchanged when the flag is absent.
+the read-only commands `ag schema lint`, `ag schema diff`, `ag workers list`,
+`ag deploy plan` and `ag deploy status` (contract `0.2.0`, documented in
+[docs/mcp/](docs/mcp/)). Other commands, including `ag deploy apply`, refuse it
+before doing any work; prose output is unchanged when the flag is absent.
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.
-`ag deploy`, `ag migrate` and `ag plugin` are future commands and are not in
-the current binary. Detailed workflows: [`ag-cli` guide](crates/ag-cli/README.md)
-and [domain CLI reference](docs/ag-domains/reference/cli.md).
+`ag deploy` renders local artifacts only (RFC-0033); `ag migrate` and
+`ag plugin` are future commands and are not in the current binary. Detailed
+workflows: [`ag-cli` guide](crates/ag-cli/README.md) and
+[domain CLI reference](docs/ag-domains/reference/cli.md).
 
 ### Architecture
 
@@ -665,6 +675,10 @@ Funciona en `v0.1.0-alpha.1`:
   `ag schema lint` y `ag generate`.
 - Compilar un binario de release con `ag build`; inspeccionar y validar la
   configuracion con `ag config`.
+- Renderizar artefactos Docker/Kubernetes autorizados localmente con
+  `ag deploy plan --target docker|k8s`, revisar el id del plan y escribir los
+  archivos con `ag deploy apply --plan ID` (alpha, solo local: sin cluster ni
+  runtime).
 
 Aun no funciona en el alpha:
 
@@ -676,7 +690,8 @@ Aun no funciona en el alpha:
 - No expongas el servidor de `ag dev` a redes no confiables: el default de la
   CLI es loopback, pero los templates generados fijan `0.0.0.0:8080` e ignoran
   la variable `BIND` (issue #191).
-- No existen `ag deploy`, `ag migrate` ni `ag plugin` (fases futuras).
+- `ag deploy` solo renderiza artefactos locales; el despliegue en cluster con
+  `ag-cloud`, ademas de `ag migrate` y `ag plugin`, pertenece a fases futuras.
 - No hay servidor MCP ni interfaz de maquina compartida: no se cumplen los
   prerequisitos de RFC-0024.
 - No hay afirmacion de listo para produccion: la puerta pre-Fase 5 esta
@@ -732,9 +747,11 @@ usar las capacidades anteriores.
 
 Limites a tener en cuenta antes de adoptar el proyecto:
 
-- **Sin historia de despliegue.** `ag deploy`, secretos, logs y rollback
-  llegan con `ag-cloud` en la Fase 5. `ag migrate` (Fase 7) y `ag plugin`
-  (Fase 9) tambien son comandos futuros; el binario actual no los incluye.
+- **Sin despliegue en cluster.** `ag deploy` (RFC-0033) solo copia artefactos
+  Docker/Kubernetes autorizados a `deploy/generated/`; no ejecuta contenedores
+  ni hace llamadas API. Secretos, despliegue real, logs y rollback llegan con
+  `ag-cloud` en la Fase 5. `ag migrate` (Fase 7) y `ag plugin` (Fase 9)
+  tambien son comandos futuros.
 - **Sin instalacion via gestor de paquetes.** Nada esta publicado en
   crates.io todavia; se compila desde el fuente con los instaladores
   auditables.
@@ -888,16 +905,21 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag workers queues` | Mostrar profundidad de colas en el backend durable |
 | `ag workers dlq list\|inspect\|retry\|purge` | Inspeccionar y gestionar la dead-letter queue |
 | `ag workers doctor` | Verificar configuracion de workers y conectividad del backend durable |
+| `ag deploy plan --target docker\|k8s` | Imprimir un plan determinista de solo lectura (archivos, tamanos, huellas e id) a partir de los artefactos autorizados (alpha, solo local) |
+| `ag deploy apply --plan ID` | Escribir ese plan exacto en `deploy/generated/`; rechaza ids mal formados o obsoletos |
+| `ag deploy status` | Informar de los archivos generados y de si el plan aplicado sigue vigente |
 
 El flag global `--output json` produce salida versionada legible por maquinas
-para los comandos de solo lectura `ag schema lint`, `ag schema diff` y
-`ag workers list` (contrato `0.1.0`, documentado en [docs/mcp/](docs/mcp/)).
-Los demas comandos lo rechazan antes de actuar; la salida en prosa no cambia
+para los comandos de solo lectura `ag schema lint`, `ag schema diff`,
+`ag workers list`, `ag deploy plan` y `ag deploy status` (contrato `0.2.0`,
+documentado en [docs/mcp/](docs/mcp/)). Los demas comandos, incluido
+`ag deploy apply`, lo rechazan antes de actuar; la salida en prosa no cambia
 cuando el flag esta ausente.
 
 Ejecuta `ag COMANDO --help` para los flags y variables de entorno
-autoritativos. `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y
-no estan en el binario actual. Flujos detallados:
+autoritativos. `ag deploy` solo renderiza artefactos locales (RFC-0033);
+`ag migrate` y `ag plugin` son comandos futuros y no estan en el binario
+actual. Flujos detallados:
 [guia de `ag-cli`](crates/ag-cli/README.md) y
 [referencia CLI de dominios](docs/ag-domains/reference/cli.md).
 

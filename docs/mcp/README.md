@@ -5,16 +5,19 @@ This directory holds the versioned contract data for machine consumers of the
 
 | File | Purpose |
 | --- | --- |
-| `cli-json-contract-0.1.0.md` | Human-readable versioned CLI JSON contract. |
-| `cli-json-0.1.0.schema.json` | JSON Schema (draft 2020-12) for `--output json`. |
+| `cli-json-contract-0.2.0.md` | Current human-readable versioned CLI JSON contract. |
+| `cli-json-0.2.0.schema.json` | Current JSON Schema (draft 2020-12) for `--output json`. |
+| `cli-json-contract-0.1.0.md`, `cli-json-0.1.0.schema.json` | Historical 0.1.0 record. |
 | `snapshots/` | Golden outputs asserted by `crates/ag-cli/tests/json_output.rs`. |
 
 ## Current state
 
-RFC-0021 stage E is being implemented incrementally. This directory currently
-covers only `ag --output json` for three read-only commands: `schema.lint`,
-`schema.diff` and `workers.list`. The contract version is `0.1.0` and is
-unstable until Anti-Gravital 0.5.
+RFC-0021 stage E is being implemented incrementally. This directory covers
+`ag --output json` for five read-only commands: `schema.lint`, `schema.diff`,
+`workers.list`, `deploy.plan` and `deploy.status`. The contract version is
+`0.2.0` and is unstable until Anti-Gravital 0.5. The two `deploy.*` shapes are
+local artifact rendering only (RFC-0033); the mutating `ag deploy apply`
+deliberately has no JSON shape.
 
 The following RFC-0024 section 9 prerequisites are **not** satisfied by this
 contract alone and remain tracked in `docs/audits/mcp-readiness-review.md`:

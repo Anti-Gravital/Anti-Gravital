@@ -33,13 +33,21 @@ mod tui;
 use clap::{CommandFactory, Parser};
 use cli::*;
 use commands::config::*;
+use commands::deploy::*;
 use commands::domains::*;
 use commands::mail::*;
 use commands::project::*;
 use commands::schema::*;
 use commands::workers::*;
 use output::{OutputFormat, CONTRACT_VERSION};
+use std::path::PathBuf;
 use std::process;
+
+/// Project root for local commands. The current directory is a project root;
+/// no path is taken from an environment variable or from a plan id.
+fn project_root() -> PathBuf {
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+}
 
 /// Runs a read-only command in JSON mode and returns its exit code.
 ///
@@ -53,7 +61,8 @@ fn run_json_command(command: &Commands) -> i32 {
             "unsupported_command",
             format!(
                 "--output json is not supported by this command in contract version \
-                 {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, workers.list"
+                 {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, \
+                 workers.list, deploy.plan, deploy.status"
             ),
         );
         return 2;
@@ -88,6 +97,36 @@ fn run_json_command(command: &Commands) -> i32 {
         Commands::Workers {
             command: WorkersCommands::List { schema },
         } => match workers_report(schema) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Deploy {
+            command: DeployCommands::Plan { target },
+        } => {
+            let Some(target) = DeployTarget::parse(target) else {
+                output::emit_error(name, "read_failed", "invalid deployment target");
+                return 1;
+            };
+            match plan_report(&project_root(), target) {
+                Ok(data) => {
+                    output::emit(name, data);
+                    0
+                }
+                Err(message) => {
+                    output::emit_error(name, "read_failed", message);
+                    1
+                }
+            }
+        }
+        Commands::Deploy {
+            command: DeployCommands::Status,
+        } => match status_report(&project_root()) {
             Ok(data) => {
                 output::emit(name, data);
                 0
@@ -331,6 +370,20 @@ fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
             };
             result.map_err(CliError::Failed)
         }
+        Commands::Deploy { command } => match command {
+            DeployCommands::Plan { target } => {
+                let Some(target) = DeployTarget::parse(&target) else {
+                    return Err(CliError::Usage("invalid deployment target".to_owned()));
+                };
+                cmd_deploy_plan(&project_root(), target)
+            }
+            DeployCommands::Apply { plan } => cmd_deploy_apply(&project_root(), &plan),
+            DeployCommands::Status => cmd_deploy_status(&project_root()),
+        }
+        .map_err(|error| match error {
+            DeployError::Usage(message) => CliError::Usage(message),
+            DeployError::Failed(message) => CliError::Failed(message),
+        }),
     }
 }
 
@@ -350,10 +403,9 @@ mod tests {
             root_commands,
             [
                 "new", "dev", "build", "config", "generate", "schema", "domains", "mail",
-                "workers",
+                "workers", "deploy",
             ]
         );
-        assert!(!root_commands.contains(&"deploy"));
         assert!(!root_commands.contains(&"migrate"));
         assert!(!root_commands.contains(&"plugin"));
 

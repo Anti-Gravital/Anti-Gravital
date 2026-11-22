@@ -1,1 +1,1 @@
-{"contract_version":"0.1.0","command":"schema.lint","status":"error","error":{"code":"read_failed","message":"schema file not found: 'missing.ag'"}}
+{"contract_version":"0.2.0","command":"schema.lint","status":"error","error":{"code":"read_failed","message":"schema file not found: 'missing.ag'"}}

@@ -1,1 +1,1 @@
-{"contract_version":"0.1.0","command":"schema.lint","status":"ok","data":{"schema":"schema.ag","result":"clean","error_count":0,"warning_count":0,"diagnostics":[]}}
+{"contract_version":"0.2.0","command":"schema.lint","status":"ok","data":{"schema":"schema.ag","result":"clean","error_count":0,"warning_count":0,"diagnostics":[]}}

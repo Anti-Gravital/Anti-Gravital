@@ -18,6 +18,15 @@
 > prerequisite 1 (`--plan` / `--apply`, audit sink), prerequisite 2 (`Secret<T>`)
 > and prerequisite 3 (typed requests for all groups) remain open. No MCP code is
 > authorised yet.
+>
+> **Implementation update (2026-11-21, wave 7).** The `deploy.*` contradiction
+> rows in sections 1-3 describe the historical snapshot. `ag deploy
+> plan|apply|status` now exists as a local artifact renderer under `RFC-0033`,
+> with an explicit plan id and an append-only local audit file. It does not
+> expose an MCP tool, does not contact a cluster and does not satisfy the
+> remaining prerequisites; prerequisite 5 is honoured by using the plan/apply
+> pair consistently. The read JSON contract is now `0.2.0` and adds
+> `deploy.plan` and `deploy.status` read shapes only.
 
 ## 1. Verdict
 

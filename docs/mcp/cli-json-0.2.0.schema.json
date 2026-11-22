@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anti-gravital.dev/mcp/cli-json-0.2.0.schema.json",
+  "title": "Anti-Gravital CLI versioned JSON output",
+  "description": "Shape of `ag --output json` for read-only commands. RFC-0021 section 4.3. Pre-0.5 contract: unstable, any shape change bumps contract_version. Version 0.2.0 adds the deploy.plan and deploy.status read shapes (RFC-0033).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "command", "status"],
+  "properties": {
+    "contract_version": { "const": "0.2.0" },
+    "command": { "enum": ["schema.lint", "schema.diff", "workers.list", "deploy.plan", "deploy.status", "unknown"] },
+    "status": { "enum": ["ok", "error"] },
+    "data": {
+      "oneOf": [
+        { "$ref": "#/$defs/schemaLintData" },
+        { "$ref": "#/$defs/schemaDiffData" },
+        { "$ref": "#/$defs/workersListData" },
+        { "$ref": "#/$defs/deployPlanData" },
+        { "$ref": "#/$defs/deployStatusData" }
+      ]
+    },
+    "error": { "$ref": "#/$defs/errorBody" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "ok" } } },
+      "then": { "required": ["data"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "error" } } },
+      "then": { "required": ["error"] }
+    }
+  ],
+  "$defs": {
+    "errorBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "enum": ["unsupported_command", "read_failed"]
+        },
+        "message": { "type": "string" }
+      }
+    },
+    "diagnosticView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "message", "hint", "span_start", "span_end"],
+      "properties": {
+        "severity": { "enum": ["error", "warning"] },
+        "message": { "type": "string" },
+        "hint": { "type": ["string", "null"] },
+        "span_start": { "type": "integer", "minimum": 0 },
+        "span_end": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "schemaLintData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "result", "error_count", "warning_count", "diagnostics"],
+      "properties": {
+        "schema": { "type": "string", "minLength": 1 },
+        "result": { "enum": ["clean", "warnings", "errors"] },
+        "error_count": { "type": "integer", "minimum": 0 },
+        "warning_count": { "type": "integer", "minimum": 0 },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnosticView" }
+        }
+      }
+    },
+    "schemaChangeView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "message"],
+      "properties": {
+        "severity": { "enum": ["breaking", "additive"] },
+        "message": { "type": "string" }
+      }
+    },
+    "schemaDiffData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "schema", "changes"],
+      "properties": {
+        "reference": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 },
+        "changes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/schemaChangeView" }
+        }
+      }
+    },
+    "workerView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "queue", "mode", "concurrency", "input", "retry_max_attempts"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "queue": { "type": "string", "minLength": 1 },
+        "mode": { "type": "string", "minLength": 1 },
+        "concurrency": { "type": ["integer", "null"], "minimum": 0 },
+        "input": { "type": "array", "items": { "type": "string" } },
+        "retry_max_attempts": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "workersListData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "workers"],
+      "properties": {
+        "schema": { "type": "string", "minLength": 1 },
+        "workers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workerView" }
+        }
+      }
+    },
+    "deployFileView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "source", "bytes", "fingerprint"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{16}$" }
+      }
+    },
+    "deployPlanData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "project", "plan_id", "files"],
+      "properties": {
+        "target": { "enum": ["docker", "k8s"] },
+        "project": { "type": "string", "minLength": 1 },
+        "plan_id": { "type": "string", "pattern": "^dpl-(docker|k8s)-[0-9a-f]{16}$" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/deployFileView" }
+        }
+      }
+    },
+    "deployStatusData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generated", "target", "plan_id", "project", "files", "current_plan_id", "in_sync", "sources_available"],
+      "properties": {
+        "generated": { "type": "boolean" },
+        "target": { "type": ["string", "null"], "enum": ["docker", "k8s", null] },
+        "plan_id": { "type": ["string", "null"] },
+        "project": { "type": ["string", "null"] },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "current_plan_id": { "type": ["string", "null"] },
+        "in_sync": { "type": "boolean" },
+        "sources_available": { "type": "boolean" }
+      }
+    }
+  }
+}

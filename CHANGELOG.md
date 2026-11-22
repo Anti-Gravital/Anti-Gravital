@@ -38,6 +38,32 @@ Verification: `cargo audit` reported 1 vulnerability (RUSTSEC-2026-0592),
 and `cargo tree -i url` showed it as a direct dependency of `ag-core` and
 `ag-auth`. Parent child counts are unchanged (#76: 15/1; #142: 26/5).
 
+### Wave 9 roadmap decision matrix (architect)
+
+Added:
+
+- `docs/audits/wave9-roadmap-decisions.md`: decision matrix for Phase 4.7,
+  Phase 4.8, the pre-Phase 5 gate, RFC-0018/0019/0020/0021/0024 and all 14
+  open issues plus #198, opened by `trackers` during the wave. For each
+  deliverable it records the current state, the exact evidence needed to check
+  the box, the wave-9 role that can provide it, and the decision
+  (advance-edit, keep-partial, blocked or no-change). Includes eight prepared
+  edits and a coordinator evidence-command list. No box is checked: at the
+  base snapshot no peer branch had merged commits, and the declared wave-9
+  work only advances partial bullets.
+- A planning commentary note in `docs/roadmap/STATUS.md` (no checkbox changed).
+
+Changed:
+
+- No master, code, fuzz, benchmark or CLI file was modified. Phase 4.7 Stage B,
+  Phase 4.8 Stages A/B/E and the Fuzz 24h, Benchmarks and Open debt gate rows
+  remain partial or pending until the corresponding branches are merged and
+  the listed verification commands pass.
+
+Verification: `git diff --check`, link and content scans on the changed files;
+issue board reconciled with `gh issue list --state open` (14 baseline issues,
+15 after #198 was opened).
+
 ### Edge wildcard matching (issue #196)
 
 Fixed:

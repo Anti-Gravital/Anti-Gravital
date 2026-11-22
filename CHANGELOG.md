@@ -7,6 +7,7 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+
 ### CI verification for the ag-observe OTLP feature (issue #149, RFC-0028)
 
 Added:
@@ -28,11 +29,6 @@ Purpose:
   `cargo audit` (4 allowed warnings) and `cargo deny --all-features check`.
   A fresh target-dir build with `PROTOC=/nonexistent/protoc` also passed,
   confirming no protobuf compiler is needed.
-
-
-
-
-
 
 ### Committee decisions (RFC-0025, RFC-0027, issue #152)
 
@@ -1404,3 +1400,20 @@ Open (issue #178 stays open with `Refs`):
   fail `cargo deny`.
 - Real mailbox / Mail A gate: outbound port 25 is blocked, so the live MX
   test and Authentication-Results check remain manual.
+
+### Design proposal: oauth2 replacement, unblock for chrono removal (issue #185)
+
+Added (documentation only; no code, no manifest change, no phase change):
+
+- `RFC-0029` evaluates concrete replacements for `oauth2 5.0.0`, whose
+  non-optional chrono dependency blocks issue #185 and RFC-0026. Evidence:
+  crates.io still reports 5.0.0 as newest; upstream 5.1.0 on `main` also
+  depends on chrono; PR #355 is open and unmerged because chrono is in the
+  public API.
+- The RFC recommends a small native Authorization Code + PKCE client in
+  `ag-auth` using dependencies already present (base64ct, sha2, getrandom,
+  url, reqwest). It records the token endpoint, PKCE S256, CSRF state and
+  refresh compatibility contract, plus golden tests and rollback.
+- The RFC index gains the missing RFC-0026 row and the new RFC-0029 row.
+- Issue #185 remains open and is referenced with `Refs #185`; the deny ignore
+  is unchanged until every chrono edge is gone.

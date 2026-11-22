@@ -93,3 +93,5 @@ como `superseded`.
 | 0025 | ORM tipado, RLS y multi-tenancy generados desde el DSL para ag-data (Fase 5+) | propuesta, solo diseno; no implementada | `RFC-0025-ag-data-orm-rls.md` |
 | 0027 | chumsky 0.9 a 0.13/0.14 para el parser de Anti-DSL (enmienda de RFC-0003) | propuesta | `RFC-0027-chumsky-parser-upgrade.md` |
 | 0028 | Verificacion en CI del feature opt-in `otlp` de ag-observe | aceptada | `RFC-0028-otlp-feature-ci-verification.md` |
+| 0026 | Sustitucion de chrono: evaluacion y plan de migracion bloqueado | propuesta, bloqueada por la decision OAuth2 de RFC-0029 | `RFC-0026-chrono-replacement.md` |
+| 0029 | Sustituir oauth2 5.0.0 por un cliente nativo de Authorization Code + PKCE en ag-auth | propuesta | `RFC-0029-oauth2-chrono-unblock.md` |

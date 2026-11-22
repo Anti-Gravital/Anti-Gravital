@@ -7,6 +7,7 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+
 ### Design proposal: signed release manifest and trust anchor (issue #141)
 
 Added (documentation only; no code, no key, no release assets, no phase change):
@@ -21,7 +22,6 @@ Added (documentation only; no code, no key, no release assets, no phase change):
   `docs/security/INSTALLATION_INTEGRITY.md` state honestly that no key or
   signed artifact exists yet and that the issue stays open.
 - Refs #141. The RFC is a draft: it advances the issue but does not close it.
-
 
 ### CI verification for the ag-observe OTLP feature (issue #149, RFC-0028)
 
@@ -1432,3 +1432,18 @@ Added (documentation only; no code, no manifest change, no phase change):
 - The RFC index gains the missing RFC-0026 row and the new RFC-0029 row.
 - Issue #185 remains open and is referenced with `Refs #185`; the deny ignore
   is unchanged until every chrono edge is gone.
+
+### Independent DKIM verifier for ag-mail (issue #178)
+
+Added:
+
+- `tools/dkim_verify.py` and an ignored `ag-mail` test that verify both the
+  recorded 0.9 signature vector and a freshly produced 0.15 signature with
+  dkimpy, an implementation outside the `mail-auth` lineage. No Cargo
+  dependency was added; dkimpy (BSD-like) and PyNaCl (Apache-2.0) are
+  on-demand test tooling.
+- `docs/security/DKIM_INDEPENDENT_VERIFICATION.md` with the exact install and
+  verification commands, recorded `dkim=pass` output, the vector locations
+  and the reason the cross-version test alone is not independent evidence.
+  The manual real-mailbox gate of #178 remains blocked (port 25), so the
+  issue stays open.

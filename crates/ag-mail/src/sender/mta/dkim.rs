@@ -416,4 +416,59 @@ Xi6iNG5RqHMCBtI7A0uu8w==
             "new DKIM signature must verify"
         );
     }
+
+    // ---- independent verification with dkimpy -------------------------------
+    //
+    // The cross-version test above is migration regression coverage: both
+    // versions share canonicalization, hashing and header-writing lineage
+    // with the signer, so it is not independent evidence. This test runs an
+    // external implementation (dkimpy) over the embedded 0.9 vector and a
+    // fresh 0.15 signature. It is #[ignore] because dkimpy is not a Cargo
+    // dependency; the exact invocation and recorded output are in
+    // docs/security/DKIM_INDEPENDENT_VERIFICATION.md.
+    #[test]
+    #[ignore = "requires external dkimpy + pynacl; see docs/security/DKIM_INDEPENDENT_VERIFICATION.md"]
+    fn dkim_signatures_verify_with_dkimpy() {
+        use std::{
+            path::Path,
+            process::{Command, Stdio},
+        };
+
+        let cfg = DkimConfig::ed25519("send.example", "sel", KA_ED25519_PKCS8_DER.to_vec());
+        let fresh = cfg
+            .sign(KA_MESSAGE)
+            .expect("new stack signs the fixed vector");
+
+        let mut old = KA_SIGNATURE_0_9.as_bytes().to_vec();
+        old.extend_from_slice(KA_MESSAGE);
+
+        let dir = std::env::temp_dir().join(format!("ag-mail-dkim-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temporary directory");
+        let old_path = dir.join("old-0-9.eml");
+        let fresh_path = dir.join("fresh-0-15.eml");
+        std::fs::write(&old_path, &old).expect("write old vector");
+        std::fs::write(&fresh_path, &fresh).expect("write fresh signature");
+
+        let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/dkim_verify.py");
+        assert!(
+            script.exists(),
+            "dkimpy verifier script missing: {}",
+            script.display()
+        );
+
+        let output = Command::new("python3")
+            .arg(&script)
+            .arg(&old_path)
+            .arg(&fresh_path)
+            .stdin(Stdio::null())
+            .output()
+            .expect("run dkimpy verifier");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        println!("{stdout}");
+        assert!(
+            output.status.success(),
+            "dkimpy rejected a signature: {stdout}{stderr}"
+        );
+    }
 }

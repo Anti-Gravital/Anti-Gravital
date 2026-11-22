@@ -9,6 +9,7 @@ aun no etiquetados.
 
 
 
+
 ### CLI help and domain guide fixes (issues #200, #201, #202)
 
 Fixed:
@@ -2638,6 +2639,26 @@ Observed:
   terminal fallback help. It is already tracked as issue #200, so a
   corroborating observation was added there; no duplicate issue was opened and
   no issue was closed.
+
+### Wave 10 real-terminal scaffold journey (issue #205)
+
+Added:
+
+- `docs/audits/scaffold-user-journey.md`: exact commands, exit codes, elapsed
+  times and verbatim outputs for the full non-interactive path using a freshly
+  built `ag`: version, `new` for four templates (including layered with
+  `--with`), offline `cargo check` for each generated project, `schema lint`,
+  `generate`, `ag build`, `ag dev` and a live `curl` 200 response. Includes
+  host, Rust, commit and target-dir metadata plus five findings. All CLI
+  operations completed in under 0.12 s; cold dependency compilation dominated
+  (145.749 s check, 228.197 s release build).
+- `docs/pr-drafts/community10-scaffold.md`: PR descriptor for this branch.
+
+Reported:
+
+- Issue #205: the README still documents the fixed and CLOSED issue #191 as
+  present, claiming generated scaffolds hardcode `0.0.0.0:8080` and ignore
+  `BIND`. The English and Spanish sections are both stale. No issue was closed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

@@ -11,6 +11,7 @@ aun no etiquetados.
 
 
 
+
 ### Environment and visibility rules for the domain loop (wave 8)
 
 Added:
@@ -2229,6 +2230,30 @@ dev, staging, prod and private plans, `kubectl kustomize` output was
 byte-identical, `cargo run --offline` plus three `curl --resolve` checks and
 `docker compose config` passed. No DNS record, cluster apply, `/etc/hosts`
 edit or Docker build was performed; those remain explicit SKIPs.
+
+### Offline domain-loop validation (wave 8)
+
+Added:
+
+- `scripts/validate-domain-loop.sh`: a reproducible harness that builds a
+  fresh three-environment domain fixture (dev/staging/prod, private/private/
+  public), runs every `ag dns` step inside a `bwrap --unshare-net` sandbox with
+  a local hosts-file mock, and checks plan ids and record sets, apply gates,
+  offline status, versioned JSON for reads, refusal of JSON on mutations,
+  visibility rendering and absence of credential values in output. A `--self-test`
+  mode exercises the harness against a bundled fake binary and is never counted
+  as product evidence.
+- `docs/audits/domain-loop-validation.md`: real evidence with tool versions,
+  commit, exact commands and verbatim PASS/FAIL/SKIP output. The baseline run
+  against a binary without `ag dns` reported 7 FAILs (missing commands are
+  FAIL, never SKIP); the authoritative run after the dnsapi implementation
+  reported 12 PASS, 0 FAIL, 0 SKIP.
+
+Notes: no provider, cluster, daemon or external network was used; sentinel
+credentials were injected and never appeared in output. A contract divergence
+between the envrules YAML manifest and the dnsapi TOML manifest is recorded as
+an integration item for the coordinator, not fixed by editing another role's
+files.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

@@ -39,8 +39,12 @@ git diff --check
 # escaneos de contenido prohibido y emojis sobre los archivos tocados
 ```
 
-Resultados registrados en `docs/benchmarks/raw/<fecha>-informative/` y en las
-notas de la ola. Ningun numero de este host se publica como objetivo de diseno.
+Resultado real: `bash -n` y `--help` correctos; `--reference` rechazo este host
+con exit 3 y sin artefactos (6 checks fallidos); la carrera corta termino con
+exit 0 en el commit `8ef5792` con arbol limpio. Evidencia en
+`docs/benchmarks/gatebench-informative-2026-11-22.md` y
+`docs/benchmarks/raw/2026-11-22-informative/`. Ningun numero de este host se
+publica como objetivo de diseno.
 
 ## Criterios de salida que avanza
 
@@ -53,6 +57,7 @@ notas de la ola. Ningun numero de este host se publica como objetivo de diseno.
 ## Cierre de issues
 
 Refs #157
+Closes: none
 
 ## Checklist
 

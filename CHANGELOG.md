@@ -7,6 +7,21 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Installer user journey evidence (wave 10)
+
+Added:
+
+- `docs/audits/install-user-journey.md`: real terminal evidence for the
+  documented `bash install.sh` source path and the opt-in `alpha` channel
+  against a local `file://` fake release. Records exact commands, verbatim
+  stdout/stderr, exit codes, timings, installed files, `ag --version`, and
+  fail-closed cases for invalid checksums, missing entries, missing binaries,
+  missing base URL, unknown channel and tampered out-of-band manifests.
+- Issues #203, #204 and #206 opened for reproducible findings from the journey:
+  stale alpha version in the installation manual; hardcoded `~/.cargo/bin` path
+  in source-channel messages; two full release builds (21 min 22 s measured)
+  with no time expectation. No issue was closed.
+
 ### Fuzz window automation and partial evidence (wave 9, issue #156)
 
 Added:

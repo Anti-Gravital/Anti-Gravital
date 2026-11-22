@@ -127,6 +127,46 @@ On a non-reference development host a refusal is expected and is **not** Stage 6
 evidence. A real example (i7-1255U notebook, 2026-11-22) is recorded in
 `docs/benchmarks/gatebench-informative-2026-11-22.md`.
 
+### 1.4 Real dry-run refusal on a non-reference host
+
+Recorded 2026-11-22 from the clean worktree of branch `community12/i157` at
+commit `c622f7d`, which introduced this runbook and the `--dry-run` flag:
+
+```sh
+AG_QUIET_HOST_ATTESTED=yes REPORTER=gatebench ./scripts/run-benchmarks.sh --dry-run
+```
+
+Verbatim output:
+
+```text
+PASS  arch                   x86_64
+FAIL  cpu_allowlist          12th Gen Intel(R) Core(TM) i7-1255U
+FAIL  physical_cores         10
+PASS  ram_capacity           30Gi
+FAIL  ram_type               DDR4
+PASS  kernel                 7.0.0-44-generic
+FAIL  cpu_governor           powersave
+FAIL  load_tool              none unknown
+PASS  tooling                python3 + /usr/bin/time
+PASS  rustc_pinned           rustc 1.99.1 (58cf8f9c3 2026-10-13) (pin 1.99.1)
+PASS  clean_tree             0 dirty files
+PASS  quiet_attestation      yes
+ERROR: 5 reference-profile check(s) failed; refusing to label this run as reference.
+No numbers were produced. See docs/benchmarks/reference-host.md.
+exit=3
+```
+
+Result: exit 3, five profile failures, no plan, no numbers, no artifacts.
+`git status --porcelain` printed nothing before and after, and the default
+`docs/benchmarks/raw/2026-11-22-reference` directory was not created. A bare
+`--dry-run` on the same worktree additionally reported `FAIL quiet_attestation no`
+and exited 3.
+
+This is a preflight refusal only. It is not Stage 6 evidence and does not move
+the release gate. The plan-printing code path was exercised separately with a
+stubbed validation harness in a temporary copy outside the repository (host
+check bypassed); that stub is not a host pass and is not evidence either.
+
 ## 2. Run the reference suite
 
 One command; do not interrupt it and keep the host otherwise idle:

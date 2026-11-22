@@ -1,4 +1,4 @@
-# RFC-0033 - Local deployment artifact rendering (`ag deploy`)
+# RFC-0034 - Local deployment artifact rendering (`ag deploy`)
 
 - Status: proposed for the local renderer; authorized for implementation by the
   wave 7 community coordination. This decision does NOT approve the Phase 5

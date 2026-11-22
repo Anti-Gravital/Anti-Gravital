@@ -1,4 +1,4 @@
-//! End-to-end tests for the local `ag deploy` capability (RFC-0033).
+//! End-to-end tests for the local `ag deploy` capability (RFC-0034).
 //!
 //! Every test runs the real `ag` binary in a scratch project. No Docker daemon,
 //! Kubernetes cluster, registry or network service is needed or contacted.

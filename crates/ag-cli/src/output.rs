@@ -109,7 +109,7 @@ pub(crate) struct WorkersListData {
     pub(crate) workers: Vec<WorkerView>,
 }
 
-/// One artifact summary in a `deploy.plan` result (RFC-0033).
+/// One artifact summary in a `deploy.plan` result (RFC-0034).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct DeployFileView {
     /// Destination under `deploy/generated/`.

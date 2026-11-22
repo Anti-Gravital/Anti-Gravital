@@ -21,7 +21,7 @@
 >
 > **Implementation update (2026-11-21, wave 7).** The `deploy.*` contradiction
 > rows in sections 1-3 describe the historical snapshot. `ag deploy
-> plan|apply|status` now exists as a local artifact renderer under `RFC-0033`,
+> plan|apply|status` now exists as a local artifact renderer under `RFC-0034`,
 > with an explicit plan id and an append-only local audit file. It does not
 > expose an MCP tool, does not contact a cluster and does not satisfy the
 > remaining prerequisites; prerequisite 5 is honoured by using the plan/apply

@@ -2152,7 +2152,7 @@ reviewed locally. No provider, cluster or network was used.
 Added:
 
 - `ag deploy plan --target docker|k8s`, `ag deploy apply --plan ID` and
-  `ag deploy status` (RFC-0033). A capability-scoped local renderer copies
+  `ag deploy status` (RFC-0034). A capability-scoped local renderer copies
   authored files from `deploy/docker/` or `deploy/k8s/` into
   `deploy/generated/` verbatim. It never starts a container runtime, contacts
   a cluster, registry or network service, and never fabricates a manifest.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://anti-gravital.dev/mcp/cli-json-0.2.0.schema.json",
   "title": "Anti-Gravital CLI versioned JSON output",
-  "description": "Shape of `ag --output json` for read-only commands. RFC-0021 section 4.3. Pre-0.5 contract: unstable, any shape change bumps contract_version. Version 0.2.0 adds the deploy.plan and deploy.status read shapes (RFC-0033).",
+  "description": "Shape of `ag --output json` for read-only commands. RFC-0021 section 4.3. Pre-0.5 contract: unstable, any shape change bumps contract_version. Version 0.2.0 adds the deploy.plan and deploy.status read shapes (RFC-0034).",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "command", "status"],

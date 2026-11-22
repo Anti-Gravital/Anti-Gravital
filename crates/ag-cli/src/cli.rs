@@ -170,7 +170,7 @@ pub(crate) enum Commands {
     },
 
     /// Renders deployment artifacts locally from authored Docker or Kubernetes
-    /// files (RFC-0033). Plan first, apply with the returned plan id. Never
+    /// files (RFC-0034). Plan first, apply with the returned plan id. Never
     /// contacts a cluster, container runtime, registry or network service;
     /// this is not the Phase 5 cloud deploy.
     Deploy {
@@ -327,7 +327,7 @@ pub(crate) enum DlqCommands {
     },
 }
 
-/// Sub-commands of `ag deploy` (RFC-0033).
+/// Sub-commands of `ag deploy` (RFC-0034).
 #[derive(Subcommand)]
 pub(crate) enum DeployCommands {
     /// Inspects the project and prints a deterministic rendering plan.

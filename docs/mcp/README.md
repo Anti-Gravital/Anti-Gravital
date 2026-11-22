@@ -16,7 +16,7 @@ RFC-0021 stage E is being implemented incrementally. This directory covers
 `ag --output json` for five read-only commands: `schema.lint`, `schema.diff`,
 `workers.list`, `deploy.plan` and `deploy.status`. The contract version is
 `0.2.0` and is unstable until Anti-Gravital 0.5. The two `deploy.*` shapes are
-local artifact rendering only (RFC-0033); the mutating `ag deploy apply`
+local artifact rendering only (RFC-0034); the mutating `ag deploy apply`
 deliberately has no JSON shape.
 
 The following RFC-0024 section 9 prerequisites are **not** satisfied by this

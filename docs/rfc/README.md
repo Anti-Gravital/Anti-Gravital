@@ -96,5 +96,5 @@ como `superseded`.
 | 0030 | Signed release manifest and trust anchor (diseno; no cierra #141) | propuesta; no aceptada | `RFC-0030-signed-release-manifest-and-trust-anchor.md` |
 | 0031 | Actualizacion del runner macOS en CI (issue #186) | aceptada | `RFC-0031-macos-runner-refresh.md` |
 | 0032 | Alpha release process: version `0.1.0-alpha.1`, cuatro targets, checksums sin firma (no cierra #141) | aceptada (BDFL, periodo de comentarios dispensado) | `RFC-0032-alpha-release-process.md` |
-| 0033 | Domain-to-deploy loop: contrato de dominio, entorno y visibilidad para hacer reachable un proyecto generado (ola 8, solo diseno) | propuesta | `RFC-0033-domain-to-deploy-loop.md` |
-| 0033 | Renderizado local de artefactos de despliegue con `ag deploy plan\|apply\|status` | propuesta; alcance local autorizado en wave 7, NO autoriza el deploy cloud de Fase 5 | `RFC-0033-local-deploy-artifact-rendering.md` |
+| 0033 | Domain-to-deploy loop: contrato de dominio, entorno y visibilidad para hacer reachable un proyecto generado (ola 8, solo diseno) | propuesta | `RFC-0034-domain-to-deploy-loop.md` |
+| 0033 | Renderizado local de artefactos de despliegue con `ag deploy plan\|apply\|status` | propuesta; alcance local autorizado en wave 7, NO autoriza el deploy cloud de Fase 5 | `RFC-0034-local-deploy-artifact-rendering.md` |

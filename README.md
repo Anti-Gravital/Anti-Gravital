@@ -186,7 +186,7 @@ capabilities above.
 
 Be aware of these boundaries before adopting the project:
 
-- **No cluster deployment.** `ag deploy` (RFC-0033) only copies authored
+- **No cluster deployment.** `ag deploy` (RFC-0034) only copies authored
   Docker/Kubernetes artifacts into `deploy/generated/`; it runs no container
   and makes no API call. Secrets, live deployment, logs and rollback arrive
   with `ag-cloud` in Phase 5. `ag migrate` (Phase 7) and `ag plugin`
@@ -352,7 +352,7 @@ the read-only commands `ag schema lint`, `ag schema diff`, `ag workers list`,
 before doing any work; prose output is unchanged when the flag is absent.
 
 Run `ag COMMAND --help` for authoritative flags and environment variables.
-`ag deploy` renders local artifacts only (RFC-0033); `ag migrate` and
+`ag deploy` renders local artifacts only (RFC-0034); `ag migrate` and
 `ag plugin` are future commands and are not in the current binary. Detailed
 workflows: [`ag-cli` guide](crates/ag-cli/README.md) and
 [domain CLI reference](docs/ag-domains/reference/cli.md).
@@ -747,7 +747,7 @@ usar las capacidades anteriores.
 
 Limites a tener en cuenta antes de adoptar el proyecto:
 
-- **Sin despliegue en cluster.** `ag deploy` (RFC-0033) solo copia artefactos
+- **Sin despliegue en cluster.** `ag deploy` (RFC-0034) solo copia artefactos
   Docker/Kubernetes autorizados a `deploy/generated/`; no ejecuta contenedores
   ni hace llamadas API. Secretos, despliegue real, logs y rollback llegan con
   `ag-cloud` en la Fase 5. `ag migrate` (Fase 7) y `ag plugin` (Fase 9)
@@ -917,7 +917,7 @@ documentado en [docs/mcp/](docs/mcp/)). Los demas comandos, incluido
 cuando el flag esta ausente.
 
 Ejecuta `ag COMANDO --help` para los flags y variables de entorno
-autoritativos. `ag deploy` solo renderiza artefactos locales (RFC-0033);
+autoritativos. `ag deploy` solo renderiza artefactos locales (RFC-0034);
 `ag migrate` y `ag plugin` son comandos futuros y no estan en el binario
 actual. Flujos detallados:
 [guia de `ag-cli`](crates/ag-cli/README.md) y

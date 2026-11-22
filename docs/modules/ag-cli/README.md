@@ -37,7 +37,7 @@ Implemented through Phase 4.7. Nine top-level commands (plus bare `ag`):
 | `ag domains ...` | 4.5 / `RFC-0011` | `check`, `sync`, `attach`, `instructions`, `export-zone`, `status`, `list`, `verify`, `detach`, `diagnose` |
 | `ag mail test` | 4.5 | Send a test message |
 | `ag workers ...` | 4.6 / `RFC-0012`, `RFC-0017` | `list`, and the operational group behind the default `workers-runtime` feature (`run`, `enqueue`, `queues`, `dlq`, `doctor`) |
-| `ag deploy plan\|apply\|status` | wave 7 / `RFC-0033` | Local, plan-first renderer of authored Docker/Kubernetes artifacts into `deploy/generated/`. No cluster, runtime or network access; not the Phase 5 cloud deploy |
+| `ag deploy plan\|apply\|status` | wave 7 / `RFC-0034` | Local, plan-first renderer of authored Docker/Kubernetes artifacts into `deploy/generated/`. No cluster, runtime or network access; not the Phase 5 cloud deploy |
 
 The public command tree is pinned by the test
 `command_tree_matches_the_documented_public_surface` in
@@ -47,7 +47,7 @@ The public command tree is pinned by the test
 
 `ag rollback`, `ag migrate` and `ag plugin` do not exist. They arrive with
 their roadmap phases (5, 7 and 9) and each requires an approved RFC first.
-`ag deploy` exists only as the local artifact renderer of `RFC-0033`; the
+`ag deploy` exists only as the local artifact renderer of `RFC-0034`; the
 Phase 5 cloud deploy with registry push and cluster apply is still not
 implemented.
 

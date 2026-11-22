@@ -3,7 +3,7 @@
 //! Capability: copy already-authored Docker and Kubernetes artifacts from a
 //! project into `deploy/generated/`. This module deliberately has no network,
 //! container-runtime or cluster dependency: it never starts a subprocess and
-//! never opens a socket (RFC-0033). Sources are discovered without following
+//! never opens a socket (RFC-0034). Sources are discovered without following
 //! symlinks; writes go through a `cap_std::fs::Dir` rooted at
 //! `deploy/generated/`, so neither artifacts, state nor audit lines can be
 //! redirected outside the project by a hostile symlink (RFC-0013).
@@ -143,7 +143,7 @@ struct CargoPackage {
 }
 
 /// FNV-1a 64-bit. Used as a deterministic identity and drift detector only
-/// (RFC-0033 section 5.4); it is not a cryptographic signature.
+/// (RFC-0034 section 5.4); it is not a cryptographic signature.
 fn fnv1a(bytes: &[u8]) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;
     for byte in bytes {

@@ -5,7 +5,7 @@
   mirrored in `crates/ag-cli/src/output.rs` (`CONTRACT_VERSION`).
 - Machine schema: `docs/mcp/cli-json-0.2.0.schema.json`.
 - Governing documents: RFC-0021 section 4.3, RFC-0024 section 4.2 and section 9,
-  RFC-0033 (local `ag deploy`), ADR-0008 (English canonical), ADR-0011 (no
+  RFC-0034 (local `ag deploy`), ADR-0008 (English canonical), ADR-0011 (no
   third-party brand names).
 - Supersedes `cli-json-contract-0.1.0.md`, kept as a historical record.
 
@@ -122,7 +122,7 @@ fields are `null`, `files` is empty and `in_sync` is `false`. `sources_available
 reports whether the current source set can be read; `in_sync` is true only
 when the recorded plan id equals the plan id recomputed from current sources.
 Both plan and status make no network, cluster or container-runtime call
-(RFC-0033).
+(RFC-0034).
 
 ### 3.6 Refusal
 
@@ -154,5 +154,5 @@ have accepted them (RFC-0020 redaction, RFC-0024 section 4.1.5).
 No MCP server, transport, capability manifest, tool registry, agent protocol
 code, audit sink for other mutating commands or cluster deployment is
 implemented here. This is only the versioned read-output substrate plus the
-local renderer of RFC-0021 stage E and RFC-0033. See RFC-0024 section 9 for the
+local renderer of RFC-0021 stage E and RFC-0034. See RFC-0024 section 9 for the
 remaining prerequisites.

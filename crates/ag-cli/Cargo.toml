@@ -41,7 +41,7 @@ ag-domains = { path = "../ag-domains", version = "0.1.0-alpha.1", features = ["p
 ag-mail = { path = "../ag-mail", version = "0.1.0-alpha.1", features = ["smtp"] }
 ag-workers = { path = "../ag-workers", version = "0.1.0-alpha.1", optional = true, features = ["postgres"] }
 # Symlink-safe writes for `ag deploy apply` (RFC-0013 capability confinement,
-# RFC-0033 section 5.1). Already a workspace dependency of ag-storage.
+# RFC-0034 section 5.1). Already a workspace dependency of ag-storage.
 cap-std = { workspace = true }
 clap = { workspace = true }
 # Terminal UI (layout, widgets, test backend) with its crossterm backend, which

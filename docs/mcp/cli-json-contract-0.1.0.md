@@ -2,7 +2,7 @@
 
 > Historical record. The current version is `0.2.0`
 > (`cli-json-contract-0.2.0.md`), which adds the `deploy.plan` and
-> `deploy.status` read shapes of RFC-0033. Every command shape below is still
+> `deploy.status` read shapes of RFC-0034. Every command shape below is still
 > emitted by 0.2.0 with only `contract_version` updated.
 
 - Status: unstable (pre-0.5). Versioned from 0.5 per the RFC-0021 risk table.

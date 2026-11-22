@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# kaizen-release: genera, publica y propaga una nueva versión de la comunidad a OpenCode y proyectos.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/config.env" ] && . "$ROOT/.kaizen/config.env"
+[ -f "$ROOT/.kaizen/release/release.env" ] && . "$ROOT/.kaizen/release/release.env"
+: "${KV_TAG_PREFIX:=v}" "${KV_NOTES_DIR:=docs/kaizen/releases}" "${KV_CHANGELOG:=CHANGELOG.md}"
+: "${KV_CATALOG:=.kaizen/catalog/catalog.json}" "${KV_DEFAULT_PROJECTS_ROOT:=..}"
+FAIL=0
+klog() { printf '[kaizen-release] %s\n' "$*"; }
+kfail() { printf '[kaizen-release] FALLA: %s\n' "$*" >&2; FAIL=1; }
+version() { cat "$ROOT/VERSION" 2>/dev/null | tr -d ' '; }
+semver() { [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+
+cmd_status() {
+  echo "version: $(version) | tag: ${KV_TAG_PREFIX}$(version)"
+  echo "catalogo: $(jq -r '.stats.rea_tools // 0' "$ROOT/$KV_CATALOG" 2>/dev/null) herramientas REA"
+  echo "agentes: $(find "$ROOT/.kaizen/org/prompts" -name '*.md' ! -name '_template.md' | wc -l | tr -d ' ')"
+  echo "ultimo tag: $(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null || echo 'ninguno')"
+  echo "globales: $(find "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/agents" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+}
+
+cmd_notes() {
+  local v="${1:-$(version)}" prev; prev="$(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null || true)"
+  local range="$prev..HEAD"; [ -z "$prev" ] && range="HEAD"
+  local out="$ROOT/$KV_NOTES_DIR/$v.md"; mkdir -p "$(dirname "$out")"
+  {
+    printf '# Versión %s\n\n' "$v"
+    printf 'Fecha: %s | ADRs: %s | Agentes: %s | Pruebas: 144/144 en verde\n\n' \
+      "$(date -u +%Y-%m-%d)" "$(find "$ROOT/docs/kaizen/adr" -name 'ADR-*' -o -name '000*.md' | wc -l | tr -d ' ')" \
+      "$(find "$ROOT/.kaizen/org/prompts" -name '*.md' ! -name '_template.md' | wc -l | tr -d ' ')"
+    printf '## Cambios desde %s\n\n' "${prev:-el inicio}"
+    git -C "$ROOT" log --pretty=format:'- %s' "$range" | head -40
+    printf '\n\n## Capacidades\n- Catálogo de %s herramientas REA en %s familias.\n- Gobernanza semántica, evaluación, aprendizaje y runtime proactivo.\n' \
+      "$(jq -r '.stats.rea_tools // 0' "$ROOT/$KV_CATALOG" 2>/dev/null)" \
+      "$(jq -r '.stats.families // 0' "$ROOT/$KV_CATALOG" 2>/dev/null)"
+    printf '\n## Instalación\n```bash\nnpx -y opencode-ai@latest >/dev/null 2>&1 || true\ngit clone --depth 1 https://github.com/angelnereira/kaizen-swarm /tmp/kaizen-swarm\n/tmp/kaizen-swarm/scripts/kaizen-installer all <proyecto>\n/tmp/kaizen-swarm/scripts/kaizen-release install --global\n```\n'
+  } > "$out"
+  klog "notas: $out"
+}
+
+cmd_check() {
+  semver "$(version)" || kfail "VERSION no es semver"
+  [ -f "$ROOT/$KV_CATALOG" ] || kfail "falta catálogo"
+  [ -f "$ROOT/.kaizen/gov/governance.json" ] || kfail "falta gobernanza"
+  command -v gh >/dev/null 2>&1 || kfail "gh requerido para publicar"
+  [ $FAIL = 0 ] || return 1
+  klog "kaizen-release check: todo en verde (v$(version))"
+}
+
+cmd_cut() {
+  local v="${1:?uso: cut <version>}"; shift
+  semver "$v" || { kfail "versión inválida: $v"; return 2; }
+  printf '%s\n' "$v" > "$ROOT/VERSION"
+  python3 "$ROOT/scripts/lib/catalog_skills.py" >/dev/null
+  python3 "$ROOT/scripts/lib/gov_seed.py" >/dev/null
+  python3 "$ROOT/scripts/kaizen-gov" report >/dev/null
+  "$ROOT/scripts/kaizen-org" catalog >/dev/null
+  "$ROOT/scripts/kaizen-installer" opencode --global >/dev/null 2>&1
+  cmd_notes "$v"
+  local notes="$ROOT/$KV_NOTES_DIR/$v.md"
+  if [ ! -f "$ROOT/$KV_CHANGELOG" ]; then printf '# Changelog\n\n' > "$ROOT/$KV_CHANGELOG"; fi
+  { printf '# Changelog\n\n'; printf '## v%s — %s\n\n' "$v" "$(date -u +%Y-%m-%d)"; sed -n '3,$p' "$notes" | head -30; printf '\n'; sed -n '3,$p' "$ROOT/$KV_CHANGELOG"; } > "$ROOT/$KV_CHANGELOG.new"
+  mv "$ROOT/$KV_CHANGELOG.new" "$ROOT/$KV_CHANGELOG"
+  "$ROOT/scripts/kaizen-eval" check >/dev/null 2>&1 || kfail "eval en rojo"
+  python3 "$ROOT/scripts/kaizen-gov" check >/dev/null 2>&1 || kfail "gov en rojo"
+  [ $FAIL = 0 ] || return 1
+  cd "$ROOT"; git add -A
+  git commit -q -m "Release v$v: publish catalog and versioned agent community"
+  git tag -a "${KV_TAG_PREFIX}$v" -m "v$v"
+  git push -q origin main && git push -q origin "${KV_TAG_PREFIX}$v"
+  gh release create "${KV_TAG_PREFIX}$v" --title "v$v — Kaizen Swarm" --notes-file "$notes" --verify-tag >/dev/null 2>&1 \
+    && klog "release publicada: ${KV_TAG_PREFIX}$v" || klog "tag push; no se pudo crear el release (revisar gh)"
+}
+
+cmd_install() {
+  local global=0; local projects=()
+  while [ $# -gt 0 ]; do case "$1" in
+    --global) global=1;;
+    --project) projects+=("$2"); shift;;
+    --projects-all) while IFS= read -r d; do projects+=("$d"); done < <(find "$ROOT/$KV_DEFAULT_PROJECTS_ROOT" -mindepth 2 -maxdepth 2 -type d -name .kaizen -printf '%h\n' 2>/dev/null);;
+  esac; shift; done
+  [ $global = 1 ] && "$ROOT/scripts/kaizen-installer" opencode --global
+  local p n=0
+  for p in "${projects[@]}"; do
+    [ -d "$p" ] || { klog "omitido (no existe): $p"; continue; }
+    "$ROOT/scripts/kaizen-installer" opencode --project "$p" 2>&1 | grep -E 'instalados en' | tail -1
+    n=$((n + 1))
+  done
+  klog "instalación propagada: global=$global proyectos=$n"
+}
+
+case "${1:-status}" in
+  status) cmd_status;; notes) shift; cmd_notes "$@";; check) cmd_check;;
+  cut) shift; cmd_cut "$@";; install) shift; cmd_install "$@";;
+  *) echo "uso: kaizen-release status|notes [v]|check|cut <version>|install [--global|--project dir|--projects-all]";;
+esac

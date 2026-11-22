@@ -48,3 +48,12 @@ Thumbs.db
 *.profdata
 cobertura.xml
 tarpaulin-report.html
+.kaizen/loop/state/
+.kaizen/loop/outbox/
+.kaizen/swarm/issues/
+.env.*
+!example.env
+id_rsa*
+
+__pycache__/
+*.pyc

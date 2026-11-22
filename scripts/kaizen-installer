@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# kaizen-installer: instala la comunidad en un repo y los agentes en OpenCode V2.
+set -uo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+HOME_CFG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/agents"
+TMP=""
+cleanup() { [ -n "$TMP" ] && rm -rf "$TMP"; }
+trap cleanup EXIT
+FAIL=0
+klog() { printf '[kaizen-installer] %s\n' "$*"; }
+kfail() { printf '[kaizen-installer] FALLA: %s\n' "$*" >&2; FAIL=1; }
+
+gen() { # destino
+  local dest="$1" n=0 f b
+  TMP="$(mktemp -d)"
+  ( cd "$ROOT" && python3 scripts/lib/opencode_agents.py "$TMP" ) || { kfail "falló la generación de agentes"; return 1; }
+  mkdir -p "$dest"
+  for f in "$TMP"/*.md; do
+    b="$(basename "$f")"
+    if [ -f "$dest/$b" ] && cmp -s "$f" "$dest/$b"; then continue; fi
+    if [ -f "$dest/$b" ]; then
+      klog "actualizando agente existente: $b"
+    fi
+    cp "$f" "$dest/$b"
+    n=$((n + 1))
+  done
+  printf '%d\n' "$n"
+}
+
+cmd_repo() {
+  local target="${1:?uso: repo <directorio>}"
+  [ -d "$target" ] || { kfail "no existe: $target"; return 2; }
+  git -C "$target" rev-parse --show-toplevel >/dev/null 2>&1 || { kfail "no es repo git: $target"; return 2; }
+  "$ROOT/scripts/bootstrap" "$target"
+  local n; n="$(gen "$target/.opencode/agents")"
+  klog "agentes del proyecto: $n instalados en $target/.opencode/agents"
+}
+
+cmd_opencode() {
+  local mode="global" target=""
+  while [ $# -gt 0 ]; do case "$1" in --global) mode=global;; --project) mode=project; target="$2"; shift;; esac; shift; done
+  local dest="$HOME_CFG"
+  [ "$mode" = project ] && { [ -n "$target" ] || { kfail "falta destino para --project"; return 2; }; dest="$target/.opencode/agents"; }
+  local n; n="$(gen "$dest")"
+  klog "agentes OpenCode ($mode): $n instalados en $dest"
+  klog "no se modificó opencode.json; tus permisos y MCP se conservan."
+}
+
+cmd_status() {
+  echo "framework: $ROOT"
+  echo "agentes definidos: $(find "$ROOT/.kaizen/org/prompts" -name '*.md' ! -name '_template.md' | wc -l | tr -d ' ')"
+  echo "globales: $(find "$HOME_CFG" -name '*.md' 2>/dev/null | wc -l | tr -d ' ') en $HOME_CFG"
+  echo "checks: scripts/kaizen check | kaizen-swarm check | kaizen-org check | kaizen-team check"
+}
+
+cmd_check() {
+  for f in scripts/bootstrap scripts/lib/opencode_agents.py scripts/kaizen-runtime scripts/kaizen-notify scripts/kaizen-inbox scripts/kaizen-start; do
+    [ -f "$ROOT/$f" ] || kfail "falta $f"
+  done
+  python3 -m py_compile "$ROOT/scripts/lib/opencode_agents.py" 2>/dev/null || kfail "opencode_agents.py inválido"
+  bash -n "$ROOT/scripts/kaizen-installer" "$ROOT/scripts/bootstrap" || kfail "sintaxis bash inválida"
+  [ $FAIL = 0 ] || { kfail "kaizen-installer check: FALLO"; return 1; }
+  klog "kaizen-installer check: todo en verde"
+}
+
+case "${1:-help}" in
+  repo) shift; cmd_repo "$@";;
+  opencode) shift; cmd_opencode "$@";;
+  all) shift; t="${1:?uso: all <directorio>}"; cmd_repo "$t"; cmd_opencode --project "$t"; cmd_opencode --global;;
+  status) cmd_status;;
+  check) cmd_check;;
+  *) cat <<'EOF'
+kaizen-installer <comando>
+  repo <directorio>          instala el framework en un repo (bootstrap) + agentes locales
+  opencode --global          instala todos los agentes en ~/.config/opencode/agents
+  opencode --project <dir>   instala los agentes en <dir>/.opencode/agents
+  all <directorio>           repo + agentes locales + agentes globales
+  status | check             estado y validación
+EOF
+  ;;
+esac

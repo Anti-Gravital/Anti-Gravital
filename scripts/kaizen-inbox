@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# kaizen-inbox: arranca/detiene el buzón local de WhatsApp -> equipo.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/team/notify.env" ] && . "$ROOT/.kaizen/team/notify.env"
+: "${KI_PORT:=8787}" "${KI_SHARED_SECRET_VAR:=KAZEN_INBOX_SECRET}" "${KI_INBOX_DIR:=.kaizen/team/inbox}"
+S="$ROOT/.kaizen/team/runtime"; mkdir -p "$S" "$ROOT/$KI_INBOX_DIR"
+CMD="${1:-status}"
+case "$CMD" in
+  start)
+    if [ -f "$S/inbox.pid" ] && kill -0 "$(cat "$S/inbox.pid")" 2>/dev/null; then echo "buzón ya corriendo"; exit 0; fi
+    KAZEN_ROOT="$ROOT" KI_PORT="$KI_PORT" KI_SHARED_SECRET_VAR="$KI_SHARED_SECRET_VAR" KI_INBOX_DIR="$KI_INBOX_DIR" \
+      nohup python3 "$ROOT/scripts/kaizen-inbox.py" >> "$S/inbox.log" 2>&1 &
+    echo $! > "$S/inbox.pid"
+    echo "buzón iniciado en 127.0.0.1:$KI_PORT (PID $(cat "$S/inbox.pid"))"
+    ;;
+  stop)
+    [ -f "$S/inbox.pid" ] && { kill "$(cat "$S/inbox.pid")" 2>/dev/null || true; rm -f "$S/inbox.pid"; echo "buzón detenido"; } || echo "buzón no corriendo"
+    ;;
+  status)
+    if [ -f "$S/inbox.pid" ] && kill -0 "$(cat "$S/inbox.pid")" 2>/dev/null; then echo "buzón: ACTIVO (PID $(cat "$S/inbox.pid")) puerto $KI_PORT"; else echo "buzón: inactivo"; fi
+    echo "pendientes: $(find "$ROOT/$KI_INBOX_DIR" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+    ;;
+  *) echo "uso: kaizen-inbox start|stop|status";;
+esac

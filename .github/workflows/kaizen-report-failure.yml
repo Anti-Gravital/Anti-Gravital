@@ -1,0 +1,44 @@
+name: kaizen-report-failure
+on:
+  workflow_run:
+    workflows: ["kaizen-gates", "kaizen-security", "kaizen-loop", "kaizen-swarm"]
+    types: [completed]
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    if: >
+      (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out') &&
+      (github.event.workflow_run.event == 'schedule' ||
+       github.event.workflow_run.head_branch == github.event.repository.default_branch ||
+       startsWith(github.event.workflow_run.head_branch, 'kaizen/'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Abrir o actualizar el issue del fallo
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NAME: ${{ github.event.workflow_run.name }}
+          URL: ${{ github.event.workflow_run.html_url }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          TITLE="[ci-failure] ${NAME}"
+          [ "$BRANCH" = "$DEFAULT_BRANCH" ] || TITLE="${TITLE} en ${BRANCH}"
+          gh label create ci-failure --force --repo "$REPO" >/dev/null || :
+          gh label create auto-detected --force --repo "$REPO" >/dev/null || :
+          NUM="$(gh issue list --repo "$REPO" --state open --search "\"${TITLE}\" in:title" --json number,title \
+                  | jq -r --arg t "$TITLE" '[.[]|select(.title==$t)][0].number // empty')"
+          MSG="Resultado: ${CONCLUSION}. Ejecucion: ${URL}. Commit: ${SHA}. Un fallo del CI no se ignora."
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --repo "$REPO" --body "Reincidencia. ${MSG}"
+          else
+            gh issue create --repo "$REPO" --title "$TITLE" --label ci-failure --label auto-detected --body "$MSG"
+          fi

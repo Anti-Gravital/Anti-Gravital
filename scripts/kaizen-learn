@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# kaizen-learn: convierte errores, decisiones y correcciones en experiencia reutilizable.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/config.env" ] && . "$ROOT/.kaizen/config.env"
+[ -f "$ROOT/.kaizen/learning/learning.env" ] && . "$ROOT/.kaizen/learning/learning.env"
+: "${KL_DIR:=.kaizen/learning}" "${KL_LESSONS:=$KL_DIR/lessons}" "${KL_EXPERIENCE:=$KL_DIR/experience}"
+: "${KL_MAX_LESSONS:=20}" "${KL_AUTO_RECORD:=1}" "${KL_AUTO_APPLY:=0}" "${KL_MIN_RECURRENCE:=2}"
+L="$ROOT/$KL_LESSONS"; E="$ROOT/$KL_EXPERIENCE"; mkdir -p "$L" "$E"
+FAIL=0
+klog() { printf '[kaizen-learn] %s\n' "$*"; }
+kfail() { printf '[kaizen-learn] FALLA: %s\n' "$*" >&2; FAIL=1; }
+
+fingerprint() { printf '%s' "$1" | cksum | cut -d' ' -f1; }
+
+cmd_record() {
+  local agent="" kind="failure" title="" lesson="" source="" fp=""
+  while [ $# -gt 0 ]; do case "$1" in
+    --agent) agent="$2"; shift;; --kind) kind="$2"; shift;; --title) title="$2"; shift;;
+    --lesson) lesson="$2"; shift;; --source) source="$2"; shift;; --fingerprint) fp="$2"; shift;;
+  esac; shift; done
+  [ -n "$agent" ] && [ -n "$title" ] && [ -n "$lesson" ] || { kfail "agent, title y lesson son obligatorios"; return 2; }
+  [ -f "$ROOT/.kaizen/org/prompts/$agent.md" ] || { kfail "agente desconocido: $agent"; return 2; }
+  [ -n "$fp" ] || fp="$(fingerprint "$agent|$kind|$title")"
+  local d="$L/$agent"; mkdir -p "$d"
+  local existing; existing="$(grep -rl "^fingerprint: $fp\$" "$d" 2>/dev/null | head -1)"
+  if [ -n "$existing" ]; then
+    local n; n="$(sed -n 's/^occurrences: //p' "$existing" | head -1)"; n=$(( ${n:-1} + 1 ))
+    sed -i "s/^occurrences: .*/occurrences: $n/; s/^last_seen: .*/last_seen: $(date -u +%FT%TZ)/" "$existing"
+    printf -- '- Recurrencia %s: %s (%s)\n' "$n" "$(date -u +%FT%TZ)" "$lesson" >> "$existing"
+    klog "lección repetida ($n): $agent / $title"
+    return 0
+  fi
+  local f="$d/$(date -u +%Y-%m-%d)-$(printf '%03d' $(( $(find "$d" -name '*.md' | wc -l) + 1 )))-$kind.md"
+  cat > "$f" <<EOF
+---
+fingerprint: $fp
+agent: $agent
+kind: $kind
+title: $title
+occurrences: 1
+applied: false
+created: $(date -u +%FT%TZ)
+last_seen: $(date -u +%FT%TZ)
+---
+
+# Lección: $title
+
+## Qué pasó
+$title
+
+## Qué aprendimos
+$lesson
+
+## Evidencia / fuente
+${source:-<completar con source_ids o comando reproducible>}
+
+## Acción propuesta
+- [ ] Convertir en regla o verificar en la próxima retro (K-9).
+- [ ] Si se repite ≥ $KL_MIN_RECURRENCE veces, promover a la definición del agente con \`kaizen-learn apply $agent\`.
+EOF
+  klog "lección registrada: $f"
+}
+
+lesson_lines() { # agent -> "- TITLE (xN, kind): lesson"
+  local agent="$1" f t n k
+  for f in "$L/$agent"/*.md; do
+    [ -f "$f" ] || continue
+    t="$(sed -n 's/^title: //p' "$f" | head -1)"
+    n="$(sed -n 's/^occurrences: //p' "$f" | head -1)"
+    k="$(sed -n 's/^kind: //p' "$f" | head -1)"
+    local body; body="$(sed -n '/^## Qué aprendimos$/,/^## /p' "$f" | sed -n '2p')"
+    printf '%s' "- $t (x${n:-1}, $k): $body"
+    printf '\t%s\t%s\n' "${n:-1}" "$(sed -n 's/^fingerprint: //p' "$f" | head -1)"
+  done | sort -t$'\t' -k1,1rn | head -n "$KL_MAX_LESSONS" | cut -f1
+}
+
+cmd_digest() {
+  local target="${1:?uso: digest <agente|all>}" ids=() a out
+  if [ "$target" = all ]; then
+    while IFS= read -r a; do [ -n "$a" ] && ids+=("$(basename "$a")"); done < <(find "$L" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+  else ids=("$target"); fi
+  for a in "${ids[@]}"; do
+    [ -d "$L/$a" ] || { klog "sin lecciones para $a"; continue; }
+    out="$E/$a.md"
+    { printf '# Experiencia acumulada: %s\n\n' "$a"
+      printf 'Generado: %s | Lecciones: %s\n\n' "$(date -u +%FT%TZ)" "$(find "$L/$a" -name '*.md' | wc -l | tr -d ' ')"
+      printf '## Lecciones con mayor recurrencia\n'
+      lesson_lines "$a"
+      printf '\n## Cómo usarla\nAntes de proponer, revisa estas lecciones. Si aplican, cita el fingerprint y evita repetir el error.\n'
+    } > "$out"
+    if [ -x "$ROOT/scripts/kaizen-org" ]; then
+      "$ROOT/scripts/kaizen-org" feed "$a" "$out" --title "Experiencia acumulada de $a" >/dev/null 2>&1 || true
+      "$ROOT/scripts/kaizen-org" digest "$a" >/dev/null 2>&1 || true
+    fi
+    klog "experiencia actualizada: $out"
+  done
+}
+
+cmd_apply() {
+  local agent="${1:?uso: apply <agente>}"; local f="$ROOT/.kaizen/org/prompts/$agent.md"
+  [ -f "$f" ] || return 2
+  local lessons; lessons="$(lesson_lines "$agent" | head -3)"
+  [ -n "$lessons" ] || { klog "sin lecciones para aplicar"; return 0; }
+  python3 - "$f" "$lessons" <<'PY'
+import sys,re
+p, lessons = sys.argv[1], sys.argv[2]
+s=open(p,encoding='utf-8').read()
+block='## Aprendizaje acumulado\n\n' + '\n'.join(lessons.splitlines()) + '\n\n'
+if '## Aprendizaje acumulado' in s:
+    s=re.sub(r'## Aprendizaje acumulado[\s\S]*?(?=\n## |\Z)', block, s, count=1)
+else:
+    s=s.replace('## Reglas heredadas', block+'## Reglas heredadas',1)
+open(p,'w',encoding='utf-8').write(s)
+PY
+  [ -x "$ROOT/scripts/kaizen-org" ] && "$ROOT/scripts/kaizen-org" save "$agent" >/dev/null 2>&1 || true
+  [ -x "$ROOT/scripts/kaizen-eval" ] && python3 "$ROOT/scripts/kaizen-eval" metrics add --agent "$agent" \
+      --decision "LEARN-$(date -u +%Y%m%d)" --cost 0 --minutes 0 --reverted 0 >/dev/null 2>&1 || true
+  find "$L/$agent" -name '*.md' -exec sed -i 's/^applied: false$/applied: true/' {} + 2>/dev/null || true
+  klog "lecciones aplicadas a $agent (versión subida)"
+}
+
+cmd_report() {
+  local out="$ROOT/$KL_DIR/report.md" a
+  { printf '# Aprendizaje acumulado de la comunidad\n\n'
+    printf 'Generado: %s\n\n' "$(date -u +%FT%TZ)"
+    printf '| Agente | Lecciones | Recurrentes (≥%s) | Aplicadas |\n| --- | ---: | ---: | ---: |\n' "$KL_MIN_RECURRENCE"
+    for a in $(find "$L" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort); do
+      local tot rec app; tot=$(find "$L/$a" -name '*.md' | wc -l | tr -d ' ')
+      rec=$(grep -l "^occurrences: [$KL_MIN_RECURRENCE-9]" "$L/$a"/*.md 2>/dev/null | wc -l | tr -d ' ')
+      app=$(grep -l '^applied: true$' "$L/$a"/*.md 2>/dev/null | wc -l | tr -d ' ')
+      printf '| %s | %s | %s | %s |\n' "$a" "$tot" "$rec" "$app"
+    done
+    printf '\nLeyendo más → aprendiendo más: cada fallo, blocker o revert se convierte en lección y luego en regla.\n'
+  } > "$out"
+  klog "reporte: $out"
+}
+
+cmd_check() {
+  [ -f "$ROOT/.kaizen/learning/learning.env" ] || kfail "falta learning.env"
+  [ x"$KL_AUTO_APPLY" = x0 ] || klog "AVISO: auto-apply activo; las definiciones pueden cambiar sin ADR"
+  [ $FAIL = 0 ] || return 1
+  klog "kaizen-learn check: todo en verde"
+}
+
+case "${1:-help}" in
+  record) shift; cmd_record "$@";; digest) shift; cmd_digest "$@";;
+  apply) shift; cmd_apply "$@";; report) cmd_report;;
+  status) echo "lecciones: $(find "$L" -name '*.md' 2>/dev/null | wc -l | tr -d ' ') | experiencias: $(find "$E" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')";;
+  check) cmd_check;;
+  *) cat <<'EOF'
+kaizen-learn <comando>
+  record --agent A --kind failure|blocker|decision|revert|correction --title T --lesson L [--source S]
+  digest <agente|all>     convierte lecciones en conocimiento alimentado al agente
+  apply <agente>          escribe lecciones en su definición y sube versión (requiere ADR)
+  report | status | check
+EOF
+  ;;
+esac

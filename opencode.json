@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".kaizen/RULES.md",
+    ".kaizen/security/SECURITY-RULES.md",
+    ".kaizen/loop/LOOP.md",
+    ".kaizen/swarm/ROLES.md",
+    ".kaizen/swarm/PROTOCOL.md"
+  ],
+  "permission": {
+    "read": {
+      "*.env": "deny",
+      "**/.env": "deny",
+      "**/.env.*": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/id_rsa*": "deny"
+    },
+    "bash": {
+      "git push*": "deny",
+      "gh auth*": "deny",
+      "rm -rf*": "deny",
+      "curl*": "deny",
+      "wget*": "deny",
+      "env": "deny",
+      "printenv": "deny",
+      "scripts/kaizen*": "allow",
+      "bash tests/run.sh": "allow",
+      "git add*": "allow",
+      "git commit*": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow"
+    }
+  }
+}

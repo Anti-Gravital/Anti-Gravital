@@ -1,0 +1,9 @@
+[
+  {
+    "task": "Redactar borrador RFC de protocolo de carga 200/1k/5k y definir sub-issues bajo #157",
+    "owner": "qa",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T17:19:26Z"
+  }
+]

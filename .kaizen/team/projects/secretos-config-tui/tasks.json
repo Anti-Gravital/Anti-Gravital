@@ -1,0 +1,9 @@
+[
+  {
+    "task": "Redactar borrador RFC-0020 PR3 (age, SecretSource, keygen/recipients/set/unset) con KPI y criterios de aceptacion",
+    "owner": "security",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T17:19:26Z"
+  }
+]

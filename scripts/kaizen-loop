@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# kaizen-loop: orquestador externo del ciclo. El agente NO hace push ni abre PR.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT"
+[ -f .kaizen/config.env ] && . .kaizen/config.env
+[ -f .kaizen/loop/loop.env ] && . .kaizen/loop/loop.env
+: "${KL_AGENT:=claude}" "${KL_AUTONOMY:=1}" "${KL_LOOPS:=dev ops sweep}" "${KL_INTERVAL_SEC:=3600}"
+: "${KL_MAX_TURNS:=40}" "${KL_TIMEOUT_SEC:=1800}" "${KL_MAX_RUNS_PER_DAY:=24}" "${KL_MAX_CONSEC_FAILS:=3}"
+: "${KL_LOWRISK_MAX_LINES:=150}" "${KL_SETUP_CMD:=}" "${KL_DRY_RUN:=0}"
+BASE="${KZ_DEFAULT_BRANCH:-main}"; DRAFTS="${KZ_DRAFTS_DIR:-docs/kaizen/pr-drafts}"
+STATE=".kaizen/loop/state"; PAUSE=".kaizen/loop/PAUSE"; mkdir -p "$STATE"
+IN_CI=0; [ "${GITHUB_ACTIONS:-}" = "true" ] && IN_CI=1
+TO=""
+if command -v timeout >/dev/null 2>&1; then TO="timeout $KL_TIMEOUT_SEC"
+elif command -v gtimeout >/dev/null 2>&1; then TO="gtimeout $KL_TIMEOUT_SEC"; fi
+
+log() { echo "$(date -u +%FT%TZ) $*" | tee -a "$STATE/loop.log" >&2; }
+
+is_paused() { [ -e "$PAUSE" ] && return 0; [ $IN_CI = 1 ] && [ "$(gh variable get KAIZEN_PAUSED 2>/dev/null || true)" = "1" ] && return 0; return 1; }
+trip() {
+  touch "$PAUSE"; [ $IN_CI = 1 ] && gh variable set KAIZEN_PAUSED --body 1 >/dev/null 2>&1
+  command -v gh >/dev/null 2>&1 && gh issue create --label needs-human \
+    --title "[kaizen] Loop pausado por fallos consecutivos" \
+    --body "El disyuntor pauso el loop. Revisa $STATE/loop.log y reanuda con scripts/kaizen-loop resume" >/dev/null 2>&1
+  return 0
+}
+consec_fails() {
+  if [ $IN_CI = 1 ]; then
+    gh run list --workflow kaizen-loop.yml --status completed --limit "$KL_MAX_CONSEC_FAILS" \
+      --json conclusion --jq '[.[]|select(.conclusion=="failure")]|length' 2>/dev/null || echo 0
+  else cat "$STATE/fails" 2>/dev/null || echo 0; fi
+}
+add_fail() { [ $IN_CI = 1 ] || echo $(( $(cat "$STATE/fails" 2>/dev/null || echo 0) + 1 )) > "$STATE/fails"; }
+reset_fails() { [ $IN_CI = 1 ] || echo 0 > "$STATE/fails"; }
+
+preflight() {
+  is_paused && { log "PAUSA activa: no se ejecuta"; return 1; }
+  local today runs; today="$(date -u +%Y%m%d)"; runs="$(cat "$STATE/runs-$today" 2>/dev/null || echo 0)"
+  [ "$runs" -ge "$KL_MAX_RUNS_PER_DAY" ] && { log "presupuesto diario agotado ($runs)"; return 1; }
+  if [ "$(consec_fails)" -ge "$KL_MAX_CONSEC_FAILS" ]; then log "DISYUNTOR: fallos consecutivos"; trip; return 1; fi
+  echo $((runs + 1)) > "$STATE/runs-$today"; return 0
+}
+
+classify() {
+  local b="$1" h="$2" loop="${3:-}" f g lines tests=0 low=1 P L T
+  read -ra P <<< "${KL_PROTECTED_GLOBS:-}"; read -ra L <<< "${KL_LOWRISK_GLOBS:-}"; read -ra T <<< "${KL_TEST_GLOBS:-}"
+  lines="$(git diff --numstat "$b" "$h" | awk '{s+=$1+$2} END{print s+0}')"
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    for g in "${P[@]}"; do [[ "$f" == $g ]] && { echo needs-human; return; }; done
+    local isdoc=0 istest=0
+    for g in "${L[@]}"; do [[ "$f" == $g ]] && isdoc=1; done
+    for g in "${T[@]}"; do [[ "$f" == $g ]] && istest=1; done
+    [ $istest = 1 ] && tests=1
+    [ $isdoc = 0 ] && [ $istest = 0 ] && low=0
+  done < <(git diff --name-only "$b" "$h")
+  if [ "$lines" -gt "$KL_LOWRISK_MAX_LINES" ]; then echo review
+  elif [ $low = 1 ]; then echo low-risk
+  elif [ "$KL_AUTONOMY" -ge 3 ] && [ "$loop" = "ops" ] && [ $tests = 1 ]; then echo low-risk
+  else echo review; fi
+}
+
+agent_env() {
+  AENV=(PATH="$PATH" HOME="$HOME" LANG="${LANG:-C.UTF-8}" TERM=dumb CI=1)
+  case "$KL_AGENT" in
+    claude) AENV+=(ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}");;
+    codex) AENV+=(OPENAI_API_KEY="${OPENAI_API_KEY:-}");;
+    agy) AENV+=(GEMINI_API_KEY="${GEMINI_API_KEY:-}" ANTIGRAVITY_API_KEY="${ANTIGRAVITY_API_KEY:-}");;
+  esac
+  local n; for n in ${KL_AGENT_ENV_PASS:-}; do AENV+=("$n=${!n:-}"); done
+}
+
+fail_report() { # loop motivo logfile
+  { printf 'El loop %s fallo (%s) el %s.\n\nUltimas lineas (saneadas):\n' "$1" "$2" "$(date -u +%FT%TZ)"
+    printf '\140\140\140\n'; tail -n 40 "$3" 2>/dev/null; printf '\140\140\140\n'
+  } | KS_HOME="$ROOT" "$ROOT/scripts/kaizen-security" report failure "[kaizen-failure] loop $1: $2" "loop-$1-$2" >/dev/null 2>&1 || true
+}
+
+run_agent() { # $1 workdir $2 prompt (subshell)
+  local wd="$1" p="$2"; cd "$wd" || return 1
+  agent_env
+  case "$KL_AGENT" in
+    claude) env -i "${AENV[@]}" $TO claude -p "$p" --max-turns "$KL_MAX_TURNS" --permission-mode acceptEdits --allowedTools "$KL_CLAUDE_ALLOWED" ;;
+    codex) env -i "${AENV[@]}" $TO codex exec --sandbox workspace-write -C "$wd" "$p" ;;
+    opencode) env -i "${AENV[@]}" $TO opencode run "$p" ;;
+    agy) env -i "${AENV[@]}" $TO agy -p "$p" ;;
+    custom) env -i "${AENV[@]}" KL_PROMPT="$p" $TO bash -c "$KL_CUSTOM_CMD" ;;
+    *) echo "agente desconocido: $KL_AGENT" >&2; return 2 ;;
+  esac
+}
+
+iterate() {
+  local loop="$1" ts br wd url base_sha prompt rc=0 class draft=() title d
+  ts="$(date -u +%Y%m%d-%H%M%S)"; br="kaizen/${loop}-${ts}"; d="$DRAFTS/${br//\//-}.md"
+  prompt="Ejecuta UNA iteracion del loop '$loop' siguiendo docs/kaizen/loop/prompts/$loop.md. Rama: $br. Descriptor: $d. Nivel: $KL_AUTONOMY. Reporta hallazgos en .kaizen/loop/outbox/ (S-11). Sigue .kaizen/security/SECURITY-RULES.md. No hagas push ni abras PR."
+  if [ "$KL_DRY_RUN" = "1" ]; then log "[dry-run] loop=$loop agente=$KL_AGENT rama=$br"; echo "$prompt"; return 0; fi
+  git fetch --quiet origin "$BASE" 2>/dev/null || true
+  url="$(git remote get-url origin 2>/dev/null || echo "$ROOT")"
+  wd="$(mktemp -d "${TMPDIR:-/tmp}/kaizen-${loop}-$(date -u +%s)-$$")"
+  git clone --quiet --local --no-checkout "$ROOT" "$wd" || { log "clon fallo"; fail_report "$loop" "clon-fallo" "$STATE/loop.log"; return 1; }
+  ( cd "$wd" || exit 1
+    git remote set-url origin "$url"
+    if git fetch --quiet origin "$BASE" 2>/dev/null; then git checkout --quiet -b "$br" "origin/$BASE"
+    else git checkout --quiet -b "$br" "$(git -C "$ROOT" rev-parse "$BASE")"; fi
+    [ -x scripts/kaizen ] && scripts/kaizen init >/dev/null 2>&1
+    [ -n "$KL_SETUP_CMD" ] && bash -c "$KL_SETUP_CMD" >"$STATE/setup-$ts.log" 2>&1
+    true ) || { log "preparacion fallo"; fail_report "$loop" "preparacion-fallo" "$STATE/loop.log"; rm -rf "$wd"; return 1; }
+  base_sha="$(git -C "$wd" rev-parse HEAD)"
+  log "iteracion: loop=$loop agente=$KL_AGENT rama=$br"
+  ( run_agent "$wd" "$prompt" ) >"$STATE/agent-$ts.log" 2>&1 || rc=$?
+  cd "$wd" || return 1
+  [ -n "$(git status --porcelain)" ] && { git add -A; git commit -q -m "Kaizen $loop: cambios de la iteracion"; }
+  if [ "$(git rev-list --count "$base_sha..HEAD")" = "0" ]; then
+    log "sin cambios en $loop (rc=$rc)"; cd "$ROOT"; rm -rf "$wd"
+    if [ $rc -eq 0 ]; then reset_fails; return 0; else add_fail; fail_report "$loop" "sin-cambios" "$STATE/agent-$ts.log"; return 1; fi
+  fi
+  class="$(classify "$base_sha" HEAD "$loop")"
+  if [ $rc -ne 0 ] || ! "$ROOT/scripts/kaizen" check >"$STATE/check-$ts.log" 2>&1; then class="failed-gates"; draft=(--draft); fail_report "$loop" "gates-fallaron" "$STATE/check-$ts.log"; fi
+  KS_HOME="$ROOT" "$ROOT/scripts/kaizen-security" outbox publish "$wd/.kaizen/loop/outbox" >/dev/null 2>&1 \
+    || log "algunos reportes no se pudieron publicar (quedan en docs/kaizen/incidents/pending)"
+  if ! KS_HOME="$ROOT" "$ROOT/scripts/kaizen-security" check "$base_sha" HEAD >"$STATE/sec-$ts.log" 2>&1; then
+    log "BLOQUEADO por seguridad: rama descartada sin publicarse"
+    { printf 'Iteracion %s (%s) bloqueada por los rieles de seguridad.\n\n' "$loop" "$br"; tail -n 40 "$STATE/sec-$ts.log"; } \
+      | KS_HOME="$ROOT" "$ROOT/scripts/kaizen-security" report security "[security] Iteracion $loop bloqueada" "sec-$loop-$(date -u +%Y%m%d)" >/dev/null 2>&1 || true
+    cd "$ROOT"; rm -rf "$wd"; add_fail; return 1
+  fi
+  [ "$KL_AUTONOMY" -lt 2 ] && [ "$class" = "low-risk" ] && class="review"
+  git push --quiet origin "$br" || { log "push fallo"; fail_report "$loop" "push-fallo" "$STATE/loop.log"; cd "$ROOT"; add_fail; return 1; }
+  title="$(git log -1 --format=%s)"
+  local body=(--body "Iteracion automatica Kaizen ($loop). Clase: $class.")
+  [ -f "$d" ] && body=(--body-file "$d")
+  if gh pr create --base "$BASE" --head "$br" --title "$title" "${body[@]}" --label kaizen --label "kaizen:$class" "${draft[@]}" >/dev/null 2>&1; then
+    log "PR abierto ($class) rama=$br"
+  else log "no se pudo abrir el PR; rama $br empujada"; fail_report "$loop" "pr-fallo" "$STATE/loop.log"; fi
+  cd "$ROOT"; rm -rf "$wd"
+  if [ "$class" = "failed-gates" ]; then add_fail; return 1; fi
+  reset_fails; return 0
+}
+
+cmd_once() {
+  preflight || return 0
+  local loop="${1:-}" L n
+  if [ -z "$loop" ]; then
+    read -ra L <<< "$KL_LOOPS"; n="${GITHUB_RUN_NUMBER:-$(cat "$STATE/rot" 2>/dev/null || echo 0)}"
+    loop="${L[$((n % ${#L[@]}))]}"; echo $((n + 1)) > "$STATE/rot"
+  fi
+  iterate "$loop"
+}
+cmd_status() {
+  echo "pausa: $([ -e "$PAUSE" ] && echo SI || echo no) | autonomia: $KL_AUTONOMY | agente: $KL_AGENT"
+  echo "fallos consecutivos: $(consec_fails) | ejecuciones hoy: $(cat "$STATE/runs-$(date -u +%Y%m%d)" 2>/dev/null || echo 0)"
+  echo "--- ultimas entradas del diario"; ls -1 docs/kaizen/journal 2>/dev/null | tail -5
+  echo "--- log"; tail -5 "$STATE/loop.log" 2>/dev/null || true
+}
+cmd_init() {
+  command -v gh >/dev/null 2>&1 || { echo "gh no disponible: crea las etiquetas a mano"; return 0; }
+  local l
+  for l in kaizen kaizen:ready kaizen:low-risk kaizen:review kaizen:needs-human kaizen:failed-gates \
+           needs-human auto-detected proposal feedback regression-suspect bug swarm security incident kaizen-failure ci-failure; do
+    gh label create "$l" --force >/dev/null 2>&1 || true
+  done
+  mkdir -p docs/kaizen/journal docs/kaizen/research docs/kaizen/proposals docs/kaizen/loop/prompts docs/kaizen/data/insights
+  echo "etiquetas y carpetas listas"
+}
+case "${1:-help}" in
+  once) shift; cmd_once "$@";;
+  daemon) trap 'log "daemon detenido"; exit 0' INT TERM; while true; do cmd_once || true; sleep $((KL_INTERVAL_SEC + RANDOM % 60)); done;;
+  status) cmd_status;;
+  pause) touch "$PAUSE"; [ $IN_CI = 1 ] && gh variable set KAIZEN_PAUSED --body 1 >/dev/null 2>&1; echo "loop en pausa";;
+  resume) rm -f "$PAUSE" "$STATE/fails"; gh variable set KAIZEN_PAUSED --body 0 >/dev/null 2>&1 || true; echo "loop reanudado";;
+  classify) shift; classify "$@";;
+  init) cmd_init;;
+  *) cat <<'EOF'
+kaizen-loop <comando>
+  once [loop]     una iteracion (rota entre KL_LOOPS)
+  daemon          itera con pausa entre iteraciones
+  status          estado, presupuesto y diario
+  pause|resume    freno manual
+  classify <base> <head> [loop]   clase de riesgo
+  init            etiquetas y carpetas
+Variables: KL_DRY_RUN=1, KL_AGENT, KL_AUTONOMY
+EOF
+  ;;
+esac

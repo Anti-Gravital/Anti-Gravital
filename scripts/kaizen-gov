@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""kaizen-gov: responsabilidades, obligaciones y participación estructural (RACI) de los agentes."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.environ.get("KAZEN_ROOT", os.getcwd())
+GOV = os.path.join(ROOT, ".kaizen/gov/governance.json")
+SYSTEM = {"humano", "kaizen-notify", "kaizen-installer", "kaizen-eval", "kaizen-equipo", "*"}
+CODES = ["R", "A", "C", "I", "V"]
+
+
+def load():
+    if not os.path.exists(GOV):
+        print("sin gobernanza: ejecuta `kaizen-gov regenerate`")
+        sys.exit(1)
+    return json.load(open(GOV, encoding="utf-8"))
+
+
+def expand(roles, agents):
+    out = []
+    for r in roles:
+        if r == "*":
+            out.extend(agents.keys())
+        else:
+            out.append(r)
+    return sorted(set(out))
+
+
+def cmd_check(args):
+    d = load()
+    agents, procs = d.get("agents", {}), d.get("processes", {})
+    errors = []
+    prompts = [os.path.basename(p)[:-3] for p in
+               __import__("glob").glob(os.path.join(ROOT, ".kaizen/org/prompts/*.md"))
+               if not p.endswith("_template.md")]
+    for a in prompts:
+        if a not in agents:
+            errors.append(f"agente sin gobernanza: {a}")
+    for aid, info in agents.items():
+        if len(info.get("responsibilities", [])) < 1:
+            errors.append(f"{aid}: sin responsabilidades")
+        if len(info.get("obligations", [])) < 3:
+            errors.append(f"{aid}: obligaciones insuficientes")
+        if not info.get("participates_in"):
+            errors.append(f"{aid}: sin participación en procesos")
+    for pid, p in procs.items():
+        stages = p.get("stages", {})
+        if not stages:
+            errors.append(f"{pid}: sin etapas")
+        accountable = any("A" in s for s in stages.values())
+        if not accountable:
+            errors.append(f"{pid}: sin responsable (A)")
+        if pid in ("decision", "deployment", "compliance", "budget", "reverse_engineering"):
+            all_a = [x for s in stages.values() for x in s.get("A", [])]
+            if "humano" not in all_a and pid != "decision":
+                errors.append(f"{pid}: decisión sensible sin humano como A")
+        known = set(agents.keys()) | SYSTEM
+        for stage, codes in stages.items():
+            for code in codes:
+                for r in codes[code]:
+                    if r not in known:
+                        errors.append(f"{pid}/{stage}/{code}: rol desconocido {r}")
+    if errors:
+        print("kaizen-gov check: FALLO\n  " + "\n  ".join(errors))
+        return 1
+    print(f"kaizen-gov check: todo en verde ({len(agents)} agentes, {len(procs)} procesos)")
+    return 0
+
+
+def cmd_raci(args):
+    d = load()
+    pid = args[0]
+    p = d["processes"].get(pid)
+    if not p:
+        print("proceso desconocido: " + pid)
+        return 2
+    print(f"# {p['name']} ({pid})")
+    print(f"Puerta: {p['gate']}\n")
+    print(f"{'ETAPA':<14} | {'R (ejecuta)':<40} | {'A (responde)':<24} | {'C (consulta)':<32} | V (veto)")
+    print("-" * 140)
+    for stage, codes in p["stages"].items():
+        fmt = lambda c: ", ".join(expand(codes.get(c, []), d["agents"]))[:38] or "-"
+        print(f"{stage:<14} | {fmt('R'):<40} | {fmt('A'):<24} | {fmt('C'):<32} | {fmt('V')}")
+    return 0
+
+
+def cmd_who(args):
+    d = load()
+    if len(args) < 3:
+        print("uso: kaizen-gov who <proceso> <etapa> <R|A|C|I|V>")
+        return 2
+    pid, stage, code = args[:3]
+    p = d["processes"].get(pid, {}).get("stages", {}).get(stage, {})
+    roles = expand(p.get(code.upper(), []), d["agents"])
+    print(", ".join(roles) if roles else "(nadie)")
+    return 0
+
+
+def cmd_can(args):
+    d = load()
+    if len(args) < 2:
+        print("uso: kaizen-gov can <agente> <approve|recommend|execute|veto|deploy|change|decide|learn>")
+        return 2
+    aid, action = args[:2]
+    info = d["agents"].get(aid)
+    if not info:
+        print("agente desconocido: " + aid)
+        return 2
+    rights = info.get("decision_rights", {})
+    mapping = {
+        "approve": rights.get("approve", False),
+        "recommend": rights.get("recommend", False),
+        "execute": rights.get("execute", False),
+        "veto": rights.get("veto"),
+        "deploy": "deployment" in info.get("participates_in", []),
+        "change": "change" in info.get("participates_in", []),
+        "decide": "decision" in info.get("participates_in", []),
+        "learn": "retro" in info.get("participates_in", []),
+    }
+    if action not in mapping:
+        print("acción desconocida: " + action)
+        return 2
+    val = mapping[action]
+    print(f"{aid} → {action}: {val}")
+    return 0 if val else 1
+
+
+def cmd_obligations(args):
+    d = load()
+    aid = args[0]
+    info = d["agents"].get(aid)
+    if not info:
+        return 2
+    print(f"# {aid} — responsabilidades y obligaciones")
+    print("\n## Responsabilidades")
+    for r in info["responsibilities"]:
+        print("- " + r)
+    print("\n## Obligaciones")
+    for o in info["obligations"]:
+        print("- " + o)
+    print("\n## Participación: " + ", ".join(info["participates_in"]))
+    print("## Derechos: " + json.dumps(info["decision_rights"], ensure_ascii=False))
+    return 0
+
+
+def cmd_report(args):
+    d = load()
+    lines = ["# Gobierno semántico de la comunidad\n",
+             f"Generado desde `.kaizen/gov/governance.json` | {len(d['agents'])} agentes | {len(d['processes'])} procesos\n",
+             f"Autoridad final: **{d['owner']}**\n",
+             "## Leyenda\n", "\n".join(f"- **{k}**: {v}" for k, v in d["legend"].items()),
+             "\n## Obligaciones compartidas\n"]
+    lines += ["- " + o for o in d["shared_obligations"]]
+    lines += ["", "## Procesos\n", "| Proceso | Etapas | Puerta |", "| --- | ---: | --- |"]
+    for pid, p in d["processes"].items():
+        lines.append(f"| `{pid}` — {p['name']} | {len(p['stages'])} | {p['gate']} |")
+    lines += ["", "## Responsables por proceso\n"]
+    for pid, p in d["processes"].items():
+        lines.append(f"### {p['name']} (`{pid}`)")
+        for stage, codes in p["stages"].items():
+            who = ", ".join(f"{c}: " + ", ".join(expand(codes.get(c, []), d["agents"])) for c in CODES if codes.get(c))
+            lines.append(f"- **{stage}** — {who}")
+        lines.append("")
+    path = os.path.join(ROOT, "docs/kaizen/org/GOBIERNO.md")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    print("reporte: docs/kaizen/org/GOBIERNO.md")
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    cmd = args[0] if args else "check"
+    if cmd == "regenerate":
+        return subprocess.call([sys.executable, os.path.join(ROOT, "scripts/lib/gov_seed.py")], env=dict(os.environ, KAZEN_ROOT=ROOT))
+    if cmd == "check":
+        return cmd_check(args[1:])
+    if cmd == "raci":
+        return cmd_raci(args[1:])
+    if cmd == "who":
+        return cmd_who(args[1:])
+    if cmd == "can":
+        return cmd_can(args[1:])
+    if cmd == "obligations":
+        return cmd_obligations(args[1:])
+    if cmd == "report":
+        return cmd_report(args[1:])
+    if cmd == "status":
+        d = load()
+        print(f"agentes={len(d['agents'])} procesos={len(d['processes'])} owner={d['owner']}")
+        return 0
+    print("uso: kaizen-gov check|raci|who|can|obligations|report|status|regenerate")
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

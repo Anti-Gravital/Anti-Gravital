@@ -1,0 +1,58 @@
+name: kaizen-swarm
+# Igual que el loop: requiere decision humana (variable + token + clave del modelo).
+on:
+  issues:
+    types: [labeled, reopened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Numero de issue a coordinar"
+        required: true
+
+concurrency:
+  group: kaizen-swarm-${{ github.event.issue.number || github.event.inputs.issue }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  coordinate:
+    if: vars.KAIZEN_LOOP_ENABLED == '1' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'swarm:ready')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.KAIZEN_TOKEN }}
+      - name: Configurar git
+        env:
+          GH_TOKEN: ${{ secrets.KAIZEN_TOKEN }}
+        run: |
+          gh auth setup-git
+          git config --global user.name "kaizen-bot"
+          git config --global user.email "kaizen-bot@users.noreply.github.com"
+      - name: Verificar instalacion del framework
+        run: scripts/kaizen-swarm check
+      - name: Iniciar sala del issue
+        env:
+          ISSUE: ${{ github.event.issue.number || github.event.inputs.issue }}
+        run: scripts/kaizen-swarm init "$ISSUE"
+      - name: Coordinar rondas y finalizar
+        env:
+          GH_TOKEN: ${{ secrets.KAIZEN_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE: ${{ github.event.issue.number || github.event.inputs.issue }}
+        run: |
+          set -euo pipefail
+          # El buzón y los worktrees son efimeros; las puertas deciden que se publica.
+          scripts/kaizen-swarm reap "$ISSUE"
+          scripts/kaizen-swarm run "$ISSUE" --round 1
+          scripts/kaizen-swarm run "$ISSUE" --round 2
+          scripts/kaizen-swarm run "$ISSUE" --round 3
+          scripts/kaizen-swarm finalize "$ISSUE" --publish

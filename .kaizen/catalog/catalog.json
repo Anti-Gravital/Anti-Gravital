@@ -1,0 +1,494 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-11-22T05:52:38.269114+00:00Z",
+  "source": "REA morluto/rea (MIT) + kaizen-swarm",
+  "stats": {
+    "rea_tools": 263,
+    "providers": 5,
+    "families": 11,
+    "framework_skills": 12
+  },
+  "families": {
+    "android": {
+      "label": "Android / Flutter",
+      "count": 37,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "capture_adb_screen",
+        "collect_adb_bugreport",
+        "decode_android_resources",
+        "identify_flutter_build",
+        "inspect_adb_client",
+        "inspect_adb_device",
+        "inspect_adb_display",
+        "inspect_adb_package",
+        "inspect_adb_window",
+        "inspect_android_class",
+        "inspect_android_jni_bindings",
+        "inspect_android_method",
+        "inspect_android_package",
+        "inspect_apk_signature",
+        "inspect_apktool_client",
+        "inspect_dart_aot",
+        "install_adb_package",
+        "list_adb_devices",
+        "list_adb_directory",
+        "list_adb_features",
+        "list_adb_packages",
+        "list_adb_processes",
+        "list_adb_services",
+        "project_android_application_graph",
+        "project_harmony_application_graph",
+        "pull_adb_file",
+        "pull_adb_package",
+        "push_adb_file",
+        "read_adb_logcat",
+        "read_adb_setting",
+        "resolve_adb_packages",
+        "search_android_classes",
+        "start_adb_activity",
+        "start_adb_app",
+        "stop_adb_app",
+        "trace_android_references",
+        "uninstall_adb_package"
+      ]
+    },
+    "artifacts": {
+      "label": "Artefactos y datos",
+      "count": 11,
+      "providers": [
+        "native-macos",
+        "rea-artifact-graph",
+        "rea-mcp",
+        "sqlite"
+      ],
+      "effects": [
+        "launches_process",
+        "may_write_filesystem"
+      ],
+      "operations": [
+        "extract_artifact",
+        "inspect_artifact",
+        "inspect_asset_catalog",
+        "inspect_keyed_archive",
+        "inspect_model_artifact",
+        "inspect_ntfs_journal",
+        "inspect_plist",
+        "inspect_signature",
+        "inspect_sqlite_database",
+        "inspect_wasm_artifact",
+        "inspect_windows_shortcut"
+      ]
+    },
+    "buildenv": {
+      "label": "Entornos de agente y build computer",
+      "count": 12,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "act_on_build_computer",
+        "build_call_path",
+        "check_build_task",
+        "close_build_computer",
+        "mark_build_checkpoint",
+        "measure_build_task",
+        "read_guidance_section",
+        "record_build_consent",
+        "search_guidance",
+        "start_build_capture",
+        "start_build_computer",
+        "stop_build_capture"
+      ]
+    },
+    "evidence": {
+      "label": "Evidencia, comparación y verificación",
+      "count": 17,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "audit_release_exposure",
+        "build_reconstruction_obligation_ledger",
+        "compare_application_versions",
+        "compare_artifacts",
+        "compare_functions",
+        "compare_process_captures",
+        "compare_static_and_observed_endpoints",
+        "compare_wasm_interfaces",
+        "evaluate_reconstruction_coverage",
+        "export_build_environment",
+        "inspect_native_exports",
+        "inspect_pe_imports",
+        "list_unknowns",
+        "record_unknown",
+        "update_unknown",
+        "verify_reconstruction",
+        "verify_unknown_resolution"
+      ]
+    },
+    "firmware": {
+      "label": "Firmware / kernel / dispositivos",
+      "count": 9,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "decode_signal_recording",
+        "extract_firmware",
+        "extract_uefi_firmware",
+        "inspect_devicetree",
+        "inspect_firmware_regions",
+        "inspect_kernel_build_config",
+        "inspect_signal_decoders",
+        "inspect_uefi_firmware",
+        "inspect_uefi_nvram"
+      ]
+    },
+    "managed": {
+      "label": "Managed / .NET / Swift / ObjC",
+      "count": 19,
+      "providers": [
+        "native-macos",
+        "rea-artifact-graph",
+        "rea-dotnet-static",
+        "rea-mcp"
+      ],
+      "effects": [
+        "launches_process",
+        "may_write_filesystem"
+      ],
+      "operations": [
+        "analyze_swift_types",
+        "compare_managed_members",
+        "decode_interface_builder",
+        "demangle_swift",
+        "get_objc_classes",
+        "get_objc_protocols",
+        "import_managed_reconstruction",
+        "inspect_erlang_beam",
+        "inspect_evm_interface",
+        "inspect_il2cpp_metadata",
+        "inspect_macho",
+        "inspect_managed_artifact",
+        "inspect_managed_members",
+        "inspect_managed_native_boundaries",
+        "inspect_maven_gradle_metadata",
+        "inspect_nuget_nupkg",
+        "inspect_python_pyc",
+        "project_managed_application_graph",
+        "verify_managed_native_boundaries"
+      ]
+    },
+    "native": {
+      "label": "Binarios nativos y funciones",
+      "count": 51,
+      "providers": [
+        "native-macos",
+        "rea-mcp"
+      ],
+      "effects": [
+        "launches_process",
+        "may_access_network",
+        "may_show_ui",
+        "may_write_filesystem"
+      ],
+      "operations": [
+        "address_name",
+        "address_to_file_offset",
+        "analyze_function",
+        "annotate_native_function",
+        "batch_decompile",
+        "binary_overview",
+        "capture_native_ui_scenario",
+        "close_binary",
+        "current_address",
+        "current_procedure",
+        "decompile_all",
+        "decompile_jeb_item",
+        "find_xrefs_to_name",
+        "get_call_graph",
+        "goto_address",
+        "inspect_address_context",
+        "inspect_binary_layout",
+        "inspect_elf_dependencies",
+        "inspect_elf_notes",
+        "inspect_elf_unwind_ranges",
+        "inspect_go_binary",
+        "inspect_native_api",
+        "inspect_native_data_type",
+        "inspect_native_dispatch_metadata",
+        "inspect_native_initializers",
+        "inspect_native_instruction",
+        "inspect_native_load_image",
+        "inspect_pe_certificates",
+        "inspect_pe_load_config",
+        "inspect_pe_resources",
+        "inspect_rust_binary",
+        "inspect_with_objdump",
+        "list_procedures",
+        "match_native_functions",
+        "next_address",
+        "open_binary",
+        "prev_address",
+        "procedure_address",
+        "procedure_assembly",
+        "procedure_callees",
+        "procedure_callers",
+        "procedure_info",
+        "procedure_pseudo_code",
+        "procedure_references",
+        "read_function_instructions",
+        "resolve_containing_procedure",
+        "resolve_native_call_targets",
+        "search_procedures",
+        "set_address_name",
+        "set_addresses_names",
+        "xrefs"
+      ]
+    },
+    "network": {
+      "label": "Red, capturas y señales",
+      "count": 5,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "capture_process_scenario",
+        "inspect_packet_capture",
+        "inspect_packet_fields",
+        "inspect_pcap_capture",
+        "inspect_pcap_client"
+      ]
+    },
+    "other": {
+      "label": "Inspección general",
+      "count": 35,
+      "providers": [
+        "native-macos",
+        "rea-mcp"
+      ],
+      "effects": [
+        "launches_process"
+      ],
+      "operations": [
+        "comment",
+        "correlate_static_and_runtime",
+        "current_document",
+        "find_changed_behavior",
+        "get_navigation_context",
+        "guided_workflows",
+        "inline_comment",
+        "inspect_analysis_settings",
+        "inspect_analysis_view",
+        "inspect_api_contract",
+        "inspect_apple_ips",
+        "inspect_byte_entropy",
+        "inspect_desktop_application",
+        "inspect_dwarf_units",
+        "inspect_gpu_code_objects",
+        "inspect_jeb_client",
+        "inspect_recorded_crash",
+        "list_architectures",
+        "list_bookmarks",
+        "list_documents",
+        "list_jeb_units",
+        "list_names",
+        "list_segments",
+        "list_strings",
+        "open_jeb_project",
+        "project_apple_application_graph",
+        "read_bytes",
+        "reset_investigation",
+        "search_bytes",
+        "search_strings",
+        "set_bookmark",
+        "set_comment",
+        "set_inline_comment",
+        "unset_bookmark",
+        "update_analysis_settings"
+      ]
+    },
+    "runtime": {
+      "label": "Runtime, debug e instrumentación",
+      "count": 30,
+      "providers": [
+        "native-macos",
+        "rea-artifact-graph",
+        "rea-mcp"
+      ],
+      "effects": [
+        "launches_process",
+        "may_access_network",
+        "may_show_ui",
+        "may_write_filesystem"
+      ],
+      "operations": [
+        "binary_session",
+        "close_frida_session",
+        "close_gdb_session",
+        "close_rizin_debug_session",
+        "cutter_command",
+        "execute_rizin_command",
+        "frida_session_status",
+        "gdb_console",
+        "gdb_session_status",
+        "inspect_elf_debug_link",
+        "instrument_with_frida",
+        "list_cutter_sessions",
+        "list_frida_devices",
+        "list_frida_processes",
+        "load_frida_script",
+        "observe_native_calls",
+        "observe_native_ui",
+        "resume_frida_session",
+        "rizin_debug_command",
+        "rizin_debug_session_status",
+        "start_frida_session",
+        "start_gdb_session",
+        "start_rizin_debug_session",
+        "trace_application_feature",
+        "trace_call_path",
+        "trace_dylib_resolution",
+        "trace_feature",
+        "trace_native_ui_action",
+        "trace_native_values",
+        "unload_frida_script"
+      ]
+    },
+    "web": {
+      "label": "Web / JavaScript / Electron",
+      "count": 37,
+      "providers": [
+        "rea-mcp"
+      ],
+      "effects": [],
+      "operations": [
+        "analyze_javascript_application",
+        "analyze_web_bundle",
+        "capture_browser_scenario",
+        "capture_electron_scenario",
+        "capture_web_screenshot",
+        "compare_bundles",
+        "compare_javascript_export_shapes",
+        "compare_source_to_bundle",
+        "compare_web_captures",
+        "compare_web_screenshots",
+        "discover_webmcp_tools",
+        "export_environment_bundle",
+        "export_evidence_bundle",
+        "export_web_scripts",
+        "get_evidence_bundle",
+        "import_evidence_bundle",
+        "inspect_binary_hardening",
+        "inspect_electron_fuses",
+        "inspect_electron_page",
+        "inspect_kernel_module",
+        "inspect_playwright_trace",
+        "inspect_v8_code_cache",
+        "inspect_web_event_listeners",
+        "inspect_web_network_capture",
+        "inspect_web_page",
+        "list_browser_targets",
+        "list_electron_targets",
+        "list_javascript_runtime_targets",
+        "observe_javascript_runtime",
+        "observe_web_execution",
+        "observe_web_session",
+        "open_bundle_resources",
+        "reconcile_javascript_runtime",
+        "recover_javascript_sources",
+        "trace_javascript_semantics",
+        "trace_web_module_imports",
+        "trace_web_source_location"
+      ]
+    }
+  },
+  "framework_skills": [
+    {
+      "id": "kaizen",
+      "purpose": "Gobernanza, ratchet, PDCA y evidencia",
+      "location": "scripts/kaizen",
+      "owner": "todos"
+    },
+    {
+      "id": "kaizen-security",
+      "purpose": "Secretos, supresiones y SAST",
+      "location": "scripts/kaizen-security",
+      "owner": "seguridad"
+    },
+    {
+      "id": "kaizen-swarm",
+      "purpose": "Comunidad por issue, worktrees y leases",
+      "location": "scripts/kaizen-swarm",
+      "owner": "equipo"
+    },
+    {
+      "id": "kaizen-org",
+      "purpose": "Inventario de agentes, conocimiento y outsourcing",
+      "location": "scripts/kaizen-org",
+      "owner": "equipo"
+    },
+    {
+      "id": "kaizen-team",
+      "purpose": "Escuadras, standups y decisiones",
+      "location": "scripts/kaizen-team",
+      "owner": "equipo"
+    },
+    {
+      "id": "kaizen-eval",
+      "purpose": "Evaluación y ratchet de agentes",
+      "location": "scripts/kaizen-eval",
+      "owner": "calidad"
+    },
+    {
+      "id": "kaizen-learn",
+      "purpose": "Aprendizaje a partir de errores",
+      "location": "scripts/kaizen-learn",
+      "owner": "calidad"
+    },
+    {
+      "id": "kaizen-gov",
+      "purpose": "RACI, obligaciones y derechos",
+      "location": "scripts/kaizen-gov",
+      "owner": "gobernanza"
+    },
+    {
+      "id": "kaizen-runtime",
+      "purpose": "Runtime proactivo y equipos",
+      "location": "scripts/kaizen-runtime",
+      "owner": "operación"
+    },
+    {
+      "id": "kaizen-installer",
+      "purpose": "Instalación en repos y OpenCode",
+      "location": "scripts/kaizen-installer",
+      "owner": "distribución"
+    },
+    {
+      "id": "kaizen-notify / kaizen-inbox",
+      "purpose": "WhatsApp/n8n y correo",
+      "location": "scripts/kaizen-notify",
+      "owner": "comunicación"
+    },
+    {
+      "id": "reverse-engineer-anything",
+      "purpose": "Skill REA de investigación guiada",
+      "location": "~/.agents/skills/reverse-engineer-anything",
+      "owner": "rea-specialist"
+    }
+  ],
+  "self_improvement": [
+    "kaizen-eval mide la definición",
+    "kaizen-learn convierte errores en experiencia",
+    "kaizen-org copy/save especializa agentes",
+    "kaizen-release publica y propaga versiones"
+  ]
+}

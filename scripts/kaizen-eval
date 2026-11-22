@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""kaizen-eval: evaluación de agentes, métricas de decisión y ratchet de calidad.
+
+Uso: kaizen-eval check | baseline [--force] | ratchet | metrics add ... | report | status | all
+"""
+import datetime
+import glob
+import json
+import os
+import re
+import sys
+
+ROOT = os.environ.get("KAZEN_ROOT", os.getcwd())
+
+
+def cfg():
+    conf = {}
+    path = os.path.join(ROOT, ".kaizen/evals/eval.env")
+    if os.path.exists(path):
+        for line in open(path, encoding="utf-8"):
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                conf[k] = v.strip().strip('"')
+    return {
+        "min": int(conf.get("KE_MIN_SCORE", "70")),
+        "baseline": conf.get("KE_BASELINE", ".kaizen/evals/baseline.json"),
+        "metrics": conf.get("KE_METRICS", ".kaizen/evals/metrics.jsonl"),
+        "prompts": conf.get("KE_PROMPTS", ".kaizen/org/prompts"),
+        "report": conf.get("KE_REPORT", ".kaizen/evals/report.md"),
+    }
+
+
+def parse(path):
+    text = open(path, encoding="utf-8").read()
+    fm, body = "", text
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) >= 3:
+            fm, body = parts[1], parts[2]
+    fields = {}
+    for line in fm.splitlines():
+        m = re.match(r"^([a-z_]+):\s*(.*)$", line)
+        if m:
+            fields[m.group(1)] = m.group(2).strip()
+    return fields, body
+
+
+def section(body, name):
+    m = re.search(r"^## " + re.escape(name) + r"\s*$([\s\S]*?)(?=^## |\Z)", body, re.M)
+    return m.group(1).strip() if m else ""
+
+
+def knowledge_ok(value):
+    items = [x.strip().strip('"\'') for x in value.strip().strip("[]").split(",") if x.strip()]
+    if not items:
+        return False
+    return all(os.path.exists(os.path.join(ROOT, i)) for i in items)
+
+
+def score(path):
+    f, body = parse(path)
+    checks = {}
+    p = section(body, "Propósito")
+    checks["proposito"] = len(p) >= 40 and "completar" not in p.lower()
+    r = section(body, "Responsabilidades")
+    checks["responsabilidades"] = len([x for x in r.splitlines() if x.strip().startswith("-")]) >= 2
+    k = (section(body, "Evidencia y KPI") + " " + f.get("kpis", "")).lower()
+    checks["kpi_medible"] = bool(re.search(r"\d|[%]|source_ids|verificad", k))
+    checks["evidencia"] = any(x in body.lower() for x in ("source_ids", "verificador-evidencias", "kaizen-team verify"))
+    checks["autonomia"] = ("autonomy" in f and "decision_authority" in f and "humano" in body.lower())
+    c = section(body, "Colaboración").lower()
+    checks["colaboracion"] = "correlation_id" in c and "ack" in c
+    checks["recursion"] = "KAZEN_AGENT_DEPTH" in body
+    checks["conocimiento"] = knowledge_ok(f.get("knowledge", ""))
+    checks["seguridad"] = ("credencial" in body.lower() or "secreto" in body.lower()) and ("S-15" in body or "S-1" in body)
+    rules = f.get("rules", "")
+    checks["reglas_vigentes"] = all(x in rules for x in ("K-1..K-14", "L-1..L-17", "S-1..S-16"))
+    return {"id": f.get("id", os.path.basename(path)), "score": sum(10 for v in checks.values() if v),
+            "failed": [k for k, v in checks.items() if not v], "checks": checks}
+
+
+def all_scores():
+    c = cfg()
+    files = sorted(p for p in glob.glob(os.path.join(ROOT, c["prompts"], "*.md")) if not p.endswith("_template.md"))
+    return [score(p) for p in files]
+
+
+def jpath(rel):
+    return os.path.join(ROOT, rel)
+
+
+def cmd_check(args):
+    c = cfg()
+    minv = int(args[0]) if args else c["min"]
+    scores = all_scores()
+    bad = [s for s in scores if s["score"] < minv]
+    for s in scores:
+        flag = "OK " if s["score"] >= minv else "BAJ"
+        print(f"[{flag}] {s['id']:<34} {s['score']:3d}" + (f"  falla: {', '.join(s['failed'])}" if s["failed"] else ""))
+    avg = sum(s["score"] for s in scores) / max(1, len(scores))
+    print(f"\nagentes={len(scores)} promedio={avg:.1f} minimo={minv} bajo_minimo={len(bad)}")
+    return 1 if bad else 0
+
+
+def cmd_baseline(args):
+    c = cfg()
+    force = "--force" in args
+    scores = all_scores()
+    data = {"updated": datetime.datetime.now(datetime.timezone.utc).isoformat() + "Z",
+            "average": round(sum(s["score"] for s in scores) / max(1, len(scores)), 2),
+            "agents": {s["id"]: s["score"] for s in scores}}
+    path = jpath(c["baseline"])
+    if os.path.exists(path) and not force:
+        old = json.load(open(path, encoding="utf-8"))
+        reg = [f"{k}: {v} -> {data['agents'].get(k)}" for k, v in old.get("agents", {}).items()
+               if data["agents"].get(k, 0) < v]
+        if reg or data["average"] < old.get("average", 0):
+            print("RATCHET: la calidad bajó. Requiere ADR y `baseline --force`.\n  " + "\n  ".join(reg))
+            return 1
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    json.dump(data, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    print(f"baseline escrita: {c['baseline']} (promedio {data['average']}, {len(data['agents'])} agentes)")
+    return 0
+
+
+def cmd_ratchet():
+    c = cfg()
+    path = jpath(c["baseline"])
+    if not os.path.exists(path):
+        print("sin baseline: ejecuta `kaizen-eval baseline`")
+        return 1
+    old = json.load(open(path, encoding="utf-8"))
+    scores = all_scores()
+    cur = {s["id"]: s["score"] for s in scores}
+    # Solo se compara el conjunto de la línea base: un agente nuevo no degrada el ratchet.
+    base_ids = old.get("agents", {})
+    avg = round(sum(cur.get(k, 0) for k in base_ids) / max(1, len(base_ids)), 2)
+    reg = [f"{k}: {v} -> {cur.get(k)}" for k, v in base_ids.items() if cur.get(k, 0) < v]
+    if reg or avg < old.get("average", 0):
+        print("RATCHET FALLO: calidad de agentes degradada.\n  " + "\n  ".join(reg))
+        return 1
+    print(f"ratchet OK: promedio {old.get('average')} -> {avg}, sin regresiones")
+    return 0
+
+
+def cmd_metrics(args):
+    c = cfg()
+    if len(args) < 2 or args[0] != "add":
+        print("uso: kaizen-eval metrics add --agent A --decision D --cost C --minutes M [--reverted 0|1]")
+        return 2
+    kv = {}
+    rest = args[1:]
+    for i in range(0, len(rest) - 1, 2):
+        kv[rest[i].lstrip("-")] = rest[i + 1]
+    rec = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat() + "Z",
+           "agent": kv.get("agent", "?"), "decision": kv.get("decision", "?"),
+           "cost_usd": float(kv.get("cost", "0")), "minutes": float(kv.get("minutes", "0")),
+           "reverted": int(kv.get("reverted", "0"))}
+    path = jpath(c["metrics"])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    print("métrica registrada:", json.dumps(rec, ensure_ascii=False))
+    return 0
+
+
+def cmd_report():
+    c = cfg()
+    scores = all_scores()
+    by = {}
+    for s in scores:
+        d = parse(os.path.join(ROOT, c["prompts"], s["id"] + ".md"))[0].get("department", "?")
+        by.setdefault(d, []).append(s["score"])
+    mpath = jpath(c["metrics"])
+    metrics = [json.loads(l) for l in open(mpath, encoding="utf-8") if l.strip()] if os.path.exists(mpath) else []
+    n = len(metrics)
+    cost = sum(m["cost_usd"] for m in metrics) / n if n else 0
+    mins = sum(m["minutes"] for m in metrics) / n if n else 0
+    rev = sum(m["reverted"] for m in metrics) / n if n else 0
+    avg = sum(s["score"] for s in scores) / max(1, len(scores))
+    lines = ["# Evaluación de agentes\n",
+             f"Generado: {datetime.datetime.now(datetime.timezone.utc).isoformat()}Z\n",
+             f"Agentes: {len(scores)} | Promedio: {avg:.1f} | Mínimo aprobado: {c['min']}\n",
+             "## Por departamento\n", "| Departamento | Agentes | Promedio |", "| --- | ---: | ---: |"]
+    for d, vals in sorted(by.items()):
+        lines.append(f"| {d} | {len(vals)} | {sum(vals)/len(vals):.1f} |")
+    lines += ["", "## Peores agentes\n", "| ID | Score | Fallos |", "| --- | ---: | --- |"]
+    for s in sorted(scores, key=lambda x: x["score"])[:8]:
+        lines.append(f"| {s['id']} | {s['score']} | {', '.join(s['failed']) or '-'} |")
+    lines += ["", "## Métricas de decisión observadas\n",
+              f"- Decisiones registradas: {n}",
+              f"- Coste medio por decisión: USD {cost:.4f}",
+              f"- Tiempo medio a verificación: {mins:.1f} min",
+              f"- Tasa de revert: {rev:.1%}",
+              "", "## Aprendizaje acumulado",
+              f"- Lecciones registradas: {len(glob.glob(os.path.join(ROOT, '.kaizen/learning/lessons/**/*.md'), recursive=True))}",
+              "- Cuanto más se usa el equipo, más lecciones y más experiencia: `kaizen-learn report`.",
+              "", "Registrar: `kaizen-eval metrics add --agent <id> --decision <id> --cost <usd> --minutes <n> --reverted <0|1>`"]
+    path = jpath(c["report"])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    print(f"reporte escrito: {c['report']}")
+    print("\n".join(lines[-6:]))
+    return 0
+
+
+def cmd_status():
+    c = cfg()
+    print(f"prompts: {len(glob.glob(os.path.join(ROOT, c['prompts'], '*.md')))}")
+    print(f"baseline: {'SI' if os.path.exists(jpath(c['baseline'])) else 'NO'} ({c['baseline']})")
+    mpath = jpath(c["metrics"])
+    print(f"métricas: {sum(1 for l in open(mpath, encoding='utf-8') if l.strip()) if os.path.exists(mpath) else 0}")
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    cmd = args[0] if args else "check"
+    if cmd == "check":
+        return cmd_check(args[1:])
+    if cmd == "baseline":
+        return cmd_baseline(args[1:])
+    if cmd == "ratchet":
+        return cmd_ratchet()
+    if cmd == "metrics":
+        return cmd_metrics(args[1:])
+    if cmd == "report":
+        return cmd_report()
+    if cmd == "status":
+        return cmd_status()
+    if cmd == "all":
+        return cmd_check([]) or cmd_ratchet() or cmd_report()
+    print("uso: kaizen-eval check|baseline|ratchet|metrics add|report|status|all")
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

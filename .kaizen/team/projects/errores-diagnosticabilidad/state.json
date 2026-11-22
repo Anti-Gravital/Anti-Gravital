@@ -1,0 +1,17 @@
+{
+  "slug": "errores-diagnosticabilidad",
+  "goal": "Diagnostic error contract: codigo estable por enum publico, correlation con trazas, metrica de errores por codigo y catalogo generado",
+  "kpi": "29/29 enums publicos con codigo; logs con code y trace_id; ag_errors_total con cardinalidad acotada; catalogo con CI freshness",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "systems",
+    "security",
+    "architect",
+    "qa",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T17:19:18Z",
+  "updated": "2026-11-22T17:19:26Z"
+}

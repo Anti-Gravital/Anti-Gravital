@@ -1,0 +1,11 @@
+AKIA[0-9A-Z]{16}
+ASIA[0-9A-Z]{16}
+-----BEGIN ([A-Z]+ )?PRIVATE KEY-----
+gh[pousr]_[A-Za-z0-9]{36,}
+github_pat_[A-Za-z0-9_]{50,}
+xox[baprs]-[A-Za-z0-9-]{10,}
+AIza[0-9A-Za-z_-]{35}
+sk-[A-Za-z0-9_-]{32,}
+eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}
+[A-Za-z0-9+.-]+://[^/[:space:]:@]+:[^/[:space:]@]{3,}@[A-Za-z0-9.-]+
+([Pp]ass(word|wd)?|[Ss]ecret|[Aa]pi[_-]?[Kk]ey|[Tt]oken|[Cc]redential)[A-Za-z0-9_]*["']?[[:space:]]*[:=][[:space:]]*["'][^"'$ {}<>]{8,}["']

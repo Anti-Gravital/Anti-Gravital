@@ -100,3 +100,6 @@ como `superseded`.
 | 0033 | Renderizado local de artefactos de despliegue con `ag deploy plan\|apply\|status` | propuesta; alcance local autorizado en wave 7, NO autoriza el deploy cloud de Fase 5 | `RFC-0034-local-deploy-artifact-rendering.md` |
 | 0035 | Opt-in CI check for independent DKIM verification (#178, no cierra la puerta de buzon real) | aceptada (periodo de comentarios dispensado) | `RFC-0035-independent-dkim-ci.md` |
 | 0036 | Gate de fuzzing de 24 horas programado en runner propio (issue #156) | aceptada (BDFL, periodo de comentarios dispensado); no cierra la issue #156 | `RFC-0036-scheduled-fuzz-24h-gate.md` |
+| 0037 | Diagnostic error contract | borrador, pendiente de aprobacion BDFL | `RFC-0037-diagnostic-error-contract.md` |
+| 0038 | Observability scopes and component health in ag-observe | borrador, pendiente de aprobacion BDFL | `RFC-0038-observability-scopes-and-health.md` |
+| 0039 | Load, saturation and installation measurement protocol | borrador, pendiente de aprobacion BDFL | `RFC-0039-load-saturation-and-install-measurement.md` |

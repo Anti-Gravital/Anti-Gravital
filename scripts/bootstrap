@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# bootstrap: instala la comunidad en un repositorio destino SIN sobrescribir (K-1/K-7).
+set -euo pipefail
+SRC="$(cd "$(dirname "$0")/.." && pwd)"
+TARGET="${1:?uso: bootstrap <directorio-del-repo-destino>}"
+[ -d "$TARGET" ] || { echo "bootstrap: destino no existe: $TARGET" >&2; exit 2; }
+TARGET="$(cd "$TARGET" && pwd)"
+git -C "$TARGET" rev-parse --show-toplevel >/dev/null 2>&1 || { echo "bootstrap: no es repo git: $TARGET" >&2; exit 2; }
+
+CREATED=(); SKIPPED=()
+copy_new() { # origen relativo, destino relativo
+  local s="$SRC/$1" d="$TARGET/$2"
+  if [ -e "$d" ]; then SKIPPED+=("$2"); return 0; fi
+  mkdir -p "$(dirname "$d")"; cp "$s" "$d"; CREATED+=("$2")
+}
+
+for f in \
+  .kaizen/RULES.md .kaizen/config.env .kaizen/baseline.json \
+  .kaizen/security/SECURITY-RULES.md .kaizen/security/security.env \
+  .kaizen/security/patterns.txt .kaizen/security/hardcode.txt .kaizen/security/allowlist.txt \
+  .kaizen/loop/LOOP.md .kaizen/loop/loop.env \
+  .kaizen/swarm/swarm.env .kaizen/swarm/ROLES.md .kaizen/swarm/PROTOCOL.md .kaizen/swarm/ROSTER.md \
+  .kaizen/org/org.env .kaizen/org/ORGANIZATION.md .kaizen/org/AGENT_SCHEMA.md .kaizen/org/CONSENSUS.md .kaizen/org/RESEARCH.md \
+  .kaizen/org/registry.json .kaizen/org/catalog.json .kaizen/org/knowledge/manifest.jsonl .kaizen/org/knowledge/SOURCES.md \
+  .kaizen/org/knowledge/panama-compliance/MAPA-NORMATIVO.md .kaizen/org/knowledge/panama-compliance/CHECKLIST.md \
+  .kaizen/org/knowledge/panama-compliance/CONTEXTOS.md .kaizen/org/knowledge/panama-compliance/REGLAS-CUMPLIMIENTO.md \
+  .kaizen/org/knowledge/panama-compliance/GACETA-OFICIAL.md \
+  .kaizen/org/knowledge/business/CAPACIDADES-REFERENCIA.md \
+  .kaizen/org/knowledge/business/REA-INTEGRACION.md \
+  .kaizen/org/OUTSOURCING.md \
+  .kaizen/org/knowledge/international/ESTANDARES.md .kaizen/org/knowledge/international/IMPLEMENTACION-ISO.md \
+  .kaizen/org/knowledge/business/CAPACIDADES.md \
+  .kaizen/org/prompts/_template.md .kaizen/org/prompts/gerente.md .kaizen/org/prompts/analista-negocios.md \
+  .kaizen/org/prompts/marketing.md .kaizen/org/prompts/finanzas-panamas.md .kaizen/org/prompts/knowledge-curator.md \
+  .kaizen/org/prompts/cumplimiento-panama.md .kaizen/org/prompts/capacidades-negocio.md \
+  .kaizen/org/prompts/facilitador-equipo.md .kaizen/org/prompts/verificador-evidencias.md \
+  .kaizen/org/prompts/monitor-gaceta.md \
+  .kaizen/org/prompts/gcp-cloud-architect.md .kaizen/org/prompts/ai-rag-engineer.md \
+  .kaizen/org/prompts/dotnet-banking-integrator.md .kaizen/org/prompts/platform-engineer.md \
+  .kaizen/org/prompts/rust-systems-specialist.md .kaizen/org/prompts/fiscal-integration-specialist.md \
+  .kaizen/org/prompts/flutter-m3-design-specialist.md .kaizen/org/prompts/business-profiles-architect.md \
+  .kaizen/org/prompts/identity-access-specialist.md .kaizen/org/prompts/vertical-domain-specialist.md \
+  .kaizen/org/prompts/rea-specialist.md \
+  .kaizen/team/team.env .kaizen/team/TEAM.md .kaizen/team/COMUNICACION.md \
+  .kaizen/team/FLUJOS.md .kaizen/team/EVIDENCIA.md .kaizen/team/OWNER.md \
+  .kaizen/team/runtime.env .kaizen/team/teams.json .kaizen/team/notify.env \
+  scripts/kaizen-team scripts/kaizen-runtime scripts/kaizen-notify scripts/kaizen-inbox \
+  scripts/kaizen-inbox.py scripts/lib/opencode_agents.py scripts/kaizen-installer scripts/kaizen-start scripts/kaizen-eval scripts/kaizen-learn \
+  scripts/kaizen-gov scripts/lib/gov_seed.py .kaizen/gov/governance.json \
+  scripts/kaizen-release scripts/lib/catalog_skills.py VERSION \
+  .kaizen/release/release.env .kaizen/catalog/rea-capabilities.json .kaizen/catalog/rea-tools.json .kaizen/catalog/catalog.json \
+  .kaizen/evals/eval.env .kaizen/evals/baseline.json .kaizen/learning/learning.env \
+  docs/kaizen/org/FORECAST.md docs/kaizen/org/CATALOGO-AGENTES.md \
+  docs/kaizen/adr/0002-veto-de-cumplimiento-e-investigacion-normativa.md \
+  docs/kaizen/adr/0003-modelo-de-equipo-proactivo.md \
+  docs/kaizen/adr/0004-especialistas-y-outsourcing.md \
+  docs/kaizen/adr/0005-runtime-y-presidencia.md docs/kaizen/org/RUNTIME.md \
+  docs/kaizen/adr/0006-evaluacion-y-ratchet-de-agentes.md docs/kaizen/org/EVALUACION.md \
+  docs/kaizen/adr/0007-aprendizaje-continuo-de-agentes.md docs/kaizen/org/APRENDIZAJE.md \
+  docs/kaizen/adr/0008-gobernanza-semantica-de-roles.md docs/kaizen/org/GOBIERNO.md \
+  docs/kaizen/adr/0009-integracion-rea-gobernada.md docs/kaizen/adr/0010-versionado-y-propagacion.md \
+  docs/kaizen/org/CATALOGO-TECNOLOGIAS.md \
+  scripts/kaizen scripts/kaizen-security scripts/kaizen-loop scripts/kaizen-swarm scripts/kaizen-org scripts/kaizen-insights.py \
+  scripts/lib/swarm-common.sh scripts/bootstrap \
+  docs/kaizen/pr-drafts/_TEMPLATE.md docs/kaizen/adr/_TEMPLATE.md \
+  .githooks/commit-msg .githooks/pre-commit .githooks/pre-push \
+  .github/PULL_REQUEST_TEMPLATE.md .github/CODEOWNERS .github/SECURITY.md \
+  .github/workflows/kaizen-gates.yml .github/workflows/kaizen-security.yml \
+  .github/workflows/kaizen-loop.yml .github/workflows/kaizen-report-failure.yml \
+  .github/workflows/kaizen-swarm.yml example.env; do
+  copy_new "$f" "$f"
+done
+mkdir -p "$TARGET/.kaizen/loop/state" "$TARGET/.kaizen/swarm/issues" \
+         "$TARGET/.kaizen/org/prompts" "$TARGET/.kaizen/org/decisions/inbox" "$TARGET/.kaizen/org/knowledge/digests" \
+         "$TARGET/.kaizen/org/research" \
+         "$TARGET/.kaizen/team/projects" "$TARGET/.kaizen/team/evidence" "$TARGET/.kaizen/evals" \
+         "$TARGET/.kaizen/learning/lessons" "$TARGET/.kaizen/learning/experience" "$TARGET/.kaizen/gov" \
+         "$TARGET/.kaizen/release" "$TARGET/.kaizen/catalog" \
+         "$TARGET/.kaizen/org/knowledge/panama-compliance" "$TARGET/.kaizen/org/knowledge/international" \
+         "$TARGET/.kaizen/org/knowledge/business" \
+         "$TARGET/docs/kaizen/loop/prompts" "$TARGET/docs/kaizen/swarm/prompts" "$TARGET/docs/kaizen/org" \
+         "$TARGET/docs/kaizen/journal" "$TARGET/docs/kaizen/data"
+
+# .gitignore: añadir líneas que falten, nunca reemplazar.
+for line in '.kaizen/loop/state/' '.kaizen/loop/outbox/' '.kaizen/swarm/issues/' '.env' '.env.*' '!example.env' '*.pem' '*.key' 'id_rsa*'; do
+  grep -qxF "$line" "$TARGET/.gitignore" 2>/dev/null || printf '%s\n' "$line" >> "$TARGET/.gitignore"
+done
+
+# Adaptadores: fusionar bloque Kaizen si el archivo existe; crearlo si no.
+BLOCK_K='## Kaizen
+Sigue estrictamente .kaizen/RULES.md en todo el trabajo de este repositorio. Antes de dar una tarea por terminada ejecuta scripts/kaizen check y reporta el resultado real.'
+BLOCK_S='## Seguridad Kaizen
+Sigue .kaizen/security/SECURITY-RULES.md. No leas ni imprimas credenciales, .env, claves ni variables de entorno. No silencies advertencias sin referencia a un issue. Todo hallazgo se escribe en .kaizen/loop/outbox/ (S-11).'
+BLOCK_W='## Comunidad swarm
+Sigue .kaizen/swarm/ROLES.md y .kaizen/swarm/PROTOCOL.md. Trabaja en tu worktree, respeta ownership.json, envía ack y no hagas push ni PR: lo hace el orquestador.'
+for a in AGENTS.md CLAUDE.md GEMINI.md; do
+  if [ -f "$TARGET/$a" ]; then
+    grep -q '^## Kaizen' "$TARGET/$a" || { printf '\n%s\n\n%s\n\n%s\n' "$BLOCK_K" "$BLOCK_S" "$BLOCK_W" >> "$TARGET/$a"; CREATED+=("bloques en $a"); }
+  else
+    printf '# Agentes del repositorio\n\n%s\n\n%s\n\n%s\n' "$BLOCK_K" "$BLOCK_S" "$BLOCK_W" > "$TARGET/$a"
+    CREATED+=("$a")
+  fi
+done
+
+if [ -f "$TARGET/opencode.json" ]; then SKIPPED+=("opencode.json (fusion manual)");
+else cp "$SRC/opencode.json" "$TARGET/opencode.json"; CREATED+=("opencode.json"); fi
+
+git -C "$TARGET" config core.hooksPath .githooks
+chmod +x "$TARGET"/.githooks/* "$TARGET"/scripts/kaizen* "$TARGET"/scripts/bootstrap 2>/dev/null || :
+( cd "$TARGET" && scripts/kaizen init >/dev/null 2>&1 ) || :
+
+printf 'bootstrap: %d archivos/bloques creados, %d ya existentes (no sobrescritos).\n' "${#CREATED[@]}" "${#SKIPPED[@]}"
+printf 'creados: %s\n' "${CREATED[*]:-ninguno}"
+printf 'omitidos: %s\n' "${SKIPPED[*]:-ninguno}"
+printf 'Siguiente paso: revisa .kaizen/config.env y .kaizen/loop/loop.env con los comandos reales del proyecto.\n'

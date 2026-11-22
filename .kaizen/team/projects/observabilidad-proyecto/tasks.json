@@ -1,0 +1,9 @@
+[
+  {
+    "task": "Redactar borrador RFC de scopes por proyecto y HealthRegistry en ag-observe (ADR-0009/0019)",
+    "owner": "architect",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T17:19:26Z"
+  }
+]

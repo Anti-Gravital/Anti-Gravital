@@ -1,0 +1,383 @@
+#!/usr/bin/env bash
+# kaizen-org: inventario de agentes, especializacion por copia, proactividad y consenso.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/config.env" ] && . "$ROOT/.kaizen/config.env"
+[ -f "$ROOT/.kaizen/org/org.env" ] && . "$ROOT/.kaizen/org/org.env"
+: "${KO_PROACTIVITY:=1}" "${KO_PULSE_MAX_PER_AGENT:=3}" "${KO_CONSENSUS_TURNS:=2}"
+: "${KO_DECISION_REVIEW_DAYS:=14}" "${KO_REGISTRY:=.kaizen/org/registry.json}"
+: "${KO_PROMPTS_DIR:=.kaizen/org/prompts}" "${KO_DECISIONS_DIR:=.kaizen/org/decisions}"
+: "${KO_KNOWLEDGE_DIR:=.kaizen/org/knowledge}" "${KO_PAUSE_FILE:=.kaizen/loop/PAUSE}"
+P="$ROOT/$KO_PROMPTS_DIR"; REG="$ROOT/$KO_REGISTRY"; MAN="$ROOT/$KO_KNOWLEDGE_DIR/manifest.jsonl"
+FAIL=0
+klog() { printf '[kaizen-org] %s\n' "$*"; }
+kfail() { printf '[kaizen-org] FALLA: %s\n' "$*" >&2; FAIL=1; }
+
+files() { find "$P" -maxdepth 1 -type f -name '*.md' ! -name '_template.md' -print | sort; }
+fval() { sed -n "s/^$2:[[:space:]]*//p" "$1" | head -1; }
+file_for() { printf '%s/%s.md' "$P" "$1"; }
+exists() { [ -f "$(file_for "$1")" ]; }
+
+rebuild_registry() {
+  local f id name dept ver status pro auto veto t tmp; tmp="$(mktemp)"
+  while IFS= read -r f; do
+    id="$(fval "$f" id)"; [ -n "$id" ] || continue
+    name="$(fval "$f" name)"; dept="$(fval "$f" department)"; ver="$(fval "$f" version)"
+    status="$(fval "$f" status)"; pro="$(fval "$f" proactivity)"; auto="$(fval "$f" autonomy)"; veto="$(fval "$f" veto)"
+    t="$(fval "$f" triggers)"
+    jq -n --arg id "$id" --arg name "$name" --arg dept "$dept" --argjson ver "${ver:-1}" \
+      --arg status "$status" --arg pro "$pro" --arg auto "$auto" --arg veto "$veto" --arg triggers "$t" \
+      '{id:$id,name:$name,department:$dept,version:$ver,status:$status,proactivity:$pro,autonomy:$auto,veto:$veto,triggers:$triggers}' >> "$tmp"
+  done < <(files)
+  mkdir -p "$(dirname "$REG")"; jq -s 'sort_by(.id)' "$tmp" > "$REG"; rm -f "$tmp"
+}
+
+cmd_list() {
+  local dept="" status="" f id name d s a v ver
+  while [ $# -gt 0 ]; do case "$1" in --dept) dept="$2"; shift;; --status) status="$2"; shift;; esac; shift; done
+  [ -f "$REG" ] || rebuild_registry
+  printf '%-22s %-34s %-18s %-8s %-8s %-14s %s\n' ID NOMBRE DEPARTAMENTO ESTADO AUTO VETO VERSION
+  jq -r '.[] | [.id,.name,.department,.status,.autonomy,.veto,(.version|tostring)] | @tsv' "$REG" \
+    | awk -F'\t' -v d="$dept" -v s="$status" '($3 ~ d) && ($4 ~ s) {printf "%-22s %-34s %-18s %-8s %-8s %-14s %s\n",$1,$2,$3,$4,$5,$6,$7}'
+}
+
+cmd_show() { local id="${1:?uso: show <id>}"; exists "$id" || { kfail "agente desconocido: $id"; return 2; }; cat "$(file_for "$id")"; }
+
+cmd_add() {
+  local id="${1:?uso: add <id> [--name N] [--dept D] [--from ID]}" name="" dept="" from="_template"; shift
+  while [ $# -gt 0 ]; do case "$1" in --name) name="$2"; shift;; --dept) dept="$2"; shift;; --from) from="$2"; shift;; esac; shift; done
+  exists "$id" && { kfail "el agente $id ya existe; usa copy para derivar"; return 2; }
+  [ -n "$name" ] || name="$id"; [ -n "$dept" ] || dept="producto-negocio"
+  local src="$P/$from.md"; [ -f "$src" ] || src="$P/_template.md"
+  local dst; dst="$(file_for "$id")"
+  sed -e "s|^id:.*|id: $id|" -e "s|^name:.*|name: $name|" -e "s|^department:.*|department: $dept|" \
+      -e 's|^version:.*|version: 1|' -e 's|^status:.*|status: active|' \
+      -e "s|{{PURPOSE}}| Agente configurado por el responsable: $name|" \
+      -e "s|{{RESPONSIBILITY}}| Ejecutar las responsabilidades declaradas con evidencia.|" \
+      -e "s|{{OUTPUTS}}| artefactos y dictamenes verificables|" \
+      -e "s|{{CADENCE}}| bajo demanda|" -e "s|{{DECISION_SCOPE}}| Ninguna sin ADR|" \
+      -e "s|{{CONSULT}}| gerente y arquitecto|" -e "s|{{ESCALATE}}| humano responsable|" \
+      -e "s|{{VETO_TEXT}}| Sin veto.|" -e "s|{{KPI_TEXT}}| Por definir y aprobar en la retro.|" \
+      -e "s|{{PROACTIVITY}}|medium|" -e "s|{{AUTONOMY}}|propose|" -e "s|{{VETO}}|none|" \
+      -e "s|{{SQUAD_ROLE}}|specialist|" \
+      -e "s|{{TOOLS}}|[read, write-docs, run-checks]|" \
+      -e "s|{{TRIGGERS}}|[issue.label:swarm:ready, knowledge.updated:*]|" \
+      -e "s|{{KNOWLEDGE}}|[.kaizen/RULES.md, .kaizen/org/CONSENSUS.md]|" \
+      -e "s|{{KPIS}}|[Por definir]|" "$src" > "$dst"
+  rebuild_registry; klog "agente $id creado desde $(basename "$src")"
+}
+
+cmd_copy() {
+  local src="${1:?uso: copy <origen> <destino> [--name N]}" dst="${2:?falta destino}"; shift 2
+  local name=""; while [ $# -gt 0 ]; do case "$1" in --name) name="$2"; shift;; esac; shift; done
+  exists "$src" || { kfail "origen desconocido: $src"; return 2; }
+  exists "$dst" && { kfail "destino ya existe: $dst"; return 2; }
+  [ -n "$name" ] || name="$(fval "$(file_for "$src")" name) (copia)"
+  local s="$(file_for "$src")" d="$(file_for "$dst")"
+  sed -e "s|^id:.*|id: $dst|" -e "s|^name:.*|name: $name|" \
+      -e 's|^version:.*|version: 1|' -e 's|^status:.*|status: active|' "$s" > "$d"
+  printf '\n## Derivado de\n- Copia de `%s`. Especializacion pendiente de refinement y aprobacion (K-5/ADR).\n' "$src" >> "$d"
+  rebuild_registry; klog "copia $src -> $dst (original intacto)"
+}
+
+cmd_edit() { local id="${1:?uso: edit <id>}"; exists "$id" || return 2; local f; f="$(file_for "$id")"
+  if [ -n "${EDITOR:-}" ] && [ -t 1 ]; then "$EDITOR" "$f"; else klog "edita $f y luego ejecuta: scripts/kaizen-org save $id"; fi; }
+
+cmd_save() {
+  local id="${1:?uso: save <id> [--no-bump]}" bump=1; shift
+  while [ $# -gt 0 ]; do case "$1" in --no-bump) bump=0;; esac; shift; done
+  exists "$id" || return 2; local f; f="$(file_for "$id")"
+  for k in id name department version status proactivity autonomy veto tools triggers knowledge kpis rules; do
+    [ -n "$(fval "$f" "$k")" ] || kfail "$id: falta campo $k"
+  done
+  [ "$FAIL" = 0 ] || return 1
+  if [ "$bump" = 1 ]; then
+    local v; v="$(fval "$f" version)"; sed -i "s|^version:.*|version: $((v + 1))|" "$f"
+  fi
+  local j="$ROOT/docs/kaizen/journal/$(date -u +%Y-%m-%d)-org-$(date -u +%H%M%S).md"
+  mkdir -p "$(dirname "$j")"
+  { printf '# Organizacion: guardado de %s\n\n' "$id"
+    printf -- '- Version: %s\n- Hora: %s\n- Evidencia: `scripts/kaizen-org check`\n' "$(fval "$f" version)" "$(date -u +%FT%TZ)"
+  } > "$j"
+  rebuild_registry; klog "$id guardado; entrada de diario: $j"
+}
+
+cmd_state() { local id="$1" st="$2"; exists "$id" || return 2; sed -i "s|^status:.*|status: $st|" "$(file_for "$id")"; rebuild_registry; klog "$id -> $st"; }
+
+cmd_feed() {
+  local target="${1:?uso: feed <id|all> <documento> [--title T]}" doc="$2"; shift 2
+  local title="$doc"; while [ $# -gt 0 ]; do case "$1" in --title) title="$2"; shift;; esac; shift; done
+  [ -f "$doc" ] || [ -f "$ROOT/$doc" ] || { kfail "documento no existe: $doc"; return 2; }
+  mkdir -p "$(dirname "$MAN")"; [ -f "$MAN" ] || : > "$MAN"
+  local hash; hash="$(sha256sum "$doc" 2>/dev/null | cut -d' ' -f1)"
+  jq -cn --arg target "$target" --arg source "$doc" --arg title "$title" --arg hash "$hash" \
+     --arg fed "$(date -u +%FT%TZ)" '{target:$target,source:$source,title:$title,sha256:$hash,fed_at:$fed}' >> "$MAN"
+  klog "conocimiento alimentado a $target: $doc"
+}
+
+cmd_digest() {
+  local target="${1:?uso: digest <id|all>}"; [ "$target" = all ] || exists "$target" || return 2
+  [ -f "$MAN" ] || { klog "manifiesto vacio: nada que digerir"; return 0; }
+  mkdir -p "$ROOT/$KO_KNOWLEDGE_DIR/digests"
+  local ids=() id; if [ "$target" = all ]; then
+    while IFS= read -r id; do ids+=("$id"); done < <(jq -r '.target' "$MAN" 2>/dev/null | sort -u)
+  else ids=("$target"); fi
+  for id in "${ids[@]}"; do
+    local out="$ROOT/$KO_KNOWLEDGE_DIR/digests/$id.md"
+    { printf '# Digest de conocimiento: %s\n\n' "$id"
+      jq -r --arg t "$id" 'select(.target==$t) | "- **\(.title)** — `\(.source)` (sha256 \(.sha256[0:12]))"' "$MAN"
+      echo
+      jq -r --arg t "$id" 'select(.target==$t) | .source' "$MAN" | while IFS= read -r src; do
+        [ -f "$src" ] || src="$ROOT/$src"; [ -f "$src" ] || continue
+        echo "## $(basename "$src")"
+        "$ROOT/scripts/kaizen-security" redact < "$src" 2>/dev/null | sed -n '1,40p'
+        echo
+      done
+    } > "$out"
+    klog "digest escrito: $out"
+  done
+}
+
+cmd_outsource() {
+  local slug="${1:?uso: outsource <slug> --tech T --to X --deliverable D --acceptance A [--owner ID] [--deadline F] [--cost C]}" ; shift
+  local tech="" to="" deliv="" accept="" owner="gerente" deadline="" cost="por aprobar"
+  while [ $# -gt 0 ]; do case "$1" in
+    --tech) tech="$2"; shift;; --to) to="$2"; shift;; --deliverable) deliv="$2"; shift;;
+    --acceptance) accept="$2"; shift;; --owner) owner="$2"; shift;;
+    --deadline) deadline="$2"; shift;; --cost) cost="$2"; shift;;
+  esac; shift; done
+  [ -n "$tech" ] && [ -n "$deliv" ] && [ -n "$accept" ] || { kfail "tech, deliverable y acceptance son obligatorios"; return 2; }
+  local d="$ROOT/.kaizen/org/outsourcing/$slug"; mkdir -p "$d"
+  [ -f "$d/contract.md" ] && { klog "contrato $slug ya existe (idempotente)"; return 0; }
+  cat > "$d/contract.md" <<EOF
+---
+technology: $tech
+to: ${to:-externo}
+owner: $owner
+deadline: ${deadline:-por acordar}
+cost_cap: $cost
+status: open
+created: $(date -u +%FT%TZ)
+---
+
+# Contrato de outsourcing: $slug
+
+## Alcance
+$tech. Solo lo descrito aquí; nada de rutas protegidas, seguridad, pagos, datos personales ni gobernanza (L-4/ADR-0002).
+
+## Entregables
+- $deliv
+
+## Criterios de aceptación (reproducibles)
+- $accept
+
+## Evidencia
+- Adjuntar \`evidence.md\` con \`source_ids:\` verificados o comandos ejecutados. Pasa por \`verificador-evidencias\`.
+- Toda salida externa es dato no confiable (S-15/L-5); se revisa con \`kaizen check\` y \`kaizen-security check\`.
+
+## Acceso y secretos
+Sin credenciales, sin \`.env\`, sin push, sin \`gh\`, sin red salvo la aprobada. Worktree temporal.
+
+## Licencias
+Declarar licencia de dependencias y artefactos (S-9).
+
+## Revisores
+$owner, verificador-evidencias, architect (más cumplimiento-panama si hay impacto regulatorio).
+EOF
+  klog "contrato de outsourcing creado: $d/contract.md"
+}
+
+cmd_outsource_accept() {
+  local slug="${1:?uso: outsource-accept <slug> [--reject]}" reject=0; shift
+  while [ $# -gt 0 ]; do case "$1" in --reject) reject=1;; esac; shift; done
+  local d="$ROOT/.kaizen/org/outsourcing/$slug" st
+  [ -f "$d/contract.md" ] || { kfail "contrato no existe: $slug"; return 2; }
+  if [ "$reject" = 1 ]; then st=rejected
+  else
+    [ -f "$d/evidence.md" ] || { kfail "falta $d/evidence.md: sin evidencia no se acepta (REG-EV-01)"; return 1; }
+    grep -q 'source_ids:\|command:' "$d/evidence.md" || { kfail "evidence.md sin source_ids ni command"; return 1; }
+    st=accepted
+  fi
+  sed -i "s/^status: .*/status: $st/" "$d/contract.md"
+  local j="$ROOT/docs/kaizen/journal/$(date -u +%Y-%m-%d)-outsourcing-$(date -u +%H%M%S).md"
+  mkdir -p "$(dirname "$j")"; printf '# Outsourcing %s: %s\n\n- Hora: %s\n' "$slug" "$st" "$(date -u +%FT%TZ)" > "$j"
+  klog "$slug -> $st"
+}
+
+cmd_catalog() {
+  rebuild_registry
+  local out="$ROOT/docs/kaizen/org/CATALOGO-AGENTES.md" f id purpose
+  mkdir -p "$(dirname "$out")"
+  {
+    printf '# Catálogo consistente de agentes\n\n'
+    printf 'Fuente única: `.kaizen/org/prompts/<id>.md`. Generado por `scripts/kaizen-org catalog`; no editar a mano.\n\n'
+    printf 'Registro: `%s` | Fecha: %s | Total: %s agentes\n\n' "$KO_REGISTRY" "$(date -u +%Y-%m-%d)" "$(jq 'length' "$REG")"
+    printf '## Resumen por departamento\n\n| Departamento | Agentes | Activos | Veto |\n| --- | ---: | ---: | --- |\n'
+    jq -r 'group_by(.department)[] | [.[0].department, (length|tostring), ([.[]|select(.status=="active")]|length|tostring), ([.[].veto]|unique|join(", "))] | @tsv' "$REG" \
+      | awk -F'\t' '{printf "| %s | %s | %s | %s |\n",$1,$2,$3,$4}'
+    printf '\n## Inventario\n\n'
+    printf '| ID | Nombre | Departamento | Estado | Proactividad | Autonomía | Veto | Versión | Herramientas | Disparadores | Conocimiento | KPI |\n'
+    printf '| --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- | ---: | --- |\n'
+    while IFS= read -r f; do
+      id="$(fval "$f" id)"; [ -n "$id" ] || continue
+      local name dept st pro auto veto ver tools trig know kpi
+      name="$(fval "$f" name)"; dept="$(fval "$f" department)"; st="$(fval "$f" status)"
+      pro="$(fval "$f" proactivity)"; auto="$(fval "$f" autonomy)"; veto="$(fval "$f" veto)"
+      ver="$(fval "$f" version)"; tools="$(fval "$f" tools)"; trig="$(fval "$f" triggers)"
+      know="$(fval "$f" knowledge | tr ',' '\n' | grep -c . || :)"; kpi="$(fval "$f" kpis)"
+      printf '| `%s` | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+        "$id" "$name" "$dept" "$st" "$pro" "$auto" "$veto" "$ver" "$tools" "$trig" "$know" "$kpi"
+    done < <(files)
+    printf '\n## Fichas por departamento\n\n'
+    local d
+    while IFS= read -r d; do
+      [ -z "$d" ] && continue
+      printf '### %s\n\n' "$d"
+      while IFS= read -r f; do
+        [ "$(fval "$f" department)" = "$d" ] || continue
+        purpose="$(sed -n '/^## Propósito$/,/^## /p' "$f" | sed -n '2p')"
+        printf -- '- **`%s`** — %s. Propósito: %s. Reglas: %s.\n' \
+          "$(fval "$f" id)" "$(fval "$f" name)" "$purpose" "$(fval "$f" rules)"
+      done < <(files)
+      printf '\n'
+    done < <(jq -r '.[].department' "$REG" | sort -u)
+    printf '## Reglas del catálogo\n\n'
+    printf '1. El catálogo se **genera**, nunca se edita a mano.\n'
+    printf '2. `id` único; campos obligatorios validados por `kaizen-org check`.\n'
+    printf '3. Copiar un agente (`kaizen-org copy`) crea una ficha nueva; el original no se modifica.\n'
+    printf '4. Cambiar autonomía o veto requiere ADR humano, no edición del catálogo.\n'
+    printf '5. `enable|disable` y `save` se reflejan aquí tras `catalog`.\n'
+  } > "$out"
+  jq -c '{generated_from:"agent definitions", count:length, by_department:(group_by(.department)|map({department:.[0].department,count:length})), agents:map({id,name,department,status,autonomy,veto,version})}' "$REG" \
+    > "$ROOT/.kaizen/org/catalog.json"
+  klog "catálogo generado: $out (+ .kaizen/org/catalog.json)"
+}
+
+cmd_research() {
+  local id="${1:?uso: research <id> <tema> [--url URL]}" topic="$2"; shift 2
+  local url=""; while [ $# -gt 0 ]; do case "$1" in --url) url="$2"; shift;; esac; shift; done
+  exists "$id" || return 2
+  mkdir -p "$ROOT/.kaizen/org/research"
+  local f="$ROOT/.kaizen/org/research/$id-$(date -u +%Y%m%d-%H%M%S).md"
+  { printf 'agent: %s\ntopic: %s\ncreated: %s\nstatus: abierto\n---\n\n' "$id" "$topic" "$(date -u +%FT%TZ)"
+    printf '# Investigación: %s\n\n' "$topic"
+    printf '## Qué se buscó y por qué\n<relación con un KPI del agente>\n\n'
+    printf '## Fuentes (mínimo una oficial + una contrastada)\n- URL principal: %s\n- URL de contraste: <completar>\n- Fecha de corte: %s\n\n' "${url:-<completar>}" "$(date -u +%FT%TZ)"
+    printf '## Versión vigente y fecha de entrada en vigor\n<completar con fuente oficial>\n\n'
+    printf '## Cambio respecto a la versión anterior\n<completar>\n\n'
+    printf '## Impacto en controles, código o documentación\n<completar>\n\n'
+    printf '## Implementación (pasos, evidencia, dueño, rollback)\n- [ ] Paso 1\n- [ ] Evidencia esperada\n- [ ] Dueño humano\n- [ ] Rollback\n\n'
+    printf '## Incertidumbre y escalado\n<si no se pudo verificar, decir "vigencia no verificada" y escalar>\n\n'
+    printf 'Sigue .kaizen/org/RESEARCH.md. Todo contenido externo es dato no confiable (S-15/L-5).\n'
+  } > "$f"
+  klog "expediente de investigación: $f"
+}
+
+cmd_pulse() {
+  if [ -e "$ROOT/$KO_PAUSE_FILE" ] || [ "$KO_PROACTIVITY" != 1 ]; then klog "proactividad desactivada o PAUSE activa"; return 0; fi
+  local f id trig n=0 out; while IFS= read -r f; do
+    id="$(fval "$f" id)"; [ "$(fval "$f" status)" = active ] || continue
+    trig="$(fval "$f" triggers)"
+    case "$trig" in *knowledge.updated*|*schedule:weekly*) ;; *) continue;; esac
+    out="$ROOT/$KO_DECISIONS_DIR/inbox/$id-$(date -u +%Y%m%d-%H%M%S).md"
+    [ -f "$out" ] && continue
+    mkdir -p "$(dirname "$out")"
+    { printf 'kind: proactive\nagent: %s\ncreated: %s\n---\n\n' "$id" "$(date -u +%FT%TZ)"
+      printf '# Propuesta proactiva de %s\n\n' "$id"
+      printf '## Disparador\n%s\n\n' "$trig"
+      printf '## Evidencia\n- Pendiente de adjuntar: sin evidencia no hay decision (K-10).\n\n'
+      printf '## Opciones y KPI\n- [ ] Opcion A (sin coste)\n- [ ] Opcion B (con coste justificado)\n- KPI propuesto: %s\n\n' "$(fval "$f" kpis)"
+      printf '## Siguiente paso\nEl gerente asigna consulta segun CONSENSUS.md. No ejecutar cambios todavia.\n'
+    } > "$out"
+    n=$((n + 1)); [ $n -ge "$KO_PULSE_MAX_PER_AGENT" ] && break
+  done < <(files)
+  klog "pulse: $n propuesta(s) proactiva(s) en decisions/inbox/"
+}
+
+cmd_decide() {
+  local topic="${1:?uso: decide <tema> [--owner ID]}" owner="gerente"; shift
+  while [ $# -gt 0 ]; do case "$1" in --owner) owner="$2"; shift;; esac; shift; done
+  local d; d="$ROOT/$KO_DECISIONS_DIR/$(date -u +%Y)-$(printf '%03d' $(( $(find "$ROOT/$KO_DECISIONS_DIR" -maxdepth 1 -name '*.md' | wc -l) + 1 )))-$(printf '%s' "$topic" | tr -c 'A-Za-z0-9' '-' | cut -c1-40).md"
+  mkdir -p "$(dirname "$d")"
+  { printf '# Decision: %s\n\n' "$topic"
+    printf 'Estado: propuesto | Dueno: %s | Fecha: %s | Revision: +%s dias\n\n' "$owner" "$(date -u +%FT%TZ)" "$KO_DECISION_REVIEW_DAYS"
+    printf '## Contexto y evidencia\n## Opciones consideradas\n## Decision y disidentes\n## Consultados\n## Verificacion del KPI\n'
+    printf '\nSigue .kaizen/org/CONSENSUS.md: consulta, 2 turnos, mayoria cualificada sin veto.\n'
+  } > "$d"
+  klog "decision abierta: $d"
+}
+
+cmd_status() {
+  rebuild_registry
+  echo "organizacion: $(jq 'length' "$REG") agentes"
+  jq -r 'group_by(.department)[] | "  \(.[0].department): \(length) (activos: \([.[]|select(.status=="active")]|length))"' "$REG"
+  echo "propuestas proactivas pendientes: $(find "$ROOT/$KO_DECISIONS_DIR/inbox" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+  echo "decisiones registradas: $(find "$ROOT/$KO_DECISIONS_DIR" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+  echo "digest: $(find "$ROOT/$KO_KNOWLEDGE_DIR/digests" -name '*.md' 2>/dev/null | wc -l | tr -d ' ') | conocimiento alimentado: $(wc -l < "$MAN" 2>/dev/null || echo 0)"
+  echo "proactividad: $KO_PROACTIVITY | pausa: $([ -e "$ROOT/$KO_PAUSE_FILE" ] && echo SI || echo no)"
+}
+
+cmd_check() {
+  local f k ids; for f in .kaizen/RULES.md .kaizen/org/org.env .kaizen/org/ORGANIZATION.md \
+     .kaizen/org/AGENT_SCHEMA.md .kaizen/org/CONSENSUS.md .kaizen/org/RESEARCH.md .kaizen/org/OUTSOURCING.md \
+     docs/kaizen/adr/0004-especialistas-y-outsourcing.md \
+     .kaizen/org/knowledge/SOURCES.md .kaizen/org/knowledge/business/CAPACIDADES-REFERENCIA.md \
+     .kaizen/org/knowledge/panama-compliance/MAPA-NORMATIVO.md \
+     .kaizen/org/knowledge/panama-compliance/CHECKLIST.md \
+     .kaizen/org/knowledge/international/ESTANDARES.md \
+     .kaizen/org/knowledge/international/IMPLEMENTACION-ISO.md \
+     .kaizen/org/knowledge/business/CAPACIDADES.md \
+     docs/kaizen/org/FORECAST.md "$KO_PROMPTS_DIR/_template.md"; do
+    [ -f "$ROOT/$f" ] || kfail "falta $f"
+  done
+  [ "$(files | wc -l | tr -d ' ')" -gt 0 ] || kfail "no hay agentes definidos"
+  ids=""; while IFS= read -r f; do
+    for k in id name department version status proactivity autonomy veto tools triggers knowledge kpis rules; do
+      [ -n "$(fval "$f" "$k")" ] || kfail "$(basename "$f"): falta $k"
+    done
+    ids="$ids $(fval "$f" id)"
+  done < <(files)
+  local dup; dup="$(printf '%s\n' $ids | sort | uniq -d)"; [ -z "$dup" ] || kfail "ids duplicados: $dup"
+  local tmp; tmp="$(mktemp)"; rebuild_registry; cp "$REG" "$tmp"; rebuild_registry
+  cmp -s "$tmp" "$REG" || kfail "registry no idempotente"
+  rm -f "$tmp"
+  [ -f "$ROOT/docs/kaizen/org/CATALOGO-AGENTES.md" ] || kfail "falta el catálogo (kaizen-org catalog)"
+  [ -f "$ROOT/.kaizen/org/catalog.json" ] || kfail "falta catalog.json"
+  if [ -f "$ROOT/.kaizen/org/catalog.json" ]; then
+    local cn rn; cn="$(jq -r '.count' "$ROOT/.kaizen/org/catalog.json" 2>/dev/null)"; rn="$(jq 'length' "$REG")"
+    [ "$cn" = "$rn" ] || kfail "catálogo desc.sincronizado ($cn vs $rn)"
+  fi
+  [ $FAIL = 0 ] || { kfail "kaizen-org check: FALLO"; return 1; }
+  klog "kaizen-org check: todo en verde"
+}
+
+case "${1:-help}" in
+  list) shift; cmd_list "$@";; show) shift; cmd_show "$@";;
+  add) shift; cmd_add "$@";; copy) shift; cmd_copy "$@";;
+  edit) shift; cmd_edit "$@";; save) shift; cmd_save "$@";;
+  enable) shift; cmd_state "$1" active;; disable) shift; cmd_state "$1" paused;;
+  feed) shift; cmd_feed "$@";; digest) shift; cmd_digest "$@";;
+  pulse) cmd_pulse;; decide) shift; cmd_decide "$@";;
+  research) shift; cmd_research "$@";;
+  outsource) shift; cmd_outsource "$@";; outsource-accept) shift; cmd_outsource_accept "$@";;
+  status) cmd_status;; check) cmd_check;; registry) rebuild_registry;; catalog) cmd_catalog;;
+  *) cat <<'EOF'
+kaizen-org <comando>
+  list [--dept D] [--status S]   inventario de agentes
+  show <id>                      muestra la definicion completa
+  add <id> [--name N] [--dept D] [--from ID]   crea un agente (desde plantilla u otro)
+  copy <origen> <destino> [--name N]   deriva/especializa un agente sin tocar el original
+  edit <id> | save <id> [--no-bump]   edita y guarda con version, diario y ratchet
+  enable|disable <id>            activa o pausa un agente
+  feed <id|all> <doc> [--title T]   alimenta conocimiento (manifest saneado)
+  digest <id|all>                genera resumen saneado para el agente
+  pulse                          emite propuestas proactivas a decisions/inbox/
+  research <id> <tema> [--url U] abre expediente de investigacion en internet (S-15)
+  outsource <slug> --tech T --to X --deliverable D --acceptance A   contrato por tecnologia
+  outsource-accept <slug> [--reject]   cierra contrato solo con evidence.md verificable
+  decide <tema> [--owner ID]     abre decision con revision y protocolo de consenso
+  catalog                        genera CATALOGO-AGENTES.md y catalog.json desde las definiciones
+  status | check | registry      estado, validacion y regeneracion del inventario
+EOF
+  ;;
+esac

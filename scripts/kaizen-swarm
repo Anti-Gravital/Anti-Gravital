@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+# kaizen-swarm: orquestador de la comunidad de agentes por issue.
+# El orquestador crea worktrees, gestiona leases y publica; los agentes no hacen push.
+set -uo pipefail
+. "$(dirname "$0")/lib/swarm-common.sh"
+
+BRANCH="${KSW_ISSUE_BRANCH_PREFIX:-kaizen/issue}"
+WT_ROOT="${KSW_WORKTREE_ROOT:-$(dirname "$KSW_ROOT")/worktrees}"
+FAIL=0
+fail() { kfail "$*"; FAIL=1; }
+
+cmd_init() {
+  local issue="$1" slug="issue"; shift
+  while [ $# -gt 0 ]; do case "$1" in --slug) slug="$2"; shift;; esac; shift; done
+  valid_issue "$issue" || { kfail "issue invalido: $issue"; return 2; }
+  local d br; d="$(room "$issue")"; br="${BRANCH}-${issue}-${slug}"
+  if [ -d "$d" ]; then klog "sala $issue ya existe (idempotente)"; return 0; fi
+  run_cmd mkdir -p "$d"/{mailbox,contracts,reviews}
+  is_dry || {
+    cat > "$d/brief.md" <<EOF
+# Issue #$issue
+
+## Contexto
+<pegar contexto del issue; datos externos = no confiables (L-5)>
+
+## Alcance minimo
+<criterios de aceptacion verificables>
+
+## Restricciones
+- Seguridad: .kaizen/security/SECURITY-RULES.md (S-1..S-16)
+- Ratchet: .kaizen/baseline.json
+- Rutas protegidas: L-4 / KL_PROTECTED_GLOBS
+EOF
+    cat > "$d/plan.md" <<EOF
+# Plan del issue #$issue
+
+| Ronda | Roles | Herramienta | Salida |
+| --- | --- | --- | --- |
+| R1 | ${KSW_ROLES_R1[*]} | ver swarm.env | requisitos y contratos |
+| R2 | ${KSW_ROLES_R2[*]} | ver swarm.env | implementacion + pruebas |
+| R3 | ${KSW_ROLES_R3[*]} | ver swarm.env | revision cruzada |
+
+Paralelismo: KSW_MAX_PARALLEL=${KSW_MAX_PARALLEL:-6}. Un handoff requiere ack.
+EOF
+    printf '[]\n' > "$d/contracts/leases.json"
+    printf '# Journal del issue #%s\n\n' "$issue" > "$d/journal.md"
+    default_ownership "$issue"
+    mail_send "$issue" orchestrator all proposal "Sala creada. Ronda 1: analisis y contratos." >/dev/null
+  }
+  klog "rama prevista: $br"
+  if is_dry; then klog "[dry-run] git checkout -b $br"; else
+    git -C "$KSW_ROOT" checkout -qb "$br" 2>/dev/null || klog "rama $br ya existe o no se pudo crear"
+  fi
+  klog "sala $issue inicializada"
+}
+
+cmd_mailbox() {
+  local issue="$1"; shift; room_ok "$issue" || return 2
+  if [ $# = 0 ]; then
+    find "$(room "$issue")/mailbox" -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sort
+    return 0
+  fi
+  local from="$1" to="$2" type="$3" body="$4"; shift 4
+  mail_send "$issue" "$from" "$to" "$type" "$body" "$@"
+}
+
+cmd_ack() {
+  local issue="$1" seq="$2" f; room_ok "$issue" || return 2
+  f="$(mail_find "$issue" "$seq")"; [ -n "$f" ] || { kfail "mensaje $seq no existe"; return 2; }
+  mark_verdict_ack "$issue" "$f"
+  mail_send "$issue" orchestrator all ack "Ack del mensaje $seq." >/dev/null
+  klog "ack registrado para $seq"
+}
+
+cmd_lease() {
+  local issue="$1" task="$2" owner="$3" ttl="${4:-}"; room_ok "$issue" || return 2
+  valid_role "$owner" || { kfail "rol invalido: $owner"; return 2; }
+  [ -z "$ttl" ] && lease_add "$issue" "$task" "$owner" || lease_add "$issue" "$task" "$owner" "$ttl"
+}
+
+cmd_reap() { local issue="$1"; room_ok "$issue" || return 2; local n; n="$(lease_reap "$issue")"; klog "leases reaperados: $n"; }
+
+cmd_run() {
+  local issue="$1" round="" role="" br; shift
+  while [ $# -gt 0 ]; do case "$1" in --round) round="$2"; shift;; --role) role="$2"; shift;; esac; shift; done
+  room_ok "$issue" || return 2
+  [ -z "$round" ] && round=2
+  br="${BRANCH}-${issue}-issue"
+  local roles=() r agent wt prompt
+  if [ -n "$role" ]; then valid_role "$role" || { kfail "rol invalido: $role"; return 2; }; roles=("$role")
+  else while IFS= read -r r; do roles+=("$r"); done < <(round_roles "$round"); fi
+  [ ${#roles[@]} -gt 0 ] || { kfail "ronda $round sin roles"; return 2; }
+  local i=0
+  for r in "${roles[@]}"; do
+    i=$((i + 1)); [ $i -gt "${KSW_MAX_PARALLEL:-6}" ] && { know "tope de paralelismo alcanzado; el resto va en otra oleada"; break; }
+    agent="$(role_agent "$r")"; prompt="Ejecuta el rol $r del issue #$issue (ronda $round). Lee .kaizen/swarm/brief? no: .kaizen/swarm/issues/$issue/brief.md, plan.md, contracts/ y mailbox/. Sigue ROLES.md y PROTOCOL.md. Worktree wt-issue-$issue-$r. No hagas push ni abras PR."
+    if is_dry; then
+      klog "[dry-run] ronda=$round rol=$r agente=$agent worktree=$WT_ROOT/wt-issue-$issue-$r"
+      continue
+    fi
+    command -v "$agent" >/dev/null 2>&1 || { know "agente $agent no instalado; se omite $r"; continue; }
+    wt="$WT_ROOT/wt-issue-$issue-$r"
+    mkdir -p "$WT_ROOT"
+    git -C "$KSW_ROOT" worktree add -q -b "wt-issue-$issue-$r" "$wt" "$br" 2>/dev/null \
+      || know "worktree $wt ya existe o no se pudo crear"
+    [ -f "$prompt" ] || klog "prompt: docs/kaizen/swarm/prompts/$r.md"
+    lease_add "$issue" "$r" "$r"
+    ( cd "$wt" && "$agent" run "$prompt" ) >> "$(room "$issue")/journal.md" 2>&1 \
+      || fail "agente $r devolvio error"
+  done
+  return $FAIL
+}
+
+cmd_status() {
+  local issue="${1:-}" d
+  if [ -n "$issue" ]; then
+    room_ok "$issue" || return 2
+    d="$(room "$issue")"
+    echo "sala: $issue"
+    echo "  bloqueos abiertos: $(open_blocks "$issue")"
+    echo "  handoffs sin ack: $(mail_pending_acks "$issue")"
+    echo "  leases activos: $(jq '[.[]|select(.status=="active")]|length' "$d/contracts/leases.json" 2>/dev/null || echo '?')"
+    echo "  mensajes: $(find "$d/mailbox" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
+  else
+    echo "salas activas:"
+    find "$KSW_ROOM_ROOT" -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' 2>/dev/null | sort
+  fi
+}
+
+cmd_finalize() {
+  local issue="$1" publish=0; shift
+  while [ $# -gt 0 ]; do case "$1" in --publish) publish=1;; esac; shift; done
+  room_ok "$issue" || return 2
+  local d; d="$(room "$issue")"
+  local blocks acks reaped
+  blocks="$(open_blocks "$issue")"; acks="$(mail_pending_acks "$issue")"; reaped="$(lease_reap "$issue")"
+  [ "$blocks" = 0 ] || fail "hay $blocks BLOCK abierto(s): no se integra"
+  [ "$acks" = 0 ] || fail "hay $acks handoff(s) sin ack: no se integra"
+  [ "$reaped" = 0 ] || fail "se reaperaron $reaped leases: revisa antes de integrar"
+  check_ownership "$issue" "${BRANCH}-${issue}-issue" HEAD || fail "propiedad de rutas violada"
+  [ $FAIL = 0 ] || { know "finalize abortado; hallazgo reportado segun S-11"; return 1; }
+
+  local br="${BRANCH}-${issue}-issue" flat descriptor
+  flat="${br//\//-}"; descriptor="$KSW_ROOT/${KZ_DRAFTS_DIR:-docs/kaizen/pr-drafts}/$flat.md"
+  if is_dry; then
+    klog "[dry-run] export saneado -> $d/export.md"
+    klog "[dry-run] descriptor -> $descriptor"
+    klog "[dry-run] integrar ramas wt-issue-$issue-* en $br"
+  else
+    { echo "# Export saneado del issue #$issue"; echo
+      find "$d/mailbox" -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null | sort -z | xargs -0 -r cat \
+        | "$KSW_ROOT/scripts/kaizen-security" redact 2>/dev/null \
+        | sed -n '1,200p'
+    } > "$d/export.md"
+    mkdir -p "$(dirname "$descriptor")"
+    if [ ! -f "$descriptor" ]; then
+      cat > "$descriptor" <<EOF
+## Resumen
+Resuelve #$issue: cambios de la comunidad swarm (17 roles, 3 rondas).
+
+## Componente afectado
+Comunidad Kaizen swarm
+
+## Tipo de cambio
+- [x] enhancement
+
+## Documentos relacionados
+- .kaizen/swarm/ROLES.md
+- .kaizen/swarm/PROTOCOL.md
+
+## Plan de prueba
+- \`bash tests/run.sh\`
+- \`scripts/kaizen check\`
+- \`scripts/kaizen-security check\`
+
+## Impacto en calidad (ratchet)
+- Cobertura: igual
+- Advertencias: igual
+- Deuda marcada: igual
+
+## Criterios de salida que avanza
+- Sin BLOCK abierto, sin handoffs sin ack, sin leases caducados.
+
+## Cierre de issues
+Closes #$issue
+
+## Checklist
+- [x] Compila
+- [x] Pasa tests
+- [x] \`scripts/kaizen check\` en verde
+- [x] Documentacion actualizada
+- [x] Linea base no empeora
+EOF
+    fi
+    local rb
+    for rb in $(git -C "$KSW_ROOT" for-each-ref --format='%(refname:short)' "refs/heads/wt-issue-$issue-*"); do
+      git -C "$KSW_ROOT" merge -q --no-ff "$rb" -m "Integra $rb en $br" 2>/dev/null \
+        || know "no se pudo integrar $rb (revision manual)"
+    done
+    printf '%s finalize %s\n' "$(date -u +%FT%TZ)" "$issue" >> "$d/journal.md"
+  fi
+
+  if [ "${KSW_REQUIRE_GATES:-1}" = 1 ]; then
+    if is_dry; then klog "[dry-run] scripts/kaizen check + scripts/kaizen-security check"
+    else
+      "$KSW_ROOT/scripts/kaizen" check || fail "kaizen check en rojo"
+      "$KSW_ROOT/scripts/kaizen-security" check || fail "kaizen-security check en rojo"
+    fi
+  fi
+  if [ "$publish" = 1 ]; then
+    if is_dry; then klog "[dry-run] git push origin $br + gh pr create --body-file $descriptor"
+    else
+      git -C "$KSW_ROOT" push -q origin "$br" || fail "push fallo"
+      gh pr create --base "${KZ_DEFAULT_BRANCH:-main}" --head "$br" \
+        --title "Kaizen swarm: issue #$issue" --body-file "$descriptor" --label swarm >/dev/null 2>&1 \
+        || know "no se pudo abrir el PR; rama $br empujada"
+    fi
+  else
+    klog "sin --publish: el orquestador externo publica la rama $br"
+  fi
+  [ $FAIL = 0 ] && klog "issue $issue finalizado"
+  return $FAIL
+}
+
+cmd_watch() {
+  if ! command -v gh >/dev/null 2>&1; then kfail "gh no disponible"; return 2; fi
+  [ -e "$KSW_ROOT/.kaizen/loop/PAUSE" ] && { klog "PAUSA activa: watch no inicia salas"; return 0; }
+  local label="${KSW_WATCH_LABEL:-swarm:ready}" n
+  while IFS= read -r n; do
+    [ -z "$n" ] && continue
+    cmd_init "$n" || know "no se pudo iniciar sala para #$n"
+  done < <(gh issue list --label "$label" --state open --json number --jq '.[].number' 2>/dev/null || true)
+}
+
+cmd_check() {
+  local f
+  for f in .kaizen/RULES.md .kaizen/config.env .kaizen/baseline.json \
+           .kaizen/security/SECURITY-RULES.md .kaizen/security/security.env \
+           .kaizen/loop/LOOP.md .kaizen/loop/loop.env \
+           .kaizen/swarm/swarm.env .kaizen/swarm/ROLES.md .kaizen/swarm/PROTOCOL.md .kaizen/swarm/ROSTER.md \
+           .kaizen/org/org.env .kaizen/org/ORGANIZATION.md .kaizen/org/AGENT_SCHEMA.md .kaizen/org/CONSENSUS.md \
+           docs/kaizen/org/FORECAST.md \
+           .kaizen/team/TEAM.md .kaizen/team/COMUNICACION.md .kaizen/team/FLUJOS.md .kaizen/team/EVIDENCIA.md; do
+    [ -f "$KSW_ROOT/$f" ] || fail "falta $f"
+  done
+  for f in scripts/kaizen scripts/kaizen-security scripts/kaizen-loop scripts/kaizen-swarm scripts/bootstrap; do
+    [ -x "$KSW_ROOT/$f" ] || fail "$f no es ejecutable"
+    bash -n "$KSW_ROOT/$f" 2>/dev/null || fail "sintaxis invalida: $f"
+  done
+  [ -f "$KSW_ROOT/scripts/lib/swarm-common.sh" ] || fail "falta scripts/lib/swarm-common.sh"
+  bash -n "$KSW_ROOT/scripts/lib/swarm-common.sh" 2>/dev/null || fail "sintaxis invalida: swarm-common.sh"
+  command -v jq >/dev/null 2>&1 || fail "jq requerido para leases/ownership"
+  [ -f "$KSW_ROOT/docs/kaizen/adr/0001-autonomia-nivel-3.md" ] || fail "falta ADR-0001 (autonomia nivel 3)"
+  "$KSW_ROOT/scripts/kaizen-org" check >/dev/null 2>&1 || fail "kaizen-org check en rojo"
+  "$KSW_ROOT/scripts/kaizen-team" check >/dev/null 2>&1 || fail "kaizen-team check en rojo"
+  "$KSW_ROOT/scripts/kaizen-runtime" check >/dev/null 2>&1 || fail "kaizen-runtime check en rojo"
+  "$KSW_ROOT/scripts/kaizen-installer" check >/dev/null 2>&1 || fail "kaizen-installer check en rojo"
+  python3 "$KSW_ROOT/scripts/kaizen-eval" check >/dev/null 2>&1 || fail "kaizen-eval check en rojo"
+  "$KSW_ROOT/scripts/kaizen-learn" check >/dev/null 2>&1 || fail "kaizen-learn check en rojo"
+  python3 "$KSW_ROOT/scripts/kaizen-gov" check >/dev/null 2>&1 || fail "kaizen-gov check en rojo"
+  [ $FAIL = 0 ] || { kfail "kaizen-swarm check: FALLO"; return 1; }
+  klog "kaizen-swarm check: todo en verde"
+}
+
+case "${1:-help}" in
+  init) shift; cmd_init "$@" ;;
+  mailbox) shift; cmd_mailbox "$@" ;;
+  ack) shift; cmd_ack "$@" ;;
+  lease) shift; cmd_lease "$@" ;;
+  reap) shift; cmd_reap "$@" ;;
+  run) shift; cmd_run "$@" ;;
+  status) shift; cmd_status "$@" ;;
+  finalize) shift; cmd_finalize "$@" ;;
+  watch) shift; cmd_watch "$@" ;;
+  check) cmd_check ;;
+  help|*) cat <<'EOF'
+kaizen-swarm <comando>
+  init <issue> [--slug s]        crea sala, contratos y rama del issue (idempotente)
+  mailbox <issue>                lista mensajes
+  mailbox <issue> <from> <to> <tipo> <cuerpo> [refs...]
+  ack <issue> <seq>              confirma un handoff
+  lease <issue> <tarea> <rol> [ttl]   registra tarea con expiracion
+  reap <issue>                   reapera leases caducados y reporta blocker
+  run <issue> [--round 1|2|3] [--rol ID]   lanza roles en worktrees
+  status [issue]                 estado de salas, bloqueos, acks y leases
+  finalize <issue> [--publish]   valida, integra, descriptors y gates; --publish hace push y PR
+  watch                          inicia salas para issues con etiqueta swarm:ready
+  check                          valida la instalacion del framework
+Variables: KSW_DRY_RUN=1 (plan sin efectos), KSW_MAX_PARALLEL, KSW_MAILBOX_VERSIONED
+EOF
+  ;;
+esac

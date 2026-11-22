@@ -1,0 +1,16 @@
+{
+  "slug": "observabilidad-proyecto",
+  "goal": "Anadir scopes por proyecto y HealthRegistry nativo en ag-observe sin romper ADR-0009/ADR-0019; exporter OTLP sigue opt-in",
+  "kpi": "cargo test -p ag-observe sin collector ni protoc; /metrics contiene project=...; componente caido cambia readiness",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "architect",
+    "systems",
+    "qa",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T17:19:18Z",
+  "updated": "2026-11-22T17:19:26Z"
+}

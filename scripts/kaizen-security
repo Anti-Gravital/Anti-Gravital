@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+# kaizen-security: rieles de seguridad. FALLA CERRADO ante error del escaner (S-1..S-16).
+set -uo pipefail
+TOP="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "no es un repositorio git" >&2; exit 2; }
+cd "$TOP"
+KS_HOME="${KS_HOME:-$TOP}"
+[ -f "$KS_HOME/.kaizen/config.env" ] && . "$KS_HOME/.kaizen/config.env"
+[ -f "$KS_HOME/.kaizen/security/security.env" ] && . "$KS_HOME/.kaizen/security/security.env"
+: "${KS_AUDIT_CMD:=}" "${KS_SAST_CMD:=}" "${KS_MAX_REPORTS:=10}" "${KS_HARDCODE_BLOCK:=0}" "${KS_REQUIRE_GITLEAKS:=0}"
+SEC="$KS_HOME/.kaizen/security"; STATE="$KS_HOME/.kaizen/loop/state"; mkdir -p "$STATE"
+FAIL=0
+fail() { echo "SEGURIDAD: $*" >&2; FAIL=1; }
+warn() { echo "AVISO: $*" >&2; }
+
+clean_list() { [ -f "$1" ] && { grep -Ev '^[[:space:]]*(#|$)' "$1" || true; }; }
+
+added_lines() {
+  git diff -U0 --no-color "$@" | awk '
+    /^\+\+\+ b\// { f = substr($0, 7); next }
+    /^@@/ { match($0, /\+[0-9]+/); n = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
+    /^\+/ { print f ":" n ":" substr($0, 2); n++ }'
+}
+
+scan_stream() { # stdin: archivo:linea:contenido -> solo archivo:linea (nunca el valor)
+  local pf af; pf="$(mktemp)"; af="$(mktemp)"
+  clean_list "$SEC/patterns.txt" > "$pf"; clean_list "$SEC/allowlist.txt" > "$af"
+  if [ ! -s "$pf" ]; then echo "ERROR-sin-patrones:0"; rm -f "$pf" "$af"; return 0; fi
+  if [ -s "$af" ]; then grep -E -f "$pf" | grep -Ev -f "$af" | cut -d: -f1,2
+  else grep -E -f "$pf" | cut -d: -f1,2; fi
+  rm -f "$pf" "$af"; return 0
+}
+
+scan_secrets() {
+  local hits h; hits="$(added_lines "$@" | scan_stream)"
+  if [ -n "$hits" ]; then
+    while IFS= read -r h; do fail "posible secreto en $h (valor omitido a proposito)"; done <<< "$hits"
+  fi
+  if command -v gitleaks >/dev/null 2>&1; then
+    if [ "$1" = "--cached" ]; then
+      gitleaks git --pre-commit --staged --redact --no-banner || gitleaks protect --staged --redact \
+        || fail "gitleaks detecto secretos o fallo al ejecutarse"
+    else
+      gitleaks git --log-opts "$1..$2" --redact --no-banner || gitleaks detect --log-opts "$1..$2" --redact --no-banner \
+        || fail "gitleaks detecto secretos o fallo al ejecutarse"
+    fi
+  else
+    [ "$KS_REQUIRE_GITLEAKS" = "1" ] && fail "gitleaks no instalado y es obligatorio"
+    warn "gitleaks no instalado: solo corre el escaner integrado"
+  fi
+}
+
+SUPPRESS_RX='(#[[:space:]]*(nosec|noqa|type:[[:space:]]*ignore|pylint:[[:space:]]*disable|pragma:[[:space:]]*no cover)|//[[:space:]]*(eslint-disable|nolint|NOSONAR)|/\*[[:space:]]*eslint-disable|@ts-(ignore|nocheck|expect-error)|#!?\[allow\(|@SuppressWarnings|pytest\.mark\.(skip|xfail)|\.(skip|only)\(|\b(xit|xdescribe|fdescribe)\(|continue-on-error:[[:space:]]*true|\|\|[[:space:]]*true|--no-verify|set \+e|t\.Skip\(|#\[ignore\]|except[^:]*:[[:space:]]*pass|catch[[:space:]]*(\([^)]*\))?[[:space:]]*\{[[:space:]]*\})'
+
+cmd_silence() {
+  local hits h
+  hits="$(added_lines "$@" | grep -Ev '^(scripts/kaizen|\.kaizen/|docs/kaizen/|\.githooks/)|^[^:]*\.md:' \
+          | grep -E "$SUPPRESS_RX" | grep -Ev '#[0-9]+' | cut -d: -f1,2)"
+  if [ -n "$hits" ]; then
+    while IFS= read -r h; do fail "supresion sin referencia a issue (#N) en $h (S-10)"; done <<< "$hits"
+  fi
+}
+
+cmd_hardcode() {
+  local hits h
+  hits="$(added_lines "$@" | grep -Ev '^(docs/|tests?/)|^[^:]*(\.md|\.example|example\.env|_test\.[a-z]+|\.test\.[a-z]+|\.spec\.[a-z]+):' \
+          | grep -E -f <(clean_list "$SEC/hardcode.txt") | cut -d: -f1,2)"
+  [ -z "$hits" ] && return 0
+  while IFS= read -r h; do
+    if [ "$KS_HARDCODE_BLOCK" = "1" ]; then fail "posible hardcoding en $h (S-3)"
+    else warn "posible hardcoding en $h (S-3): justificalo en el descriptor"; fi
+  done <<< "$hits"
+}
+
+cmd_audit() {
+  local ran=0
+  if [ -n "$KS_AUDIT_CMD" ]; then ran=1; bash -c "$KS_AUDIT_CMD" || fail "auditoria de dependencias fallo"; fi
+  if [ -n "$KS_SAST_CMD" ];  then ran=1; bash -c "$KS_SAST_CMD"  || fail "analisis estatico fallo"; fi
+  [ $ran = 0 ] && warn "KS_AUDIT_CMD y KS_SAST_CMD vacios: cobertura de seguridad INCOMPLETA"
+}
+
+cmd_all() {
+  local hits h
+  hits="$(git grep -nI '' | scan_stream)"
+  if [ -n "$hits" ]; then while IFS= read -r h; do fail "posible secreto en el arbol: $h"; done <<< "$hits"; fi
+  if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks git --redact --no-banner || gitleaks detect --redact --no-banner || fail "gitleaks (historial) fallo"
+  else
+    [ "$KS_REQUIRE_GITLEAKS" = "1" ] && fail "gitleaks no instalado y es obligatorio"
+    warn "sin gitleaks no se revisa el historial completo"
+  fi
+}
+
+cmd_check() {
+  local args=(--cached)
+  if [ $# -ge 2 ]; then args=("$1" "$2"); fi
+  # Si la rama base todavia no existe (repo recien iniciado), escanear el indice.
+  if [ $# -ge 2 ] && ! git rev-parse --verify -q "$1" >/dev/null 2>&1; then args=(--cached); fi
+  scan_secrets "${args[@]}"; cmd_silence "${args[@]}"; cmd_hardcode "${args[@]}"
+  [ $FAIL = 0 ] || { echo "kaizen-security: BLOQUEADO" >&2; return 1; }
+  echo "kaizen-security: ok"
+}
+
+redact() {
+  local pf args=() p; pf="$(mktemp)"; clean_list "$SEC/patterns.txt" > "$pf"
+  while IFS= read -r p; do args+=(-e "s/$(printf '%s' "$p" | sed 's#/#\\/#g')/<REDACTED>/g"); done < "$pf"
+  rm -f "$pf"
+  args+=(-e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<email>/g' -e 's/([0-9]{1,3}\.){3}[0-9]{1,3}/<ip>/g')
+  sed -E "${args[@]}"
+}
+
+cmd_hook() {
+  local input hits; input="$(cat)"
+  hits="$(printf '%s\n' "$input" | sed 's/^/x:0:/' | scan_stream | head -1)"
+  [ -z "$hits" ] || { echo "kaizen-security: la accion contiene un posible secreto (S-12)." >&2; exit 2; }
+  exit 0
+}
+
+local_fallback() {
+  local d="$KS_HOME/docs/kaizen/incidents/pending"; mkdir -p "$d"
+  printf 'kind: %s\n\n%s\n' "$1" "$3" > "$d/$2.md"
+  echo "reporte guardado en $d/$2.md (no se pudo publicar)" >&2; return 1
+}
+
+cmd_report() {
+  local kind="${1:?kind}" title="${2:?titulo}" fp="${3:-}" raw body priv num marker l labels=() largs=()
+  raw="$(cat)"; body="$(printf '%s\n' "$raw" | redact)"
+  [ -z "$fp" ] && fp="$(printf '%s|%s|%s' "$kind" "$title" "${GITHUB_REPOSITORY:-$TOP}" | cksum | cut -d' ' -f1)"
+  fp="$(printf '%s' "$fp" | tr -c 'A-Za-z0-9_-' '_' | cut -c1-48)"
+  title="$(printf '%s' "$title" | redact | cut -c1-120)"
+  if printf '%s\n' "$body" | sed 's/^/x:0:/' | scan_stream | grep -q .; then
+    kind=security; title="[security] Reporte bloqueado por posible secreto ($fp)"
+    body="Un reporte fue bloqueado porque, tras sanearlo, aun parecia contener un secreto. Trata el valor como comprometido (S-12). El contenido no se publica."
+  fi
+  case "$kind" in
+    bug) labels=(bug auto-detected);; incident) labels=(incident needs-human);;
+    security) labels=(security needs-human);; failure) labels=(kaizen-failure auto-detected);;
+    *) kind=bug; labels=(bug auto-detected);;
+  esac
+  for l in "${labels[@]}"; do largs+=(--label "$l"); done
+  command -v gh >/dev/null 2>&1 || { local_fallback "$kind" "$fp" "$body"; return 1; }
+  if [ "$kind" = security ]; then
+    priv="$(gh repo view --json isPrivate --jq .isPrivate 2>/dev/null || echo unknown)"
+    if [ "$priv" != "true" ]; then
+      title="[security] Hallazgo pendiente de revision privada ($fp)"
+      body="Hallazgo de seguridad registrado (ref $fp). Los detalles no se publican en un repositorio publico."
+    fi
+  fi
+  marker="kaizen-fp:$fp"
+  num="$(gh issue list --state open --search "\"$marker\" in:body" --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+  if [ -n "$num" ]; then gh issue comment "$num" --body "Reincidencia $(date -u +%FT%TZ)" && return 0; fi
+  gh issue create --title "$title" --body "$body"$'\n\n'"<!-- $marker -->" "${largs[@]}" \
+    || gh issue create --title "$title" --body "$body"$'\n\n'"<!-- $marker -->" \
+    || local_fallback "$kind" "$fp" "$body"
+}
+
+cmd_outbox() {
+  local dir="${1:?directorio}" n=0 f kind title fp omitted=""
+  for f in "$dir"/*.md; do
+    [ -e "$f" ] || continue
+    n=$((n + 1))
+    if [ "$n" -gt "$KS_MAX_REPORTS" ]; then omitted="$omitted- $(sed -n 's/^title:[[:space:]]*//p' "$f" | head -1)"$'\n'; continue; fi
+    kind="$(sed -n 's/^kind:[[:space:]]*//p' "$f" | head -1)"
+    title="$(sed -n 's/^title:[[:space:]]*//p' "$f" | head -1)"
+    fp="$(sed -n 's/^fingerprint:[[:space:]]*//p' "$f" | head -1)"
+    sed '1,/^---$/d' "$f" | cmd_report "${kind:-bug}" "${title:-Reporte sin titulo}" "$fp" || fail "no se pudo publicar $f"
+  done
+  if [ -n "$omitted" ]; then
+    printf 'Se supero el limite de %s reportes. Titulos omitidos:\n%s' "$KS_MAX_REPORTS" "$omitted" \
+      | cmd_report failure "[kaizen-failure] Exceso de reportes" "outbox-overflow-$(date -u +%Y%m%d)"
+  fi
+  [ $FAIL = 0 ]
+}
+
+case "${1:-help}" in
+  check) shift; cmd_check "$@";;
+  audit) cmd_audit; [ $FAIL = 0 ] || exit 1;;
+  all) cmd_all; [ $FAIL = 0 ] || exit 1;;
+  silence) shift; cmd_silence "$@"; [ $FAIL = 0 ];;
+  redact) redact;;
+  hook-pretool) cmd_hook;;
+  report) shift; cmd_report "$@";;
+  outbox) shift; [ "${1:-}" = publish ] && shift; cmd_outbox "$@";;
+  *) cat <<'EOF'
+kaizen-security <comando>
+  check [base head]   secretos, supresiones sin issue y hardcoding
+  audit               auditoria de dependencias y SAST
+  all                 arbol completo e historial
+  redact              filtra stdin ocultando secretos, correos e IPs
+  hook-pretool        hook de PreToolUse (stdin JSON)
+  report <kind> <titulo> [huella]   publica un reporte saneado
+  outbox publish <dir>              publica los reportes del agente
+EOF
+  ;;
+esac

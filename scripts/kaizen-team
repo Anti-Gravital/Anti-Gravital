@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# kaizen-team: orquestador de equipo proactivo con decisiones basadas en evidencia verificada.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/config.env" ] && . "$ROOT/.kaizen/config.env"
+[ -f "$ROOT/.kaizen/team/team.env" ] && . "$ROOT/.kaizen/team/team.env"
+: "${KT_FACILITATOR:=facilitador-equipo}" "${KT_VERIFIER:=verificador-evidencias}" "${KT_MONITOR:=monitor-gaceta}"
+: "${KT_MIN_VERIFIED_SOURCES:=1}" "${KT_EVIDENCE_TTL_DAYS:=90}" "${KT_TASK_DUE_DAYS:=7}"
+: "${KT_PAUSE_FILE:=.kaizen/loop/PAUSE}" "${KT_SOURCES_FILE:=.kaizen/org/knowledge/SOURCES.md}"
+: "${KT_PROJECTS_DIR:=.kaizen/team/projects}"
+PD="$ROOT/$KT_PROJECTS_DIR"; SRC="$ROOT/$KT_SOURCES_FILE"
+FAIL=0
+klog() { printf '[kaizen-team] %s\n' "$*"; }
+kfail() { printf '[kaizen-team] FALLA: %s\n' "$*" >&2; FAIL=1; }
+proj() { printf '%s/%s' "$PD" "$1"; }
+proj_ok() { [ -f "$(proj "$1")/state.json" ] || { kfail "proyecto desconocido: $1"; return 1; }; }
+source_ok() { local sid="$1" row; row="$(grep -F "| $sid |" "$SRC" 2>/dev/null | head -1)"; [ -n "$row" ] && printf '%s' "$row" | grep -q '| verified |'; }
+
+cmd_init() {
+  local slug="${1:?uso: init <slug> --goal T [--members a,b] [--kpi K]}" goal="" members="$KT_FACILITATOR,$KT_VERIFIER" kpi=""; shift
+  while [ $# -gt 0 ]; do case "$1" in --goal) goal="$2"; shift;; --members) members="$2"; shift;; --kpi) kpi="$2"; shift;; esac; shift; done
+  local d; d="$(proj "$slug")"; [ -d "$d" ] && { klog "proyecto $slug ya existe (idempotente)"; return 0; }
+  mkdir -p "$d"/{standups,decisions}
+  jq -n --arg slug "$slug" --arg goal "$goal" --arg kpi "$kpi" --arg facilitator "$KT_FACILITATOR" \
+     --argjson members "$(printf '%s' "$members" | jq -R 'split(",")|map(gsub("^\\s+|\\s+$";""))')" \
+     --arg created "$(date -u +%FT%TZ)" \
+     '{slug:$slug,goal:$goal,kpi:$kpi,facilitator:$facilitator,members:$members,stage:"intake",created:$created,updated:$created}' \
+     > "$d/state.json"
+  printf '[]\n' > "$d/tasks.json"; : > "$d/handoffs.jsonl"
+  cat > "$d/charter.md" <<EOF
+# Charter: $slug
+
+## Objetivo
+${goal:-<completar>}
+
+## KPI verificable
+${kpi:-<completar>}
+
+## Restricciones
+- Decisiones con fuentes verificadas: .kaizen/team/EVIDENCIA.md
+- Vetos: security, architecture, qa, compliance, scope, resource
+- Proactividad con frenos: .kaizen/team/FLUJOS.md
+EOF
+  printf '# Blackboard: %s\n\nSolo hechos con `source_ids` verificados o salida de comando reproducible.\n\n' "$slug" > "$d/blackboard.md"
+  printf '%s\n' '# Retrospectiva' '' '## Que funciono' '- ' '' '## Que no funciono' '- ' '' '## Hasta 3 mejoras (dueño, issue, fecha)' '| Mejora | Dueno | Issue | Fecha |' '| --- | --- | --- | --- |' > "$d/retro.md"
+  klog "proyecto $slug inicializado en etapa intake"
+}
+
+cmd_standup() {
+  local slug="$1"; proj_ok "$slug" || return 2
+  local d f; d="$(proj "$slug")"; f="$d/standups/$(date -u +%Y-%m-%d).md"
+  [ -f "$f" ] && { klog "standup de hoy ya existe: $f"; return 0; }
+  { printf '# Standup %s — %s\n\n' "$slug" "$(date -u +%Y-%m-%d)"
+    printf 'Etapa: `%s` | Pausa: %s\n\n' "$(jq -r .stage "$d/state.json")" "$([ -e "$ROOT/$KT_PAUSE_FILE" ] && echo SI || echo no)"
+    jq -r '.members[]' "$d/state.json" | while IFS= read -r m; do
+      printf '## %s\n- Ayer: \n- Hoy: \n- Bloqueos: \n- Evidencia nueva (`source_ids`): \n\n' "$m"
+    done
+    printf 'Reglas: un hablante por hilo, ack obligatorio, sin decisiones sin fuente verificada.\n'
+  } > "$f"
+  klog "standup: $f"
+}
+
+cmd_assign() {
+  local slug="$1" task="$2" agent="$3"; proj_ok "$slug" || return 2
+  local d; d="$(proj "$slug")"
+  jq -e --arg a "$agent" '.members | index($a)' "$d/state.json" >/dev/null 2>&1 \
+    || { kfail "$agent no pertenece a la escuadra"; return 2; }
+  local due; due="$(date -u -d "+$KT_TASK_DUE_DAYS days" +%Y-%m-%d 2>/dev/null || date -u +%Y-%m-%d)"
+  jq --arg t "$task" --arg a "$agent" --arg due "$due" --arg now "$(date -u +%FT%TZ)" \
+     '. + [{task:$t,owner:$a,due:$due,status:"assigned",created:$now}]' "$d/tasks.json" > "$d/tasks.tmp" && mv "$d/tasks.tmp" "$d/tasks.json"
+  jq -cn --arg from "$KT_FACILITATOR" --arg to "$agent" --arg task "$task" --arg now "$(date -u +%FT%TZ)" \
+     '{id:("H-"+(now|gsub("[^0-9]";""))),from:$from,to:$to,channel:"direct",intent:"handoff",task:$task,expects_ack:true,status:"open",created:$now}' >> "$d/handoffs.jsonl"
+  jq --arg now "$(date -u +%FT%TZ)" '.stage="execute" | .updated=$now' "$d/state.json" > "$d/state.tmp" && mv "$d/state.tmp" "$d/state.json"
+  klog "tarea asignada: $task -> $agent (due $due)"
+}
+
+cmd_handoff() { # slug from to intent text [source_ids]
+  local slug="$1" from="$2" to="$3" intent="$4" text="$5"; shift 5
+  local d ids="${1:-}"; d="$(proj "$slug")"; proj_ok "$slug" || return 2
+  jq -cn --arg from "$from" --arg to "$to" --arg intent "$intent" --arg text "$text" --arg ids "$ids" \
+     --arg now "$(date -u +%FT%TZ)" \
+     '{id:("H-"+(now|gsub("[^0-9]";""))),from:$from,to:$to,channel:"direct",intent:$intent,text:$text,source_ids:$ids,expects_ack:true,status:"open",created:$now}' >> "$d/handoffs.jsonl"
+  klog "mensaje $intent: $from -> $to"
+}
+
+cmd_ack() {
+  local slug="$1" hid="$2"; proj_ok "$slug" || return 2
+  local d; d="$(proj "$slug")"
+  local tmp; tmp="$(mktemp)"
+  jq --arg id "$hid" --arg now "$(date -u +%FT%TZ)" 'if .id==$id then .status="ack" | .acked_at=$now else . end' "$d/handoffs.jsonl" > "$tmp" \
+    && mv "$tmp" "$d/handoffs.jsonl"
+  grep -q "\"$hid\"" "$d/handoffs.jsonl" || { kfail "handoff no existe: $hid"; return 2; }
+  klog "ack registrado: $hid"
+}
+
+cmd_sync() {
+  local slug="$1"; proj_ok "$slug" || return 2
+  local d; d="$(proj "$slug")"
+  local open nblk nver ntasks
+  open="$(jq -r 'select(.status=="open") | .id' "$d/handoffs.jsonl" 2>/dev/null | grep -c . || :)"
+  nblk="$(grep -l '^status: blocked$' "$d"/decisions/*.md 2>/dev/null | wc -l | tr -d ' ')"
+  nver="$(grep -l '^status: verified$' "$d"/decisions/*.md 2>/dev/null | wc -l | tr -d ' ')"
+  ntasks="$(jq -r '[.[]|select(.status!="done")]|length' "$d/tasks.json")"
+  printf 'proyecto=%s etapa=%s | acuses pendientes=%s | tareas abiertas=%s | decisiones verificadas=%s | bloqueadas=%s\n' \
+    "$slug" "$(jq -r .stage "$d/state.json")" "$open" "$ntasks" "$nver" "$nblk"
+  [ "$open" = 0 ] || klog "hay $open handoff(s) sin ack: la etapa no avanza"
+}
+
+cmd_decide() {
+  local slug="$1" topic="$2"; shift 2
+  local sources="" owner="$KT_FACILITATOR"
+  while [ $# -gt 0 ]; do case "$1" in --sources) sources="$2"; shift;; --owner) owner="$2"; shift;; esac; shift; done
+  proj_ok "$slug" || return 2
+  local d n f; d="$(proj "$slug")"
+  n=$(( $(find "$d/decisions" -name 'DEC-*.md' | wc -l) + 1 ))
+  f="$d/decisions/DEC-$(printf '%03d' "$n")-$(printf '%s' "$topic" | tr -c 'A-Za-z0-9' '-' | cut -c1-32).md"
+  local ids="[]" ok=0 bad=""
+  if [ -n "$sources" ]; then
+    ids="[$(printf '%s' "$sources" | tr ',' ' ' | awk '{for(i=1;i<=NF;i++) printf "%s\"%s\"", (i>1?", ":""), $i}')]"
+    local sid; for sid in $(printf '%s' "$sources" | tr ',' ' '); do
+      if source_ok "$sid"; then ok=$((ok + 1)); else bad="$bad $sid"; fi
+    done
+  fi
+  local st="proposed"; [ $ok -ge "$KT_MIN_VERIFIED_SOURCES" ] && [ -z "$bad" ] || st="blocked"
+  { printf 'decision_id: DEC-%03d\ntopic: %s\nsource_ids: %s\nretrieved: %s\nstatus: %s\nhuman_owner: %s\n---\n\n' \
+      "$n" "$topic" "$ids" "$(date -u +%FT%TZ)" "$st" "$owner"
+    printf '# Decisión: %s\n\n' "$topic"
+    printf '## Evidencia\n- Fuentes verificadas: %s\n- Fuentes rechazadas:%s\n\n' "$ok" "${bad:- ninguna}"
+    printf '## Opciones y decisión\n<completar tras consenso>\n\n'
+    printf '## Incertidumbre y escalado\n<completar; si source_ids no verificados, escalar a humano>\n'
+  } > "$f"
+  if [ "$st" = blocked ]; then kfail "decisión BLOQUEADA: sin fuentes verificadas suficientes (REG-EV-01)"; return 1; fi
+  klog "decisión abierta: $f"
+}
+
+cmd_verify() {
+  local slug="$1"; proj_ok "$slug" || return 2
+  local d f sid refs st; d="$(proj "$slug")"
+  local n=0
+  for f in "$d"/decisions/DEC-*.md; do
+    [ -f "$f" ] || continue
+    # Las decisiones ya bloqueadas se dejan bloqueadas: no se "verifican" para forzar un pase.
+    bst="$(sed -n 's/^status: //p' "$f" | head -1)"
+    [ "$bst" = blocked ] && continue
+    refs="$(sed -n 's/^source_ids: //p' "$f" | head -1 | tr -d '[]"' | tr ',' ' ')"
+    [ -n "$refs" ] || { kfail "$(basename "$f"): sin source_ids"; n=$((n + 1)); continue; }
+    for sid in $refs; do
+      source_ok "$sid" || { kfail "$(basename "$f"): fuente no verificada: $sid"; n=$((n + 1)); }
+    done
+  done
+  [ $n = 0 ] || { kfail "verify: $n problema(s); la etapa no avanza"; return 1; }
+  for f in "$d"/decisions/DEC-*.md; do
+    [ -f "$f" ] || continue
+    st="$(sed -n 's/^status: //p' "$f" | head -1)"
+    [ "$st" = verified ] || sed -i "s/^status: .*/status: verified/" "$f"
+  done
+  jq --arg now "$(date -u +%FT%TZ)" '.updated=$now' "$d/state.json" > "$d/state.tmp" && mv "$d/state.tmp" "$d/state.json"
+  klog "verify: todas las decisiones tienen fuentes verificadas"
+}
+
+cmd_advance() {
+  local slug="$1"; proj_ok "$slug" || return 2
+  local d st next; d="$(proj "$slug")"; st="$(jq -r .stage "$d/state.json")"
+  case "$st" in
+    intake) jq -e '.kpi != "<completar>" and .kpi != ""' "$d/state.json" >/dev/null 2>&1 || { kfail "KPI no definido"; return 1; };;
+    decide) cmd_verify "$slug" || { kfail "verify en rojo: no se avanza a deliver"; return 1; };;
+    execute) local open; open="$(jq -r 'select(.status=="open")|.id' "$d/handoffs.jsonl" 2>/dev/null | grep -c . || :)"; [ "$open" = 0 ] || { kfail "hay $open acuses pendientes"; return 1; };;
+  esac
+  case "$st" in
+    intake) next=plan;; plan) next=squad;; squad) next=execute;; execute) next=review;;
+    review) next=decide;; decide) next=deliver;; deliver) next=verify;; verify) next=closed;; closed) next=closed;;
+  esac
+  jq --arg n "$next" --arg now "$(date -u +%FT%TZ)" '.stage=$n | .updated=$now' "$d/state.json" > "$d/state.tmp" && mv "$d/state.tmp" "$d/state.json"
+  klog "$slug: $st -> $next"
+}
+
+cmd_retro() {
+  local slug="$1"; proj_ok "$slug" || return 2
+  local d; d="$(proj "$slug")"
+  { printf '# Retrospectiva %s — %s\n\n' "$slug" "$(date -u +%Y-%m-%d)"
+    printf -- '- Tareas: %s (hechas: %s)\n' "$(jq 'length' "$d/tasks.json")" "$(jq '[.[]|select(.status=="done")]|length' "$d/tasks.json")"
+    printf -- '- Decisiones verificadas: %s\n' "$(grep -l '^status: verified$' "$d"/decisions/*.md 2>/dev/null | wc -l | tr -d ' ')"
+    printf -- '- Mensajes con ack pendiente: %s\n\n' "$(jq -r 'select(.status=="open")|.id' "$d/handoffs.jsonl" 2>/dev/null | grep -c . || :)"
+    printf '## Que funciono\n- \n\n## Que no funciono\n- \n\n## Hasta 3 mejoras (dueño, issue, fecha)\n| Mejora | Dueno | Issue | Fecha |\n| --- | --- | --- | --- |\n'
+  } > "$d/retro.md"
+  klog "retro actualizada: $d/retro.md"
+}
+
+cmd_status() {
+  local slug="${1:-}" d st
+  if [ -n "$slug" ]; then
+    proj_ok "$slug" || return 2; d="$(proj "$slug")"
+    echo "proyecto: $slug | etapa: $(jq -r .stage "$d/state.json") | KPI: $(jq -r .kpi "$d/state.json")"
+    echo "miembros: $(jq -r '.members|join(", ")' "$d/state.json")"
+    echo "tareas: $(jq 'length' "$d/tasks.json") | decisiones: $(find "$d/decisions" -name 'DEC-*.md' | wc -l | tr -d ' ')"
+  else
+    echo "proyectos:"
+    find "$PD" -mindepth 2 -maxdepth 2 -name state.json -printf '%h\n' 2>/dev/null | while IFS= read -r d; do
+      printf '  %s: %s\n' "$(basename "$d")" "$(jq -r .stage "$d/state.json")"
+    done
+  fi
+}
+
+cmd_check() {
+  local f; for f in .kaizen/team/TEAM.md .kaizen/team/COMUNICACION.md .kaizen/team/FLUJOS.md \
+     .kaizen/team/EVIDENCIA.md .kaizen/team/OWNER.md .kaizen/team/team.env \
+     .kaizen/team/runtime.env .kaizen/team/teams.json .kaizen/team/notify.env \
+     "$KT_SOURCES_FILE" docs/kaizen/adr/0003-modelo-de-equipo-proactivo.md; do
+    [ -f "$ROOT/$f" ] || kfail "falta $f"
+  done
+  command -v jq >/dev/null 2>&1 || kfail "jq requerido"
+  local nv; nv="$(grep -c '| verified |' "$SRC" 2>/dev/null || echo 0)"
+  [ "$nv" -ge 1 ] || kfail "no hay fuentes verificadas en SOURCES.md"
+  [ -x "$ROOT/scripts/kaizen-team" ] || kfail "kaizen-team no ejecutable"
+  [ $FAIL = 0 ] || { kfail "kaizen-team check: FALLO"; return 1; }
+  klog "kaizen-team check: todo en verde ($nv fuentes verificadas)"
+}
+
+case "${1:-help}" in
+  init) shift; cmd_init "$@";; standup) shift; cmd_standup "$@";;
+  assign) shift; cmd_assign "$@";; handoff) shift; cmd_handoff "$@";; ack) shift; cmd_ack "$@";;
+  sync) shift; cmd_sync "$@";; decide) shift; cmd_decide "$@";; verify) shift; cmd_verify "$@";;
+  advance) shift; cmd_advance "$@";; retro) shift; cmd_retro "$@";;
+  status) shift; cmd_status "$@";; check) cmd_check;;
+  *) cat <<'EOF'
+kaizen-team <comando>
+  init <slug> --goal T [--members a,b] [--kpi K]   crea proyecto (intake)
+  standup <slug>              standup asincrono del dia
+  assign <slug> <tarea> <agente>   asigna tarea con lease y handoff
+  handoff <slug> <from> <to> <intent> <texto> [source_ids]
+  ack <slug> <handoff_id>     acusa recibo
+  sync <slug>                consolida acuses, tareas y decisiones
+  decide <slug> <tema> --sources ID,ID [--owner ID]   decision con evidencia
+  verify <slug>              valida source_ids contra SOURCES.md
+  advance <slug>             avanza etapa respetando puertas
+  retro <slug> | status [slug] | check
+EOF
+  ;;
+esac

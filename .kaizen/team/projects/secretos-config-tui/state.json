@@ -1,0 +1,16 @@
+{
+  "slug": "secretos-config-tui",
+  "goal": "Avanzar RFC-0020: archivo cifrado age tras SecretSource, keygen/recipients/set/unset, migracion de std::env::var y form TUI via RFC-0018, sin crate nuevo",
+  "kpi": "0 valores de secreto impresos; round-trip y wrong-key en verde; fmt/clippy/test/audit/deny verdes; sin crate nuevo",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "security",
+    "architect",
+    "qa",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T17:19:18Z",
+  "updated": "2026-11-22T17:19:26Z"
+}

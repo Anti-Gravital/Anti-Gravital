@@ -1,0 +1,1 @@
+# Falsos positivos. Ruta protegida: toda entrada requiere revision humana en el PR.

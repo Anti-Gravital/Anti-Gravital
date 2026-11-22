@@ -1,0 +1,22 @@
+{
+  "equipo-central": {
+    "goal": "Coordinar la comunidad y cerrar un objetivo verificable por ciclo",
+    "members": ["kaizen-equipo", "facilitador-equipo", "verificador-evidencias"],
+    "kpi": "Una decisión verificada por ciclo"
+  },
+  "cumplimiento": {
+    "goal": "Vigilar Gaceta Oficial y normativa panameña; convertir cambios en reglas y acciones",
+    "members": ["monitor-gaceta", "cumplimiento-panama", "verificador-evidencias", "fiscal-integration-specialist"],
+    "kpi": "0 normas sin source_id verificado"
+  },
+  "plataforma": {
+    "goal": "Mantener CI/CD, nube, observabilidad y Rust/WASI con despliegues reversibles",
+    "members": ["platform-engineer", "gcp-cloud-architect", "rust-systems-specialist", "dotnet-banking-integrator"],
+    "kpi": "Despliegues con rollback y tests verdes"
+  },
+  "producto": {
+    "goal": "Convertir necesidades de negocio en capacidades, diseño Flutter y modelos de acceso",
+    "members": ["business-profiles-architect", "identity-access-specialist", "vertical-domain-specialist", "flutter-m3-design-specialist", "ai-rag-engineer"],
+    "kpi": "Propuestas con evidencia y métrica antes/después"
+  }
+}

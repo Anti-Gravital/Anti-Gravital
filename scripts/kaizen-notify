@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# kaizen-notify: envía reportes a El Presidente por archivo, webhook (n8n->WhatsApp) y correo.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+[ -f "$ROOT/.kaizen/team/notify.env" ] && . "$ROOT/.kaizen/team/notify.env"
+: "${KN_CHANNELS:=file,webhook}" "${KN_WEBHOOK_URL_VAR:=KAZEN_WEBHOOK_URL}" \
+  "${KN_WEBHOOK_SECRET_VAR:=KAZEN_WEBHOOK_SECRET}" "${KN_SMTP_ENABLED:=0}"
+S="$ROOT/.kaizen/team/runtime"; mkdir -p "$S"
+FAIL=0
+klog() { printf '[kaizen-notify] %s\n' "$*"; }
+kfail() { printf '[kaizen-notify] FALLA: %s\n' "$*" >&2; FAIL=1; }
+
+send_file() {
+  local line; line="$(jq -cn --arg ts "$(date -u +%FT%TZ)" --arg title "$1" --arg body "$2" --arg level "$3" \
+    '{ts:$ts,title:$title,body:$body,level:$level}')"
+  printf '%s\n' "$line" >> "$S/notifications.jsonl"
+}
+
+send_webhook() {
+  local url="${!KN_WEBHOOK_URL_VAR:-}" secret="${!KN_WEBHOOK_SECRET_VAR:-}"
+  [ -n "$url" ] || { klog "webhook no configurado ($KN_WEBHOOK_URL_VAR): se omite"; return 0; }
+  local payload args=(-sS --max-time 20 -H 'Content-Type: application/json')
+  payload="$(jq -cn --arg title "$1" --arg body "$2" --arg level "$3" --arg from "kaizen-swarm@$HOSTNAME" \
+    '{text:("[" + $level + "] " + $title + "\n" + $body), title:$title, level:$level, source:$from, ts:now|tostring}')"
+  [ -n "$secret" ] && args+=(-H "X-Kaizen-Secret: $secret")
+  curl "${args[@]}" -d "$payload" "$url" >/dev/null 2>&1 || kfail "webhook falló (revisa URL/secret)"
+}
+
+send_mail() {
+  [ "$KN_SMTP_ENABLED" = 1 ] || return 0
+  python3 - "$1" "$2" "$3" <<'PY' || kfail "SMTP falló"
+import os, smtplib, sys
+from email.message import EmailMessage
+title, body, level = sys.argv[1:4]
+m = EmailMessage()
+m["Subject"] = f"[{level}] {title}"
+m["From"] = os.environ.get("SMTP_USER", "kaizen@localhost")
+m["To"] = os.environ.get("OWNER_EMAIL", "")
+m.set_content(body + "\n\n-- \nEnviado por kaizen-swarm para El Presidente.")
+if not m["To"]:
+    raise SystemExit(0)
+with smtplib.SMTP(os.environ.get("SMTP_HOST", "localhost"), int(os.environ.get("SMTP_PORT", "25"))) as s:
+    if os.environ.get("SMTP_PASS"):
+        s.starttls(); s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+    s.send_message(m)
+PY
+}
+
+cmd_send() {
+  local title="" body="" level="info"
+  while [ $# -gt 0 ]; do case "$1" in
+    --title) title="$2"; shift;; --body) body="$2"; shift;; --level) level="$2"; shift;;
+  esac; shift; done
+  [ -n "$title" ] || { kfail "falta --title"; return 2; }
+  local ch; for ch in ${KN_CHANNELS//,/ }; do
+    case "$ch" in file) send_file "$title" "$body" "$level";; webhook) send_webhook "$title" "$body" "$level";; email) send_mail "$title" "$body" "$level";; esac
+  done
+  [ $FAIL = 0 ] && klog "reporte enviado: $title"
+  return $FAIL
+}
+
+cmd_event() { # equipo, resultado, detalle
+  local team="$1" rc="$2" detail="${3:-}"; shift 3 || true
+  local level=info; [ "$rc" != 0 ] && level=alert
+  cmd_send --title "Equipo $team: $([ "$rc" = 0 ] && echo OK || echo INCIDENCIA)" \
+    --body "Resultado: $rc
+$detail
+
+$(cat "$ROOT/.kaizen/team/OWNER.md" 2>/dev/null | sed -n '/## Reporte mínimo/,/^## /p' | head -20)" --level "$level"
+}
+
+case "${1:-help}" in
+  send) shift; cmd_send "$@";;
+  event) shift; cmd_event "$@";;
+  status) echo "canales: $KN_CHANNELS | webhook_var: $KN_WEBHOOK_URL_VAR | smtp: $KN_SMTP_ENABLED"; echo "archivo: $S/notifications.jsonl";;
+  *) cat <<'EOF'
+kaizen-notify <comando>
+  send --title T --body B [--level info|alert]   envía reporte a El Presidente
+  event <equipo> <rc> [detalle]                   reporte de ciclo del runtime
+  status                                          canales configurados
+EOF
+  ;;
+esac

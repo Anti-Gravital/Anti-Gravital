@@ -1,0 +1,233 @@
+[
+  {
+    "id": "ai-rag-engineer",
+    "name": "Ingeniero de IA y RAG",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "analista-negocios",
+    "name": "Analista Oficial de Negocios",
+    "department": "producto-negocio",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "scope",
+    "triggers": "[issue.label:swarm:ready, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "business-profiles-architect",
+    "name": "Arquitecto de Perfiles de Negocio",
+    "department": "producto-negocio",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "scope",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "capacidades-negocio",
+    "name": "Especialista en Capacidades Tecnológicas, Financieras y de Mercadeo",
+    "department": "conocimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[issue.label:capacidades, research.required:*, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "cumplimiento-panama",
+    "name": "Especialista en Cumplimiento y Normativa (Panamá + Estándares Internacionales)",
+    "department": "cumplimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "compliance",
+    "triggers": "[issue.label:cumplimiento, research.required:*, knowledge.updated:*, schedule:weekly, regulatory.change:*]"
+  },
+  {
+    "id": "dotnet-banking-integrator",
+    "name": "Integrador Bancario .NET",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "facilitador-equipo",
+    "name": "Facilitador de Equipo",
+    "department": "gerencia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "resource",
+    "triggers": "[project.created, schedule:daily, knowledge.updated:*, handoff.pending:*]"
+  },
+  {
+    "id": "finanzas-panamas",
+    "name": "Analista Financiero Panama",
+    "department": "producto-negocio",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[issue.label:swarm:ready, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "fiscal-integration-specialist",
+    "name": "Especialista en Integración Fiscal DGI/HKA",
+    "department": "cumplimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "compliance",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "flutter-m3-design-specialist",
+    "name": "Especialista en Diseño Flutter M3E",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "gcp-cloud-architect",
+    "name": "Arquitecto Cloud GCP",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "architecture",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "gerente",
+    "name": "Gerente de Operaciones (COO)",
+    "department": "gerencia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "resource",
+    "triggers": "[issue.label:swarm:ready, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "identity-access-specialist",
+    "name": "Especialista en Identidad y Acceso",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "architecture",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "knowledge-curator",
+    "name": "Curador de Conocimiento",
+    "department": "conocimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[issue.label:swarm:ready, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "marketing",
+    "name": "Especialista en Marketing y Visualizacion",
+    "department": "producto-negocio",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[issue.label:swarm:ready, knowledge.updated:*, schedule:weekly]"
+  },
+  {
+    "id": "monitor-gaceta",
+    "name": "Monitor de Gaceta Oficial y Normativa Panameña",
+    "department": "cumplimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[schedule:daily, regulatory.change:*, research.required:*]"
+  },
+  {
+    "id": "platform-engineer",
+    "name": "Ingeniero de Plataforma y DevOps",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "rea-specialist",
+    "name": "Especialista en Ingeniería Inversa y Depuración Profunda (REA)",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, issue.label:depuracion, reverse_engineering.authorized:*, knowledge.updated:*]"
+  },
+  {
+    "id": "rust-systems-specialist",
+    "name": "Especialista en Rust y Sistemas",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "verificador-evidencias",
+    "name": "Verificador de Evidencias",
+    "department": "conocimiento",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[decision.proposed, source.stale, schedule:weekly, regulatory.change:*]"
+  },
+  {
+    "id": "vertical-domain-specialist",
+    "name": "Especialista en Verticales Comerciales",
+    "department": "producto-negocio",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  }
+]

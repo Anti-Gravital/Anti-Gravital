@@ -1,0 +1,16 @@
+{
+  "slug": "benchmark-carga",
+  "goal": "Protocolo de carga escalonado 200 a 1k a 5k de concurrencia con oha, separando limites de hardware de limites del sistema; crear RFC y sub-issues bajo #157",
+  "kpi": "3 corridas independientes con desviacion; campos regla 17 completos; #157 permanece blocked hasta verificacion real",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "qa",
+    "lowlevel",
+    "systems",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T17:19:18Z",
+  "updated": "2026-11-22T17:19:26Z"
+}

@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# kaizen-start: un comando para activar toda la comunidad en Linux (persistente si hay systemd --user).
+set -uo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+UNIT="$UNIT_DIR/kaizen-runtime.service"
+BIN_DIR="${HOME}/.local/bin"
+S="$ROOT/.kaizen/team/runtime"; mkdir -p "$S"
+FAIL=0
+klog() { printf '[kaizen-start] %s\n' "$*"; }
+kfail() { printf '[kaizen-start] FALLA: %s\n' "$*" >&2; FAIL=1; }
+
+write_unit() {
+  mkdir -p "$UNIT_DIR"
+  cat > "$UNIT" <<EOF
+[Unit]
+Description=Kaizen Swarm - equipo proactivo de agentes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$ROOT
+Environment=KR_INTERVAL_SEC=900
+Environment=KR_MAX_RUNS_PER_DAY=24
+ExecStart=$ROOT/scripts/kaizen-runtime up
+ExecStop=$ROOT/scripts/kaizen-runtime down
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+EOF
+  klog "unidad systemd escrita: $UNIT"
+}
+
+link_bin() {
+  mkdir -p "$BIN_DIR"
+  if [ -L "$BIN_DIR/kaizen-start" ] || [ -f "$BIN_DIR/kaizen-start" ]; then
+    klog "kaizen-start ya enlazado en $BIN_DIR"
+  else
+    ln -s "$ROOT/scripts/kaizen-start" "$BIN_DIR/kaizen-start"
+    klog "comando disponible: kaizen-start"
+  fi
+}
+
+cmd_install() {
+  "$ROOT/scripts/kaizen-installer" opencode --global || kfail "instalación de agentes falló"
+  write_unit
+  link_bin
+  command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload >/dev/null 2>&1 || klog "systemd --user no disponible: se usará nohup"
+  klog "instalación lista"
+}
+
+cmd_start() {
+  cmd_install || return 1
+  if command -v systemctl >/dev/null 2>&1 && systemctl --user --version >/dev/null 2>&1; then
+    if systemctl --user enable --now kaizen-runtime.service >/dev/null 2>&1; then
+      klog "runtime iniciado con systemd --user"
+    else
+      klog "systemd no pudo iniciar; fallback nohup"
+      nohup "$ROOT/scripts/kaizen-runtime" up > "$S/runtime.log" 2>&1 &
+    fi
+  else
+    nohup "$ROOT/scripts/kaizen-runtime" up > "$S/runtime.log" 2>&1 &
+    echo $! > "$S/runtime.pid"
+    klog "runtime iniciado con nohup (PID $(cat "$S/runtime.pid"))"
+  fi
+  "$ROOT/scripts/kaizen-inbox" start
+  "$ROOT/scripts/kaizen-notify" send --title "Comunidad activa" \
+    --body "El equipo Kaizen está trabajando de forma proactiva. Objetivo: convertir instrucciones de El Presidente en decisiones verificadas." --level info >/dev/null 2>&1 || true
+  klog "un solo comando ejecutado: agentes + runtime + buzón activos"
+}
+
+cmd_stop() {
+  command -v systemctl >/dev/null 2>&1 && systemctl --user stop kaizen-runtime.service >/dev/null 2>&1 || true
+  "$ROOT/scripts/kaizen-runtime" down
+  "$ROOT/scripts/kaizen-inbox" stop
+  klog "comunidad detenida"
+}
+
+cmd_status() {
+  echo "agents globales: $(find "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/agents" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+  command -v systemctl >/dev/null 2>&1 && systemctl --user is-active kaizen-runtime.service 2>/dev/null | sed 's/^/systemd: /' || true
+  [ -f "$S/runtime.pid" ] && echo "nohup pid: $(cat "$S/runtime.pid")"
+  "$ROOT/scripts/kaizen-runtime" status
+  "$ROOT/scripts/kaizen-inbox" status
+}
+
+case "${1:-start}" in
+  install) cmd_install;;
+  start) cmd_start;;
+  stop) cmd_stop;;
+  restart) cmd_stop; cmd_start;;
+  status) cmd_status;;
+  logs) tail -n 40 "$S/runtime.log" 2>/dev/null || echo "sin log";;
+  *) echo "uso: kaizen-start install|start|stop|restart|status|logs";;
+esac

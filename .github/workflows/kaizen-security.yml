@@ -1,0 +1,80 @@
+name: kaizen-security
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # El responsable resuelve la version estable vigente (sin 'v') y verifica el checksum.
+  GITLEAKS_VERSION: ""
+
+jobs:
+  secrets-and-silence:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          fetch-depth: 0
+      - name: Traer la cabeza del PR (codigo no confiable, solo se lee con git diff)
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: git fetch origin "pull/${PR}/head:pr-head"
+      - name: Instalar gitleaks con checksum verificado
+        run: |
+          set -euo pipefail
+          [ -n "$GITLEAKS_VERSION" ] || { echo "Define GITLEAKS_VERSION en el workflow"; exit 1; }
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSL -o gl.tgz "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o gl.sha "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" gl.sha | sha256sum -c -
+          tar -xzf gl.tgz gitleaks && sudo mv gitleaks /usr/local/bin/
+      - name: Secretos, supresiones sin issue y hardcoding
+        env:
+          BASE: ${{ github.base_ref }}
+          KS_REQUIRE_GITLEAKS: "1"
+        run: scripts/kaizen-security check "origin/${BASE}" pr-head
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SAST y auditoria de dependencias
+        run: scripts/kaizen-security audit
+
+  full-history:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Instalar gitleaks con checksum verificado
+        run: |
+          set -euo pipefail
+          [ -n "$GITLEAKS_VERSION" ] || { echo "Define GITLEAKS_VERSION en el workflow"; exit 1; }
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSL -o gl.tgz "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o gl.sha "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" gl.sha | sha256sum -c -
+          tar -xzf gl.tgz gitleaks && sudo mv gitleaks /usr/local/bin/
+      - name: Escaneo de arbol e historial completos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KS_REQUIRE_GITLEAKS: "1"
+        run: |
+          if ! scripts/kaizen-security all; then
+            printf 'El escaneo semanal detecto posibles secretos o fallo. Trata cualquier valor como comprometido.\n' \
+              | scripts/kaizen-security report security "[security] Escaneo semanal de historial" "weekly-history"
+            exit 1
+          fi

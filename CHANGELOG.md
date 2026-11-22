@@ -11,6 +11,27 @@ aun no etiquetados.
 
 
 
+### ACME staging evidence handoff (issues #87, #179)
+
+Added:
+
+- `docs/audits/acme-staging-handoff.md`: kit unico con prerrequisitos exactos
+  (dominio desechable con control DNS o CA local compatible, egress HTTPS al
+  directorio staging), comandos para emitir y renovar, campos de evidencia
+  (URL de orden, estado del challenge, huella SHA-256 del chain, timestamps),
+  plantilla vacia de resultados y la separacion explicita entre la evidencia
+  local mock y la evidencia real de staging (#87, RFC-0011 E-F).
+- Verificacion real del harness local existente
+  (`scripts/acme-mock-harness.sh`): `bash -n`, `py_compile` y ejecucion con
+  salida 0 y resultado `PASS`. Se registra lo que demuestra y lo que no: no
+  prueba validacion DNS externa, firma de CA, renovacion real ni SNI con chain
+  de CA; por ello NO sustituye la puerta de staging.
+
+Issue #87 sigue abierta y `blocked`: solo se cierra con la prueba ignorada
+`tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` superada contra el
+directorio staging con la plantilla rellena y los logs before/after. #179
+permanece bloqueada por #87.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

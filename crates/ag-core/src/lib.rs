@@ -68,11 +68,43 @@
 //! # }
 //! ```
 //!
+//! # Secrets and declared environment variables
+//!
+//! `ag-core` also provides the two building blocks of RFC-0020 stage B.
+//! [`Secret<T>`] redacts `Debug`/`Display`, has no `Serialize` implementation,
+//! zeroes its bytes on drop and is only readable through `expose()`.
+//! [`env::EnvLoader`] resolves declared keys from the process environment
+//! and a declared default, validates their types and returns every problem
+//! at once so the composition root can fail before opening a listener:
+//!
+//! ```no_run
+//! use ag_core::{EnvDeclaration, EnvLoader, EnvType, Secret};
+//!
+//! # fn run() -> Result<(), ag_core::EnvValidationError> {
+//! let loader = EnvLoader::new(vec![
+//!     EnvDeclaration::new("DATABASE_URL", EnvType::Url).secret(true),
+//!     EnvDeclaration::new("PORT", EnvType::Int).with_default("8080"),
+//! ]);
+//! let env = loader.load_process()?;
+//! let url: &Secret<String> = env.secret("DATABASE_URL").unwrap();
+//! let _ = (url.expose(), env.int("PORT"));
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! This API is additive: existing crates keep their direct `std::env::var`
+//! calls and migrate one crate per pull request. The encrypted secrets file
+//! and the `ag env` command are later stages of RFC-0020.
+//!
 //! # Key public types
 //!
 //! - [`Shield`]: pipeline and service helper.
 //! - [`ShieldConfig`]: complete configuration, deserializable from
 //!   TOML.
+//! - [`Secret<T>`]: confidential value with redacted formatting and
+//!   zeroization on drop (RFC-0020).
+//! - [`EnvLoader`] and [`EnvDeclaration`]: declared, fail-fast environment
+//!   loading (RFC-0020).
 //! - [`AgError`] and [`AgResult`]: error types with automatic mapping to
 //!   HTTP responses via `axum::response::IntoResponse`.
 //! - [`shield::Claims<T>`]: extractor for typed JWT claims.
@@ -101,11 +133,15 @@
 
 pub mod config;
 pub mod core;
+pub mod env;
 pub mod error;
 pub mod runtime;
+pub mod secret;
 pub mod shield;
 
 pub use crate::config::ShieldConfig;
 pub use crate::core::AppState;
+pub use crate::env::{EnvDeclaration, EnvLoader, EnvType, EnvValidationError, LoadedEnv};
 pub use crate::error::{AgError, AgResult};
+pub use crate::secret::Secret;
 pub use crate::shield::Shield;

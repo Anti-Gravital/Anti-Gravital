@@ -122,6 +122,9 @@ lettre = { version = "0.11", default-features = false, features = ["tokio1-rustl
 time = { version = "0.3", features = ["serde", "macros", "formatting", "parsing"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 x509-parser = { version = "0.18", default-features = false }
+# RFC-0020 stage B: clears secret material on drop. Already in the lockfile
+# through the cryptography stack; promoted to an explicit workspace dependency.
+zeroize = "1"
 
 # Dev-dependencies compartidas.
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

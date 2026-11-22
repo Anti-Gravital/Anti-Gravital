@@ -1,0 +1,197 @@
+name: release
+
+# Alpha release pipeline (RFC-0032). Builds the two workspace binaries for
+# the four CI target platforms, generates a SHA-256 manifest and opens a
+# DRAFT prerelease. It never publishes, signs, pushes or creates tags.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, for example v0.1.0-alpha.1'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x86-64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - label: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - label: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - label: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binaries (--locked)
+        run: cargo build --locked --release --target ${{ matrix.target }} -p ag-cli -p ag-lsp
+
+      - name: Stage artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="dist/ag-${{ matrix.label }}"
+          mkdir -p "$stage"
+          ext=""
+          if [ "${{ runner.os }}" = "Windows" ]; then ext=".exe"; fi
+          cp "target/${{ matrix.target }}/release/ag${ext}" "$stage/ag-${{ matrix.target }}${ext}"
+          cp "target/${{ matrix.target }}/release/ag-lsp${ext}" "$stage/ag-lsp-${{ matrix.target }}${ext}"
+          ls -l "$stage"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ag-${{ matrix.label }}
+          path: dist/ag-${{ matrix.label }}/*
+          if-no-files-found: error
+
+  release:
+    name: draft prerelease
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Resolve and validate tag
+        id: tag
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          EVENT_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-$EVENT_REF}"
+          case "$tag" in
+            v*) ;;
+            *) echo "Expected a v-prefixed tag, got: $tag"; exit 1 ;;
+          esac
+          git rev-parse -q --verify "refs/tags/$tag" >/dev/null || {
+            echo "Tag does not exist: $tag"; exit 1;
+          }
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches workspace version
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(awk '/^\[workspace\.package\]/{f=1;next} f && /^version = /{gsub(/"/,"",$3);print $3;exit}' Cargo.toml)"
+          if [ "${TAG#v}" != "$version" ]; then
+            echo "Tag ${TAG} does not match workspace version ${version}"
+            exit 1
+          fi
+          echo "Tag ${TAG} matches workspace version ${version}"
+
+      - name: Download build artifacts from this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --dir dist
+
+      - name: Generate and verify SHA-256 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          find dist -type f -exec cp {} assets/ \;
+          (cd assets && LC_ALL=C sha256sum * > ../checksums.txt)
+          (cd assets && sha256sum --check ../checksums.txt)
+          cat checksums.txt
+
+      - name: Write draft release notes
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        shell: bash
+        run: |
+          cat > release-notes.md <<EOF
+          # Anti-Gravital ${TAG} (alpha)
+
+          This is an alpha prerelease for building prototypes. It is not
+          production-ready. Public APIs, generated code and the DSL may
+          change before 1.0.
+
+          ## Artifacts
+
+          Two binaries are provided for each of four targets: \`ag\` (CLI)
+          and \`ag-lsp\` (Anti-DSL language server), built with
+          \`cargo build --locked --release\` for x86_64-unknown-linux-gnu,
+          aarch64-unknown-linux-gnu, aarch64-apple-darwin and
+          x86_64-pc-windows-msvc.
+
+          ## Integrity, not authenticity
+
+          \`checksums.txt\` lists SHA-256 sums for all eight binaries, keyed
+          by bare asset names such as \`ag-x86_64-unknown-linux-gnu\`, and
+          was verified inside the release job. The opt-in alpha channel of
+          the installers downloads the matching \`ag-<target>\` asset and
+          checks it against this manifest. These sums prove that a
+          downloaded file matches the artifact built by this workflow.
+          They are NOT a signature and NOT a trust anchor: the release page
+          is in the same trust domain as the repository.
+
+          No release signing key exists yet. No signed manifest or
+          detached signature is published with this alpha. Issue #141
+          remains open; the design is tracked in RFC-0030. Do not describe
+          a checksum-only check as a verified install.
+
+          ## Install
+
+          The default channel builds from source with \`install.sh\` or
+          \`install.ps1\` and Rust 1.99.1 or newer. The opt-in alpha channel
+          (\`AG_INSTALLER_CHANNEL=alpha\`) downloads the \`ag-<target>\`
+          asset from these release assets and verifies it against
+          \`checksums.txt\`; it is checksum-only, with no signature claim.
+          For an out-of-band checksum, export \`AG_INSTALLER_CHECKSUMS\`
+          with a manifest obtained independently of the checkout; the
+          installers fail closed on a missing or mismatched entry. No
+          crates.io packages are published.
+
+          See CHANGELOG.md for the full alpha scope and limitations.
+          EOF
+
+      - name: Create draft prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --draft \
+            --prerelease \
+            --title "Anti-Gravital $TAG (alpha)" \
+            --notes-file release-notes.md \
+            checksums.txt \
+            assets/*

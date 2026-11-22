@@ -1,9 +1,86 @@
 # Changelog
 
 Formato basado en Keep a Changelog (https://keepachangelog.com/) y
-semver (https://semver.org/). El repositorio aun no publica ninguna
-version; las entradas viven bajo `[Unreleased]` hasta que se libere la
-primera version etiquetada.
+semver (https://semver.org/). La primera version etiquetada es el
+prerelease `0.1.0-alpha.1`; las entradas bajo `[Unreleased]` son cambios
+aun no etiquetados.
+
+## [0.1.0-alpha.1] - 2026-11-22
+
+Primer prerelease etiquetado. Version `0.1.0-alpha.1` tomada del manifest
+compartido del workspace; tag `v0.1.0-alpha.1`. Alpha para construir
+prototipos e instalacion desde el codigo fuente, no un release de
+produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
+
+### Added
+
+- `.github/workflows/release.yml`: se dispara con `workflow_dispatch` (tag
+  existente como entrada) o con tags `v*`. Compila los dos binarios del
+  workspace, `ag` (CLI) y `ag-lsp` (language server del Anti-DSL), con
+  `cargo build --locked --release` para cuatro targets:
+  `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`,
+  `aarch64-apple-darwin` y `x86_64-pc-windows-msvc`. Ocho artefactos por
+  release.
+- Un manifiesto `checksums.txt` con los SHA-256 de los ocho binarios,
+  identificados por nombre de asset (p. ej. `ag-x86_64-unknown-linux-gnu`),
+  generado y verificado con `sha256sum --check` dentro del job antes de
+  crear cualquier asset. Es el manifiesto que consume el canal alpha de
+  los instaladores.
+- Creacion de un prerelease en modo DRAFT con los ocho binarios y el
+  manifiesto. La publicacion es una accion manual del coordinador; el
+  workflow nunca publica, firma, etiqueta ni hace push.
+
+### Changed
+
+- `Cargo.toml`: la version del workspace pasa de `0.0.0` a
+  `0.1.0-alpha.1`. Se sincronizan los requisitos de version de las
+  dependencias internas por ruta y se regenera `Cargo.lock`.
+- `publish = false` se mantiene: no hay paquetes en crates.io. La disciplina
+  SemVer de una API publica estable empieza mas adelante; este tag es una
+  promesa de inestabilidad, no de compatibilidad.
+- RFC-0032, indice de RFC y esta seccion del CHANGELOG.
+
+### What works (honest alpha scope)
+
+- El workspace compila y sus tests pasan en CI en las cuatro plataformas
+  objetivo; `ag` ofrece scaffolding, ciclo de desarrollo, generacion desde
+  el DSL, `ag dev`, `ag build` y los comandos de modulo documentados.
+- Los crate `ag-core` (Shield), `ag-dsl`, `ag-data`, `ag-auth`, `ag-cache`,
+  `ag-realtime`, `ag-storage`, `ag-observe`, `ag-mail`, `ag-workers`,
+  `ag-domains` y `ag-edge` tienen codigo y pruebas; diez ejemplos son
+  ejecutables. El DSL v0.1-v0.8 genera Rust, SQL, TypeScript, OpenAPI y
+  AsyncAPI; `ag-lsp` acompana al compilador.
+- La instalacion desde fuente funciona con Rust 1.99.1 o superior mediante
+  `install.sh` / `install.ps1`, que conservan la verificacion fail-closed
+  de `AG_INSTALLER_CHECKSUMS`.
+
+### What does not work yet
+
+- No hay API estable: los crates, el DSL y el codigo generado pueden cambiar
+  hasta la puerta de 1.0. El texto "implemented" del README significa que
+  existe codigo y tests, no certificacion de produccion.
+- No hay despliegue (`ag deploy`), secretos, logs ni rollback: pertenecen a
+  fases posteriores. `ag-cloud`, `ag-ai`, `ag-mobile`, `ag-migrate` y
+  `ag-wasm-host` siguen siendo reservas de nombre.
+- No hay publicacion en crates.io. El canal por defecto sigue siendo la
+  instalacion desde el codigo fuente; el canal alpha opt-in de los
+  instaladores descarga el asset `ag-<target>` y lo comprueba contra
+  `checksums.txt` (solo checksum, sin firma).
+- La puerta de release pre-Fase 5 sigue abierta: faltan la puerta de fuzz
+  de 24 horas (CI corre una prueba de 60 segundos), la evidencia final de
+  rendimiento y la reevaluacion sobre el commit de consolidacion.
+- Los tests de integracion con PostgreSQL duradero siguen `#[ignore]` sin
+  base de datos en CI; se verificaron manualmente contra PostgreSQL 16.
+- Los criterios externos de comunidad y el comite tecnico no estan cerrados.
+
+### Integrity and signing (explicit non-claim)
+
+- `checksums.txt` es de INTEGRIDAD, no de AUTENTICIDAD: la pagina de release
+  y el repositorio estan en el mismo dominio de confianza.
+- No existe clave de firma de release. No se publica ninguna firma ni
+  manifiesto firmado. RFC-0030 sigue siendo un diseno no aceptado y el
+  issue #141 permanece abierto y bloqueado. No se afirma una instalacion
+  "verificada" en sentido criptografico.
 
 ## [Unreleased]
 

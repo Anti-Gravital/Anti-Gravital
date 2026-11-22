@@ -1,0 +1,15 @@
+//! Criterion micro-benchmark for the palindrome helper.
+//! Run `cargo bench` once the offline dependencies are cached.
+
+use criterion::{criterion_group, criterion_main, Criterion};
+use testing_suite_lib::is_palindrome;
+
+fn bench_palindrome(c: &mut Criterion) {
+    let phrase = "A man, a plan, a canal: Panama";
+    c.bench_function("is_palindrome", |b| {
+        b.iter(|| is_palindrome(std::hint::black_box(phrase)));
+    });
+}
+
+criterion_group!(benches, bench_palindrome);
+criterion_main!(benches);

@@ -1,0 +1,22 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "testing_suite_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "{{name}}"
+path = "src/main.rs"
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+proptest = "1"
+tempfile = "3"
+
+[[bench]]
+name = "benchmark"
+harness = false

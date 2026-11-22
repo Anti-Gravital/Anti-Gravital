@@ -1,0 +1,36 @@
+//! Integration tests: the public API is used exactly as an external crate
+//! would use it. `tempfile` keeps filesystem cases isolated and offline.
+
+use std::io::Write;
+
+use tempfile::tempdir;
+use testing_suite_lib::{count_lines, is_palindrome, partition_by};
+
+#[test]
+fn public_api_is_callable_from_an_external_crate() {
+    assert!(is_palindrome("level"));
+    let (low, high) = partition_by(&[1, 9, 2], 5);
+    assert_eq!(low, vec![1, 2]);
+    assert_eq!(high, vec![9]);
+}
+
+#[test]
+fn count_lines_handles_empty_and_multiline_files() {
+    let dir = tempdir().expect("temp dir");
+
+    let empty = dir.path().join("empty.txt");
+    std::fs::write(&empty, "").expect("write empty file");
+    assert_eq!(count_lines(&empty).expect("count"), 0);
+
+    let filled = dir.path().join("filled.txt");
+    let mut file = std::fs::File::create(&filled).expect("create file");
+    write!(file, "first\nsecond\nthird\n").expect("write lines");
+    assert_eq!(count_lines(&filled).expect("count"), 3);
+}
+
+#[test]
+fn count_lines_reports_missing_files() {
+    let dir = tempdir().expect("temp dir");
+    let missing = dir.path().join("does-not-exist.txt");
+    assert!(count_lines(&missing).is_err());
+}

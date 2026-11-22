@@ -5,6 +5,26 @@ semver (https://semver.org/). La primera version etiquetada es el
 prerelease `0.1.0-alpha.1`; las entradas bajo `[Unreleased]` son cambios
 aun no etiquetados.
 
+## [Unreleased]
+
+### Added
+
+- `templates/testing-suite/`: plantilla de catálogo con ejemplos de tests
+  unitarios, de integración, basados en propiedades y de benchmark. Usa
+  `proptest`, `tempfile` y `criterion` como dependencias de desarrollo ya
+  presentes en la caché del workspace. Incluye `template.toml` y un
+  `Cargo.lock.tmpl` con versiones verificadas offline.
+- `scripts/validate-templates.sh`: arnés que recorre cada directorio de
+  `templates/` con `template.toml`, valida los campos obligatorios, genera un
+  proyecto temporal con `ag new <nombre> --template <nombre> --no-interactive`
+  (con un fallback equivalente mientras el registro de la CLI no esté
+  integrado) y ejecuta `cargo check --offline --locked`. Imprime PASS/FAIL por
+  plantilla, un resumen final y termina con código no cero ante cualquier
+  fallo. Nunca modifica las fuentes de las plantillas.
+- `docs/audits/template-validation.md`: evidencia real de la primera ejecución
+  del arnés, con host, versión de Rust, commit, fecha y decisión de no añadir
+  un job de CI todavía por dependencias de integración en movimiento.
+
 ## [0.1.0-alpha.1] - 2026-11-22
 
 Primer prerelease etiquetado. Version `0.1.0-alpha.1` tomada del manifest

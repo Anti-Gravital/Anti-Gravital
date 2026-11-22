@@ -28,8 +28,8 @@ commands, hashes, timings and remediation in a new audit document.
 - Drift reproduction with a bumped manifest version: `--locked` returns rc=101
   with "cannot update the lock file"; plain cargo returns rc=0 and rewrites the
   lock (SHA-256 recorded before and after in the audit).
-- `cargo install --path crates/ag-cli --locked` from a clean copy with a private
-  target dir and temporary install root.
+- `cargo install --path crates/ag-cli --locked` from a clean checkout at the
+  audited HEAD, with a private target dir and temporary install root.
 - `git diff --check` and the content scans from `.github/workflows/docs.yml`.
 
 ## Criterios de salida que avanza

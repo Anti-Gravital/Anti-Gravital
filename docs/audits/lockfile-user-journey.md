@@ -55,7 +55,7 @@ cargo check --locked --offline --manifest-path benchmarks/neon-real/Cargo.toml  
 cargo check --locked --offline --manifest-path fuzz/Cargo.toml                  # rc=0,  89.6 s
 ```
 
-The root workspace is covered by the offline `cargo install --locked` run below
+The root workspace is covered by the real `cargo install --locked` build below
 and by the repository's existing `cargo build --locked --workspace` CI gate.
 
 ## Offline cache caveat (not a lock defect)
@@ -145,7 +145,34 @@ is why the missing `--locked` guard is still a defect.
 
 ### `cargo install --path crates/ag-cli --locked`
 
-<!-- INSTALL_RESULT -->
+Run from a clean checkout at the audited HEAD with a private `CARGO_TARGET_DIR`
+and a temporary `CARGO_INSTALL_ROOT` (no shared binaries overwritten):
+
+```
+cargo install --path crates/ag-cli --locked
+```
+
+- Start (UTC): `2026-11-22T13:35:15Z`
+- End (UTC): `2026-11-22T13:39:39Z`
+- Exit code: `0`
+- Elapsed: `264 s` (cargo reported "Finished `release` profile ... in 4m 23s")
+- Installed: `ag-cli v0.1.0-alpha.2`, executable `ag`
+- `ag --version`: `ag 0.1.0-alpha.2`
+- Root `Cargo.lock` SHA-256 after the run:
+  `5db3d3dd04fb5c3b3226c62bb95a254796e5a0e9f89fa99577c3762d4801613d`,
+  unchanged from the baseline, so `--locked` held during a real release build.
+  The 3 unrelated modified files present in that checkout belong to other
+  roles; neither of the two tracked lockfiles there was touched.
+
+A first attempt hit a 900 s harness ceiling while linking the `ag` binary under
+the release profile (`lto=fat`, `codegen-units=1`) during heavy host CPU
+contention and was terminated without a result. The successful run reused the
+warm private target dir, so 264 s is a warm-target time, not a cold-build time.
+The command used the network for the crates.io index update; it was not an
+offline install.
+
+Note that `install.sh` runs `cargo build --workspace --release` without
+`--locked` immediately before this locked install; see finding 2.
 
 ### `scripts/release-smoke.sh`
 

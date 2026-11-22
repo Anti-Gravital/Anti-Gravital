@@ -110,3 +110,6 @@ Ramas con descriptor aceptando PR en este momento:
 - `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
   opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
   cierra #178, ola 11).
+- `community12/i180`: `docs/pr-drafts/community12-i180.md` (evidencia medida del
+  coste de migrar chumsky 0.9.3 a 0.14.2; mantiene el diferimiento de ADR-0021
+  y no cierra #180, ola 12).

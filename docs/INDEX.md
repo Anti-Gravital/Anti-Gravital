@@ -131,6 +131,9 @@ de ruta.
 Registros de verificacion tecnica y revisiones de bajo nivel. Incluye
 las puertas `PRE_FASE5_RELEASE_GATE.md` y `pre-fase5-*.md`, y la revision
 `low-level-review-178-180.md` (stack de correo e RFC de chumsky).
+La evidencia medida del coste de migrar el parser de chumsky 0.9.3 a 0.14.2
+(spike desechable, sin cambios en produccion, decision de diferimiento
+inalterada) esta en `docs/audits/chumsky-migration-spike.md`.
 Incluye tambien `wave4-review.md`, la revision de seguridad y de bajo
 nivel de las siete ramas de la wave 4 (tui, machinejson, layered,
 envsecrets, guardrails, hooks y qa), con hallazgos, severidad y

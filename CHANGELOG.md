@@ -11,6 +11,20 @@ aun no etiquetados.
 
 
 
+### Chumsky migration cost spike (issue #180)
+
+Added:
+
+- `docs/audits/chumsky-migration-spike.md`: evidence from a throwaway,
+  outside-repository port of the `config` parser slice from chumsky 0.9.3 to
+  the current stable 0.14.2. It records exact API differences, two compiler
+  errors and their fixes, the diagnostics-text change on a malformed input and
+  a ten-trial microbenchmark with full rule 17 metadata. No production parser,
+  manifest, lockfile or fuzz target was changed.
+- RFC-0027 section 11: additive evidence note. The ADR-0021 deferral is
+  unchanged, issue #180 stays open, and the note restates the conditions that
+  would justify a successor RFC.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

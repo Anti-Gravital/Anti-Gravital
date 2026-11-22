@@ -159,7 +159,9 @@ check_deny() { run_cmd_check deny "${AG_DENY_CMD:-cargo deny check}"; }
 expected_master_hash() {
     # Single source of truth: the hash table in docs/master/VERSION.md.
     # Hardcoding copies here drifted after the alpha roadmap update.
-    local version_file="docs/master/VERSION.md" row
+    local script_root version_file row
+    script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    version_file="$script_root/docs/master/VERSION.md"
     [ -f "$version_file" ] || return 1
     row="$(grep -F "| \`$1\`" "$version_file" | head -n 1 || true)"
     [ -n "$row" ] || return 1

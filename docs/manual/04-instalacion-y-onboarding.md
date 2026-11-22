@@ -17,12 +17,12 @@ No other system dependencies are required for the `rest` template.
 
 ## Install the `ag` binary
 
-The alpha (`v0.1.0-alpha.1`) is installed from source: there is no crates.io
+The alpha (`v0.1.0-alpha.2`) is installed from source: there is no crates.io
 package, and source install is the verified path. A prebuilt binary can also be
 fetched through the opt-in checksum-only alpha channel once it is verified
 end to end (#141). Use one of the methods below, then confirm the version with
 `ag --version`. See the
-[alpha release notes](../releases/0.1.0-alpha.1.md) for scope and limitations.
+[alpha release notes](../releases/0.1.0-alpha.2.md) for scope and limitations.
 
 ### Linux / macOS
 
@@ -59,7 +59,7 @@ ag --help
 ```
 
 On a clean checkout of the tagged alpha, `ag --version` reports
-`0.1.0-alpha.1`. Source checkouts between tags may report a different
+`0.1.0-alpha.2`. Source checkouts between tags may report a different
 version; build from the tag to reproduce the release exactly.
 
 ## Create a project
@@ -187,12 +187,12 @@ Anti-Gravital en ejecucion.
 
 ## Instalar el binario `ag`
 
-El alpha (`v0.1.0-alpha.1`) se instala desde el codigo fuente: no hay paquete
+El alpha (`v0.1.0-alpha.2`) se instala desde el codigo fuente: no hay paquete
 en crates.io y la instalacion desde el fuente es la ruta verificada. Tambien
 se puede obtener un binario precompilado mediante el canal opt-in de solo
 checksums una vez verific integralmente (#141). Usa uno de los metodos
 siguientes y confirma la version con `ag --version`. Consulta las
-[notas de release del alpha](../releases/0.1.0-alpha.1.md) para alcance y
+[notas de release del alpha](../releases/0.1.0-alpha.2.md) para alcance y
 limitaciones.
 
 ### Linux / macOS
@@ -229,7 +229,7 @@ ag --help
 ```
 
 En un checkout limpio del alpha etiquetado, `ag --version` muestra
-`0.1.0-alpha.1`. Los checkouts intermedios entre etiquetas pueden mostrar
+`0.1.0-alpha.2`. Los checkouts intermedios entre etiquetas pueden mostrar
 otra version; compila desde la etiqueta para reproducir el release exacto.
 
 ## Crear un proyecto

@@ -138,12 +138,18 @@ for t in "${TARGETS[@]}"; do
   AFTER="$(mktemp)"
   find "$ARTIFACT_DIR" -type f -printf '%p\n' 2>/dev/null | LC_ALL=C sort > "$BEFORE" || true
 
+  LOCK_BEFORE="$(sha256sum "$FUZZ_DIR/Cargo.lock" | awk '{print $1}')"
+  if ! cargo metadata --locked --manifest-path "$FUZZ_DIR/Cargo.toml" >/dev/null 2>&1; then
+    echo "LOCK_STALE before target $t" | tee -a "$RUN_DIR/$t.log"
+  fi
   LOG_REL="docs/fuzz/results/$(basename "$(dirname "$RUN_DIR")")/$(basename "$RUN_DIR")/$t.log"
   (
     cd "$FUZZ_DIR" || exit 127
     cargo +"$FUZZ_TOOLCHAIN" fuzz run "$t" -- -max_total_time="$DURATION"
   ) 2>&1 | tee "$RUN_DIR/$t.log"
   RC="${PIPESTATUS[0]}"
+  LOCK_AFTER="$(sha256sum "$FUZZ_DIR/Cargo.lock" | awk '{print $1}')"
+  [ "$LOCK_BEFORE" = "$LOCK_AFTER" ] || echo "LOCK_MUTATED during $t" | tee -a "$RUN_DIR/$t.log"
 
   find "$ARTIFACT_DIR" -type f -printf '%p\n' 2>/dev/null | LC_ALL=C sort > "$AFTER" || true
   NEW_FILES="$(comm -13 "$BEFORE" "$AFTER")"

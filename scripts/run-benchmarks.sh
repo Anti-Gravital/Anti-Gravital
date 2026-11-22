@@ -47,14 +47,14 @@ mkdir -p "$OUT_DIR"
 } | tee "$OUT_DIR/metadata.txt"
 
 # 2. Compile check (release/bench profile, no execution).
-cargo bench -p ag-core -p ag-workers --no-run 2>&1 | tee "$OUT_DIR/no-run.log"
+cargo bench --locked -p ag-core -p ag-workers --no-run 2>&1 | tee "$OUT_DIR/no-run.log"
 
 # 3. The two criterion suites (all seven benchmarks).
-cargo bench -p ag-core --bench shield_hello_world -- \
+cargo bench --locked -p ag-core --bench shield_hello_world -- \
   --sample-size "$SAMPLE_SIZE" --warm-up-time "$WARMUP_TIME" \
   --measurement-time "$MEASUREMENT_TIME" --noplot 2>&1 \
   | tee "$OUT_DIR/ag-core-criterion.log"
-cargo bench -p ag-workers --bench queue_throughput -- \
+cargo bench --locked -p ag-workers --bench queue_throughput -- \
   --sample-size "$SAMPLE_SIZE" --warm-up-time "$WARMUP_TIME" \
   --measurement-time "$MEASUREMENT_TIME" --noplot 2>&1 \
   | tee "$OUT_DIR/ag-workers-criterion.log"

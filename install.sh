@@ -259,11 +259,11 @@ if ! version_at_least "$INSTALLED_RUST" "$REQUIRED_RUST"; then
     exit 1
 fi
 
-log "Building the workspace in release mode..."
-cargo build --workspace --release
+log "Building the workspace in release mode (this can take ~15-20 min on a cold cache)..."
+cargo build --locked --workspace --release
 
-log "Installing the ag CLI into ~/.cargo/bin ..."
+log "Installing the ag CLI into $BIN_DIR (a second release build may take several minutes) ..."
 cargo install --path crates/ag-cli --locked
 
 log "Installation complete."
-log "Ensure ~/.cargo/bin is on your PATH, then run: ag --help"
+log "Ensure $BIN_DIR is on your PATH, then run: ag --help"

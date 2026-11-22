@@ -7,6 +7,21 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Terminal user journey fixes (issues #199, #200-#206)
+
+Fixed:
+
+- `install.sh`, `run-benchmarks.sh` and the fuzz harness now enforce lockfile
+  consistency: `--locked` where cargo supports it, an explicit
+  `cargo metadata --locked` check and before/after SHA-256 comparison where
+  `cargo fuzz` does not accept `--locked` (#199).
+- README no longer repeats the closed #191 bind caveat, the manual mentions the
+  current alpha version, and installer messages honour a custom `BIN_DIR` and
+  set expectations for cold builds (#203, #204, #205, #206).
+- `ag dns` help, the JSON refusal list and `DOMAIN_LOOP.md` examples were corrected
+  (#200, #201, #202).
+
+
 
 
 

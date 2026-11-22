@@ -114,8 +114,8 @@ Works in `v0.1.0-alpha.2`:
 
 - Install from source with `install.sh`, `install.ps1` or `cargo install --path`.
 - Scaffold `rest`, `realtime` and `fullstack` projects with `ag new`.
-- Run a local development server with `ag dev` (CLI default bind is
-  `127.0.0.1:8080`; current scaffolds bind all interfaces, issue #191).
+- Run a local development server with `ag dev`. Both the CLI and generated
+  scaffolds bind `127.0.0.1:8080` by default and honour `BIND`.
 - Lint a `.ag` schema and generate Rust, SQL, TypeScript and OpenAPI with
   `ag schema lint` and `ag generate`.
 - Build a release binary with `ag build`; inspect and validate config with
@@ -132,8 +132,7 @@ Does not yet work in the alpha:
   end-to-end verification is still pending (#141 remains open). Source install
   is the verified path.
 - Do not expose the `ag dev` server on untrusted networks: the CLI default
-  bind is loopback, but generated scaffolds hardcode `0.0.0.0:8080` and ignore
-  the `BIND` variable (issue #191).
+  bind and the generated scaffolds both default to loopback; `BIND` is honoured.
 - `ag deploy` only renders local artifacts; cluster deployment with
   `ag-cloud`, plus `ag migrate` and `ag plugin`, belongs to future phases.
 - No MCP server or shared machine interface: the RFC-0024 prerequisites are
@@ -328,7 +327,7 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag config` | In a terminal, opens a full-screen form for `config.toml`. Non-interactive equivalents: `ag config get KEY`, `ag config set KEY VALUE` and `ag config validate` (the last exits non-zero on an invalid file, usable in CI). Secrets are never shown; key paths or environment-variable names only |
 | `ag env list [--manifest PATH] [--env NAME]` | Read-only list of variables declared in `ag.toml [env.*]`: name, type, required/secret flags, source and presence. No value (not even a non-secret default) is printed |
 | `ag env check [--manifest PATH] [--env NAME]` | Validates the declared environment exactly as startup would, using the process environment and declared defaults. Exits 1 and reports every problem at once; values are never printed. Encrypted secrets and environment-specific files are later stages (RFC-0020) |
-| `ag dev [--bind ADDR]` | Run in development mode; the CLI default bind is `127.0.0.1:8080`. Caveat: generated templates currently hardcode `0.0.0.0:8080` and ignore `BIND` (issue #191), so the server listens on all interfaces until fixed. Uses cargo-watch when installed |
+| `ag dev [--bind ADDR]` | Run in development mode on `127.0.0.1:8080` by default; `BIND` is honoured. Use `--bind 0.0.0.0:8080` explicitly for containers or LAN. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
 | `ag schema lint` | Validate a DSL schema and report diagnostics |
@@ -672,9 +671,8 @@ Funciona en `v0.1.0-alpha.2`:
 
 - Instalar desde el fuente con `install.sh`, `install.ps1` o `cargo install --path`.
 - Crear proyectos `rest`, `realtime` y `fullstack` con `ag new`.
-- Ejecutar un servidor de desarrollo local con `ag dev` (el default de la CLI
-  es `127.0.0.1:8080`; los templates actuales enlazan todas las interfaces,
-  issue #191).
+- Ejecutar un servidor de desarrollo local con `ag dev`. La CLI y los templates
+  generados usan `127.0.0.1:8080` por defecto y respetan `BIND`.
 - Validar un schema `.ag` y generar Rust, SQL, TypeScript y OpenAPI con
   `ag schema lint` y `ag generate`.
 - Compilar un binario de release con `ag build`; inspeccionar y validar la
@@ -692,8 +690,7 @@ Aun no funciona en el alpha:
   integral aun esta pendiente (#141 sigue abierto). La ruta verificada es la
   instalacion desde el fuente.
 - No expongas el servidor de `ag dev` a redes no confiables: el default de la
-  CLI es loopback, pero los templates generados fijan `0.0.0.0:8080` e ignoran
-  la variable `BIND` (issue #191).
+  CLI y los templates generados usan loopback por defecto; `BIND` se respeta.
 - `ag deploy` solo renderiza artefactos locales; el despliegue en cluster con
   `ag-cloud`, ademas de `ag migrate` y `ag plugin`, pertenece a fases futuras.
 - No hay servidor MCP ni interfaz de maquina compartida: no se cumplen los
@@ -896,7 +893,7 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag config` | En una terminal abre un formulario a pantalla completa para `config.toml`. Equivalentes no interactivos: `ag config get CLAVE`, `ag config set CLAVE VALOR` y `ag config validate` (este ultimo sale con codigo distinto de cero si el archivo es invalido, util en CI). Los secretos nunca se muestran; solo rutas de clave o nombres de variable de entorno |
 | `ag env list [--manifest RUTA] [--env NOMBRE]` | Lista de solo lectura de las variables declaradas en `ag.toml [env.*]`: nombre, tipo, flags required/secret, origen y presencia. No imprime ningun valor (ni siquiera un default no secreto) |
 | `ag env check [--manifest RUTA] [--env NOMBRE]` | Valida el entorno declarado igual que lo haria el arranque, usando el entorno de proceso y los defaults declarados. Sale con 1 y reporta todos los problemas a la vez; los valores nunca se imprimen. Los secretos cifrados y los archivos por entorno son etapas posteriores (RFC-0020) |
-| `ag dev [--bind DIR]` | Modo desarrollo; el default de la CLI es `127.0.0.1:8080`. Advertencia: los templates generados fijan `0.0.0.0:8080` e ignoran `BIND` (issue #191), por lo que el servidor escucha en todas las interfaces hasta corregirlo. Usa cargo-watch si esta instalado |
+| `ag dev [--bind DIR]` | Modo desarrollo en `127.0.0.1:8080` por defecto; `BIND` se respeta. Usa `--bind 0.0.0.0:8080` explícitamente para contenedores o LAN. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
 | `ag schema lint` | Validar un schema y reportar diagnostics |

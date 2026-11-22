@@ -93,6 +93,9 @@ del repositorio. Incluye `mcp-readiness-review.md`, el analisis de
 brechas de RFC-0024 y ADR-0017 antes de implementar la interfaz de
 maquina por capacidades (solo diseno, sin codigo). Referencia:
 `docs/audits/mcp-readiness-review.md`.
+La reconciliacion del tablero de issues de la ola 4 (matriz de los 13
+issues abiertos, etiquetas, comentarios de estado y condiciones de cierre)
+esta en `docs/audits/issue-board-reconciliation.md`.
 
 ### docs/diagrams/, docs/graph/, docs/examples/
 

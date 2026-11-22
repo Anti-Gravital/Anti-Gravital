@@ -8,6 +8,7 @@ primera version etiquetada.
 ## [Unreleased]
 
 
+
 ### CI maintainability guardrails (RFC-0022)
 
 Added:
@@ -1571,3 +1572,19 @@ Status:
   oauth2 5.0.0 still reaches chrono through `ag-auth` and is being replaced
   separately. The coordinator must remove the ignore after both branches land
   and verify `cargo tree -i chrono` is empty. Refs #185; the issue stays open.
+
+### Issue board reconciliation (wave 4)
+
+Added (documentation and issue-board only; no code, no phase change):
+
+- `docs/audits/issue-board-reconciliation.md` records the matrix of the 13
+  issues that remained open after wave 3: seven blocked by an external gate
+  (#87, #141, #156, #157, #178, #179, #185), four deferred by an accepted
+  decision (#112, #152, #154, #180) and two tracking parents (#76, #142).
+  Each row gives the governing decision, the exact unblock condition and the
+  `Closes #NNN` keyword the coordinator must use only after verification.
+- Short status comments posted on all 13 issues; `blocked` added to #141,
+  the only externally gated issue missing it. Parent bodies #76 and #142
+  updated with verified child counts (16 children / 15 CLOSED for #76;
+  31 children / 26 CLOSED for #142; #149 is now CLOSED).
+- No issue was closed: every gate is still real and unresolved.

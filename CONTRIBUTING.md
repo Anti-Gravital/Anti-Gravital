@@ -61,6 +61,86 @@ Contributions in Spanish and English are equally welcome.
    del descriptor (256 caracteres o menos).
 9. En el cuerpo del PR enlace a la RFC o ADR relacionada cuando aplique.
 
+## Verificacion local opt-in
+
+Cada contribuidor puede activar compuertas locales que reflejan las
+politicas de CI. Son opcionales, se instalan solo en el clone actual y
+no descargan ni instalan nada de la red:
+
+```
+bash scripts/install-hooks.sh
+```
+
+El comando escribe `core.hooksPath=.githooks` en la configuracion local
+de git (nunca en la global) y marca los hooks como ejecutables.
+
+- `commit-msg` rechaza asuntos de mas de 256 caracteres, atribucion a
+  herramientas IA, URLs de sesiones de chat y emojis.
+- `pre-push` ejecuta `scripts/ag-check`. Si alguna verificacion falla,
+  el push se detiene; no hay forma de omitirlo silenciosamente.
+
+Puede ejecutar la compuerta sin pushear:
+
+```
+scripts/ag-check                       # todas las verificaciones
+scripts/ag-check --only descriptors    # solo seleccionadas
+scripts/ag-check --skip audit,deny     # todas excepto las indicadas
+scripts/ag-check --list                # nombres disponibles
+```
+
+`ag-check` valida el descriptor de la rama (con palabra clave de
+cierre), `fmt`, `clippy`, `test`, `audit`, `deny`, los hashes de los
+documentos maestros y el contenido prohibido. Nunca muestra como
+"pasada" una verificacion omitida: las omitidas se marcan `SKIP`.
+
+Para desactivar los hooks:
+
+```
+git config --unset core.hooksPath
+```
+
+Para volver a activarlos, ejecute de nuevo `bash scripts/install-hooks.sh`.
+
+## Opt-in local verification
+
+Each contributor can enable local gates that mirror the CI policies.
+They are optional, confined to the current clone, and never download or
+install anything from the network:
+
+```
+bash scripts/install-hooks.sh
+```
+
+The command writes `core.hooksPath=.githooks` to the local git config
+(never the global one) and marks the hooks executable.
+
+- `commit-msg` rejects subjects over 256 characters, AI-tool attribution,
+  chat-session URLs and emojis.
+- `pre-push` runs `scripts/ag-check`. A failing check aborts the push;
+  there is no silent bypass.
+
+The gate can be run without pushing:
+
+```
+scripts/ag-check                       # all checks
+scripts/ag-check --only descriptors    # selected checks only
+scripts/ag-check --skip audit,deny     # all except the named checks
+scripts/ag-check --list                # available check names
+```
+
+`ag-check` validates the branch descriptor (including its closing
+keyword), `fmt`, `clippy`, `test`, `audit`, `deny`, master-document
+hashes and prohibited content. It never reports a skipped check as
+passed: skipped checks are marked `SKIP`.
+
+To disable the hooks:
+
+```
+git config --unset core.hooksPath
+```
+
+To enable them again, rerun `bash scripts/install-hooks.sh`.
+
 ## Convenciones de mensajes
 
 ### Commits

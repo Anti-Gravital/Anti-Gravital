@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Anti-Gravital local pre-push hook.
+# Runs the full local verification gate. A failing check aborts the push;
+# `exec` preserves the exit code and leaves no silent bypass path.
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+if [ ! -f "$ROOT/scripts/ag-check" ]; then
+    echo "pre-push: scripts/ag-check not found in $ROOT." >&2
+    exit 1
+fi
+exec "$ROOT/scripts/ag-check"

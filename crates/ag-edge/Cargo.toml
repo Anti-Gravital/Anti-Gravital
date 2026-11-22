@@ -29,7 +29,7 @@ tls = ["server", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pki-types", "dep:
 # Reuses the control-plane hostname normalization without pulling ACME or
 # provider HTTP clients (default-features disabled). Edge is downstream of the
 # ag-domains control plane (ADR-0012 architecture).
-ag-domains = { path = "../ag-domains", version = "0.0.0", default-features = false }
+ag-domains = { path = "../ag-domains", version = "0.1.0-alpha.1", default-features = false }
 serde = { workspace = true }
 # Native observability (blueprint section 16.1). The `metrics` facade is a no-op
 # until a recorder is registered, so it adds no runtime cost to the edge by

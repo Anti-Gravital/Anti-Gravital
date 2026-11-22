@@ -15,8 +15,8 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-ag-workers = { path = "../../crates/ag-workers", version = "0.0.0", features = ["postgres"] }
-ag-data = { path = "../../crates/ag-data", version = "0.0.0" }
+ag-workers = { path = "../../crates/ag-workers", version = "0.1.0-alpha.1", features = ["postgres"] }
+ag-data = { path = "../../crates/ag-data", version = "0.1.0-alpha.1" }
 async-trait = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }

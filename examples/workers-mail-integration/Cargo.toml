@@ -15,8 +15,8 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-ag-workers = { path = "../../crates/ag-workers", version = "0.0.0" }
-ag-mail = { path = "../../crates/ag-mail", version = "0.0.0", features = ["workers"] }
+ag-workers = { path = "../../crates/ag-workers", version = "0.1.0-alpha.1" }
+ag-mail = { path = "../../crates/ag-mail", version = "0.1.0-alpha.1", features = ["workers"] }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }

@@ -11,6 +11,7 @@ aun no etiquetados.
 
 
 
+
 ### CLI help and domain guide fixes (issues #200, #201, #202)
 
 Fixed:
@@ -2675,6 +2676,21 @@ Added:
   stale alpha version in the installation manual; hardcoded `~/.cargo/bin` path
   in source-channel messages; two full release builds (21 min 22 s measured)
   with no time expectation. No issue was closed.
+
+### Terminal user review consolidation (wave 10)
+
+Added:
+
+- `docs/audits/terminal-user-review.md`: consolidated, evidence-backed review of
+  the wave-10 real-user terminal journeys. Ranks each observed step by severity,
+  separates reproducible defects from friction/ergonomics, records the exact
+  issues opened by peers (#199, #200, #201, #202 and Fabric #3), detects the
+  duplicate/gap pattern (no lock guard in local scripts, no doc-vs-CLI contract
+  test, missing onboarding assets) and gives a proof command for every
+  recommendation. Verified independently: the live issue board, the manual 04
+  alpha.1 vs shipped alpha.2 drift and the stale README bind caveat for the
+  already-fixed issue #191. No issue was closed and no new issue was needed.
+- `docs/INDEX.md`: pointer to the consolidated terminal review.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

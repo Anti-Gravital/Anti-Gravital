@@ -8,6 +8,12 @@
 //! Prose output is never touched here. When the flag is absent the commands
 //! keep their existing `println!` behaviour. Mutating commands are refused
 //! before any executor runs (see `main::run_json_command`).
+//!
+//! A new read shape may be defined here ahead of its CLI dispatch wiring. Such
+//! a shape is published in `docs/mcp/` as a contract fixture and is covered by
+//! a serialization test, but it is not emitted until the dispatch layer in
+//! `cli.rs` and `main.rs` maps the command to it. The contract document states
+//! that boundary explicitly so no consumer mistakes a fixture for live output.
 
 use serde::Serialize;
 use std::io::{self, Write};
@@ -231,6 +237,60 @@ pub(crate) struct DnsStatusData {
     pub(crate) in_sync: bool,
 }
 
+/// Where a `config.get` value came from (RFC-0018 single config executor).
+///
+/// The shape is published ahead of its CLI dispatch wiring, which lives in
+/// files owned by another role. It is exercised by the serialization tests in
+/// this module and by the contract fixture in `tests/json_output.rs`.
+#[cfg_attr(not(test), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum ConfigValueSource {
+    /// The key was present in `config.toml`.
+    File,
+    /// The key was absent and the compiled-in default was used.
+    Default,
+}
+
+/// Data of `config.get`.
+///
+/// The RFC-0018 key set deliberately exposes file paths and non-secret
+/// settings only; inline secret material is not addressable by a key. `key`
+/// and `kind` are `'static` strings taken from closed sets, so no value
+/// supplied on the command line can become a field name in this shape.
+#[cfg_attr(not(test), allow(dead_code))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct ConfigGetData {
+    /// Canonical dotted `ConfigKey::as_str()`, e.g. `rate_limit.per_ip_rps`.
+    pub(crate) key: &'static str,
+    /// One of `bool`, `integer`, `string`, `string_list`, `bind`.
+    pub(crate) kind: &'static str,
+    /// The value as printed by the prose path. Always data, never a field name.
+    pub(crate) value: String,
+    /// Whether the value was read from the file or fell back to the default.
+    pub(crate) source: ConfigValueSource,
+}
+
+impl ConfigGetData {
+    /// Builds the versioned shape from the config executor's plain output.
+    /// `key` and `kind` must come from the closed sets constrained by the
+    /// published JSON Schema; `value` is opaque data and is never interpreted.
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn new(
+        key: &'static str,
+        kind: &'static str,
+        value: impl Into<String>,
+        source: ConfigValueSource,
+    ) -> Self {
+        Self {
+            key,
+            kind,
+            value: value.into(),
+            source,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,5 +345,50 @@ mod tests {
             parsed["properties"]["contract_version"]["const"].as_str(),
             Some(CONTRACT_VERSION)
         );
+        // The config.get shape is additive: it must be present in the same
+        // versioned schema as the already emitted commands.
+        let commands = parsed["properties"]["command"]["enum"]
+            .as_array()
+            .expect("command enum");
+        assert!(
+            commands
+                .iter()
+                .any(|value| value.as_str() == Some("config.get")),
+            "schema must declare the config.get command shape"
+        );
+    }
+
+    #[test]
+    fn config_get_shape_serializes_to_the_versioned_envelope() {
+        let value = Envelope {
+            contract_version: CONTRACT_VERSION,
+            command: "config.get",
+            outcome: Outcome::Ok {
+                data: ConfigGetData::new("bind", "bind", "127.0.0.1:8080", ConfigValueSource::File),
+            },
+        };
+        assert_eq!(
+            serde_json::to_string(&value).expect("serialize"),
+            r#"{"contract_version":"0.2.0","command":"config.get","status":"ok","data":{"key":"bind","kind":"bind","value":"127.0.0.1:8080","source":"file"}}"#
+        );
+    }
+
+    #[test]
+    fn config_get_shape_has_a_closed_field_set() {
+        let data = ConfigGetData::new(
+            "tls.key_path",
+            "string",
+            "CANARY-SECRET-9f3a",
+            ConfigValueSource::Default,
+        );
+        let json = serde_json::to_value(&data).expect("serialize");
+        let object = json.as_object().expect("object");
+        let mut fields: Vec<&str> = object.keys().map(String::as_str).collect();
+        fields.sort_unstable();
+        assert_eq!(fields, ["key", "kind", "source", "value"]);
+        // A canary stays in the `value` data slot; it cannot become a key.
+        assert_eq!(object["value"].as_str(), Some("CANARY-SECRET-9f3a"));
+        assert_eq!(object["key"].as_str(), Some("tls.key_path"));
+        assert_eq!(object["source"].as_str(), Some("default"));
     }
 }

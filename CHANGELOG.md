@@ -7,6 +7,13 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### CI: supported macOS runner (issue #186)
+
+Changed:
+
+- The macOS matrix job now uses `macos-15` instead of the unsupported
+  `macos-14` image, restoring the four-platform CI matrix. RFC-0031 records the
+  decision; no target, toolchain or test command changed.
 
 ### Design proposal: signed release manifest and trust anchor (issue #141)
 

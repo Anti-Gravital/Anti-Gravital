@@ -90,9 +90,8 @@ como `superseded`.
 | 0024 | Interfaz de maquina MCP compartida con agentes por capacidades | aceptada | `RFC-0024-mcp-shared-machine-interface.md` |
 | 0025 | ORM tipado, RLS y multi-tenancy generados desde el DSL para ag-data (Fase 5+) | aceptada como diseno; implementacion diferida hasta Fase 5 y cierre de la puerta (ADR-0020, 2026-11-22) | `RFC-0025-ag-data-orm-rls.md` |
 | 0027 | chumsky 0.9 a 0.13/0.14 para el parser de Anti-DSL (enmienda de RFC-0003) | aceptada; recomienda diferir, mantener 0.9.3 (ADR-0021, 2026-11-22) | `RFC-0027-chumsky-parser-upgrade.md` |
-| 0025 | ORM tipado, RLS y multi-tenancy generados desde el DSL para ag-data (Fase 5+) | propuesta, solo diseno; no implementada | `RFC-0025-ag-data-orm-rls.md` |
-| 0027 | chumsky 0.9 a 0.13/0.14 para el parser de Anti-DSL (enmienda de RFC-0003) | propuesta | `RFC-0027-chumsky-parser-upgrade.md` |
 | 0028 | Verificacion en CI del feature opt-in `otlp` de ag-observe | aceptada | `RFC-0028-otlp-feature-ci-verification.md` |
 | 0026 | Sustitucion de chrono: evaluacion y plan de migracion bloqueado | propuesta, bloqueada por la decision OAuth2 de RFC-0029 | `RFC-0026-chrono-replacement.md` |
 | 0029 | Sustituir oauth2 5.0.0 por un cliente nativo de Authorization Code + PKCE en ag-auth | propuesta | `RFC-0029-oauth2-chrono-unblock.md` |
 | 0030 | Signed release manifest and trust anchor (diseno; no cierra #141) | propuesta; no aceptada | `RFC-0030-signed-release-manifest-and-trust-anchor.md` |
+| 0031 | Actualizacion del runner macOS en CI (issue #186) | aceptada | `RFC-0031-macos-runner-refresh.md` |

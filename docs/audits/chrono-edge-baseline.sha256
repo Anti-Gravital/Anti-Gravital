@@ -1,0 +1,6 @@
+dd4fb95d59b23b3d47aeb7a18f742e091227b7e93076cbba3e015fff26ccc83f  chrono-edge-baseline
+# Baseline SHA-256 for scripts/check-chrono-edge.sh (issue #185).
+# Line 1 is the expected hash of the normalized cargo tree + cargo deny result.
+# Regenerate with: bash scripts/check-chrono-edge.sh --print-baseline
+# Update this file only after an intentional, fully verified change.
+# Recorded 2026-11-22. See docs/audits/chrono-edge-monitor.md.

@@ -7,9 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Chrono edge drift monitor (issue #185)
 
+Added:
 
+- `scripts/check-chrono-edge.sh` and `docs/audits/chrono-edge-baseline.sha256`:
+  opt-in local check that records `cargo tree --workspace --all-features -i chrono`
+  and `cargo deny --all-features check`, hashes a normalized representation and
+  compares it with a checked-in baseline so future dependency drift is detected
+  automatically (#185).
+- `docs/audits/chrono-edge-monitor.md`: live upstream re-check (object_store is
+  still 0.14.2, upstream issue #909 is still open with no fix PR, chrono is still
+  unmaintained with no patched version) plus the recorded baseline evidence.
 
+Issue #185 remains open and `blocked`: a monitor PASS means "no drift", not
+"resolved", and no gate was claimed. The `RUSTSEC-2026-0543` ignore, manifests,
+lockfile and CI workflows are unchanged. Refs #185.
 
 ### Release signing rehearsal and key ceremony (issue #141)
 

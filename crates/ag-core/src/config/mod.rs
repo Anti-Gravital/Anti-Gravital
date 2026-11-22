@@ -8,12 +8,24 @@
 //!
 //! A documented example with all the sections is in
 //! `crates/ag-core/config.example.toml`.
+//!
+//! # Opt-in environment validation
+//!
+//! [`ShieldConfig::from_path`] reads no environment variables: existing call
+//! sites keep their behaviour. Callers that want the fail-fast validation of
+//! RFC-0020 stage B use [`ShieldConfig::from_path_with_env`] (or
+//! [`ShieldConfig::from_toml_str_with_env`]), which resolve and validate only
+//! the keys declared in an [`crate::env::EnvLoader`] before returning. All
+//! problems are reported at once and no value is ever printed. The validated
+//! [`crate::env::LoadedEnv`] is returned alongside the config so it can be
+//! injected explicitly into the composition root before a listener opens.
 
 use std::net::SocketAddr;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::env::{EnvLoader, LoadedEnv};
 use crate::error::{AgError, AgResult};
 
 /// Complete Shield configuration.
@@ -256,6 +268,60 @@ impl ShieldConfig {
             AgError::Config(format!("cannot read config at {}: {e}", path.display()))
         })?;
         Self::from_toml_str(&bytes)
+    }
+
+    /// Loads configuration from a file and validates the declared environment
+    /// with `loader` before returning (RFC-0020 section 4.2).
+    ///
+    /// This is the documented **opt-in fail-fast** path. [`Self::from_path`]
+    /// intentionally keeps its original behaviour and reads no environment
+    /// variables, so existing call sites are unaffected and defaults are not
+    /// changed. A composition root that wants startup validation calls this
+    /// method before binding a listener.
+    ///
+    /// Only keys declared in `loader` are resolved from the process
+    /// environment; undeclared keys are ignored by design. Validation fails
+    /// when a required declared variable is missing from every source
+    /// (undeclared in the environment) or a declared value is malformed. All
+    /// problems are reported at once as `AgError::Config` with names, expected
+    /// types and reasons, and **never with values** - not even for variables
+    /// that are not secrets.
+    ///
+    /// The validated [`LoadedEnv`] is returned alongside the config so it can
+    /// be injected explicitly. Its secrets are [`crate::Secret`] values and are
+    /// only readable through `expose()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `AgError::Config` if the file cannot be read or is not valid
+    /// TOML, or if any declared environment variable is missing or malformed.
+    pub fn from_path_with_env(
+        path: impl AsRef<Path>,
+        loader: &EnvLoader,
+    ) -> AgResult<(Self, LoadedEnv)> {
+        // Validate first so a bad environment fails startup before any config
+        // work is committed to, matching the "before the listener opens"
+        // contract. EnvValidationError's Display never prints a value.
+        let env = loader.load_process()?;
+        let config = Self::from_path(path)?;
+        Ok((config, env))
+    }
+
+    /// Opt-in validation equivalent to [`Self::from_path_with_env`] for a TOML
+    /// string. Useful for tests and embedded configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns `AgError::Config` if `toml_text` is not valid TOML or if any
+    /// declared environment variable is missing or malformed; no value is
+    /// included in the error.
+    pub fn from_toml_str_with_env(
+        toml_text: &str,
+        loader: &EnvLoader,
+    ) -> AgResult<(Self, LoadedEnv)> {
+        let env = loader.load_process()?;
+        let config = Self::from_toml_str(toml_text)?;
+        Ok((config, env))
     }
 
     /// Serializes the configuration to a TOML string.

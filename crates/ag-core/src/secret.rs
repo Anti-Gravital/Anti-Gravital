@@ -40,6 +40,30 @@ use zeroize::Zeroize;
 /// let token = Secret::new("s3cr3t".to_owned());
 /// let _ = serde_json::to_string(&token);
 /// ```
+///
+/// A secret cannot be cloned. This is deliberate: a clone would be a second
+/// copy of the confidential bytes whose drop would zeroize only the clone,
+/// leaving the original to be freed without wiping. If a caller needs to
+/// duplicate the value they must call [`Secret::expose`] explicitly, which is
+/// greppable in review:
+///
+/// ```compile_fail
+/// use ag_core::secret::Secret;
+///
+/// let token = Secret::new("s3cr3t".to_owned());
+/// let _copy = token.clone();
+/// ```
+///
+/// Secrets are also not comparable by value, so they cannot be matched in a
+/// way that leaks their contents through control flow:
+///
+/// ```compile_fail
+/// use ag_core::secret::Secret;
+///
+/// let a = Secret::new("s3cr3t".to_owned());
+/// let b = Secret::new("s3cr3t".to_owned());
+/// let _ = a == b;
+/// ```
 pub struct Secret<T: Zeroize> {
     inner: T,
 }
@@ -138,5 +162,28 @@ mod tests {
         let rendered = format!("authorization={secret}");
         assert_eq!(rendered, "authorization=[redacted]");
         assert!(!rendered.contains("token-value"));
+    }
+
+    #[test]
+    fn formatting_flags_and_containers_never_leak_the_value() {
+        // Audit of every formatting path: width, alignment, precision, both
+        // Debug modes and Secret inside borrowing containers must all redact.
+        let secret = Secret::new("hunter2".to_owned());
+        for rendered in [
+            format!("{secret}"),
+            format!("{secret:>20}"),
+            format!("{secret:<20}"),
+            format!("{secret:^20}"),
+            format!("{secret:.3}"),
+            format!("{secret:?}"),
+            format!("{secret:#?}"),
+            format!("{:?}", vec![&secret]),
+            format!("{:#?}", vec![&secret]),
+        ] {
+            assert!(
+                !rendered.contains("hunter2"),
+                "formatting leaked the secret: {rendered}"
+            );
+        }
     }
 }

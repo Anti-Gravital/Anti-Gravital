@@ -189,6 +189,24 @@ Changed:
   project templates in memory, so scaffolded projects validate without
   changing the templates.
 
+### Wave 4 technical review: security and low-level audit
+
+Added:
+
+- `docs/audits/wave4-review.md` with the read-only review of all seven wave-4
+  branches (`tui`, `machinejson`, `layered`, `envsecrets`, `guardrails`,
+  `hooks`, `qa`). It records the security-critical verifications, the
+  low-level checks and three real defects with severity, affected branch and
+  recommendation.
+- Three focused issues: #187 (qa layered regression test probes the wrong
+  templates and skips silently), #188 (`ag config set` silently corrupts
+  integers above `i64::MAX`) and #190 (ag-check silently skips emoji detection
+  without `grep -P`). The `ag-cli` area label was created for the CLI findings.
+- `docs/INDEX.md` now references the new audit note.
+
+No code owned by another wave-4 role was changed; no push or merge was
+performed.
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

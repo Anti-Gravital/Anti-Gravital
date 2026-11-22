@@ -121,3 +121,7 @@ de ruta.
 Registros de verificacion tecnica y revisiones de bajo nivel. Incluye
 las puertas `PRE_FASE5_RELEASE_GATE.md` y `pre-fase5-*.md`, y la revision
 `low-level-review-178-180.md` (stack de correo e RFC de chumsky).
+Incluye tambien `wave4-review.md`, la revision de seguridad y de bajo
+nivel de las siete ramas de la wave 4 (tui, machinejson, layered,
+envsecrets, guardrails, hooks y qa), con hallazgos, severidad y
+recomendaciones. Referencia: `docs/audits/wave4-review.md`.

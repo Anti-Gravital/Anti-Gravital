@@ -87,6 +87,7 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 
 
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:
@@ -1960,3 +1961,30 @@ Added:
   checksum manifest format does not match what the alpha installer parses
   (#192). Four observations cover same-channel manifests, tag interpolation,
   docs drift and the scaffold's pinned git dependency.
+
+### Alpha prototype walkthrough and secure scaffold binds (issue #191)
+
+Added:
+
+- `docs/examples/alpha-prototype.md`: a copy-paste guide from zero to a running
+  local API and a generated TypeScript SDK, with no PostgreSQL, NATS, Redis or
+  SMTP. Lists which templates and examples need external infrastructure, known
+  alpha limitations, and the exact verification evidence. Linked from the
+  examples catalog and `docs/INDEX.md`.
+- `crates/ag-cli/tests/alpha_prototype.rs`: four offline-path regression tests
+  covering the REST and layered scaffolds, the fullstack database boundary, and
+  the ten-artifact `ag generate` output.
+
+Fixed:
+
+- Generated `rest`, `realtime`, `fullstack` and `layered` projects now bind
+  `127.0.0.1:8080` by default and honour the `BIND` environment variable that
+  `ag dev` sets. Their generated `config.toml` also defaults to
+  `host = "127.0.0.1"`. Nothing generated hardcodes `0.0.0.0` any more, so a
+  tester following the quickstart does not expose a development server on every
+  interface (issue #191). Explicit `ag dev --bind 0.0.0.0:8080` still opts in
+  to all interfaces.
+
+Note: the generated `config.toml` `[bind]` section is still informational in
+the alpha - the running listener is controlled by `BIND` or the loopback
+default - but its value now matches the safe runtime default.

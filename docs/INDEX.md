@@ -109,6 +109,10 @@ esta en `docs/audits/issue-board-reconciliation.md`.
 
 Espacios reservados para diagramas, knowledge graph y catalogo de
 ejemplos. Se pueblan a partir de la fase indicada en cada README.
+El catalogo de ejemplos incluye la guia de prototipo alpha
+`docs/examples/alpha-prototype.md`: de cero a una API local y un SDK
+generado sin servicios externos, con matriz de infraestructura requerida
+y evidencia de verificacion.
 
 ### docs/es/ y docs/en/
 

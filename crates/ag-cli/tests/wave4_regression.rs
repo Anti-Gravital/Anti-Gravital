@@ -184,7 +184,7 @@ fn config_get_set_non_interactive() {
         return;
     }
     assert!(
-        out_text(&get).contains("0.0.0.0"),
+        out_text(&get).contains("127.0.0.1"),
         "get did not report the generated value: {}",
         out_text(&get)
     );

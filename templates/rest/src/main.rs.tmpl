@@ -14,8 +14,10 @@ async fn main() -> Result<(), ag_core::AgError> {
     let router = Router::new().route("/", get(root_handler));
     let app = shield.apply(router);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
-    tracing::info!("escuchando en http://0.0.0.0:8080");
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("escuchando en http://{bind}");
     shield.serve(listener, app).await
 }
 

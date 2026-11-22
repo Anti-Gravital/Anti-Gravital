@@ -18,8 +18,10 @@ async fn main() -> Result<(), ag_core::AgError> {
     let router = Router::new().route("/ws", get(ws_handler));
     let app = shield.apply(router);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
-    tracing::info!("WebSocket en ws://0.0.0.0:8080/ws");
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("WebSocket en ws://{bind}/ws");
     shield.serve(listener, app).await
 }
 

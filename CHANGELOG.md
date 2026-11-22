@@ -38,6 +38,25 @@ Added:
   status comment was posted and no issue was closed. #76 stays OPEN with
   `Refs #76`; it can close only after #87 is verified CLOSED on merged evidence.
 
+### ag-mail managed API architecture annex (issue #152)
+
+Added:
+
+- `docs/architecture/ag-mail-managed-api-design.md` (design only): resource
+  model for messages, templates, suppression lists, campaigns and consent,
+  mapped to the RFC-0009 resources; explicit outbound-only v1 boundary;
+  OpenAPI-shaped sketches consistent with the existing HTTP contract;
+  composition with `ag-auth` (consumer only, no reverse dependency) and
+  `ag-workers` (producer via `mail.delivery` jobs); and the five gates that
+  must pass before implementation. It references, and does not duplicate, the
+  independent DKIM verification kit of issue #178.
+- Navigation from `docs/architecture/README.md` (annex section) and
+  `docs/modules/ag-mail/README.md`.
+
+Issue #152 remains open with `Refs #152`. No code, no phase advance: the
+Mail A real-mailbox SPF/DKIM/DMARC evidence (port 25 blocked, #153/#178) and
+the phase authorization are still missing.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

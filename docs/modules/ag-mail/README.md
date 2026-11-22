@@ -122,7 +122,11 @@ condition to start) is specified in
 [`managed-api-dx-design.md`](managed-api-dx-design.md). It is a design
 proposal tracked by issue #152; it makes no capability claim and ships no
 code until the RFC-0009 Mail A gate and the RFC-0024 amendment described
-there are satisfied.
+there are satisfied. The complementary technical annex
+[`docs/architecture/ag-mail-managed-api-design.md`](../../architecture/ag-mail-managed-api-design.md)
+defines the resource model, the outbound-only boundary, the composition with
+`ag-auth`/`ag-workers` and the list of gates; it does not restate the HTTP
+contract or duplicate the DKIM verification kit of issue #178.
 - Per-tenant egress IP pools with weighted round-robin warm-up; suppression
   lists (hard bounce / complaint / unsubscribe).
 - Deliverability hardening (continuous, Phase 5+): MTA-STS, TLS-RPT, ARC,

@@ -10,12 +10,34 @@ runnable today; the staging commands are the contract that #87 must implement
 and execute. Never report the test as passing until the evidence template at
 the end is filled from a real staging run.
 
+## Local mock vs real staging
+
+Two different verification levels exist. Do not substitute one for the other.
+
+| | Local mock (runnable here) | Real staging (blocked on credentials/network) |
+| --- | --- | --- |
+| Where | `127.0.0.1`, ephemeral port, plain HTTP | Let's Encrypt staging directory over HTTPS |
+| Command | `scripts/acme-mock-harness.sh [LOG]` | the `cargo test ... --ignored` command below |
+| Requirements | Python 3 and `openssl` on `PATH` | controlled domain, DNS write access, outbound TCP 443, contact email |
+| Network / credentials | none | required |
+| Order states exercised | new order, authorization pending/valid, challenge, finalize, download | same states, plus real DNS-01 validation and CA signatures |
+| Certificate | self-signed by the harness, subject equals issuer | issued and signed by a staging CA, not browser-trusted |
+| Closes #87 / #179 | no | only with before/after evidence |
+| Evidence | `docs/ag-domains/acme-mock-evidence.md` | `staging-before.log`, `staging-after.log`, evidence template below |
+
+The local mock is the offline part of the preflight: it proves the documented
+state machine can be driven deterministically without any external dependency.
+It does not prove domain control, propagation, CA issuance or SNI serving. A
+self-signed mock chain must never be described as a certificate a CA issued.
+
 ## Why staging must be live
 
 The default CI has no controlled domain, DNS write access or outbound access to
 a CA, so it can only exercise the mocked DNS-01 driver
-(`acme::wildcard::Dns01OrderDriver`) and the deterministic scheduling helpers.
-Certificate issuance and renewal change the code that keeps certificates valid;
+(`acme::wildcard::Dns01OrderDriver`), the deterministic scheduling helpers and
+the local HTTP mock harness described above. Those cover the order states but
+not the external boundary. Certificate issuance and renewal change the code
+that keeps certificates valid;
 a port of the ACME order flow is not verifiable from unit tests alone. The live
 run is performed before and after the 0.8 port (#179), and both runs are
 recorded.
@@ -60,14 +82,18 @@ removes it after the run.
 
 ```
 cd <repo-root>
+bash -n scripts/acme-mock-harness.sh
+scripts/acme-mock-harness.sh /tmp/acme-mock-run.log
 cargo fmt --all -- --check
 cargo clippy -p ag-domains --all-targets --all-features -- -D warnings
 cargo test -p ag-domains
 cargo test -p ag-domains --all-features
 ```
 
-All four commands must exit 0 before the credentialed run is attempted. The
-last command exercises the existing ACME unit tests without network access.
+All commands must exit 0 before the credentialed run is attempted. The mock
+harness drives the offline order states and writes a JSON-line transcript; a
+recorded run is in `docs/ag-domains/acme-mock-evidence.md`. The last two Cargo
+commands exercise the existing ACME unit tests without network access.
 
 Set the shared build environment used by the repository:
 

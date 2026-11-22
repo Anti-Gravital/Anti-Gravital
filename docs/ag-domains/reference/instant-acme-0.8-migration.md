@@ -97,6 +97,31 @@ once the earlier errors are fixed. Treat both lists as the porting checklist.
    for a manual polling loop. This is the point that also affects
    `acme::ari` renewal scheduling, so it must be verified by the live run.
 
+## Current source locations (verified 2026-11-22)
+
+All nine migration points above still apply semantically to the current tree;
+the dependency is still `instant-acme = "0.7"` at `crates/ag-domains/Cargo.toml:86`.
+No production ACME code was changed. Line numbers in the nine points above and
+in the scratch-checkout diagnostics are historical; the current
+`crates/ag-domains/src/acme/renewal.rs` locations are:
+
+| Point | Documented line | Current line | Still applies |
+| --- | --- | --- | --- |
+| 1 `Account::create` | 67 | 67 | yes |
+| 2 `Account::from_credentials` | 89 | 89 | yes |
+| 3 `NewOrder` literal | 252 | 255 | yes |
+| 4 `authorizations().await` | 259-262 | 262-265 | yes |
+| 5 manual challenge scan | 275-279 | 278-282 | yes |
+| 6 `key_authorization` | 282 | 285 | yes |
+| 7 `authz.identifier` | 281-284 | 284 | yes |
+| 8 `set_challenge_ready` | 290-295 | 293-298 | yes |
+| 9 `finalize` + wait loop | 315-378 | 326-381 (certificate at 334) | yes |
+
+The drift is additive (the file grew by a few lines), not a change of contract.
+The eight compiler diagnostics recorded above came from a scratch checkout with
+0.8.0/0.8.5 and keep their original line numbers as historical evidence; they
+are not the line numbers of the current tree.
+
 ## Exit criteria for the port
 
 - `cargo test -p ag-domains --all-features` passes on 0.8.

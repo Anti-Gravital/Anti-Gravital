@@ -28,6 +28,8 @@ historical DEBT-025).
   - `how-to/configure-wildcard.md`, `how-to/domain-connect.md`
   - `how-to/troubleshoot.md` (DNS + certificate issuance)
   - `how-to/acme-staging-test.md` (credentialed live ACME staging run, #87)
+- Evidence: `acme-mock-evidence.md` (offline order-flow run, no CA involved;
+  driven by `scripts/acme-mock-harness.sh`)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
   `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
   `reference/provider-capability-matrix.md`,

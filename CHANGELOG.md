@@ -95,6 +95,28 @@ Added:
   unchanged, issue #180 stays open, and the note restates the conditions that
   would justify a successor RFC.
 
+### Dependency-free edge producer port (issue #112)
+
+Added:
+
+- `ag-edge` `producer` feature: `producer::{EnqueueRequest, DeferredJobProducer,
+  emit}` is a dependency-free port for deferred work emitted at the edge
+  (RFC-0012 section 5, S6). `ag-edge` owns only the contract; a host crate
+  supplies the queue-backend adapter, mirroring the `DnsProvider` pattern.
+  No `ag-edge -> ag-workers` dependency (or reverse dependency) is introduced;
+  the only added dependency is the optional `async-trait`, already in the
+  workspace. The feature is off by default.
+- `examples/workers-producer-edge/src/bridge.rs`: adapter translating the port
+  into an `ag-workers` enqueue, wired into the example end to end. A unit test
+  with `MemoryQueue` proves a port emission reaches the queue and is consumed
+  by a separate lease path (no worker loop on the producer side).
+- Documentation updated in `crates/ag-edge/README.md`,
+  `crates/ag-workers/README.md`, the example README and roadmap STATUS (S6).
+
+Issue #112 stays open: no concrete in-crate `ag-edge` event emits through the
+port yet (ACME renewal lives in the `ag-domains` control plane). Closing it
+requires a documented edge emitter plus the usual full verification.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

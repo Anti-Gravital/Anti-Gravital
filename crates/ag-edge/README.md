@@ -32,6 +32,17 @@ Runnable listeners (RFC-0011 phases B), implemented and integration-tested:
   output; `cert::SniCertResolver` selects by SNI (RFC 6066); `server::serve_https`
   serves HTTPS. Real TLS-handshake integration test in `tests/tls_edge.rs`.
 
+Producer port (RFC-0012 section 5, S6):
+
+- `producer` feature: `producer::{EnqueueRequest, DeferredJobProducer, emit}` is
+  a dependency-free port for deferred work emitted at the edge. `ag-edge` owns
+  only the contract; a host crate supplies the backend adapter. No `ag-workers`
+  dependency is introduced in either direction, and no worker loop is hosted.
+  The `workers-producer-edge` example wires this port to the `ag-workers`
+  in-memory backend, with a unit test proving enqueue and separate consumption.
+  Emission today is host-driven: no in-crate edge event emits a job yet, so
+  issue #112 stays open pending a concrete documented consumer event.
+
 ## Scope
 
 `ag-edge` does not own attachment state, ownership proof, or certificate

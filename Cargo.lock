@@ -8379,6 +8379,7 @@ dependencies = [
 name = "workers-producer-edge"
 version = "0.1.0-alpha.2"
 dependencies = [
+ "ag-edge",
  "ag-workers",
  "async-trait",
  "serde",

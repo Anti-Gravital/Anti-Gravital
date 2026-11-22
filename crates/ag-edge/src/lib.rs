@@ -16,6 +16,10 @@
 //! - `tls` feature: a real `rustls` certificate store with PEM bridge
 //!   (`cert`) and an HTTPS listener (`server::serve_https`) that selects
 //!   certificates by SNI.
+//! - `producer` feature: [`producer`], a dependency-free port letting the edge
+//!   emit deferred-work enqueue requests through a caller-supplied adapter. It
+//!   introduces no dependency on `ag-workers` and never hosts a worker loop
+//!   (RFC-0012 section 5, S6).
 //!
 //! # Backward compatibility
 //!
@@ -28,6 +32,8 @@
 
 pub mod challenge;
 pub mod metrics;
+#[cfg(feature = "producer")]
+pub mod producer;
 pub mod redirect;
 pub mod router;
 pub mod tls;

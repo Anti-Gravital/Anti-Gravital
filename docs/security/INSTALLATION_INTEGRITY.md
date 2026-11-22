@@ -229,3 +229,14 @@ repository-local list remains a clearly labelled **development path**, not a
 trust anchor. Line-ending conversion of the attested files breaks both the hash
 and the signature. Rotation, revocation and the failure behavior are specified
 in RFC-0030 section 4.6 and 4.9.
+
+### Rehearsal tooling and ceremony procedure
+
+`tools/release-signing/` contains a local, test-only rehearsal of the
+manifest signing flow (generate a throwaway Ed25519 key, sign, verify, reject a
+tampered manifest) using the installed OpenSSL CLI. Its README records the tool
+provenance and `docs/security/RELEASE_SIGNING_TEST_EVIDENCE.md` records a real
+run. `docs/security/RELEASE_KEY_CEREMONY.md` describes the human ceremony,
+custody, publication and rotation steps. Neither creates a production key, a
+published fingerprint or a signed asset; issue #141 stays open until RFC-0030
+section 11 is satisfied.

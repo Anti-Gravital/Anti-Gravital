@@ -1,0 +1,4 @@
+name = "ai-backend-template"
+description = "Provider-agnostic chat API with a local echo model provider and pluggable remote providers"
+category = "ai"
+external_requirements = ["AG_MODEL_API_KEY (optional: remote model providers only)"]

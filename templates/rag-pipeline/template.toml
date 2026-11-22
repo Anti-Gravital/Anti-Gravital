@@ -1,0 +1,4 @@
+name = "rag-pipeline"
+description = "Retrieval-augmented generation scaffold with a local ingest, retrieve and answer flow"
+category = "ai"
+external_requirements = ["AG_MODEL_API_KEY (optional: remote answer generator only)"]

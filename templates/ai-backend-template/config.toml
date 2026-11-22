@@ -1,0 +1,12 @@
+# Chat API configuration for {{name}}.
+# The default provider is local and needs no API key or network access.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[provider]
+# "echo" is the bundled local provider. Remote providers are added as new
+# ChatProvider implementations; their credentials are read from the process
+# environment (for example AG_MODEL_API_KEY), never from this file.
+kind = "echo"

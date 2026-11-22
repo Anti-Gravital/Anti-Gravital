@@ -8,6 +8,7 @@ primera version etiquetada.
 ## [Unreleased]
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1164,3 +1165,16 @@ Added (documentation only; no code and no phase change):
   It includes the measured result that `time::OffsetDateTime` needs an explicit
   `serde` adapter to keep RFC 3339 strings, and that trailing-zero fractions
   still differ from chrono's output.
+
+### Proposal: chumsky parser upgrade evaluation (RFC-0027, issue #180)
+
+Added (documentation only; no code or dependency change):
+
+- `RFC-0027` amends RFC-0003 with the evaluation of `chumsky` 0.9.3 versus the
+  maintained 0.13+/1.0-line (current stable 0.14.2). It records the API and
+  error-model differences, a compiled local API spike, a local baseline timing
+  with full Rule 17 metadata, the upstream benchmark as context, and the
+  impact on diagnostics, fuzzing and benchmarks.
+- Recommendation: defer the migration until the DSL v1.0 grammar freeze or a
+  concrete blocker (advisory, unfixable DX defect or measured bottleneck). No
+  parser code, manifests or generated artifacts were changed by this proposal.

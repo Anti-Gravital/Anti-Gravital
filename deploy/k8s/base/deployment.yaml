@@ -62,9 +62,10 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-          # TCP probes are used because only the fullstack template currently
-          # exposes an HTTP /health route; rest and realtime do not. TCP works
-          # for every family. See README.md for the HTTP alternative.
+          # TCP probes are used because only fullstack and layered currently
+          # expose an HTTP /health route; rest and realtime do not, and no
+          # template exposes /ready. TCP works for every family. See README.md
+          # for the HTTP alternative.
           livenessProbe:
             tcpSocket:
               port: http

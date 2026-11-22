@@ -46,10 +46,11 @@ deploy/k8s/
   secret values are inlined. Read `SECRETS.md` before applying to a real
   cluster.
 
-TCP probes are used because only the `fullstack` template currently exposes an
-HTTP `/health` route; `rest` and `realtime` do not. A user whose application
-does expose `/health` may replace both probes with `httpGet` paths in their own
-copy of an overlay. Do not assume an endpoint that the template does not serve.
+TCP probes are used because only the `fullstack` and `layered` templates
+currently expose an HTTP `/health` route; `rest` and `realtime` do not, and no
+template exposes `/ready`. A user whose application does expose `/health` may
+replace the liveness probe with an `httpGet` path in their own copy of an
+overlay. Do not assume an endpoint that the template does not serve.
 
 ## Prerequisites
 

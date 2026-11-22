@@ -9,7 +9,7 @@
 
 use std::time::Instant;
 
-use chrono::Utc;
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::config::RuntimeConfig;
 use crate::context::JobContext;
@@ -52,7 +52,10 @@ pub async fn execute_leased_job(
     let kind = env.kind.as_str().to_string();
 
     // Pre-execution guards (no handler runs).
-    if config.retry_policy.is_expired(env.created_at, Utc::now()) {
+    if config
+        .retry_policy
+        .is_expired(env.created_at, OffsetDateTime::now_utc())
+    {
         return dead_letter(backend, &env, DeadLetterReason::Expired, &queue, &kind).await;
     }
     if env.attempts > config.poison_guard_attempts {
@@ -136,7 +139,7 @@ pub async fn execute_leased_job(
                     .retry(
                         env.id,
                         RetryDecision {
-                            available_at: Utc::now(),
+                            available_at: OffsetDateTime::now_utc(),
                             last_error: Some(err.message().to_string()),
                         },
                     )
@@ -189,9 +192,9 @@ async fn schedule_retry(
     let available_at = match delay {
         RetryDelay::Policy => config
             .retry_policy
-            .next_available_at(Utc::now(), env.attempts.saturating_sub(1)),
+            .next_available_at(OffsetDateTime::now_utc(), env.attempts.saturating_sub(1)),
         RetryDelay::After(d) => {
-            Utc::now() + chrono::Duration::from_std(d).unwrap_or_else(|_| chrono::Duration::zero())
+            OffsetDateTime::now_utc() + SignedDuration::try_from(d).unwrap_or(SignedDuration::ZERO)
         }
     };
     backend

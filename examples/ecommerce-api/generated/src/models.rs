@@ -5,7 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 
 /// Full model (includes automatically generated fields).
@@ -14,8 +13,10 @@ pub struct User {
     pub id: Uuid,
     pub email: String,
     pub name: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: time::OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: time::OffsetDateTime,
     pub orders: Vec<Order>,
 }
 
@@ -65,7 +66,8 @@ pub struct Product {
     pub stock: i64,
     pub category_id: uuid::Uuid,
     pub category: Option<Category>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: time::OffsetDateTime,
     pub order_items: Vec<OrderItem>,
 }
 
@@ -98,8 +100,10 @@ pub struct Order {
     pub user: Option<User>,
     pub total: rust_decimal::Decimal,
     pub status: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: time::OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: time::OffsetDateTime,
     pub items: Vec<OrderItem>,
 }
 

@@ -15,8 +15,8 @@ use ag_workers::{
     MemoryScheduleStore, QueueBackend, QueueName, RuntimeConfig, Schedule, Shutdown, WorkerError,
     WorkerPool,
 };
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 /// Payload for the recurring cleanup job. Interval jobs carry the same payload on
 /// every tick, so an empty marker is enough here.
@@ -73,7 +73,7 @@ async fn main() {
         encode(&CleanupExpiredSessions).expect("encode payload"),
         CleanupExpiredSessions::PAYLOAD_VERSION,
         Duration::from_millis(100),
-        Utc::now(),
+        OffsetDateTime::now_utc(),
     ));
 
     let shutdown = Shutdown::new();

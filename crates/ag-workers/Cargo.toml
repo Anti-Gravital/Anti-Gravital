@@ -43,7 +43,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-chrono = { workspace = true }
+time = { workspace = true }
 uuid = { workspace = true }
 
 # Optional: observability counters/histograms/gauges.
@@ -58,7 +58,7 @@ tokio = { workspace = true, features = ["test-util"] }
 serde = { workspace = true, features = ["derive"] }
 proptest = { workspace = true }
 async-trait = { workspace = true }
-chrono = { workspace = true }
+time = { workspace = true }
 criterion = { workspace = true }
 # For the #[ignore] PostgreSQL integration tests (require DATABASE_URL).
 sqlx = { workspace = true }

@@ -18,17 +18,17 @@ ignore = [
     # alternative exists. Se ignora porque es una dependencia build-only y
     # no afecta la seguridad del binario final.
     { id = "RUSTSEC-2024-0436" },
+    # RUSTSEC-2026-0543: chrono is unmaintained. The workspace no longer uses
+    # it directly (RFC-0026 migration to `time` is complete), but object_store
+    # 0.14.2 has a non-optional chrono dependency and is pulled in by the
+    # opt-in `ag-storage/s3` feature. Removal condition: object_store drops
+    # chrono, or the S3 adapter is replaced; tracked in issue #185.
+    { id = "RUSTSEC-2026-0543" },
     # RUSTSEC-2026-0440: astral-tokio-tar is unmaintained. Reachable only from
     # testcontainers -> testcontainers-modules, dev-dependencies of ag-auth and
     # ag-cache used by local integration tests; not compiled into shipped binaries.
     # Removal condition: a testcontainers upgrade that drops it (issue #174).
     { id = "RUSTSEC-2026-0440" },
-    # RUSTSEC-2026-0543: chrono is unmaintained but is still the date/time type
-    # in ag-domains and ag-worker records and the type enabled by sqlx's chrono
-    # feature. Replacing it requires a coordinated migration of domain models,
-    # JWT claims and SQL bindings. Removal condition: migration to a maintained
-    # date/time crate, tracked in issue #185.
-    { id = "RUSTSEC-2026-0543" },
     # RUSTSEC-2026-0542: humantime is unmaintained. Under --all-features it is
     # reachable from console-subscriber (ag-observe) and object_store
     # (ag-storage/s3). It is a formatting helper, not a security boundary.

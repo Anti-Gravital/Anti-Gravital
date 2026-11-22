@@ -46,7 +46,7 @@ pub enum Token {
     /// `Bool` — bool in Rust, boolean in TypeScript.
     #[token("Bool")]
     TyBool,
-    /// `Timestamp` — chrono::DateTime<Utc> in Rust, string (date-time) in TypeScript.
+    /// `Timestamp` — time::OffsetDateTime in Rust, string (date-time) in TypeScript.
     #[token("Timestamp")]
     TyTimestamp,
     /// `Decimal` — rust_decimal::Decimal in Rust, string (decimal) in TypeScript.

@@ -174,7 +174,7 @@ impl FieldType {
             FieldType::Int => "i64",
             FieldType::Float => "f64",
             FieldType::Bool => "bool",
-            FieldType::Timestamp => "chrono::DateTime<chrono::Utc>",
+            FieldType::Timestamp => "time::OffsetDateTime",
             FieldType::Decimal => "rust_decimal::Decimal",
             FieldType::ModelRef(_) | FieldType::ModelRefList(_) => unreachable!(),
         };

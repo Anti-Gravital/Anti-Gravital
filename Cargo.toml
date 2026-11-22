@@ -64,7 +64,7 @@ rmp-serde  = "1"
 futures-util = "0.3"
 bytes = "1"
 clap = { version = "4", features = ["derive", "env"] }
-sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros", "uuid", "json", "chrono"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "migrate", "macros", "uuid", "json", "time"] }
 chumsky = "0.9"
 logos = "0.16"
 regex = "1"
@@ -116,7 +116,10 @@ url                      = "2"
 # control plane). Ubiquitous, well-maintained, already present transitively.
 idna                     = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "hostname", "builder"] }
-chrono = { version = "0.4", features = ["serde"] }
+# Date/time type for all crate and generated-model boundaries (RFC-0026, issue #185).
+# `serde` enables the rfc3339 adapters; `macros`/`formatting`/`parsing` cover the
+# ACME ARI, SigV4 and notAfter call sites formerly served by chrono.
+time = { version = "0.3", features = ["serde", "macros", "formatting", "parsing"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 x509-parser = { version = "0.18", default-features = false }
 

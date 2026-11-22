@@ -247,7 +247,7 @@ and the duplication risk is recorded in `docs/DEBT.md`.
      each green (`fmt`/`clippy`/`test`).
   2. Cancellation (§4): add `tokio-util` (0.7, `default-features = false`) to the
      workspace and use `CancellationToken`. This is the only genuinely new dependency;
-     everything else reuses existing workspace deps (`rmp-serde`, `sqlx`, `chrono`,
+     everything else reuses existing workspace deps (`rmp-serde`, `sqlx`, `time`,
      `uuid`, `tokio`, `async-trait`, `tracing`, `metrics`, `thiserror`, `proptest`,
      `criterion`, `testcontainers`).
   3. `enqueue_in_tx` accepts `&mut sqlx::Transaction<'_, Postgres>` behind the

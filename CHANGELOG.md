@@ -7,6 +7,7 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:
@@ -25,6 +26,12 @@ Changed:
   getrandom, url, reqwest, serde_json). Removed `oauth2` from the workspace
   dependency table and from `Cargo.lock`; `cargo tree -i oauth2` is now empty
   and the `oauth2 -> chrono` edge is gone.
+- The workspace and the DSL generator migrated from `chrono` to `time` 0.3
+  (RFC-0026): models use `OffsetDateTime`, generated fields use RFC 3339 serde,
+  and golden-string tests cover fractional seconds and UTC spelling. One
+  advisory ignore remains because `object_store 0.14.2` has a non-optional
+  chrono dependency behind the opt-in `ag-storage/s3` feature; issue #185 stays
+  open until that edge disappears.
 - Public API change in `ag-auth`: `authorization_url` now returns
   `(Url, OAuthState, PkceVerifier)` and `exchange_code` accepts
   `PkceVerifier` instead of oauth2's `CsrfToken` / `PkceCodeVerifier`.
@@ -1492,3 +1499,34 @@ Added:
   and the reason the cross-version test alone is not independent evidence.
   The manual real-mailbox gate of #178 remains blocked (port 25), so the
   issue stays open.
+
+### Date/time migration: chrono to time (issue #185, RFC-0026)
+
+Changed:
+
+- Workspace `sqlx` now enables the `time` feature instead of `chrono`.
+  `ag-workers`, `ag-domains` and `examples/workers-scheduled` use
+  `time::OffsetDateTime` instead of `chrono::DateTime<Utc>`. Arithmetic uses
+  `time::SignedDuration` (the name in time 0.3.55 for the RFC's `TimeDelta`).
+  ACME ARI and `notAfter` parsing, Route 53 SigV4 formatting and Cloud DNS JWT
+  timestamps are covered. JWT claim types are unchanged: they are `u64` seconds.
+- The DSL maps `Timestamp` to `time::OffsetDateTime` and emits
+  `#[serde(with = "time::serde::rfc3339")]` (or the `option` module for nullable
+  fields). Generated projects no longer require chrono. The ecommerce generated
+  fixture and the DSL reference were updated.
+- Golden serde tests cover whole seconds, nine-digit fractions, trailing-zero
+  fractions, `Z` spelling, non-UTC normalization and nullable fields. An
+  `#[ignore]` PostgreSQL test documents the TIMESTAMPTZ microsecond boundary.
+
+Breaking changes (documented, not claimed compatible):
+
+- Fractional seconds with trailing zeros now serialize without them:
+  `2025-01-02T04:00:00.100Z` becomes `2025-01-02T04:00:00.1Z`.
+- Explicit UTC formatting now spells `Z` instead of chrono's `+00:00`.
+
+Status:
+
+- `deny.toml` deliberately KEEPS the RUSTSEC-2026-0543 ignore in this branch:
+  oauth2 5.0.0 still reaches chrono through `ag-auth` and is being replaced
+  separately. The coordinator must remove the ignore after both branches land
+  and verify `cargo tree -i chrono` is empty. Refs #185; the issue stays open.

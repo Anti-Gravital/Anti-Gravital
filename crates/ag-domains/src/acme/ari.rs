@@ -13,8 +13,8 @@
 //! the staging end-to-end test, issue #87); it feeds a [`RenewalInfo`] into
 //! [`next_renewal_sleep`].
 
-use chrono::{DateTime, Utc};
 use serde::Deserialize;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime, UtcOffset};
 
 use crate::error::AgDomainsError;
 
@@ -22,9 +22,9 @@ use crate::error::AgDomainsError;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenewalWindow {
     /// Earliest time the CA suggests renewing.
-    pub start: DateTime<Utc>,
+    pub start: OffsetDateTime,
     /// Latest time the CA suggests renewing.
-    pub end: DateTime<Utc>,
+    pub end: OffsetDateTime,
 }
 
 /// A parsed ARI `RenewalInfo` resource (RFC 9773).
@@ -37,7 +37,7 @@ pub struct RenewalInfo {
 }
 
 // Wire shape: timestamps are parsed as strings and validated as RFC 3339, so we
-// do not depend on chrono's serde integration being enabled.
+// do not depend on a date/time crate's serde integration being enabled.
 #[derive(Deserialize)]
 struct RawRenewalInfo {
     #[serde(rename = "suggestedWindow")]
@@ -52,9 +52,11 @@ struct RawWindow {
     end: String,
 }
 
-fn parse_rfc3339(value: &str) -> Result<DateTime<Utc>, AgDomainsError> {
-    DateTime::parse_from_rfc3339(value)
-        .map(|dt| dt.with_timezone(&Utc))
+fn parse_rfc3339(value: &str) -> Result<OffsetDateTime, AgDomainsError> {
+    // Parse the explicit offset, then normalize to UTC as the previous chrono
+    // implementation did with `with_timezone(&Utc)`.
+    OffsetDateTime::parse(value, &Rfc3339)
+        .map(|dt| dt.to_offset(UtcOffset::UTC))
         .map_err(|e| AgDomainsError::Acme(format!("invalid ARI timestamp '{value}': {e}")))
 }
 
@@ -79,18 +81,18 @@ pub fn parse_renewal_info(json: &str) -> Result<RenewalInfo, AgDomainsError> {
 ///
 /// Schedules at the window start: returns the gap until `start`, or `0` if the
 /// window has already opened (renew now), which also covers an overdue window.
-pub fn seconds_until_ari_renewal(window: &RenewalWindow, now: DateTime<Utc>) -> u64 {
-    let gap = window.start.signed_duration_since(now);
-    gap.num_seconds().max(0) as u64
+pub fn seconds_until_ari_renewal(window: &RenewalWindow, now: OffsetDateTime) -> u64 {
+    let gap = window.start - now;
+    gap.whole_seconds().max(0) as u64
 }
 
 /// Combined renewal schedule: prefer ARI when available, else fall back to the
 /// `notAfter`-minus-threshold schedule.
 pub fn next_renewal_sleep(
     ari: Option<&RenewalInfo>,
-    not_after: DateTime<Utc>,
+    not_after: OffsetDateTime,
     renew_before_days: u64,
-    now: DateTime<Utc>,
+    now: OffsetDateTime,
 ) -> u64 {
     match ari {
         Some(info) => seconds_until_ari_renewal(&info.window, now),
@@ -101,7 +103,7 @@ pub fn next_renewal_sleep(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Duration as ChronoDuration;
+    use time::SignedDuration;
 
     const SAMPLE: &str = r#"{
         "suggestedWindow": {
@@ -114,8 +116,17 @@ mod tests {
     #[test]
     fn parses_renewal_info() {
         let info = parse_renewal_info(SAMPLE).unwrap();
-        assert_eq!(info.window.start.to_rfc3339(), "2025-01-02T04:00:00+00:00");
-        assert_eq!(info.window.end.to_rfc3339(), "2025-01-03T04:00:00+00:00");
+        // RFC-0026 format note: chrono's `to_rfc3339()` spelled UTC as
+        // `+00:00`; time's `Rfc3339` formatter uses `Z`. Both are valid RFC 3339,
+        // but the exact text is a breaking change for literal comparisons.
+        assert_eq!(
+            info.window.start.format(&Rfc3339).expect("valid RFC 3339"),
+            "2025-01-02T04:00:00Z"
+        );
+        assert_eq!(
+            info.window.end.format(&Rfc3339).expect("valid RFC 3339"),
+            "2025-01-03T04:00:00Z"
+        );
         assert_eq!(
             info.explanation_url.as_deref(),
             Some("https://acme.example/docs/renewal")
@@ -140,10 +151,10 @@ mod tests {
 
     #[test]
     fn sleeps_until_window_start() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let window = RenewalWindow {
-            start: now + ChronoDuration::hours(10),
-            end: now + ChronoDuration::hours(34),
+            start: now + SignedDuration::hours(10),
+            end: now + SignedDuration::hours(34),
         };
         let secs = seconds_until_ari_renewal(&window, now);
         assert_eq!(secs, 10 * 3600);
@@ -151,22 +162,22 @@ mod tests {
 
     #[test]
     fn zero_when_window_already_open() {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let window = RenewalWindow {
-            start: now - ChronoDuration::hours(1),
-            end: now + ChronoDuration::hours(23),
+            start: now - SignedDuration::hours(1),
+            end: now + SignedDuration::hours(23),
         };
         assert_eq!(seconds_until_ari_renewal(&window, now), 0);
     }
 
     #[test]
     fn next_sleep_prefers_ari_over_not_after() {
-        let now = Utc::now();
-        let not_after = now + ChronoDuration::days(60);
+        let now = OffsetDateTime::now_utc();
+        let not_after = now + SignedDuration::days(60);
         let ari = RenewalInfo {
             window: RenewalWindow {
-                start: now + ChronoDuration::days(1),
-                end: now + ChronoDuration::days(2),
+                start: now + SignedDuration::days(1),
+                end: now + SignedDuration::days(2),
             },
             explanation_url: None,
         };
@@ -176,8 +187,8 @@ mod tests {
 
     #[test]
     fn next_sleep_falls_back_to_not_after_without_ari() {
-        let now = Utc::now();
-        let not_after = now + ChronoDuration::days(30);
+        let now = OffsetDateTime::now_utc();
+        let not_after = now + SignedDuration::days(30);
         // 30 days left, renew 10 days before -> sleep 20 days.
         assert_eq!(next_renewal_sleep(None, not_after, 10, now), 20 * 86_400);
     }

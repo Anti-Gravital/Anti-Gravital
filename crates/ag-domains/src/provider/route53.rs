@@ -21,10 +21,10 @@
 //! ```
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use hmac::{Hmac, KeyInit, Mac};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use time::{format_description, OffsetDateTime};
 
 use crate::{
     error::AgDomainsError,
@@ -92,7 +92,7 @@ impl Route53Provider {
         query: &str,
         body: &str,
     ) -> Result<String, AgDomainsError> {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let host = self.host();
         let auth = sigv4::authorization_header(SigV4Request {
             method,
@@ -389,20 +389,34 @@ struct SigV4Request<'a> {
     secret_key: &'a str,
     region: &'a str,
     service: &'a str,
-    now: DateTime<Utc>,
+    now: OffsetDateTime,
 }
 
 mod sigv4 {
+    use std::sync::LazyLock;
+
     use super::*;
 
     type HmacSha256 = Hmac<Sha256>;
 
-    pub(super) fn amz_date(now: DateTime<Utc>) -> String {
-        now.format("%Y%m%dT%H%M%SZ").to_string()
+    // RFC-0026: parse the SigV4 UTC format once, not on every signed request.
+    static AMZ_DATE_FORMAT: LazyLock<Vec<format_description::FormatItem<'static>>> =
+        LazyLock::new(|| {
+            format_description::parse_borrowed::<2>("[year][month][day]T[hour][minute][second]Z")
+                .expect("valid SigV4 amz-date format")
+        });
+    static DATE_STAMP_FORMAT: LazyLock<Vec<format_description::FormatItem<'static>>> =
+        LazyLock::new(|| {
+            format_description::parse_borrowed::<2>("[year][month][day]")
+                .expect("valid SigV4 date-stamp format")
+        });
+
+    pub(super) fn amz_date(now: OffsetDateTime) -> String {
+        now.format(&AMZ_DATE_FORMAT).expect("format amz date")
     }
 
-    fn date_stamp(now: DateTime<Utc>) -> String {
-        now.format("%Y%m%d").to_string()
+    fn date_stamp(now: OffsetDateTime) -> String {
+        now.format(&DATE_STAMP_FORMAT).expect("format date stamp")
     }
 
     fn sha256_hex(data: &str) -> String {
@@ -463,7 +477,6 @@ mod sigv4 {
 
 #[cfg(test)]
 mod tests {
-    use chrono::TimeZone;
     use wiremock::{
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
@@ -476,7 +489,7 @@ mod tests {
     /// (canonical request, string-to-sign, key derivation) against a known result.
     #[test]
     fn sigv4_matches_aws_get_vanilla_vector() {
-        let now = Utc.with_ymd_and_hms(2015, 8, 30, 12, 36, 0).unwrap();
+        let now = time::macros::datetime!(2015-08-30 12:36:00 UTC);
         let header = sigv4::authorization_header(SigV4Request {
             method: "GET",
             host: "example.amazonaws.com",

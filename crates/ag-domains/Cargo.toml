@@ -20,7 +20,7 @@ workspace = true
 [features]
 # Cliente ACME y verificacion de propagacion activos por defecto.
 default = ["acme", "propagation"]
-acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:chrono"]
+acme = ["dep:instant-acme", "dep:rcgen", "dep:x509-parser", "dep:time"]
 propagation = ["dep:hickory-resolver"]
 # PSL-correct eTLD+1 (RFC-0016): registrable-domain derivation via the Public
 # Suffix List for multi-label suffixes (co.uk, com.br). OFF by default; the
@@ -29,9 +29,9 @@ psl = ["dep:psl"]
 # Adapters de proveedor DNS - opcionales (feature de Cargo).
 cloudflare = ["dep:reqwest"]
 # Amazon Route 53 adapter (AWS SigV4 + REST/XML). RFC-0011 phase E.
-route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:chrono"]
+route53 = ["dep:reqwest", "dep:hmac", "dep:sha2", "dep:hex", "dep:quick-xml", "dep:time"]
 # Google Cloud DNS adapter (service-account RS256 JWT + JSON API). RFC-0011 phase E.
-google-cloud-dns = ["dep:reqwest", "dep:jsonwebtoken", "dep:chrono"]
+google-cloud-dns = ["dep:reqwest", "dep:jsonwebtoken", "dep:time"]
 # Azure DNS adapter (OAuth2 client-credentials + ARM JSON API). RFC-0011 phase E.
 azure-dns = ["dep:reqwest"]
 # Namecheap adapter (API key + host-records XML, replace-all setHosts). RFC-0011 phase E.
@@ -86,7 +86,7 @@ jsonwebtoken = { version = "12", optional = true }
 instant-acme = { version = "0.7", optional = true }
 rcgen = { workspace = true, optional = true }
 x509-parser = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
+time = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest = { workspace = true }

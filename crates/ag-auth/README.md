@@ -20,7 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // JWT Ed25519
     let claims = JwtClaims {
         sub: "user-123".to_string(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as u64,
+        exp: (std::time::SystemTime::now() + std::time::Duration::from_secs(3600))
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_secs(),
         ..Default::default()
     };
     let token = auth.jwt.sign(&claims)?;

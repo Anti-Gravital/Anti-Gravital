@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use chrono::Utc;
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::ids::{JobId, QueueName, WorkerId};
 use crate::job::{JobEnvelope, JobStatus, NewJob};
@@ -98,7 +98,7 @@ impl MemoryQueue {
 
     /// Indices of dead-letters matching `filter`, newest first, capped to `limit`.
     fn picked_dead(inner: &Inner, filter: &DlqFilter) -> Vec<usize> {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let mut matched: Vec<usize> = inner
             .dead
             .iter()
@@ -112,7 +112,7 @@ impl MemoryQueue {
             })
             .filter(|(_, d)| {
                 filter.older_than.is_none_or(|age| {
-                    now - d.dead_lettered_at >= chrono::Duration::from_std(age).unwrap_or_default()
+                    now - d.dead_lettered_at >= SignedDuration::try_from(age).unwrap_or_default()
                 })
             })
             .map(|(i, d)| (i, d.dead_lettered_at))
@@ -156,7 +156,7 @@ impl MemoryQueue {
         let mut inner = self.inner.lock().expect("queue mutex poisoned");
         let mut picked = Self::picked_dead(&inner, &redrive_filter);
         let outcome = Self::outcome_for(&inner, &picked);
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         // Remove highest indices first so earlier indices stay valid.
         picked.sort_unstable_by(|a, b| b.cmp(a));
         for i in picked {
@@ -209,7 +209,7 @@ impl QueueBackend for MemoryQueue {
         if Self::count_for_queue(&inner, &queue) >= self.max_depth {
             return Err(QueueError::Full(queue));
         }
-        let envelope = job.into_envelope(Utc::now());
+        let envelope = job.into_envelope(OffsetDateTime::now_utc());
         let id = envelope.id;
         inner.jobs.insert(id, envelope);
         Ok(id)
@@ -221,7 +221,7 @@ impl QueueBackend for MemoryQueue {
         worker: &WorkerId,
         limit: usize,
     ) -> Result<Vec<JobEnvelope>, QueueError> {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let mut inner = self.inner.lock().expect("queue mutex poisoned");
 
         // Collect eligible job ids: ready and not currently locked. `Leased` jobs whose
@@ -259,8 +259,7 @@ impl QueueBackend for MemoryQueue {
         eligible.truncate(limit);
 
         let lease_until = now
-            + chrono::Duration::from_std(self.lease_timeout)
-                .unwrap_or_else(|_| chrono::Duration::seconds(60));
+            + SignedDuration::try_from(self.lease_timeout).unwrap_or(SignedDuration::seconds(60));
 
         let mut leased = Vec::with_capacity(eligible.len());
         for id in eligible {
@@ -306,7 +305,7 @@ impl QueueBackend for MemoryQueue {
                 job.last_error = decision.last_error;
                 job.locked_by = None;
                 job.lock_until = None;
-                job.updated_at = Utc::now();
+                job.updated_at = OffsetDateTime::now_utc();
                 Ok(())
             }
             None => Err(QueueError::NotFound(job_id)),
@@ -314,7 +313,7 @@ impl QueueBackend for MemoryQueue {
     }
 
     async fn dead_letter(&self, job_id: JobId, reason: DeadLetterReason) -> Result<(), QueueError> {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let mut inner = self.inner.lock().expect("queue mutex poisoned");
         match inner.jobs.remove(&job_id) {
             Some(mut job) => {
@@ -330,7 +329,7 @@ impl QueueBackend for MemoryQueue {
     }
 
     async fn depth(&self, queue: &QueueName) -> Result<QueueDepth, QueueError> {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let inner = self.inner.lock().expect("queue mutex poisoned");
         let mut depth = QueueDepth::default();
         for job in inner.jobs.values().filter(|j| &j.queue == queue) {

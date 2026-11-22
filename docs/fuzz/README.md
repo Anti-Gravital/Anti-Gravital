@@ -13,7 +13,14 @@ artefactos y la plantilla de resultados estan en
 esta registrada en `docs/fuzz/results/2026-11-22-smoke.md`. Ninguno de los dos
 documentos sustituye la corrida de 24 horas; la fila `Fuzz 24h` sigue `pending`.
 
-## Ejecucion programada en runner propio (RFC-0035)
+El runbook operativo del gate (`docs/fuzz/24h-gate-runbook.md`) recoge el
+preflight exacto en el runner propio, los siete comandos con `FUZZ_TARGETS`, la
+recoleccion de artefactos, la comprobacion idempotente del comentario de fallo
+en la issue #156 y los pasos humanos de evidencia en la fila de puerta y el
+README. La verificacion estructural del workflow esta registrada en
+`docs/audits/fuzz-24h-workflow-structural-verification.md`.
+
+## Ejecucion programada en runner propio (RFC-0036)
 
 El workflow `.github/workflows/fuzz-24h.yml` dispara el gate de forma mensual y
 bajo demanda usando `scripts/run-fuzz-window.sh` con `DURATION=86400`, un target

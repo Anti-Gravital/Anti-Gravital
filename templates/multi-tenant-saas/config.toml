@@ -1,0 +1,17 @@
+# Runtime configuration for {{name}}.
+# Documentation only: the generated binary reads the environment.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[tenancy]
+# Header carrying the tenant id. In production derive it from a verified
+# JWT claim instead of trusting a client header.
+header = "X-Tenant-Id"
+max_id_length = 64
+
+[database]
+# Production persistence with row-level security. Not used by the default
+# in-memory build. See README.md for the RLS policy sketch.
+# url = "postgresql://localhost/{{name}}"

@@ -1,0 +1,4 @@
+name = "webhook-gateway"
+description = "Inbound webhook receiver with constant-time HMAC-SHA256 verification and delivery deduplication"
+category = "api"
+external_requirements = ["WEBHOOK_SECRET"]

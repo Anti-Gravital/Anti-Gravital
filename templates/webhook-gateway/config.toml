@@ -1,0 +1,18 @@
+# Runtime configuration for {{name}}.
+# Documentation only: the generated binary reads the environment.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[security]
+# Shared secret used to verify X-Signature-256. Required at startup.
+# Set it in the environment, never in a committed file:
+#   export WEBHOOK_SECRET='a-long-random-value'
+algorithm = "hmac-sha256"
+signature_header = "X-Signature-256"
+delivery_header = "X-Delivery-Id"
+
+[limits]
+# Optional: reject payloads above this many bytes (axum default body limit).
+max_body_bytes = 1048576

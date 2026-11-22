@@ -1,0 +1,81 @@
+config {
+    project_name "{{name}}"
+    database "postgres"
+}
+
+# Compact subset of examples/ecommerce-api/schema.ag:
+# Product 1:N Order. Prices are integer cents.
+
+model Product {
+    id         UUID   @primary @auto
+    name       String @min(2) @max(200)
+    price_cents Int   @min(0)
+    stock      Int    @min(0)
+}
+
+model Order {
+    id          UUID    @primary @auto
+    product_id  UUID    @references(Product.id)
+    quantity    Int     @min(1)
+    total_cents Int     @min(0)
+    status      String  @min(3) @max(20)
+}
+
+request CreateProductRequest {
+    name        String @min(2) @max(200)
+    price_cents Int    @min(0)
+    stock       Int    @min(0)
+}
+
+response ProductResponse {
+    id          UUID
+    name        String
+    price_cents Int
+    stock       Int
+}
+
+request CreateOrderRequest {
+    product_id UUID
+    quantity   Int @min(1)
+}
+
+response OrderResponse {
+    id          UUID
+    product_id  UUID
+    quantity    Int
+    total_cents Int
+    status      String
+}
+
+error NotFound          { status 404 message "Resource not found" }
+error InsufficientStock { status 422 message "Insufficient stock" }
+error InvalidInput      { status 400 message "Invalid input" }
+
+endpoint ListProducts {
+    method GET
+    path /products
+    response ProductResponse
+}
+
+endpoint CreateProduct {
+    method POST
+    path /products
+    body CreateProductRequest
+    response ProductResponse
+    errors [InvalidInput]
+}
+
+endpoint CreateOrder {
+    method POST
+    path /orders
+    body CreateOrderRequest
+    response OrderResponse
+    errors [NotFound, InsufficientStock, InvalidInput]
+}
+
+endpoint GetOrder {
+    method GET
+    path /orders/{id}
+    response OrderResponse
+    errors [NotFound]
+}

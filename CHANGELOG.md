@@ -84,6 +84,27 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### API and service templates for the wave 6 catalog
+
+Added:
+
+- Six project templates under `templates/`: `database-api` (CRUD with
+  `ag-data`, embedded migrations and in-memory fallback), `auth-service`
+  (`ag-auth` Ed25519 JWTs and BLAKE3 API keys behind Shield),
+  `multi-tenant-saas` (tenant header/claim propagation with documented RLS
+  strategy), `webhook-gateway` (constant-time HMAC-SHA256 verification and
+  delivery dedup), `file-upload-service` (`ag-storage` capability-scoped
+  uploads with signed prefix tokens) and `ecommerce-lite` (compact product
+  and order API derived from the ecommerce DSL example).
+- Each directory carries `template.toml`, `README.md`, `Cargo.toml`,
+  `config.toml` and `src/main.rs`; `schema.ag` is included for the data-driven
+  templates and SQL migrations for the PostgreSQL-backed ones.
+- PostgreSQL-backed templates keep a default offline build: an in-memory
+  store is used unless the `postgres` feature is enabled and `DATABASE_URL`
+  is set. `cargo check --offline` never opens a connection.
+- `webhook-gateway` and `file-upload-service` include unit tests for signature
+  verification and capability confinement respectively.
+
 
 
 

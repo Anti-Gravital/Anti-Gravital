@@ -1,0 +1,52 @@
+config {
+    project_name "{{name}}"
+    database "postgres"
+}
+
+# Every tenant-owned table carries tenant_id. In PostgreSQL the value is
+# injected from the verified request context and enforced with RLS policies;
+# this template implements the equivalent isolation in memory and documents
+# the SQL policy in README.md.
+
+model Resource {
+    id        UUID   @primary @auto
+    tenant_id String @min(1) @max(64)
+    name      String @min(1) @max(120)
+    created_at Timestamp @auto
+}
+
+request CreateResourceRequest {
+    name String @min(1) @max(120)
+}
+
+response ResourceResponse {
+    id        UUID
+    tenant_id String
+    name      String
+}
+
+error NotFound { status 404 message "Resource not found in this tenant" }
+error MissingTenant { status 400 message "X-Tenant-Id header is required" }
+error InvalidTenant { status 400 message "X-Tenant-Id header is invalid" }
+
+endpoint ListResources {
+    method GET
+    path /resources
+    response ResourceResponse
+    errors [MissingTenant, InvalidTenant]
+}
+
+endpoint GetResource {
+    method GET
+    path /resources/{id}
+    response ResourceResponse
+    errors [NotFound, MissingTenant, InvalidTenant]
+}
+
+endpoint CreateResource {
+    method POST
+    path /resources
+    body CreateResourceRequest
+    response ResourceResponse
+    errors [MissingTenant, InvalidTenant]
+}

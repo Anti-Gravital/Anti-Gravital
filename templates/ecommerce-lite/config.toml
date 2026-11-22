@@ -1,0 +1,12 @@
+# Runtime configuration for {{name}}.
+# Documentation only: the generated binary reads the environment.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[database]
+# Default build: in-memory catalog, no database needed.
+# To persist, build with --features postgres and set:
+#   export DATABASE_URL='postgresql://localhost/{{name}}'
+# url = "postgresql://localhost/{{name}}"

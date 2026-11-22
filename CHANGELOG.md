@@ -7,6 +7,22 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Data-layer design note (issue #154)
+
+Added (documentation only; no code and no phase change):
+
+- `docs/modules/ag-data/data-layer-rls-tenancy.md` records the design for the
+  Phase 5+ typed ORM, row-level security and multi-tenancy: shared `TenantId`
+  and explicit `TenantContext` propagation, fail-closed RLS policies with a
+  transaction-local GUC set through `AgTx`, generated ORM layout under RFC-0019,
+  expand/contract migrations and the sqlx 0.9 feature matrix.
+- `docs/modules/ag-data/README.md` points to the design note. The design
+  remains non-normative until the architect's RFC is accepted; it introduces no
+  implementation and does not advance the roadmap state.
+- The note records the data-model constraints for issue #185: the DSL
+  `Timestamp` mapping is a hidden chrono dependency, sqlx 0.9 supports `time`
+  but not `jiff`, and serialized date/time formats need golden-string tests.
+
 ### Master documentation consistency (issues #170, #172)
 
 Changed:

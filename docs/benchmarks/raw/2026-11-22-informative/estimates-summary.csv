@@ -1,0 +1,8 @@
+benchmark,mean_ns,std_dev_ns,sample_size,criterion_source
+bare_axum_hello,5208.69,376.25,10,new/estimates.json
+shield_default_hello,6136.58,468.47,10,new/estimates.json
+shield_full_default_hello,6372.62,513.72,10,new/estimates.json
+payload_encode,123.39,12.36,10,new/estimates.json
+payload_decode,85.33,2.12,10,new/estimates.json
+enqueue_memory,489.16,12.93,10,new/estimates.json
+lease_memory_batch_100,668221.00,82914.27,10,new/estimates.json

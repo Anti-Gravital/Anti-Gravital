@@ -1,0 +1,15 @@
+# Rule 17 evidence summary
+generated_at=2026-11-22T15:06:16Z
+mode=informative
+reporter=gatebench
+commit=8ef5792bc5ac6dfc7da737e7cd3c946f41f933c5
+branch=community11/gatebench
+dirty_files_at_start=0
+hardware=x86_64 12th Gen Intel(R) Core(TM) i7-1255U; sockets=1; cores_per_socket=10; physical_cores=10; logical_cpus=12; cpu_max_mhz=4700.0000; ram=30Gi (DDR4); storage=512GB PCIe SSD 0
+os=Ubuntu 26.04.1 LTS; kernel=7.0.0-44-generic; ulimit_n=524288; somaxconn=4096; governor=powersave
+rustc=rustc 1.99.1 (58cf8f9c3 2026-10-13); cargo=cargo 1.99.1 (5f94df478 2026-08-27); toolchain=[toolchain] channel = "1.99.1" components = ["rustfmt", "clippy"] profile = "default" 
+configuration=release profile (codegen-units=1,lto=fat); sample_size=10; warmup_s=1; measurement_s=1; e2e_runs=3; load_tool=none unknown
+number_of_runs=criterion samples=10 per benchmark; independent e2e runs=3
+methodology=criterion at reduced samples for harness sanity; end-to-end phase not executed; informative hardware only, no design-target claim
+standard_deviation_source=std_dev.point_estimate from target/criterion/<bench>/new/estimates.json (see estimates-summary.csv); the printed time triplet is a 95% CI of the mean
+artifacts=metadata.txt no-run.log ag-core-criterion.log ag-workers-criterion.log estimates-summary.csv

@@ -26,6 +26,8 @@ Thumbs.db
 
 # Logs
 *.log
+# Benchmark evidence logs are committed artifacts (verification-package.md).
+!docs/benchmarks/raw/**/*.log
 
 # Dependencias generadas
 /dist

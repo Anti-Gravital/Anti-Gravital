@@ -1,0 +1,33 @@
+date_utc=2026-11-22T15:06:16Z
+mode=informative
+reporter=gatebench
+commit=8ef5792bc5ac6dfc7da737e7cd3c946f41f933c5
+branch=community11/gatebench
+dirty_files_at_start=0
+rustc=rustc 1.99.1 (58cf8f9c3 2026-10-13)
+cargo=cargo 1.99.1 (5f94df478 2026-08-27)
+toolchain=[toolchain] channel = "1.99.1" components = ["rustfmt", "clippy"] profile = "default" 
+uname=Linux angel-nereira-HP-ProBook-440-14-inch-G9-Notebook-PC 7.0.0-44-generic #44-Ubuntu SMP PREEMPT_DYNAMIC Fri Nov  6 02:38:04 UTC 2026 x86_64 GNU/Linux
+os=Ubuntu 26.04.1 LTS
+kernel=7.0.0-44-generic
+architecture=x86_64
+cpu=12th Gen Intel(R) Core(TM) i7-1255U
+sockets=1
+cores_per_socket=10
+physical_cores=10
+logical_cpus=12
+cpu_max_mhz=4700.0000
+ram=30Gi
+ram_bytes=32729972736
+ram_type=DDR4
+storage=512GB PCIe SSD 0
+ulimit_n=524288
+somaxconn=4096
+governor=powersave
+load_tool=none
+load_tool_version=unknown
+release_profile=codegen-units=1,lto=fat,panic=abort,strip=symbols,opt-level=3 (root Cargo.toml)
+configuration=sample_size=10,warmup_s=1,measurement_s=1,e2e_runs=3,oha_duration=30s,oha_concurrency=100
+criterion_flags=--sample-size 10 --warm-up-time 1 --measurement-time 1 --noplot
+cargo_target_dir=/home/angel-nereira/Github-local-angelnereira/shared-cargo-target
+quiet_host_attested=not-required-informative

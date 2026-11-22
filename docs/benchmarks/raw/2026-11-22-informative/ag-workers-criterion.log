@@ -1,0 +1,40 @@
+    Finished `bench` profile [optimized] target(s) in 0.22s
+     Running benches/queue_throughput.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/queue_throughput-1d19d7a0a478e840)
+Benchmarking payload_encode
+Benchmarking payload_encode: Warming up for 1.0000 s
+Benchmarking payload_encode: Collecting 10 samples in estimated 1.0000 s (7.9M iterations)
+Benchmarking payload_encode: Analyzing
+payload_encode          time:   [119.77 ns 124.72 ns 129.59 ns]
+                        change: [+2.4007% +8.0276% +15.857%] (p = 0.03 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking payload_decode
+Benchmarking payload_decode: Warming up for 1.0000 s
+Benchmarking payload_decode: Collecting 10 samples in estimated 1.0000 s (11M iterations)
+Benchmarking payload_decode: Analyzing
+payload_decode          time:   [83.591 ns 84.614 ns 86.115 ns]
+                        change: [+11.518% +14.858% +18.522%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking enqueue_memory
+Benchmarking enqueue_memory: Warming up for 1.0000 s
+Benchmarking enqueue_memory: Collecting 10 samples in estimated 1.0000 s (1.6M iterations)
+Benchmarking enqueue_memory: Analyzing
+enqueue_memory          time:   [482.39 ns 488.80 ns 497.64 ns]
+                        change: [+9.2029% +12.622% +15.829%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+
+Benchmarking lease_memory_batch_100
+Benchmarking lease_memory_batch_100: Warming up for 1.0000 s
+Benchmarking lease_memory_batch_100: Collecting 10 samples in estimated 1.1072 s (275 iterations)
+Benchmarking lease_memory_batch_100: Analyzing
+lease_memory_batch_100  time:   [648.13 µs 725.96 µs 781.83 µs]
+                        change: [+10.903% +20.539% +31.246%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+

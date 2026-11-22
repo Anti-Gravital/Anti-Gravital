@@ -1,0 +1,21 @@
+; RFC-0022 section 4.3 file-length exceptions (limit: 600 lines).
+; Format: <tracked path> #<issue number>. One entry per line.
+; #142 is the repository-audit parent issue that recorded the original size
+; finding. Replace it with a focused refactoring issue when work on an entry
+; starts. The check rejects stale entries, so this list may only shrink.
+; Comments start with ';'. Do not use '#' for comments: it starts an issue ref.
+
+benchmarks/neon-real/src/main.rs #142
+crates/ag-auth/src/oauth.rs #142
+crates/ag-auth/src/webauthn.rs #142
+crates/ag-domains/src/api.rs #142
+crates/ag-domains/src/provider/route53.rs #142
+crates/ag-domains/src/provider/sdk.rs #142
+crates/ag-dsl/src/ast.rs #142
+crates/ag-dsl/src/codegen/rust_gen.rs #142
+crates/ag-dsl/src/parser.rs #142
+crates/ag-dsl/src/semantic.rs #142
+crates/ag-mail/src/sender/mta/mod.rs #142
+crates/ag-mail/src/sender/mta/queue.rs #142
+crates/ag-storage/src/store/mod.rs #142
+crates/ag-storage/src/store/server.rs #142

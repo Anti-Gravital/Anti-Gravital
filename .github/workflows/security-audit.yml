@@ -1,0 +1,55 @@
+name: security-audit
+
+# RFC-0022 section 4.2: a weekly audit of main that cannot be missed just
+# because nobody pushed. Failures are reported in ONE issue labelled security
+# that is updated in place and closed when both checks pass again. The job
+# stays green after reporting so a recurring advisory does not create a new
+# failing run every week; the issue is the single signal.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  CARGO_TERM_COLOR: never
+
+jobs:
+  audit-and-report:
+    name: weekly cargo audit and cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Install audit tools
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+
+      - name: Run checks, report to the security issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AG_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set +e
+          audit_status=0
+          deny_status=0
+          cargo audit > "$RUNNER_TEMP/ag-audit.out" 2>&1 || audit_status=$?
+          cargo deny check --all-features > "$RUNNER_TEMP/ag-deny.out" 2>&1 || deny_status=$?
+          printf 'cargo audit exit: %s\ncargo deny exit: %s\n' "$audit_status" "$deny_status"
+          if [ "$audit_status" -ne 0 ]; then
+            echo "::warning::cargo audit failed; details in the security tracking issue"
+          fi
+          if [ "$deny_status" -ne 0 ]; then
+            echo "::warning::cargo deny check failed; details in the security tracking issue"
+          fi
+          AUDIT_STATUS="$audit_status" DENY_STATUS="$deny_status" \
+          AUDIT_OUTPUT="$RUNNER_TEMP/ag-audit.out" \
+          DENY_OUTPUT="$RUNNER_TEMP/ag-deny.out" \
+            bash tools/security-report.sh

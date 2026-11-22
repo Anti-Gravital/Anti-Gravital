@@ -1,0 +1,32 @@
+name: stale-prs
+
+# RFC-0022 section 4.8: pull requests with no activity for thirty days are
+# labelled, given a note and closed. The branch is kept so work can resume.
+# A manual dry run is available to inspect the candidates before a rollout.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report stale pull requests without closing them'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  close-stale:
+    name: close pull requests stale for 30 days
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Label and close stale pull requests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: bash tools/close-stale-prs.sh

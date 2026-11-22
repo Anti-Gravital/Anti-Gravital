@@ -1,0 +1,13 @@
+# Standalone example: its own workspace root, outside the parent workspace
+# member list, with zero dependencies so `cargo run --offline` needs no crate
+# download and no shared registry cache.
+[workspace]
+
+[package]
+name = "domain-link-demo"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Dependency-free HTTP mock used by the offline domain-link example"
+
+[dependencies]

@@ -25,8 +25,8 @@ means a `fail` or `pending` on that row forbids advancing.
 | Tests | pass | 2026-11-21 (Rust 1.99.1): `cargo test --workspace` and `cargo test --workspace --all-features` both exit 0, 0 failures. The native MTA now installs the process-level `ring` provider before `mail-send` builds its client, so linking a second provider through optional features no longer panics (issue #181) | yes | 1 |
 | Clippy | pass | `cargo clippy --workspace --all-targets --all-features -- -D warnings` exit 0, 2026-05-29 | yes | 1 |
 | Docs | pass | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features` exit 0, 2026-05-29 | yes | 1 |
-| Audit | fail | `cargo audit` exit 1 on 2026-11-10: 15 vulnerabilities from advisories published after the 2026-05-29 pass; 13 resolved by lockfile updates the same day, 2 remain (`crypto-bigint` RUSTSEC-2026-0387, `libsqlite3-sys` RUSTSEC-2026-0459); tracked in issue #173 | yes | 3 |
-| Deny | fail | `cargo deny check` exit 1 on 2026-11-10: advisories FAILED (`crypto-bigint` RUSTSEC-2026-0387, issue #173; `astral-tokio-tar` unmaintained RUSTSEC-2026-0440, issue #174); bans, licenses and sources ok | yes | 3 |
+| Audit | pass | 2026-11-22: `cargo audit` exit 0, 0 vulnerabilities, 4 allowed unmaintained warnings. Latest regression RUSTSEC-2026-0592 (`url` 2.5.8) fixed by upgrading to 2.5.9; issue #198 records the evidence | yes | 3 |
+| Deny | pass | 2026-11-22: `cargo deny check advisories` ok with documented, justified ignores (RUSTSEC-2026-0440, 0542, 0543); bans, licenses and sources ok | yes | 3 |
 | Fuzz smoke | pass | 6 targets (3 DSL + fuzz_resp/storage_key/signed_url), ~9.3M runs, 0 crashes, 2026-05-29 | yes | 4 |
 | Fuzz 24h | pending | manual gate not executed; commands, environment, artifact paths and empty results template in `docs/fuzz/24h-gate-verification.md`; 30 s smoke of all 7 targets in `docs/fuzz/results/2026-11-22-smoke.md`; tracked in issue #156 | yes | 4 |
 | Coverage | pass | `cargo tarpaulin --workspace --fail-under 80` (excludes test files + binary mains): 80.05%, 3210/4010 lines, exit 0, 2026-05-30 | yes | 5 |

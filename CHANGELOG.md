@@ -7,6 +7,16 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Security: url advisory (issue #198)
+
+Fixed:
+
+- `url` upgraded from 2.5.8 to 2.5.9, removing RUSTSEC-2026-0592 (stack
+  overflow in `Url::origin()` on nested `blob:` URLs). `cargo audit` reports
+  0 vulnerabilities and `cargo deny check advisories` passes. The Audit and
+  Deny rows of the pre-Phase-5 gate were re-evaluated with the new evidence.
+
+
 ### Issue board reconciliation and wave-9 cross-links
 
 Added:

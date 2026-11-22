@@ -1,0 +1,4 @@
+# Blackboard: rust-lowlevel-perf
+
+Solo hechos con `source_ids` verificados o salida de comando reproducible.
+

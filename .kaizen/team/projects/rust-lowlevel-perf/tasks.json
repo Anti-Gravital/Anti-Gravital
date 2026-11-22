@@ -1,0 +1,9 @@
+[
+  {
+    "task": "Preparar protocolo de medición 200/1k/5k con metadata regla 17 y criterios de no publicación (RFC-0039)",
+    "owner": "rust-perf-benchmarker",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T18:57:42Z"
+  }
+]

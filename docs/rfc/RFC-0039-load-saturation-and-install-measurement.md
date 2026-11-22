@@ -1,6 +1,6 @@
 # RFC-0039 - Load, saturation and installation measurement protocol
 
-- Status: draft (pending BDFL approval)
+- Status: accepted
 - Draft date: 2026-11-22
 - Target phase: additive, no phase change
 - Affected modules/crates: none (measurement procedure and tooling only)
@@ -84,4 +84,7 @@ No product change. The protocol can be suspended at any time; raw artifacts rema
 
 ## 10. Decision
 
-Pending BDFL approval of the protocol, the `oha` installation and the reference hardware plan. No load test or install-time measurement is executed before approval.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-22.
+- Result: protocol accepted. Comment period waived by BDFL decision.
+- Installation of `oha`, provisioning of reference hardware and machine-time cost remain separate human approvals; no load test or install-time measurement has been executed.

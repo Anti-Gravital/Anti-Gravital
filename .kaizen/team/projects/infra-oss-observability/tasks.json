@@ -1,0 +1,9 @@
+[
+  {
+    "task": "Revisar diseño de scopes y HealthRegistry y redactar runbook de contenedores sin secretos (RFC-0038)",
+    "owner": "oss-observability-specialist",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T18:57:42Z"
+  }
+]

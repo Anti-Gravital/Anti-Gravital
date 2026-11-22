@@ -44,6 +44,17 @@
     "triggers": "[issue.label:capacidades, research.required:*, knowledge.updated:*, schedule:weekly]"
   },
   {
+    "id": "container-k8s-specialist",
+    "name": "Container and Kubernetes Specialist",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
     "id": "cumplimiento-panama",
     "name": "Especialista en Cumplimiento y Normativa (Panamá + Estándares Internacionales)",
     "department": "cumplimiento",
@@ -176,6 +187,17 @@
     "triggers": "[schedule:daily, regulatory.change:*, research.required:*]"
   },
   {
+    "id": "oss-observability-specialist",
+    "name": "Open Source Observability Specialist",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "high",
+    "autonomy": "scoped",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
     "id": "platform-engineer",
     "name": "Ingeniero de Plataforma y DevOps",
     "department": "tecnologia",
@@ -196,6 +218,28 @@
     "autonomy": "scoped",
     "veto": "none",
     "triggers": "[research.required:*, issue.label:depuracion, reverse_engineering.authorized:*, knowledge.updated:*]"
+  },
+  {
+    "id": "rust-lowlevel-specialist",
+    "name": "Rust Low-Level Specialist",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
+  },
+  {
+    "id": "rust-perf-benchmarker",
+    "name": "Rust Performance and Benchmark Specialist",
+    "department": "tecnologia",
+    "version": 1,
+    "status": "active",
+    "proactivity": "medium",
+    "autonomy": "propose",
+    "veto": "none",
+    "triggers": "[research.required:*, knowledge.updated:*, schedule:weekly, issue.label:especialista]"
   },
   {
     "id": "rust-systems-specialist",

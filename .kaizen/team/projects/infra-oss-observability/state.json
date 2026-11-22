@@ -1,0 +1,16 @@
+{
+  "slug": "infra-oss-observability",
+  "goal": "Disenar adaptadores de contenedores/Kubernetes y stack open source de observabilidad bajo RFC-0038 aceptada, sin collector obligatorio",
+  "kpi": "cargo test -p ag-observe sin collector ni protoc; --features otlp verde; runbook con imagenes fijadas y sin secretos",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "container-k8s-specialist",
+    "oss-observability-specialist",
+    "architect",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T18:57:41Z",
+  "updated": "2026-11-22T18:57:42Z"
+}

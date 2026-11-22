@@ -1,6 +1,6 @@
 # RFC-0038 - Observability scopes and component health in ag-observe
 
-- Status: draft (pending BDFL approval)
+- Status: accepted
 - Draft date: 2026-11-22
 - Target phase: additive, no phase change
 - Affected modules/crates: `ag-observe` only (plus documentation)
@@ -77,4 +77,7 @@ The scope field and health registry are additive and default-off. Removing them 
 
 ## 9. Decision
 
-Pending BDFL approval. The definition of "project" and whether to deploy collectors are escalated as human decisions. No implementation before approval.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-22.
+- Result: accepted. Comment period waived by BDFL decision.
+- Open design inputs retained: the concrete definition of the "project" scope and any collector deployment follow the constraints agreed here (ADR-0009); no external service becomes mandatory.

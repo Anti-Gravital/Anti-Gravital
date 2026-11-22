@@ -1,6 +1,6 @@
 # RFC-0037 - Diagnostic error contract
 
-- Status: draft (pending BDFL approval)
+- Status: accepted
 - Draft date: 2026-11-22
 - Target phase: additive, no phase change
 - Affected modules/crates: `ag-core` (contract), `ag-observe` (telemetry), all crates with public error enums
@@ -76,4 +76,7 @@ Codes and telemetry are additive. If a change proves breaking, keep the concrete
 
 ## 9. Decision
 
-Pending BDFL approval. Decider: Angel Nereira. No implementation before approval.
+- Decider: BDFL (Angel Nereira).
+- Decision date: 2026-11-22.
+- Result: accepted. Comment period waived by BDFL decision.
+- The SemVer decision for the shared-trait-versus-per-crate-code choice remains an ADR to be written before implementation.

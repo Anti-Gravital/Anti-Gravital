@@ -1,0 +1,16 @@
+{
+  "slug": "rust-lowlevel-perf",
+  "goal": "Ejecutar los spikes de Rust/bajo nivel y rendimiento bajo RFC-0039 aceptada, con medicion honesta y separacion hardware vs sistema",
+  "kpi": "harness de carga reproducible con 3 corridas y desviacion; metadata regla 17 completa; numeros smoke no publicables",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "rust-lowlevel-specialist",
+    "rust-perf-benchmarker",
+    "qa",
+    "verificador-evidencias",
+    "facilitador-equipo"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T18:57:41Z",
+  "updated": "2026-11-22T18:57:42Z"
+}

@@ -60,6 +60,10 @@ Registros de auditoria y revisiones independientes, no derivados verbatim de los
 maestros: recogen evidencia de verificacion y hallazgos sin modificar el
 contrato arquitectonico. Incluye `infrastructure-review-112-149-141.md`
 (revision de infraestructura de los issues #112, #149 y #141).
+La revision consolidada de la QA de terminal de la ola 10
+(`terminal-user-review.md`) prioriza los hallazgos reales de los recorridos
+de instalacion, TUI, scaffold, DNS/deploy y lockfiles, separa defectos de
+friccion y dado a cada recomendacion un comando de verificacion.
 ### docs/releases/
 Notas de las versiones etiquetadas, con alcance, limitaciones conocidas,
 evidencia de verificacion y ruta de actualizacion. Referencia:

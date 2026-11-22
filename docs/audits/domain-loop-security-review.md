@@ -45,12 +45,12 @@ edge code and filed as issue #196.
 | Check | Result | Notes |
 | --- | --- | --- |
 | No credentials / zone ids committed | PASS | Repository-wide scan found no `CF_TOKEN`, `API_TOKEN`, `ZONE_ID`, password or key values; only placeholder env names in template docs. |
-| No wildcard records by default | PASS | `instructions.rs` emits a wildcard CNAME only for an explicitly wildcard hostname; apex/subdomain output is A/AAAA/CNAME + ownership TXT. |
-| Ownership verification before apply | PASS (library) / REQUIREMENT (CLI) | TXT proof at `_ag-domain.<registrable>` with UUID token; `NullVerifier` fails closed; activation requires `OwnershipStatus::Verified`. `dnsapi` must still gate `apply` on Verified status. |
+| No wildcard records by default | PASS (library) / FAIL (dnsapi attach) | `instructions.rs` emits a wildcard CNAME only for an explicitly wildcard hostname. However dnsapi's `ag domains attach` skips its opt-in when no manifest is passed (issue #197). |
+| Ownership verification before apply | PARTIAL | TXT proof at `_ag-domain.<registrable>` with UUID token; `NullVerifier` fails closed; activation requires `OwnershipStatus::Verified`; tombstone blocks takeover. `ag dns apply` does not create/verify ownership proofs itself - it delegates zone control to provider credentials (token + zone id) and keeps parallel local state. See A1 below. |
 | Private-by-default / default-deny visibility | PASS (merged design) / REQUIREMENT (validator) | `envrules` (merged `f22ddb1`) specifies `private` default, unknown -> private, no implicit public, TLS required for public. Must be enforced by the manifest validator. |
-| No SSRF through user-supplied provider URLs | REQUIREMENT | Adapter `with_base_url`/`with_endpoints` accept arbitrary URLs (including `http://`) and attach API tokens. Safe as test seams; `dnsapi` must never expose them via config without https + allowlist. |
-| Plan/apply cannot be bypassed | PASS (library) / REQUIREMENT (CLI) | `ZoneAdapter::apply` takes an explicit `ZonePlan`; `diff` is pure. `dnsapi` must not add a direct-apply shortcut and must scope `observed` before `diff`. |
-| No real DNS calls in local/tests | PASS | Live paths are `#[ignore]` or wiremock/mock resolvers; `lookup_observed(Mx)` short-circuits before any lookup. |
+| No SSRF through user-supplied provider URLs | PASS (dnsapi) / REQUIREMENT (library) | dnsapi accepts only provider names `none`/`cloudflare` and calls `CloudflareProvider::new` with the hardcoded production endpoint; no user-supplied URL. The library seam (D3) must still never be exposed to config. |
+| Plan/apply cannot be bypassed | PASS (dnsapi) | `cmd_dns_apply` requires a non-empty `--plan` id, recomputes the plan and aborts on drift before any write or provider call. `ZoneAdapter::apply` also takes an explicit `ZonePlan`. |
+| No real DNS calls in local/tests | PASS | Default provider is `none`; plan/status are filesystem-only. Live paths are `#[ignore]` or wiremock/mock resolvers; `lookup_observed(Mx)` short-circuits before any lookup. |
 | TLS expectation not falsely claimed | PASS (code) / REQUIREMENT (deploy link) | `is_active()` allows `TlsMode::Disabled` to be active, so status must label TLS as disabled, not "secure". `deplink` must keep TLS opt-in explicit. |
 | ACME reuse does not leak keys | PASS | `renewal.rs` generates a fresh `KeyPair` per CSR; leaf keys held as rustls signing keys in `cert::CertStore`; no key logging. |
 | Wildcard hostname matching boundary | FAIL | Issue #196: `strip_suffix(base)` without a dot boundary matches `notexample.com` for a `*.example.com` binding in `router.rs`, `tls.rs` and `cert.rs`. |
@@ -130,6 +130,47 @@ network, add authentication and bind to loopback.
 while holding `private_key_pem: String`. No current code logs these values, but
 a future `Debug` format would print key material. Consider a redacted `Debug`.
 
+### Component: `dnsapi` (uncommitted worktree, read-only review)
+
+Reviewed `crates/ag-cli/src/commands/dns.rs` and the `domains.rs`/`cli.rs`/
+`main.rs` diffs at review time. Strong points: manifest structs use
+`deny_unknown_fields` (a test proves a canary `token`/`zone_id` field is
+rejected); token comes only from `AG_CLOUDFLARE_TOKEN` and zone id from
+`--zone-id`/`AG_DNS_ZONE_ID`, never written to a file (state JSON and plan id
+contain no secrets); provider is an allowlist of `none`/`cloudflare` with a
+hardcoded endpoint (no SSRF, D3 satisfied); `apply` requires and revalidates a
+plan id before any write; default provider `none` means plan/apply/status are
+fully offline; wildcard manifest records/domains are rejected without
+`allow_wildcard = true`; `domains attach` checks tombstones and creates an
+unguessable ownership token with `Pending` status.
+
+#### A1 (defect, p2, security) - issue #197: wildcard opt-in bypass on `domains attach`
+
+The wildcard gate in `cmd_domains_attach` is
+`hostname.starts_with("*.") && plan.is_some() && !allow_wildcard`. When
+`--manifest` is not supplied, `plan` is `None` and the check is skipped, so
+`ag domains attach '*.example.com' ...` succeeds with `--allow-wildcard` still
+false at its default. The resulting attachment emits a wildcard CNAME and sets
+`TlsMode::ManagedDns01` with no explicit opt-in. This violates the "no wildcard
+by default" contract and is the surface made dangerous by issue #196. Filed
+with reproduction and verification criteria.
+
+#### A2 (observation, p3) - partial ownership integration and partial provider writes
+
+`ag dns apply` writes declared records directly through the Cloudflare CRUD
+adapter into `.ag/dns/state.json`; it does not create an ag-domains attachment,
+an ownership TXT proof, or consult `OwnershipStatus`. Zone control is delegated
+to the provider token + zone id, so a caller cannot write outside zones their
+credential administers; this prevents classic zone takeover but diverges from
+RFC-0033 section 4.7 ("ownership proof before activation"). This parallel state
+is also what the dnsarch note warned against. Additionally, `apply_provider`
+performs mutating CRUD calls without the SDK inverse/rollback: a mid-plan
+failure leaves partial zone changes with no state file; it is idempotent on
+retry, so this is an availability/consistency observation, not a blocker.
+Recommendation: reconcile the resolved binding with the canonical `ag.toml`
+contract and route provider writes through the reviewed `ProviderAdapter`
+seam, or document why the local-config path intentionally differs.
+
 ### Component: `dnsarch` (committed, tip `4e96e4d`)
 
 RFC-0033 section 4.7 defines a sound security contract: no credentials in the
@@ -141,25 +182,22 @@ proof plus a 30-day tombstone. Sections 4.5/4.6 keep private bindings free of
 public records and the validation/plan/rendering path offline. This satisfies
 the audit requirements at the design level.
 
-Observation (RFC numbering): the `deplink` note claims RFC-0033 was taken by
-wave 7 (`RFC-0033-local-deploy-artifact-rendering.md`). `dnsarch` verified no
-such file or git history exists and that 0032 was the highest number, so 0033 is
-free. The coordinator should confirm no collision at merge; the security
-contract itself is unaffected.
+Observation (RFC numbering, resolved): the `deplink` note claimed RFC-0033 was
+taken by wave 7 (`RFC-0033-local-deploy-artifact-rendering.md`). `dnsarch`
+verified no such file or git history exists and that 0032 was the highest
+number. The coordinator has since renumbered the local deploy RFC to 0034
+(main `8a90b46`), leaving RFC-0033 for the domain loop. No collision remains.
 
-### Component: `dnsapi` (design only - highest risk)
+### dnsapi requirement disposition (carried over from design review)
 
-Design: `ag dns plan|apply|status` and `ag domains attach` using `ag-domains`.
-Requirements for a GO:
-
-1. `plan` is a deterministic, printable artifact; `apply` accepts a plan id or
-   recomputes and compares it, and rejects a stale/missing plan (no bypass).
-2. `apply` refuses a hostname whose ownership status is not `Verified`.
-3. Before `diff`, `observed` is scoped to records ag-domains manages; a
-   full-zone read passed to `diff` would delete unrelated records.
-4. No provider URL is taken from user input without https + allowlist (D3), and
-   no live provider call on the local/default path; manual mode stays default.
-5. No credentials or zone ids written to manifests, config or logs.
+1. Deterministic printable plan, `--plan` id revalidated at apply - SATISFIED.
+2. Refuse apply when ownership is not Verified - NOT IMPLEMENTED in `ag dns
+   apply` (see A2; provider credential auth is the only gate).
+3. Scope `observed` before `diff` - N/A: dnsapi uses CRUD matching, not `diff`,
+   so unrelated records are not deleted; this avoids the footgun but also
+   bypasses the reviewed SDK seam (A2).
+4. No user-supplied provider URL / no live provider by default - SATISFIED.
+5. No credentials or zone ids in files - SATISFIED.
 
 ### Component: `deplink` (design only)
 
@@ -202,6 +240,9 @@ of D3/D4.
 
 - #196 - ag-edge wildcard hostname matching accepts non-subdomain hosts
   (p2, security, ag-edge). Reproduction and verification criteria in the issue.
+- #197 - dnsapi `ag domains attach` accepts wildcard hostnames without the
+  opt-in flag when no manifest is used (p2, security, ag-cli). Reported against
+  the uncommitted dnsapi worktree; re-verify on the committed tip before close.
 
 ## Recommendation
 
@@ -210,9 +251,12 @@ of D3/D4.
 - Edge routing/TLS (`ag-edge`): NO-GO for wildcard hostnames until issue #196 is
   fixed and verified. Non-wildcard paths are unaffected.
 - Merged wave-8 design (`envrules`): GO with the validator requirement above.
-- Committed design (`dnsarch`): GO as a security contract; implementation in
-  `dnsapi` still needs verification.
-- Remaining wave-8 branches (`dnsapi`, `deplink`, `dnsqa`, `dnsdocs`): DEFERRED.
-  Designs are consistent with the requirements above, but branch code was not
-  available at review time. A follow-up audit of the committed tips is required
-  before a final GO, with special attention to the `dnsapi` requirements 1-5.
+- Committed design (`dnsarch`): GO as a security contract.
+- `dnsapi`: NO-GO until issues #196 and #197 are fixed and verified; then
+  GO-with-follow-up on A2 (ownership/state reconciliation). Everything else in
+  the reviewed code satisfies the provisioning, SSRF, plan/apply and offline
+  checks.
+- Remaining wave-8 branches (`deplink`, `dnsqa`, `dnsdocs`): DEFERRED. Designs
+  are consistent with the requirements above, but code was not available at
+  review time. A follow-up audit of the committed tips is required before a
+  final GO.

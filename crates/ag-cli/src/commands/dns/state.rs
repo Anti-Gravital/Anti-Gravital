@@ -86,8 +86,10 @@ mod tests {
     use super::*;
 
     fn sample_state() -> DnsState {
-        let mut state = DnsState::default();
-        state.version = STATE_VERSION;
+        let mut state = DnsState {
+            version: STATE_VERSION,
+            ..Default::default()
+        };
         state.applied.insert(
             "production".to_owned(),
             AppliedPlan {

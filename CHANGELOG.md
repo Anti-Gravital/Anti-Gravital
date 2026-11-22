@@ -7,6 +7,27 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Issue board and release gate reconciliation (wave 11)
+
+Added:
+
+- `docs/audits/issue-board-reconciliation.md`: wave-11 ownership matrix for the
+  14 open AG issues and Fabric #3, with exact closure conditions, evidence
+  commands and explicit AWAITING MERGE status for every wave-11 branch.
+- `docs/audits/PRE_FASE5_RELEASE_GATE.md`: informational wave-11 handoff note.
+  Fuzz 24h and Benchmarks stay `pending`; only merged evidence is cited. The
+  Audit/Deny `pass` rows are confirmed at merged commit `800b671`.
+- Short ownership comments on #189, #156, #157, #141, #178, #185 and Fabric #3.
+  No issue was closed, no label changed and no `Closes #NNN` keyword was used
+  by this branch.
+
+Corrected:
+
+- Stale wave-4/wave-9 audit text that called the Audit and Deny gate rows `fail`
+  and #198 open; #198 was closed 2026-11-22 after the `url` 2.5.9 upgrade.
+- #189 close condition now names the five current allowlist entries; the two
+  wave-9 files (`deploy.rs`, `dns.rs`) are already split and off the list.
+
 ### Terminal user journey fixes (issues #199, #200-#206)
 
 Fixed:

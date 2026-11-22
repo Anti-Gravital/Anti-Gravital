@@ -219,10 +219,13 @@ impl ValueKind {
                 .map(|_| ())
                 .map_err(|_| "expected true or false".to_owned()),
             ValueKind::Integer => {
-                let parsed = value
-                    .parse::<u64>()
-                    .map_err(|_| "expected a positive integer".to_owned())?;
-                if parsed == 0 {
+                // TOML integers are signed 64-bit. Parsing as u64 here let
+                // values above i64::MAX pass validation and then silently
+                // become 1 in build_value (issue #188).
+                let parsed = value.parse::<i64>().map_err(|_| {
+                    "expected a positive integer up to 9223372036854775807".to_owned()
+                })?;
+                if parsed <= 0 {
                     Err("expected a positive integer".to_owned())
                 } else {
                     Ok(())
@@ -714,6 +717,16 @@ mod tests {
             args.push(current);
         }
         args
+    }
+
+    #[test]
+    fn integer_validation_rejects_values_beyond_toml_i64_range() {
+        assert!(ValueKind::Integer.validate("18446744073709551615").is_err());
+        assert!(ValueKind::Integer.validate("0").is_err());
+        assert!(ValueKind::Integer.validate("-1").is_err());
+        assert!(ValueKind::Integer.validate("1").is_ok());
+        assert!(ValueKind::Integer.validate("512").is_ok());
+        assert!(ValueKind::Integer.validate("9223372036854775807").is_ok());
     }
 
     #[test]

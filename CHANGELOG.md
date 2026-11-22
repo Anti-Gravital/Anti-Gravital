@@ -7,6 +7,30 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Domain-to-deploy loop contract (RFC-0033, wave 8) - design only
+
+Added:
+
+- `docs/rfc/RFC-0033-domain-to-deploy-loop.md`: proposed contract for the
+  `[domain]` manifest fields (domain, zone, environment, public/private
+  visibility, DNS record set, service/link target and TTL), the unified
+  plan/apply flow, domain-to-Ingress/compose wiring, private access, reuse of
+  ownership verification and ACME, the local/offline boundary, rollback and
+  security constraints (no credentials in the repo, no wildcard by default,
+  fail-closed).
+- `docs/dns/DOMAIN_LOOP.md`: end-to-end Mermaid diagram and a worked example
+  from `ag new --template <name>` to `curl https://app.example.com`, with the
+  real-provider steps explicitly marked.
+- `docs/INDEX.md` and `docs/rfc/README.md` link the new documents.
+
+Changed:
+
+- No code, CLI command or generated artifact was changed. The RFC specifies the
+  contract for the wave 8 dnsapi, deplink and envrules roles.
+
+Verification: design only; document links and Mermaid/DOMAIN_LOOP structure
+reviewed locally. No provider, cluster or network was used.
+
 ### Deployment security fixes (issues #194, #195)
 
 Fixed:

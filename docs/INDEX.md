@@ -179,6 +179,21 @@ compose por familia con variables de entorno y volumenes con nombre, una guia
 de adaptacion y evidencia de verificacion con SKIP explicito del build real
 cuando no hay demonio disponible. Referencia: `deploy/docker/README.md` y
 `deploy/docker/VERIFICATION.md`.
+
+### docs/dns/
+Contrato de diseno del circuito dominio-despliegue (ola 8, solo diseno,
+RFC-0033 propuesta). Define los campos del manifiesto `[domain]` en `ag.toml`
+(dominio, zona, entorno, visibilidad publica/privada, conjunto de registros DNS,
+objetivo servicio/enlace y TTL), el flujo plan/apply de RFC-0021, la
+materializacion del dominio como host de Ingress o regla de proxy compose, la
+expresion de acceso privado, la reutilizacion de verificacion de propiedad y
+ACME de `ag-domains`, y las restricciones de seguridad (sin credenciales en el
+repositorio, sin comodin por defecto, fail-closed). Diagrama Mermaid de extremo
+a extremo y ejemplo desde `ag new --template <name>` hasta un `curl` contra
+`https://app.example.com` (paso marcado como requiriendo proveedor real).
+Referencias: `docs/rfc/RFC-0033-domain-to-deploy-loop.md` y
+`docs/dns/DOMAIN_LOOP.md`.
+
 ### Guia de stacks locales (ola 7)
 `docs/templates/STACKS.md` relaciona caso de uso, stack, familia de plantilla,
 dependencia externa y puertos. Los archivos Compose estan en `deploy/stacks/`,

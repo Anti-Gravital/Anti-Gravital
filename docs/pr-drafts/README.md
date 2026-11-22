@@ -95,3 +95,6 @@ Ramas con descriptor aceptando PR en este momento:
 
 - `community7/k8s`: `docs/pr-drafts/community7-k8s.md` (manifiestos opcionales
   de Kubernetes para las familias de plantillas, ola 7).
+- `community8/dnsarch`: `docs/pr-drafts/community8-dnsarch.md` (contrato RFC-0033
+  del circuito dominio-despliegue y documentacion de extremo a extremo, ola 8,
+  solo diseno).

@@ -1,0 +1,85 @@
+# Hardened, family-agnostic Deployment. Overlays change the image, the
+# name prefix and the workload labels; they do not relax these settings.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: template
+  labels:
+    app.kubernetes.io/name: template
+    app.kubernetes.io/part-of: anti-gravital
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: template
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: template
+        app.kubernetes.io/part-of: anti-gravital
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          # Placeholder only. Overlays replace the repository and the tag;
+          # users must point this at an image they built and pushed.
+          image: registry.example.invalid/anti-gravital/template:replace-me
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: template-config
+            # The Secret is intentionally NOT defined in these manifests.
+            # See SECRETS.md for the ExternalSecret/SealedSecret patterns.
+            - secretRef:
+                name: template-secrets
+                optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          # TCP probes are used because only the fullstack template currently
+          # exposes an HTTP /health route; rest and realtime do not. TCP works
+          # for every family. See README.md for the HTTP alternative.
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      terminationGracePeriodSeconds: 30

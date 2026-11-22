@@ -1,0 +1,25 @@
+# CPU-based autoscaling. Requires a metrics server in the target cluster.
+# scaleTargetRef.name is `template`, the unprefixed workload name produced by
+# every family overlay. Do not add namePrefix to a family overlay that uses
+# this component, or the reference will stop resolving.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: template
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: template
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300

@@ -1,0 +1,18 @@
+# Infrastructure family (mail-service, dns-manager, monitoring, ...).
+# Disabled by default: nothing in the root kustomization references this.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# No namePrefix: HPA and Ingress components target the unprefixed `template`
+# name. Apply one family per namespace; see README.md.
+resources:
+  - ../../base
+
+patches:
+  - path: deployment.yaml
+  - path: service.yaml
+
+images:
+  - name: registry.example.invalid/anti-gravital/template
+    newName: registry.example.invalid/your-org/infrastructure-template
+    newTag: replace-me

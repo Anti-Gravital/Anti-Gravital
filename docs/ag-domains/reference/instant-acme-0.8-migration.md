@@ -1,0 +1,105 @@
+# Reference — instant-acme 0.7 to 0.8 migration surface
+
+Scope: the ACME order flow in `crates/ag-domains/src/acme/renewal.rs` and the
+optional dependency in `crates/ag-domains/Cargo.toml` (currently `0.7`).
+Tracked by issue #179, blocked by #87 (live ACME staging evidence).
+
+This document records the API surface to port. It does **not** change code:
+until the staging test of #87 passes before and after, the order-flow rewrite
+would be an unverified change to the code that keeps certificates valid.
+
+## Reproduction of the current failures
+
+A scratch checkout with `instant-acme = { version = "0.8", optional = true }`
+was checked with the shared build environment. Both 0.8.0 and 0.8.5 produce
+the same eight compiler errors in `acme/renewal.rs`:
+
+```
+cargo check -p ag-domains --features acme --message-format=short
+cargo check -p ag-domains --all-features --all-targets --message-format=short
+```
+
+```
+67:43  E0599  no associated function `create` on `Account`
+89:28  E0599  no associated function `from_credentials` on `Account`
+252:21 error  cannot construct `NewOrder<'_>` with struct literal syntax (private fields)
+261:10 E0277  `Authorizations<'_>` is not a future
+282:31 E0599  no method `key_authorization` on `Order`
+284:72 E0308  expected `&str`, found `String`
+292:14 E0599  no method `set_challenge_ready` on `Order`
+324:10 E0061  `finalize` takes 0 arguments, 1 supplied
+```
+
+Issue #179 records nine compile errors from the 2026-11-10 attempt; the current
+tree reproduces eight with the published 0.8 releases. The ninth migration
+point below is the ready-wait/certificate polling path, which becomes visible
+once the earlier errors are fixed. Treat both lists as the porting checklist.
+
+## The nine migration points
+
+1. **Account creation** (line 67). `Account::create(&NewAccount { .. },
+   server_url, None)` becomes `Account::builder()?.create(&NewAccount { .. },
+   server_url.to_owned(), None).await`. The builder returns `Result` because
+   the default HTTP client is constructed there; `directory_url` is now
+   `String`, not `&str`.
+
+2. **Account restoration** (line 89). `Account::from_credentials(credentials)`
+   becomes `Account::builder()?.from_credentials(credentials).await`.
+   `AccountCredentials` remains serde-serializable, so the renewal task's
+   serialize-once/deserialize-per-iteration trick stays valid.
+
+3. **New order construction** (line 252). `NewOrder` now has private fields
+   (`identifiers`, `replaces`, `profile`). Use `NewOrder::new(&[identifier])`;
+   ARI replacement (`NewOrder::replaces`) and certificate profiles
+   (`NewOrder::profile`) are opt-in and must not be enabled silently.
+
+4. **Authorization retrieval** (lines 259-262). `order.authorizations().await?`
+   becomes a synchronous call returning the `Authorizations<'_>` stream:
+   `let mut authorizations = order.authorizations();` then
+   `while let Some(authz) = authorizations.next().await { let mut authz = authz?; ... }`.
+   The method needs `&mut Order`, so the `&mut order` binding must be in scope
+   before the loop. The old `Vec<Authorization>` shape disappears; this changes
+   the lifetime structure of the whole challenge loop.
+
+5. **DNS-01 challenge selection** (lines 275-279). Replace
+   `authz.challenges.iter().find(|c| c.r#type == ChallengeType::Dns01)` with
+   `authz.challenge(ChallengeType::Dns01)`, which returns
+   `Option<ChallengeHandle<'_>>`. Keep that handle alive until step 8; it owns
+   the mutable borrow used to signal readiness.
+
+6. **Key authorization** (line 282). `order.key_authorization(challenge)` moved
+   to the challenge handle: `challenge.key_authorization().dns_value()`.
+   `KeyAuthorization::dns_value()` still returns the base64url SHA-256 digest
+   required for the TXT record.
+
+7. **Challenge identifier** (lines 281-284). `authz.identifier` is no longer an
+   `Identifier` to destructure. Use `challenge.identifier().to_string()` (an
+   `AuthorizedIdentifier` implements `Display`) and pass `&domain` to
+   `set_dns01_challenge`, which expects `&str`; passing the owned `String`
+   directly is the E0308 at line 284.
+
+8. **Signal challenge readiness** (lines 290-295).
+   `order.set_challenge_ready(challenge_url).await` becomes
+   `challenge.set_ready().await` on the `ChallengeHandle`. The
+   `challenge_records` vector is still needed for the TXT record ids used at
+   teardown, but no longer supplies a URL for this call. Call `set_ready` while
+   the corresponding authorization/challenge handles are still borrowed.
+
+9. **Finalize and wait for the certificate** (lines 315-378).
+   `order.finalize(csr.der()).await` becomes `order.finalize().await?`, which
+   generates the CSR internally and returns the private key PEM (requires the
+   `rcgen` feature). To keep the current explicit `rcgen` parameters, use
+   `order.finalize_csr(csr.der()).await?` instead and keep using
+   `private_key.serialize_pem()`. The hand-rolled `refresh()` +
+   `wait_for_order_ready` loop can be replaced by
+   `order.poll_ready(&RetryPolicy)` and
+   `order.poll_certificate(&RetryPolicy)`; `order.certificate()` still exists
+   for a manual polling loop. This is the point that also affects
+   `acme::ari` renewal scheduling, so it must be verified by the live run.
+
+## Exit criteria for the port
+
+- `cargo test -p ag-domains --all-features` passes on 0.8.
+- The `#[ignore]` staging test of #87 passes before and after the port, with
+  both logs recorded (see `how-to/acme-staging-test.md`).
+- No production ACME directory is used at any point.

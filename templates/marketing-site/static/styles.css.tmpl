@@ -1,0 +1,40 @@
+:root {
+  color-scheme: light dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.3);
+}
+
+.brand { font-weight: 700; }
+
+main { max-width: 60rem; margin: 0 auto; padding: 2rem; }
+
+.hero { padding: 4rem 0; }
+.hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; }
+
+.cta {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.7rem 1.2rem;
+  background: #2a6df4;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.grid article { padding: 1rem; border: 1px solid rgba(127, 127, 127, 0.3); border-radius: 8px; }
+
+.cta-band { margin-top: 3rem; padding: 2rem; border-radius: 8px; background: rgba(127, 127, 127, 0.1); }

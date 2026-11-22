@@ -1,0 +1,4 @@
+name = "docs-site"
+description = "Documentation site with sidebar navigation and topic pages on ag-core."
+category = "web"
+external_requirements = []

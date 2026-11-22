@@ -1,0 +1,4 @@
+name = "blog"
+description = "Blog with post list, detail routes and a JSON API from embedded data."
+category = "web"
+external_requirements = []

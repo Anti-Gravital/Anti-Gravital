@@ -1,0 +1,4 @@
+name = "admin-panel"
+description = "Admin panel with a stub, fail-closed auth-gated route on ag-core."
+category = "web"
+external_requirements = []

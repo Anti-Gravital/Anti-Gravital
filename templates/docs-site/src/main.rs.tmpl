@@ -1,0 +1,147 @@
+//! Documentation site on ag-core with a generated sidebar and topic pages.
+//!
+//! The table of contents and all page bodies are embedded constants. The
+//! sidebar is rendered from the same list that powers routing, so navigation
+//! and content cannot drift apart. No database or external service is needed.
+
+use ag_core::Shield;
+use axum::{
+    extract::Path,
+    http::{header, HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
+    routing::get,
+    Router,
+};
+
+const STYLES_CSS: &str = include_str!("../static/styles.css");
+
+struct DocPage {
+    slug: &'static str,
+    title: &'static str,
+    section: &'static str,
+    body: &'static str,
+}
+
+const PAGES: &[DocPage] = &[
+    DocPage {
+        slug: "installation",
+        title: "Installation",
+        section: "Getting started",
+        body: "Install the toolchain, then create a project with `ag new`.",
+    },
+    DocPage {
+        slug: "quickstart",
+        title: "Quickstart",
+        section: "Getting started",
+        body: "Run `ag dev` and open the local address printed in the terminal.",
+    },
+    DocPage {
+        slug: "shield",
+        title: "Shield",
+        section: "Guides",
+        body: "Shield is the security pipeline applied to every axum router.",
+    },
+    DocPage {
+        slug: "configuration",
+        title: "Configuration",
+        section: "Reference",
+        body: "Configuration is read from config.toml at startup.",
+    },
+];
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/", get(index_handler))
+        .route("/docs/:slug", get(doc_handler))
+        .route("/styles.css", get(styles_handler));
+    let app = shield.apply(router);
+
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("docs site serving on http://{bind}");
+    shield.serve(listener, app).await
+}
+
+fn sidebar() -> String {
+    let mut html = String::from("<aside><h2>Documentation</h2>");
+    let mut current = "";
+    for page in PAGES {
+        if page.section != current {
+            if !current.is_empty() {
+                html.push_str("</ul>");
+            }
+            html.push_str(&format!("<h3>{}</h3><ul>", page.section));
+            current = page.section;
+        }
+        html.push_str(&format!(
+            "<li><a href=\"/docs/{}\">{}</a></li>",
+            page.slug, page.title
+        ));
+    }
+    if !current.is_empty() {
+        html.push_str("</ul>");
+    }
+    html.push_str("</aside>");
+    html
+}
+
+fn layout(title: &str, breadcrumb: &str, article: &str) -> String {
+    format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+         <title>{title} - {{name}}</title>\
+         <link rel=\"stylesheet\" href=\"/styles.css\"></head>\
+         <body><div class=\"layout\">{}<main><p class=\"breadcrumb\">{}</p>{}\
+         </main></div></body></html>",
+        sidebar(),
+        breadcrumb,
+        article
+    )
+}
+
+async fn index_handler() -> Html<String> {
+    let article = "<h1>Documentation</h1><p>Choose a topic from the sidebar.</p>";
+    Html(layout(
+        "Home",
+        "<a href=\"/\">Home</a>",
+        article,
+    ))
+}
+
+async fn doc_handler(Path(slug): Path<String>) -> Response {
+    match PAGES.iter().find(|page| page.slug == slug) {
+        Some(page) => {
+            let breadcrumb = format!(
+                "<a href=\"/\">Home</a> / {} / {}",
+                page.section, page.title
+            );
+            let article = format!("<h1>{}</h1><p>{}</p>", page.title, page.body);
+            Html(layout(&page.title, &breadcrumb, &article)).into_response()
+        }
+        None => (
+            StatusCode::NOT_FOUND,
+            Html(layout("Not found", "<a href=\"/\">Home</a>", "<h1>Page not found</h1>")),
+        )
+            .into_response(),
+    }
+}
+
+async fn styles_handler() -> Response {
+    Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )
+        .body(STYLES_CSS.into())
+        .expect("valid CSS response")
+}

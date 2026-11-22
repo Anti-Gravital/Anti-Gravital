@@ -1,0 +1,34 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  min-height: 100vh;
+}
+
+aside {
+  padding: 1.5rem;
+  border-right: 1px solid rgba(127, 127, 127, 0.3);
+}
+
+aside h2 { margin-top: 0; font-size: 1.1rem; }
+aside h3 { margin: 1.2rem 0 0.3rem; font-size: 0.85rem; text-transform: uppercase; }
+aside ul { list-style: none; padding: 0; margin: 0; }
+aside li { margin: 0.2rem 0; }
+
+main { padding: 2rem; max-width: 52rem; }
+
+.breadcrumb { font-size: 0.85rem; opacity: 0.7; }
+
+@media (max-width: 48rem) {
+  .layout { grid-template-columns: 1fr; }
+  aside { border-right: none; border-bottom: 1px solid rgba(127, 127, 127, 0.3); }
+}

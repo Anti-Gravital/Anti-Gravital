@@ -1,0 +1,4 @@
+name = "dashboard"
+description = "Dashboard page plus JSON metrics endpoint on ag-core, no external service."
+category = "web"
+external_requirements = []

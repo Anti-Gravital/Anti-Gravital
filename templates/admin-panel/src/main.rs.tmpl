@@ -1,0 +1,112 @@
+//! Admin panel with a deliberately simple, fail-closed authorization stub.
+//!
+//! SECURITY: this is a teaching stub, not real authentication. The expected
+//! token is read from the AG_ADMIN_TOKEN environment variable at startup; it
+//! is never stored in source. If the variable is unset the admin route returns
+//! 503 (fail closed). The comparison is a plain string equality, not
+//! constant-time. Replace this gate with ag-core's Shield `auth-jwt` layer
+//! (or an equivalent vetted solution) before any real deployment.
+
+use ag_core::Shield;
+use axum::{
+    extract::State,
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
+    routing::get,
+    Router,
+};
+
+const INDEX_HTML: &str = include_str!("../static/index.html");
+const ADMIN_HTML: &str = include_str!("../static/admin.html");
+const STYLES_CSS: &str = include_str!("../static/styles.css");
+
+#[derive(Clone)]
+struct AppState {
+    admin_token: Option<String>,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), ag_core::AgError> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let state = AppState {
+        admin_token: std::env::var("AG_ADMIN_TOKEN").ok(),
+    };
+    if state.admin_token.is_none() {
+        tracing::warn!("AG_ADMIN_TOKEN is unset; admin routes are disabled");
+    }
+
+    let shield = Shield::with_defaults();
+    let router = Router::new()
+        .route("/", get(index_handler))
+        .route("/admin", get(admin_handler))
+        .route("/styles.css", get(styles_handler))
+        .route("/health", get(|| async { "ok" }))
+        .with_state(state);
+    let app = shield.apply(router);
+
+    // Bind to loopback by default; `ag dev` sets BIND to its --bind value.
+    let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8080".into());
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!("admin panel serving on http://{bind}");
+    shield.serve(listener, app).await
+}
+
+fn document(title: &str, content: &str) -> String {
+    format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+         <title>{title} - {{name}}</title>\
+         <link rel=\"stylesheet\" href=\"/styles.css\"></head>\
+         <body><main>{}</main></body></html>",
+        content
+    )
+}
+
+async fn index_handler() -> Html<&'static str> {
+    Html(INDEX_HTML)
+}
+
+async fn admin_handler(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    let expected = match &state.admin_token {
+        Some(token) => token,
+        None => {
+            let body = document(
+                "Unavailable",
+                "<h1>Admin access is not configured</h1>\
+                 <p>Set AG_ADMIN_TOKEN to enable the stub gate.</p>",
+            );
+            return (StatusCode::SERVICE_UNAVAILABLE, Html(body)).into_response();
+        }
+    };
+
+    let authorized = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .map(|token| token == expected)
+        .unwrap_or(false);
+
+    if !authorized {
+        let body = document("Unauthorized", "<h1>401 Unauthorized</h1>");
+        return (StatusCode::UNAUTHORIZED, Html(body)).into_response();
+    }
+
+    let body = document("Admin", ADMIN_HTML);
+    (StatusCode::OK, Html(body)).into_response()
+}
+
+async fn styles_handler() -> Response {
+    Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )
+        .body(STYLES_CSS.into())
+        .expect("valid CSS response")
+}

@@ -1,0 +1,16 @@
+# Local configuration for {{name}} (realtime-chat-v2 template).
+# All values have in-process defaults; no external service is needed to run.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[realtime]
+# In-process event bus (no NATS). Set NATS_MODE=external and enable the
+# nats-external feature on ag-realtime to fan out across multiple instances.
+mode = "inprocess"
+broadcast_capacity = 1024
+
+[limits]
+max_user_chars = 32
+max_message_chars = 512

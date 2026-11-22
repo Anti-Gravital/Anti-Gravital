@@ -1,0 +1,5 @@
+name = "worker-service"
+description = "Typed background jobs with retries and a dead-letter queue on the ag-workers memory backend"
+category = "realtime"
+external_requirements = []
+optional_services = ["PostgreSQL"]

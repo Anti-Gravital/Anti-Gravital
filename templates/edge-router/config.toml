@@ -1,0 +1,24 @@
+# Local configuration for {{name}} (edge-router template).
+# Bindings mirror the ag-domains control plane; this data plane only resolves them.
+
+[server]
+bind = "127.0.0.1:8080"
+
+[[bindings]]
+hostname = "api.example.com"
+project = "shop"
+environment = "production"
+target = "svc_api_prod"
+
+[[bindings]]
+hostname = "*.staging.example.com"
+project = "shop"
+environment = "staging"
+target = "svc_staging"
+
+[[redirects]]
+canonical_hostname = "example.com"
+redirect_from = ["www.example.com"]
+status_code = 308
+preserve_path = true
+preserve_query = true

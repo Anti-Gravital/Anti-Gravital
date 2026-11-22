@@ -1,0 +1,15 @@
+# Local configuration for {{name}} (websocket-service template).
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[rate_limit]
+# Client messages per second allowed on each connection (token bucket).
+capacity = 20
+refill_per_second = 10
+
+[realtime]
+# In-process broadcast bus; no NATS required.
+mode = "inprocess"
+broadcast_capacity = 1024

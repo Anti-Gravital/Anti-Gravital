@@ -1,0 +1,5 @@
+name = "scheduled-jobs"
+description = "Cron-like recurring jobs via the ag-workers singleton scheduler and memory schedule store"
+category = "realtime"
+external_requirements = []
+optional_services = ["PostgreSQL"]

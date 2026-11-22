@@ -1,0 +1,18 @@
+# Local configuration for {{name}} (worker-service template).
+
+[worker]
+queue = "default"
+pool_size = 2
+poll_interval_ms = 10
+
+[retry]
+max_attempts = 3
+base_delay_ms = 10
+backoff_factor = 2
+max_delay_ms = 100
+
+[backend]
+# In-memory queue: no external service required.
+kind = "memory"
+# For durable jobs, switch ag-workers to the `postgres` feature and set kind to
+# "postgres" with DATABASE_URL. This is opt-in and not a build requirement.

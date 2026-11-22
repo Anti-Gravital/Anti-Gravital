@@ -1,0 +1,7 @@
+name = "realtime-chat-v2"
+description = "Multi-room chat with per-room presence and SSE fanout on ag-realtime"
+category = "realtime"
+# Nothing is required to build or run offline: the in-process event bus is the default.
+external_requirements = []
+# Documented production integrations (opt-in, never build-time requirements).
+optional_services = ["NATS"]

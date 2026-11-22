@@ -1,0 +1,8 @@
+name = "iot-ingest"
+description = "Batched device-event ingestion with bounded-channel backpressure and ag-realtime batch summaries"
+category = "realtime"
+# Nothing is required to build or to run the basic offline path: the in-process
+# channel and bus are the default. NATS_URL serves the full runtime path
+# (fleet-wide fanout) and is a deployment choice, never a build requirement.
+external_requirements = ["NATS_URL"]
+optional_services = ["NATS", "Redis"]

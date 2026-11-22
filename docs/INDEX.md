@@ -186,3 +186,7 @@ con un `README.md` por stack y una guia comun. Cada stack usa `.env.example`
 sin secretos, volumenes con nombre y healthchecks. La evidencia de verificacion
 (YAML y `docker compose config`, sin servicios iniciados) esta en
 `deploy/stacks/VERIFICATION.md`.
+La auditoria de seguridad de los artefactos de despliegue (ola 7) cubre
+Dockerfiles, compose, manifiestos de Kubernetes, stacks y `ag deploy` con
+hallazgos por familia, severidad y recomendacion de merge. Referencia:
+`docs/audits/deployment-security-review.md`.

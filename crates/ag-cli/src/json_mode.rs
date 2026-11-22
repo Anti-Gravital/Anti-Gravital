@@ -222,3 +222,39 @@ pub(crate) fn run_json_command(command: &Commands) -> i32 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest(dir: &std::path::Path) -> std::path::PathBuf {
+        let path = dir.join("ag.toml");
+        std::fs::write(
+            &path,
+            "[project]\nname = \"demo\"\n\n[domain]\ndomain = \"api.example.com\"\n\
+             environment = \"production\"\nvisibility = \"private\"\ntls = \"disabled\"\n\
+             target = { kind = \"service\", ref = \"api\" }\n",
+        )
+        .expect("manifest fixture");
+        path
+    }
+
+    #[test]
+    fn json_mode_refuses_mutating_commands_before_dispatch() {
+        let rc = run_json_command(&Commands::Build { target: None });
+        assert_eq!(rc, 2, "mutating command must be refused in JSON mode");
+    }
+
+    #[test]
+    fn dns_plan_uses_the_same_loader_as_prose_output() {
+        let dir = std::env::temp_dir().join(format!("ag-json-mode-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("fixture dir");
+        let path = manifest(&dir);
+        let data = cmd_dns_json_plan(&path, Some("production")).expect("plan data");
+        assert!(!data.plan_id.is_empty());
+        assert_eq!(data.visibility, "private");
+        assert_eq!(data.environment, "production");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

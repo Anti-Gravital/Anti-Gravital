@@ -88,6 +88,9 @@ maquina por capacidades (solo diseno, sin codigo). Referencia:
 La reconciliacion del tablero de issues de la ola 4 (matriz de los 13
 issues abiertos, etiquetas, comentarios de estado y condiciones de cierre)
 esta en `docs/audits/issue-board-reconciliation.md`.
+El kit de evidencia de staging de ACME (prerrequisitos, comandos, campos y
+plantilla vacia; el mock local NO cierra la puerta) esta en
+`docs/audits/acme-staging-handoff.md`.
 ### docs/diagrams/, docs/graph/, docs/examples/
 Espacios reservados para diagramas, knowledge graph y catalogo de
 ejemplos. Se pueblan a partir de la fase indicada en cada README.

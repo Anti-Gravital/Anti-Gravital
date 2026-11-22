@@ -10,6 +10,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1208,3 +1209,18 @@ Added (documentation only; no code):
   to start. Mail C/D remain design-only; the RFC-0009 Mail A deliverability
   gate has no external evidence yet and RFC-0024 needs a mail/marketing
   tool-group amendment. The module sheet now indexes the design.
+
+### Blocked-issue evidence and tracking reconciliation (issues #87, #179, #142, #76)
+
+Added (documentation only; no code):
+
+- `docs/ag-domains/how-to/acme-staging-test.md` defines the reproducible
+  credentialed Let's Encrypt staging run for the `#[ignore]` test of #87:
+  prerequisites, environment variables, exact commands, SNI check, teardown
+  and an evidence template. The test does not exist yet; both it and #179 stay
+  open with the `blocked` label until real before/after evidence exists.
+- `docs/ag-domains/reference/instant-acme-0.8-migration.md` records the nine
+  API migration points for the blocked 0.8 port, with the eight compiler errors
+  reproduced locally on 0.8.0 and 0.8.5 and the exact current source locations.
+- Issue #142 and #76 child checklists were reconciled against the live issue
+  board; #142's status line now names all six children that remain open.

@@ -27,13 +27,15 @@ historical DEBT-025).
   - `how-to/serve-and-api.md` (run the edge listeners + REST API)
   - `how-to/configure-wildcard.md`, `how-to/domain-connect.md`
   - `how-to/troubleshoot.md` (DNS + certificate issuance)
+  - `how-to/acme-staging-test.md` (credentialed live ACME staging run, #87)
 - Reference: `reference/cli.md`, `reference/state-machine.md`,
   `reference/dns-record-matrix.md`, `reference/events-and-metrics.md`,
   `reference/provider-capability-matrix.md`,
   `reference/provider-adapter-sdk.md` (plan/diff/apply/verify/rollback),
   `reference/abuse-controls.md` (per-tenant limits + global ACME queue),
   `reference/tls-lifecycle.md`, `reference/security-model.md`,
-  `reference/migration-compatibility.md`
+  `reference/migration-compatibility.md`,
+  `reference/instant-acme-0.8-migration.md` (blocked port, #179)
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`, `explanation/http01-vs-dns01.md`,
   `explanation/routing-host-sni.md`, `explanation/purchase-vs-attachment.md`

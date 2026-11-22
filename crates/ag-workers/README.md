@@ -57,8 +57,11 @@ Implemented (S1-S5):
 Partial / tracked in Issues:
 
 - S6 producer + edge: the `producer` feature (enqueue-only, no worker runtime) exists
-  and is exemplified by `examples/workers-producer-edge` (RFC-0012 §17.4). The
-  dedicated `ag-edge` wiring is deferred until a concrete consumer exists (#112).
+  and is exemplified by `examples/workers-producer-edge` (RFC-0012 §17.4). `ag-edge`
+  now exposes a dependency-free `producer` port and the example supplies the
+  `ag-workers` adapter, with an in-memory enqueue + separate-consume test. No
+  `ag-edge -> ag-workers` (or reverse) dependency was added. #112 stays open until
+  a concrete in-crate `ag-edge` event emits through that port.
 - S7 `ag-mail` migration: complete (M0-M4). The `workers`/`workers-postgres`
   features in `ag-mail` (`MailDeliveryHandler`, `WorkersMailQueue`) route delivery
   through this engine; M3 parity was verified against a live database (#109) and

@@ -110,3 +110,6 @@ Ramas con descriptor aceptando PR en este momento:
 - `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
   opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
   cierra #178, ola 11).
+- `community12/i112`: `docs/pr-drafts/community12-i112.md` (puerto `producer`
+  sin dependencias en `ag-edge` y adaptador probado con `MemoryQueue` en el
+  ejemplo; no cierra #112, ola 12).

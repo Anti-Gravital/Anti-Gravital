@@ -8,15 +8,23 @@
 //! This example shows both sides against one in-memory backend so it runs end to end;
 //! in production the two sides are different processes (often different machines), the
 //! producer linking only `enqueue` / `enqueue_in_tx`.
+//!
+//! The edge side emits through `ag-edge`'s dependency-free `producer` port; the
+//! `bridge` module is the adapter that translates that port into an `ag-workers`
+//! enqueue. `ag-edge` itself has no `ag-workers` dependency.
+
+mod bridge;
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use ag_edge::producer::{emit, EnqueueRequest};
 use ag_workers::{
-    JobContext, JobHandler, JobOutcome, JobPayload, MemoryQueue, NewJob, QueueBackend, QueueName,
+    encode, JobContext, JobHandler, JobOutcome, JobPayload, MemoryQueue, QueueBackend, QueueName,
     RuntimeConfig, Shutdown, WorkerError, WorkerMode, WorkerPool, WorkerRegistry, WorkersConfig,
 };
+use bridge::WorkersProducer;
 use serde::{Deserialize, Serialize};
 
 /// Work produced at the edge (for example, a webhook delivery request).
@@ -69,19 +77,27 @@ async fn main() {
         ..WorkersConfig::default()
     };
     assert_eq!(producer_config.mode, WorkerMode::Producer);
+    let producer = WorkersProducer::new(backend.clone());
 
     const N: usize = 4;
     for i in 0..N {
-        let job = NewJob::encode::<DeliverWebhook>(
-            "deliver_webhook",
-            "webhooks",
-            &DeliverWebhook {
-                url: format!("https://example.com/hook/{i}"),
-                event: "order.created".to_owned(),
-            },
-        )
+        // Opaque bytes cross the port; only the adapter knows they are MessagePack.
+        let payload = encode(&DeliverWebhook {
+            url: format!("https://example.com/hook/{i}"),
+            event: "order.created".to_owned(),
+        })
         .expect("encode payload");
-        backend.enqueue(job).await.expect("enqueue");
+        emit(
+            &producer,
+            EnqueueRequest::new(
+                "deliver_webhook",
+                "webhooks",
+                payload.as_slice().to_vec(),
+                DeliverWebhook::PAYLOAD_VERSION,
+            ),
+        )
+        .await
+        .expect("emit");
     }
     let queued = backend.depth(&queue).await.expect("depth");
     println!(

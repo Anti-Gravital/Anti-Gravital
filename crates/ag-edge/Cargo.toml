@@ -24,6 +24,10 @@ default = []
 server = ["dep:axum", "dep:tokio", "dep:tower", "dep:tracing"]
 # TLS serving with SNI certificate selection (implies server).
 tls = ["server", "dep:rustls", "dep:tokio-rustls", "dep:rustls-pki-types", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:thiserror"]
+# Dependency-free producer port for deferred work emitted at the edge (RFC-0012 S6).
+# ag-edge owns only the contract; the backend adapter lives in the consuming crate.
+# No ag-workers dependency is introduced in either direction.
+producer = ["dep:async-trait"]
 
 [dependencies]
 # Reuses the control-plane hostname normalization without pulling ACME or
@@ -35,6 +39,8 @@ serde = { workspace = true }
 # until a recorder is registered, so it adds no runtime cost to the edge by
 # default and pulls in no external service (CLAUDE.md rule 9: native observability).
 metrics = { workspace = true }
+# producer feature (optional; already part of the workspace and used in dev-deps).
+async-trait = { workspace = true, optional = true }
 
 # server feature
 axum = { workspace = true, optional = true }

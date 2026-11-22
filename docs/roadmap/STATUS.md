@@ -356,8 +356,10 @@ hasta que el gate cierre. Decision en `docs/rfc/RFC-0012-ag-workers.md` y
 secuencia en etapas S1-S7 (RFC-0012 seccion 5), cada una verde.
 
 S1-S5 estan implementadas y verificadas con CI verde (codigo + tests sobre el
-backend nativo en memoria). S6 esta parcial (patron y ejemplos listos; falta el
-wiring dedicado del feature `producer`). S7 esta completa: M0-M2 entregados y
+backend nativo en memoria). S6 esta parcial: el puerto `producer` de `ag-edge` y
+su adaptador en el ejemplo estan entregados y probados, pero aun no existe un
+evento concreto dentro de `ag-edge` que emita por el puerto (Issue #112). S7 esta
+completa: M0-M2 entregados y
 M3/M4 verificados contra una base PostgreSQL viva (paridad probada, cola generica
 duplicada eliminada). El CI por defecto no ejerce los tests `#[ignore]` que lo
 prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
@@ -399,10 +401,14 @@ prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
   `workers-scheduled`, `workers-mail-integration`, `workers-producer-edge`.
 - [/] S6 Modo producer + edge: el feature `producer` (enqueue-only, sin runtime de
   workers) existe y el patron esta documentado y ejemplificado
-  (`examples/workers-producer-edge`, RFC-0012 seccion 17.4). Pendiente: wiring
-  dedicado del feature `producer` desde `ag-edge` (consumidor enqueue-only segun
-  seccion 7); seguimiento en el Issue #112 (diferido hasta que exista un
-  consumidor concreto).
+  (`examples/workers-producer-edge`, RFC-0012 seccion 17.4). Anadido el puerto
+  dependencia-cero `producer` en `ag-edge` (`EnqueueRequest`,
+  `DeferredJobProducer`, `emit`) tras el feature `producer` del crate, con un
+  adaptador en el ejemplo que usa `MemoryQueue` y test de enqueue + consumo
+  separado. No se introduce dependencia `ag-edge -> ag-workers` ni inversa
+  (RFC-0012 seccion 4). Pendiente para cerrar el Issue #112: un evento concreto
+  documentado dentro de `ag-edge` que emita por el puerto (p. ej. peticion de
+  emision on-demand); hoy la emision la hace el proceso anfitrion.
 - [x] S7 Migracion de `ag-mail`: M0-M4 (RFC-0012 seccion 5) tras feature `workers`.
   M0 (overlap documentado en la RFC) y M1 (ag-workers entregado en S1-S6) hechos.
   M2: feature `workers` en `ag-mail` + `MailDeliveryHandler` (payload `Email`,

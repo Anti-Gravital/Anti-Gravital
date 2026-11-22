@@ -17,6 +17,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1336,3 +1337,27 @@ Changed:
 - The standalone native benchmark manifest now declares its `rand` dependency
   explicitly instead of trying to inherit a workspace that does not exist, so
   its upgraded `reqwest` can actually be compiled and its lockfile refreshed.
+
+### Mail protocol stack upgrade (issue #178, partial)
+
+Changed:
+
+- `ag-mail/mta` now uses `mail-send` 0.7, `mail-auth` 0.15 and
+  `mail-parser` 1.0. `mail-auth` 0.15 removed the `ring` feature, so the
+  crate now selects the pure-Rust `rust-crypto` backend plus `dns-hickory`;
+  the workspace stays on ring for TLS and the process-level provider
+  installation from issue #181 is unchanged. `mail-send/dkim` stays off.
+- DKIM signing pins relaxed/relaxed canonicalization explicitly and the
+  mail-parser 1.0 MIME API is used for DSN/ARF intake. The loopback
+  ESMTP/STARTTLS/DKIM sink tests and a cross-version known-answer test (a
+  signature from mail-auth 0.9 verified by the 0.15 verifier) pass.
+
+Open (issue #178 stays open with `Refs`):
+
+- Independent verifier: `mailrs-dkim` 3.2 hashes signed headers in `h=`
+  order while mail-auth and deployed MTAs hash in message order, so it
+  rejects signatures from both the old and the new stack. No dkimpy or
+  OpenDKIM is available locally, and the GPL-licensed alternative would
+  fail `cargo deny`.
+- Real mailbox / Mail A gate: outbound port 25 is blocked, so the live MX
+  test and Authentication-Results check remain manual.

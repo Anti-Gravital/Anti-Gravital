@@ -735,7 +735,7 @@ mod tests {
 
     #[tokio::test]
     async fn submit_signs_with_dkim_on_the_wire() {
-        use mail_auth::common::crypto::Ed25519Key;
+        use mail_auth::crypto::Ed25519Key;
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();

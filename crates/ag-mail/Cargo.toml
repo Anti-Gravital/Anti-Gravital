@@ -83,16 +83,19 @@ sqlx = { workspace = true, optional = true }
 # (SMTP/MTA/DKIM/bounce) permanece en ag-mail. Opt-in.
 ag-workers = { workspace = true, optional = true }
 
-# Motor MTA outbound nativo (feature "mta"). Crates de Stalwart Labs + hickory.
-# Pinned; modo nativo por defecto del crate no los requiere (ADR-0009).
-# mail-send aporta el cliente ESMTP+STARTTLS y el constructor MIME (mail_builder).
-# La firma DKIM se hace con mail-auth 0.9 directamente (su hickory ^0.26 unifica
-# con ag-domains 0.26.1); NO se activa la feature `dkim` de mail-send porque
-# arrastra mail-auth 0.8, que fija hickory =0.26.0-alpha.1 y entra en conflicto.
-# Backend `ring` para coincidir con el rustls/ring de The Shield.
-mail-send = { version = "0.6", optional = true, default-features = false, features = ["builder", "ring", "tls12"] }
-mail-auth = { version = "0.9", optional = true, default-features = false, features = ["ring"] }
-mail-parser = { version = "0.11", optional = true, default-features = false }
+# Native outbound MTA engine (feature "mta"). Stalwart Labs + hickory crates.
+# Pinned; the crate's native-by-default mode does not require them (ADR-0009).
+# mail-send provides the ESMTP+STARTTLS client and the MIME builder. The `dkim`
+# feature is intentionally off: signing is done directly with mail-auth, which
+# keeps a single crypto backend selection. mail-send 0.7 still exposes the
+# `ring` feature, matching the workspace rustls/ring stack.
+# mail-auth 0.15 no longer has a `ring` feature: its backend is chosen at
+# compile time. `rust-crypto` selects the pure-Rust rsa/ed25519/sha2 backend
+# (no aws-lc-rs/C toolchain) and `dns-hickory` keeps resolver 0.26, unified
+# with ag-domains 0.26.1. mail-parser 1.0 is shared by both crates.
+mail-send = { version = "0.7", optional = true, default-features = false, features = ["builder", "ring", "tls12"] }
+mail-auth = { version = "0.15", optional = true, default-features = false, features = ["dns-hickory", "rust-crypto"] }
+mail-parser = { version = "1.0", optional = true, default-features = false }
 hickory-resolver = { version = "0.26.1", optional = true, default-features = false, features = ["tokio"] }
 rustls-pki-types = { workspace = true, optional = true }
 # Install the process-level crypto provider when optional features link both

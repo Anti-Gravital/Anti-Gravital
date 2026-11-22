@@ -10,11 +10,9 @@
 //! Both Ed25519 (RFC 8463) and RSA (RFC 6376, RSA-SHA256) keys are supported.
 
 use mail_auth::{
-    common::{
-        crypto::{Ed25519Key, RsaKey, Sha256, SigningKey},
-        headers::HeaderWriter,
-    },
-    dkim::DkimSigner,
+    crypto::{Ed25519Key, RsaKey, Sha256, SigningKey},
+    dkim::{Canonicalization, DkimSigner},
+    headers::HeaderWriter,
 };
 use rustls_pki_types::{pem::PemObject, PrivateKeyDer, PrivatePkcs8KeyDer};
 
@@ -148,10 +146,15 @@ impl DkimConfig {
 
     /// Builds the signer from a concrete key and produces the signed bytes.
     fn sign_with<K: SigningKey>(&self, key: K, content: &[u8]) -> Result<Vec<u8>, AgMailError> {
+        // Pin relaxed/relaxed explicitly: the pre-upgrade stack used it as its
+        // implicit default, and relying on a library default would make the
+        // wire format a silent dependency on a future mail-auth change.
         let signer = DkimSigner::from_key(key)
             .domain(&self.domain)
             .selector(&self.selector)
-            .headers(SIGNED_HEADERS);
+            .headers(SIGNED_HEADERS)
+            .header_canonicalization(Canonicalization::Relaxed)
+            .body_canonicalization(Canonicalization::Relaxed);
         let signature = signer.sign(content).map_err(dkim_err)?;
         let mut signed = Vec::with_capacity(content.len() + 256);
         signature.write_header(&mut signed);
@@ -247,5 +250,170 @@ Xi6iNG5RqHMCBtI7A0uu8w==
         let rendered = format!("{cfg:?}");
         assert!(rendered.contains("redacted"));
         assert!(!rendered.contains("[1, 2, 3, 4]"));
+    }
+
+    // ---- cross-version known-answer vector ---------------------------------
+    //
+    // Recorded from mail-auth 0.9 (the pre-upgrade stack) for the fixed key and
+    // message below, with domain `send.example` and selector `sel`. DKIM is
+    // deterministic for a fixed key and timestamp, so the new stack must still
+    // produce a signature that verifies, and must also verify this old one.
+    // This guards the 0.9 -> 0.15 signing/verifying migration against silent
+    // canonicalization or algorithm changes.
+
+    const KA_ED25519_PKCS8_DER: &[u8] = &[
+        48, 81, 2, 1, 1, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32, 17, 3, 231, 95, 91, 66, 162, 59,
+        122, 193, 2, 82, 53, 179, 194, 23, 234, 104, 165, 3, 72, 121, 47, 216, 189, 191, 233, 84,
+        177, 241, 201, 22, 129, 33, 0, 162, 108, 193, 14, 91, 157, 191, 30, 160, 163, 99, 195, 193,
+        250, 213, 2, 254, 98, 249, 42, 58, 5, 205, 255, 24, 54, 160, 83, 43, 34, 187, 196,
+    ];
+    /// `p=` tag published in `sel._domainkey.send.example`: the public key of
+    /// `KA_ED25519_PKCS8_DER`.
+    const KA_PUBLIC_KEY_B64: &str = "omzBDludvx6go2PDwfrVAv5i+So6Bc3/GDagUysiu8Q=";
+    const KA_MESSAGE: &[u8] = b"From: from@send.example\r\n\
+        To: rcpt@example.com\r\n\
+        Subject: hi\r\n\
+        Date: Tue, 10 Nov 2026 12:00:00 +0000\r\n\
+        Message-ID: <ka@send.example>\r\n\
+        MIME-Version: 1.0\r\n\
+        Content-Type: text/plain\r\n\
+        \r\n\
+        body\r\n";
+    const KA_SIGNATURE_0_9: &str =
+        "DKIM-Signature: v=1; a=ed25519-sha256; s=sel; d=send.example; c=relaxed/relaxed;\r\n\
+        \th=Content-Type:MIME-Version:Message-ID:Date:Subject:To:From; t=1795308595; bh=C\r\n\
+        \tk5SoRNWUpSR4X0COv7R5ub2pUTtl6xz4dTFz++ji4M=; b=q1w8p3SqEoPW6XRva6KWYWCvisK5\r\n\
+        \t+5J7QpxYMRciZrVk3b+fezU1PXXQiAhKwcaPW4fPhjAocFeB7gVnfsdFDQ==;\r\n";
+
+    /// Minimal DNS cache that answers the single `_domainkey` TXT query with
+    /// the fixed public key. Every other record type stays uncached (and is
+    /// never queried by DKIM verification for this signature).
+    mod ka_dns {
+        use std::{
+            borrow::Borrow,
+            collections::HashMap,
+            hash::Hash,
+            sync::{Arc, Mutex},
+        };
+
+        use mail_auth::dkim::DomainKey;
+        use mail_auth::dns::{DnsCache, NoCache, ResolverCache, TxtRecord, TxtRecordParser};
+
+        pub struct TxtCache(Mutex<HashMap<Box<str>, TxtRecord>>);
+
+        impl TxtCache {
+            pub fn new(key: &str, value: TxtRecord) -> Self {
+                Self(Mutex::new(HashMap::from([(key.into(), value)])))
+            }
+        }
+
+        impl ResolverCache<Box<str>, TxtRecord> for TxtCache {
+            fn get<Q>(&self, name: &Q) -> Option<TxtRecord>
+            where
+                Box<str>: Borrow<Q>,
+                Q: Hash + Eq + ?Sized,
+            {
+                self.0.lock().unwrap().get(name).cloned()
+            }
+
+            fn remove<Q>(&self, name: &Q) -> Option<TxtRecord>
+            where
+                Box<str>: Borrow<Q>,
+                Q: Hash + Eq + ?Sized,
+            {
+                self.0.lock().unwrap().remove(name)
+            }
+
+            fn insert(&self, key: Box<str>, value: TxtRecord, _valid_until: std::time::Instant) {
+                self.0.lock().unwrap().insert(key, value);
+            }
+        }
+
+        pub struct FixedDns {
+            txt: TxtCache,
+        }
+
+        impl FixedDns {
+            pub fn with_public_key(record: &str, name: &str) -> Self {
+                let key = <DomainKey as TxtRecordParser>::parse(record.as_bytes())
+                    .expect("fixed key record parses");
+                Self {
+                    txt: TxtCache::new(name, TxtRecord::DomainKey(Arc::new(key))),
+                }
+            }
+        }
+
+        impl DnsCache for FixedDns {
+            type Txt = TxtCache;
+            type Mx = NoCache;
+            type Ipv4 = NoCache;
+            type Ipv6 = NoCache;
+            type Ptr = NoCache;
+
+            fn txt(&self) -> Option<&Self::Txt> {
+                Some(&self.txt)
+            }
+            fn mx(&self) -> Option<&Self::Mx> {
+                None
+            }
+            fn ipv4(&self) -> Option<&Self::Ipv4> {
+                None
+            }
+            fn ipv6(&self) -> Option<&Self::Ipv6> {
+                None
+            }
+            fn ptr(&self) -> Option<&Self::Ptr> {
+                None
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn dkim_known_answer_old_signature_verifies_and_new_signature_verifies() {
+        use ka_dns::FixedDns;
+        use mail_auth::dns::Parameters;
+        use mail_auth::{AuthenticatedMessage, DkimResult, MessageAuthenticator};
+
+        let cfg = DkimConfig::ed25519("send.example", "sel", KA_ED25519_PKCS8_DER.to_vec());
+
+        // The same fixed key and message must still be signable by the new stack.
+        let new_signed = cfg
+            .sign(KA_MESSAGE)
+            .expect("new stack signs the fixed vector");
+        assert!(new_signed.starts_with(b"DKIM-Signature:"));
+
+        let record = format!("v=DKIM1; k=ed25519; p={KA_PUBLIC_KEY_B64}");
+        let dns = FixedDns::with_public_key(&record, "sel._domainkey.send.example.");
+        let authenticator = MessageAuthenticator::new_system_conf().expect("resolver");
+
+        // A signature produced by mail-auth 0.9 verifies under 0.15: no silent
+        // change to canonicalization, `a=` algorithm or `bh=` body hashing.
+        let mut old_signed = KA_SIGNATURE_0_9.as_bytes().to_vec();
+        old_signed.extend_from_slice(KA_MESSAGE);
+        let old_message =
+            AuthenticatedMessage::parse(&old_signed).expect("parse old signed message");
+        let old_results = authenticator
+            .verify_dkim(Parameters::new(&old_message).with_cache(&dns))
+            .await;
+        assert_eq!(old_results.len(), 1, "one signature from the old vector");
+        assert_eq!(
+            old_results[0].result(),
+            &DkimResult::Pass,
+            "pre-upgrade DKIM signature must still verify"
+        );
+
+        // A signature produced by the new stack also verifies with the same
+        // verifier and published key.
+        let new_message =
+            AuthenticatedMessage::parse(&new_signed).expect("parse new signed message");
+        let new_results = authenticator
+            .verify_dkim(Parameters::new(&new_message).with_cache(&dns))
+            .await;
+        assert_eq!(new_results.len(), 1, "one signature from the new stack");
+        assert_eq!(
+            new_results[0].result(),
+            &DkimResult::Pass,
+            "new DKIM signature must verify"
+        );
     }
 }

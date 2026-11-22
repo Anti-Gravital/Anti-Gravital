@@ -10,7 +10,7 @@
 //! use `mail-parser` to locate the `message/delivery-status` and
 //! `message/feedback-report` parts and apply the result.
 
-use mail_parser::{MessageParser, MimeHeaders};
+use mail_parser::MessageParser;
 
 use super::suppress::{SuppressionList, SuppressionReason};
 
@@ -143,11 +143,12 @@ pub fn parse_feedback_report(body: &str) -> Vec<String> {
 /// Returns the text of the first MIME part whose content-type subtype matches.
 fn report_part(raw: &[u8], subtype: &str) -> Option<String> {
     let message = MessageParser::default().parse(raw)?;
-    for part in &message.parts {
+    for part in message.parts() {
         if part.content_type().and_then(|c| c.subtype()) == Some(subtype) {
-            if let Some(text) = part.text_contents() {
-                return Some(text.to_owned());
-            }
+            // DSN/ARF parts are `message/*`, not text parts: `text()` returns
+            // None for them. Read the transfer-decoded body directly.
+            let decoded = part.decoded();
+            return Some(String::from_utf8_lossy(&decoded).into_owned());
         }
     }
     None

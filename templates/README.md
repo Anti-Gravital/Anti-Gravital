@@ -1,50 +1,109 @@
 # templates/
 
-Templates de proyecto consumidos por `ag new`. Cada template es un
-arbol completo que el binario `ag` copia y renombra al crear un nuevo
-proyecto.
+Project templates consumed by `ag new`. Each template is a complete tree that
+the `ag` binary copies and renames when a project is created.
 
-## Templates disponibles
+## Available templates
 
-Valores validos de `ag new -t <template>`:
+Valid values for `ag new -t <template>`:
 
-- `rest`: API REST minima con `ag-core` (`Shield` + axum). Una ruta `/`
-  de ejemplo.
-- `realtime`: servidor WebSocket con `ag-core` y el soporte `ws` de
-  axum (ruta `/ws`).
-- `fullstack`: REST con persistencia PostgreSQL via `ag-data`
-  (conexion + migraciones en `migrations/`).
+- `rest`: minimal REST API on `ag-core` (`Shield` + axum) with one example `/`
+  route. This is the default when `-t` is omitted in a non-interactive session.
+- `realtime`: WebSocket server on `ag-core` with axum's `ws` support (`/ws`).
+- `fullstack`: REST with PostgreSQL persistence through `ag-data` (connection
+  and migrations in `migrations/`).
+- `layered`: opt-in four-crate Cargo workspace with an `ag.toml` manifest
+  (RFC-0019 stage A). See the dedicated section below.
 
-Si no se pasa `-t` en una sesion no interactiva, se usa `rest`.
+The three default templates (`rest`, `realtime`, `fullstack`) are unchanged by
+the addition of `layered`. `rest` remains the non-interactive default.
 
-## Versionado de las dependencias `ag-*`
+## Pinning of `ag-*` dependencies
 
-Mientras los crates `ag-*` no se publiquen en crates.io, las
-dependencias `ag-*` de cada template se fijan de forma **determinista**
-a un commit concreto del repositorio mediante `rev = "<sha>"`. Un
-proyecto generado con `ag new` compila siempre contra ese commit fijo,
-no contra el HEAD movil de la rama por defecto, de modo que un cambio
-incompatible fusionado aguas arriba no rompe los proyectos recien
-creados (regla 31: no romper usuarios; regla 36: reproducibilidad).
+While the `ag-*` crates are not published on crates.io, their dependencies in
+every template are pinned deterministically to a repository commit with
+`rev = "<sha>"`. A project generated with `ag new` always builds against that
+fixed commit, not against a moving branch head, so an upstream incompatible
+change cannot break a freshly created project (rules 31 and 36).
 
-`ag new` copia el manifiesto verbatim, por lo que el `rev` se conserva
-tal cual en el proyecto generado.
+`ag new` copies the manifests verbatim, so the `rev` is preserved in the
+generated project.
 
-Procedimiento para actualizar el pin (bump):
+Procedure for bumping the pin:
 
-1. Elegir un commit estable de la rama por defecto verificado en verde.
-2. Reemplazar el `rev` en los cuatro manifiestos
-   (`rest`, `realtime`, `fullstack`) por ese SHA completo.
-3. Regenerar un proyecto de cada template y ejecutar `cargo build`
-   antes de fusionar.
+1. Pick a stable commit on the default branch verified green in CI.
+2. Replace the `rev` in the manifests of `rest`, `realtime`, `fullstack` and
+   in the two `layered` manifests that reference `ag-*` crates
+   (`crates/infra/Cargo.toml.tmpl`, `crates/api/Cargo.toml.tmpl`).
+3. Regenerate one project per template and run `cargo build` before merging.
 
-Cuando comience la publicacion en crates.io, cada `{ git = ..., rev = ... }`
-se sustituye por un requisito de version SemVer (`ag-core = "x.y"`).
+When crates.io publication starts, each `{ git = ..., rev = ... }` is replaced
+by a SemVer requirement (`ag-core = "x.y"`).
 
-## Estado
+## Layered template (RFC-0019 stage A)
 
-Tres templates entregados (`rest`, `realtime`, `fullstack`),
-consumidos por `ag new` via `include_str!`. Las dependencias `ag-*`
-estan fijadas por `rev` (ver seccion anterior). Templates adicionales
-(por ejemplo un backend para clientes Flutter) se anadiran en fases
-posteriores cuando los crates que requieren esten disponibles.
+`ag new <name> --template layered` generates this tree:
+
+```
+<name>/
+|-- ag.toml                  project manifest (layout = "layered")
+|-- Cargo.toml               workspace + binary composition root
+|-- config.toml
+|-- src/main.rs              composition root
+`-- crates/
+    |-- domain/              entities, value objects, domain errors (pure Rust)
+    |-- app/                 use cases and the ports (traits) they depend on
+    |-- infra/               adapters implementing the ports; owns migrations/
+    `-- api/                 HTTP transport through ag-core
+```
+
+Dependencies point inward only, and Cargo enforces it:
+
+| Crate | May depend on | Must not depend on |
+| --- | --- | --- |
+| `domain` | `serde`, `thiserror` | `app`, `infra`, `api`, any `ag-*`, `sqlx`, `axum`, `tokio` |
+| `app` | `domain` | `infra`, `api`, `sqlx`, `axum`, any `ag-*` |
+| `infra` | `app`, `domain`, `ag-data` | `api`, `sqlx` |
+| `api` | `app`, `domain`, `ag-core`, axum | `infra`, `sqlx` |
+| root binary | all four layer crates, `tokio`, `tracing` | - |
+
+Sibling dependencies use Cargo aliases (`domain = { package = "<name>-domain",
+path = "..." }`), so the Rust identifiers are stable for any project name.
+
+The generated manifest follows RFC-0019 section 4.3:
+
+```toml
+[project]
+name = "<name>"
+layout = "layered"
+
+[modules]
+data = true
+auth = false
+cache = false
+
+[generate]
+rust = "crates"
+openapi = "clients/openapi.yaml"
+typescript = "clients/typescript"
+```
+
+`modules` values reflect the dependencies actually present in this minimal
+slice; enabling a module means adding its adapter and declaring it here. The
+port in `app` is synchronous; making it asynchronous is a project-level choice
+and does not change the layer boundaries.
+
+Scope boundary: stage A delivers the layout, the inward dependency rules and
+the manifest. It does not add an `ag.toml` reader, layer-aware generator output
+or a compact-to-layered promotion command (RFC-0019 sections 4.4, 4.5). `ag dev`
+keeps working because the root package is still a binary that `cargo run` can
+start.
+
+Verified from a fresh scaffold: `cargo metadata --no-deps` resolves all five
+packages and `cargo check` compiles the workspace against the pinned `rev`.
+
+## Status
+
+Four templates delivered: `rest`, `realtime` and `fullstack` (default set,
+consumed by `ag new` via `include_str!`) plus `layered` (opt-in, RFC-0019 stage
+A). All `ag-*` dependencies are pinned by `rev` as described above.

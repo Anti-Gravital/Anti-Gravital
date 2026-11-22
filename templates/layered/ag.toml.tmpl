@@ -1,0 +1,13 @@
+[project]
+name = "{{name}}"
+layout = "layered"
+
+[modules]
+data = true
+auth = false
+cache = false
+
+[generate]
+rust = "crates"
+openapi = "clients/openapi.yaml"
+typescript = "clients/typescript"

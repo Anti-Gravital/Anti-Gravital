@@ -1,0 +1,10 @@
+[package]
+name = "{{name}}-app"
+version = "0.1.0"
+edition = "2021"
+
+# Application layer: use cases and the ports they depend on. The only
+# project dependency is domain. No sqlx, no axum, no concrete adapter
+# (RFC-0019 section 4.1).
+[dependencies]
+domain = { package = "{{name}}-domain", path = "../domain" }

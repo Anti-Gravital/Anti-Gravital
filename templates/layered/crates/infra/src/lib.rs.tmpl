@@ -1,0 +1,23 @@
+//! Infrastructure layer for {{name}}.
+//!
+//! Adapters implement the ports declared in `app`. Internal modules are
+//! divided by concern: `db`, `cache`, `storage`, `mail`, `jobs`, `clients`.
+//! The minimal slice ships an in-memory adapter; replace it with an
+//! `ag-data` backed repository under `src/db/` when persistence is needed.
+
+use app::ItemRepository;
+use domain::{DomainError, Item};
+
+/// In-memory adapter used by the composition root in this minimal slice.
+#[derive(Default)]
+pub struct InMemoryItemRepository;
+
+impl ItemRepository for InMemoryItemRepository {
+    fn find(&self, _id: &str) -> Result<Option<Item>, DomainError> {
+        Ok(None)
+    }
+
+    fn save(&self, _item: &Item) -> Result<(), DomainError> {
+        Ok(())
+    }
+}

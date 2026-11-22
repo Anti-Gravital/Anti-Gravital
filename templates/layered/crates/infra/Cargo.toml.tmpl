@@ -1,0 +1,12 @@
+[package]
+name = "{{name}}-infra"
+version = "0.1.0"
+edition = "2021"
+
+# Infrastructure layer: adapters implementing the ports declared in app.
+# Depends inward on app and domain, plus the ag-* modules it needs. It must
+# never depend on api (RFC-0019 section 4.1).
+[dependencies]
+app = { package = "{{name}}-app", path = "../app" }
+domain = { package = "{{name}}-domain", path = "../domain" }
+ag-data = { git = "https://github.com/anti-gravital/anti-gravital", rev = "91a95ff61ed6ef4c9d3f1c9069357e97389d1382" }

@@ -1,0 +1,21 @@
+//! Domain layer for {{name}}.
+//!
+//! Entities, value objects, domain errors and invariants live here. This
+//! crate performs no I/O and imports no transport or infrastructure type.
+
+use serde::{Deserialize, Serialize};
+
+/// Example domain entity. Replace with the real aggregate roots of the service.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Item {
+    pub id: String,
+    pub name: String,
+}
+
+/// Domain-level error. Application and infrastructure translate their own
+/// failures into this type at the layer boundary.
+#[derive(Debug, thiserror::Error)]
+pub enum DomainError {
+    #[error("item not found: {0}")]
+    NotFound(String),
+}

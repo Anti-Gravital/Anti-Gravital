@@ -1,0 +1,30 @@
+//! Application layer for {{name}}.
+//!
+//! Use cases and the ports (traits) they depend on. The application never
+//! names a concrete database, HTTP framework or external client.
+
+use domain::{DomainError, Item};
+
+/// Port for item persistence. Infrastructure provides the adapter; the
+/// application depends only on this trait.
+pub trait ItemRepository: Send + Sync {
+    fn find(&self, id: &str) -> Result<Option<Item>, DomainError>;
+    fn save(&self, item: &Item) -> Result<(), DomainError>;
+}
+
+/// Example use case built on the port above.
+pub struct GetItem<R: ItemRepository> {
+    repo: R,
+}
+
+impl<R: ItemRepository> GetItem<R> {
+    pub fn new(repo: R) -> Self {
+        Self { repo }
+    }
+
+    pub fn execute(&self, id: &str) -> Result<Item, DomainError> {
+        self.repo
+            .find(id)?
+            .ok_or_else(|| DomainError::NotFound(id.into()))
+    }
+}

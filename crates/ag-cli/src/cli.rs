@@ -37,7 +37,7 @@ pub(crate) enum Commands {
         /// Starting template. When omitted in an interactive terminal, the
         /// wizard asks for it. In non-interactive sessions it defaults to
         /// "rest".
-        #[arg(long, short = 't', value_parser = ["rest", "realtime", "fullstack"])]
+        #[arg(long, short = 't', value_parser = ["rest", "realtime", "fullstack", "layered"])]
         template: Option<String>,
     },
 

@@ -18,11 +18,18 @@ pub(crate) enum Template {
     Realtime,
     /// REST API with PostgreSQL persistence and migrations.
     Fullstack,
+    /// Opt-in layered workspace: one crate per layer plus `ag.toml`.
+    Layered,
 }
 
 impl Template {
     /// Every template, in the order shown to the user.
-    pub(crate) const ALL: [Template; 3] = [Template::Rest, Template::Realtime, Template::Fullstack];
+    pub(crate) const ALL: [Template; 4] = [
+        Template::Rest,
+        Template::Realtime,
+        Template::Fullstack,
+        Template::Layered,
+    ];
 
     /// Name accepted by `--template`.
     pub(crate) fn as_str(self) -> &'static str {
@@ -30,6 +37,7 @@ impl Template {
             Template::Rest => "rest",
             Template::Realtime => "realtime",
             Template::Fullstack => "fullstack",
+            Template::Layered => "layered",
         }
     }
 
@@ -46,6 +54,10 @@ impl Template {
             Template::Fullstack => {
                 "REST API with PostgreSQL persistence through ag-data and SQL migrations."
             }
+            Template::Layered => {
+                "Opt-in layered workspace: domain/app/infra/api crates with inward \
+                 dependencies, a composition root and an ag.toml manifest."
+            }
         }
     }
 
@@ -59,6 +71,21 @@ impl Template {
                 "src/main.rs",
                 "config.toml",
                 "migrations/0001_init.sql",
+            ],
+            Template::Layered => &[
+                "ag.toml",
+                "Cargo.toml",
+                "config.toml",
+                "src/main.rs",
+                "crates/domain/Cargo.toml",
+                "crates/domain/src/lib.rs",
+                "crates/app/Cargo.toml",
+                "crates/app/src/lib.rs",
+                "crates/infra/Cargo.toml",
+                "crates/infra/src/lib.rs",
+                "crates/infra/migrations/0001_init.sql",
+                "crates/api/Cargo.toml",
+                "crates/api/src/lib.rs",
             ],
         }
     }

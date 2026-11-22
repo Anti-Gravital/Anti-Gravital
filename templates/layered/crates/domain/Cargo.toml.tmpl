@@ -1,0 +1,10 @@
+[package]
+name = "{{name}}-domain"
+version = "0.1.0"
+edition = "2021"
+
+# Domain layer: pure Rust only. No ag-* crate, no sqlx, no axum, no tokio,
+# and no dependency on any other layer of this project (RFC-0019 section 4.1).
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"

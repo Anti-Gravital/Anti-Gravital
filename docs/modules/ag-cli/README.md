@@ -23,14 +23,16 @@ and the dependency policy between Anti-Gravital crates.
 
 ## State
 
-Implemented through Phase 4.7. Nine top-level commands (plus bare `ag`):
+Implemented through Phase 4.7 and additive Phase 4.8 work. Twelve top-level
+commands (plus bare `ag`):
 
 | Command | Phase | Purpose |
 | --- | --- | --- |
-| `ag new` | 2, 4.7-A | Scaffold a project from the `rest`, `realtime` or `fullstack` template. With missing input in an interactive terminal, a full-screen wizard asks for it (`RFC-0018`) |
+| `ag new` | 2, 4.7-A, 4.8-A | Scaffold a project from the cataloged templates. `--with MODULE` (repeatable) enables a declared module in the generated `ag.toml [modules]` for templates that produce a manifest, such as `layered` (`RFC-0019`). With missing input in an interactive terminal, a full-screen wizard asks for it (`RFC-0018`) |
 | `ag dev` | 2 | Development server with hot reload via `cargo-watch` |
 | `ag build` | 2 | Release build |
 | `ag config` | 4.7-B | Form for `config.toml` in a terminal; `get`, `set` and `validate` provide non-interactive parity through one shared executor (`RFC-0018`) |
+| `ag env list`, `ag env check` | additive 4.8-B / `RFC-0020` | Read-only view of `[env.*]` declarations in `ag.toml` through `ag_core::EnvLoader`. `check` validates as startup would; no value (not even a non-secret default) is printed, and no file is written |
 | bare `ag` | 4.7-C | Home screen that launches existing commands with keyboard navigation; prints help outside a terminal (`RFC-0018`) |
 | `ag generate` | 3 | Compile `schema.ag` into SQL, Rust, TypeScript and OpenAPI |
 | `ag schema lint`, `ag schema diff` | 3 | Schema diagnostics and breaking-change detection |
@@ -76,8 +78,9 @@ Stages A, B and C are implemented:
   Both build a typed `ConfigRequest` handled by the single `execute_config`
   executor. Keys mirror `ag_core::ShieldConfig`; writes are validated with that
   loader before an atomic, format-preserving replace. Secret material is not
-  exposed. `ag new --with MODULE` (RFC-0018 section 4.4, module selection) is
-  still not implemented; it requires tested scaffold composition first.
+  exposed. `ag new --with MODULE` is now available as an additive manifest edit
+  (`RFC-0019` stage A): it records the module in the generated `ag.toml` but
+  does not wire its dependency into the generated crates yet.
 - Stage C: the bare-`ag` home screen, a launcher that returns a command line
   for `main` to re-parse and run.
 

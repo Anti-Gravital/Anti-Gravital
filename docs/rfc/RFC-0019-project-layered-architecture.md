@@ -283,3 +283,15 @@ Verification for this stage: `cargo test -p ag-cli`, the workspace test suite,
 `cargo fmt`, `cargo clippy -D warnings`, `cargo audit` and `cargo deny`. A
 freshly generated layered project also passes `cargo metadata --no-deps` and
 `cargo check` against the pinned `rev`.
+
+### Stage A follow-up: `ag new --with MODULE` (wave 9, 2026-11-22)
+
+`ag new NAME --with MODULE` (repeatable) now enables a declared module in the
+`[modules]` table of the generated `ag.toml`. The accepted names are the
+Anti-Gravital modules the layered architecture anticipates (`data`, `auth`,
+`cache`, `mail`, `workers`, `storage`, `realtime`, `observe`). This is an
+additive manifest edit: `--with` is rejected with a clear error for templates
+that do not generate a manifest, the default scaffold is byte-for-byte
+unchanged, and enabling a module that is already `true` is a no-op. No module
+dependency is wired into the generated crates yet; that remains a later stage
+of section 4.1 and is deliberately not faked.

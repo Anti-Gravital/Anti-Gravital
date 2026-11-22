@@ -58,6 +58,7 @@ fn happy_path_submits_the_typed_request() {
         Some(Effect::Submit(NewProjectRequest {
             name: "my-api".into(),
             template: catalog_template("realtime"),
+            modules: Vec::new(),
         }))
     );
 }
@@ -167,6 +168,7 @@ fn prefilled_inputs_are_kept() {
         NewProjectRequest {
             name: "given".into(),
             template: catalog_template("fullstack"),
+            modules: Vec::new(),
         }
     );
 }

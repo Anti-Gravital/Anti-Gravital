@@ -25,6 +25,17 @@
 - Existing `std::env::var` call sites are unchanged: this stage is additive.
   This note records stage progress only; the accepted design above is not
   modified.
+- Stage B / PR 2 (CLI subset, wave 9, 2026-11-22): `ag env list` and
+  `ag env check` are implemented in `ag-cli`. They build `EnvDeclaration`
+  values from the `[env.*]` tables of `ag.toml` and resolve them through
+  `ag_core::EnvLoader`, so `check` validates exactly as startup would. `list`
+  shows name, type, required/secret flags, source and presence; no value,
+  including a non-secret default, is ever printed. `--output json` emits
+  versioned `env.list` / `env.check` envelopes. `--env NAME` is accepted as a
+  label only: the encrypted secrets file, `config/<environment>.toml`,
+  `set`/`unset`, `keygen`, `recipients` and `export` remain future stages and
+  are not faked. No `[env]` parser was added to `ag-core`; the CLI owns the
+  manifest parsing and uses only the public loader API.
 
 ## 1. Motivation
 

@@ -105,3 +105,5 @@ Ramas con descriptor aceptando PR en este momento:
 - `community9/coredev`: `docs/pr-drafts/community9-coredev.md` (endurecimiento
   de RFC-0020 fase B en ag-core: sin clones de secretos sin ceroizar y
   validacion de entorno opcional al cargar la configuracion, ola 9).
+- `community9/clidev`: `docs/pr-drafts/community9-clidev.md` (`ag new --with`
+  y `ag env list|check`, RFC-0019/0020, ola 9).

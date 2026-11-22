@@ -36,6 +36,7 @@ use commands::config::*;
 use commands::deploy::*;
 use commands::dns::*;
 use commands::domains::*;
+use commands::env::*;
 use commands::mail::*;
 use commands::project::*;
 use commands::schema::*;
@@ -185,6 +186,43 @@ fn run_json_command(command: &Commands) -> i32 {
                 1
             }
         },
+        Commands::Env {
+            command: EnvCommands::List { manifest, env },
+        } => {
+            let request = EnvRequest::List {
+                manifest: manifest.clone(),
+                environment: env.clone(),
+            };
+            match list_data(&request) {
+                Ok(data) => {
+                    output::emit(name, data);
+                    0
+                }
+                Err(error) => {
+                    output::emit_error(name, "read_failed", error.into_message());
+                    1
+                }
+            }
+        }
+        Commands::Env {
+            command: EnvCommands::Check { manifest, env },
+        } => {
+            let request = EnvRequest::Check {
+                manifest: manifest.clone(),
+                environment: env.clone(),
+            };
+            match check_data(&request) {
+                Ok(data) => {
+                    let exit_code = if data.ok { 0 } else { 1 };
+                    output::emit(name, data);
+                    exit_code
+                }
+                Err(error) => {
+                    output::emit_error(name, "read_failed", error.into_message());
+                    1
+                }
+            }
+        }
         Commands::Deploy {
             command: DeployCommands::Plan { target },
         } => {
@@ -327,11 +365,32 @@ fn handle(result: Result<(), CliError>) {
 /// home screen. Every branch converts a command error into an exit class.
 fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
     match command {
-        Commands::New { name, template } => cmd_new(name, template.as_deref(), no_interactive)
-            .map_err(|error| match error {
+        Commands::New {
+            name,
+            template,
+            with,
+        } => {
+            cmd_new(name, template.as_deref(), &with, no_interactive).map_err(|error| match error {
                 NewError::Failed(message) => CliError::Failed(message),
                 NewError::Usage(message) => CliError::Usage(message),
-            }),
+            })
+        }
+        Commands::Env { command } => {
+            let request = match command {
+                EnvCommands::List { manifest, env } => EnvRequest::List {
+                    manifest,
+                    environment: env,
+                },
+                EnvCommands::Check { manifest, env } => EnvRequest::Check {
+                    manifest,
+                    environment: env,
+                },
+            };
+            cmd_env(&request).map_err(|error| match error {
+                EnvCommandError::Failed(message) => CliError::Failed(message),
+                EnvCommandError::Usage(message) => CliError::Usage(message),
+            })
+        }
         Commands::Config { command } => {
             cmd_config(command, no_interactive).map_err(|error| match error {
                 ConfigCommandError::Failed(message) => CliError::Failed(message),
@@ -524,8 +583,8 @@ mod tests {
         assert_eq!(
             root_commands,
             [
-                "new", "dev", "build", "config", "generate", "schema", "dns", "domains", "mail",
-                "workers", "deploy",
+                "new", "dev", "build", "config", "env", "generate", "schema", "dns", "domains",
+                "mail", "workers", "deploy",
             ]
         );
         assert!(!root_commands.contains(&"migrate"));
@@ -610,7 +669,7 @@ mod tests {
     // ---- `ag new` input resolution (RFC-0018) ------------------------------
 
     use crate::interactive::Session;
-    use crate::request::{NewProjectRequest, Template};
+    use crate::request::{Module, NewProjectRequest, Template};
 
     fn scripted_session() -> Session {
         Session::default()
@@ -635,11 +694,16 @@ mod tests {
         Template::parse(name).expect("cataloged template")
     }
 
+    fn declared_module(name: &str) -> Module {
+        Module::parse(name).expect("declared module")
+    }
+
     #[test]
     fn complete_flags_never_prompt_even_in_a_terminal() {
         let resolved = resolve_new_request(
             Some("api".into()),
             Some(catalog_template("realtime")),
+            vec![declared_module("auth")],
             &terminal_session(),
             must_not_ask,
         );
@@ -648,26 +712,34 @@ mod tests {
             Ok(Resolved::FromFlags(NewProjectRequest {
                 name: "api".into(),
                 template: catalog_template("realtime"),
+                modules: vec![declared_module("auth")],
             }))
         );
     }
 
     #[test]
     fn non_interactive_session_never_prompts_and_defaults_the_template() {
-        let resolved =
-            resolve_new_request(Some("api".into()), None, &scripted_session(), must_not_ask);
+        let resolved = resolve_new_request(
+            Some("api".into()),
+            None,
+            Vec::new(),
+            &scripted_session(),
+            must_not_ask,
+        );
         assert_eq!(
             resolved,
             Ok(Resolved::FromFlags(NewProjectRequest {
                 name: "api".into(),
                 template: catalog_template("rest"),
+                modules: Vec::new(),
             }))
         );
     }
 
     #[test]
     fn non_interactive_session_without_a_name_is_a_usage_error() {
-        let resolved = resolve_new_request(None, None, &scripted_session(), must_not_ask);
+        let resolved =
+            resolve_new_request(None, None, Vec::new(), &scripted_session(), must_not_ask);
         assert!(matches!(resolved, Err(NewError::Usage(_))));
     }
 
@@ -677,7 +749,7 @@ mod tests {
             no_interactive_flag: true,
             ..terminal_session()
         };
-        let resolved = resolve_new_request(None, None, &session, must_not_ask);
+        let resolved = resolve_new_request(None, None, Vec::new(), &session, must_not_ask);
         assert!(matches!(resolved, Err(NewError::Usage(_))));
     }
 
@@ -687,6 +759,7 @@ mod tests {
         let resolved = resolve_new_request(
             Some("api".into()),
             None,
+            Vec::new(),
             &terminal_session(),
             |name, template| {
                 assert_eq!(name.as_deref(), Some("api"));
@@ -694,6 +767,7 @@ mod tests {
                 Ok(Some(NewProjectRequest {
                     name: "api".into(),
                     template: catalog_template("fullstack"),
+                    modules: Vec::new(),
                 }))
             },
         );
@@ -702,6 +776,7 @@ mod tests {
             Ok(Resolved::Asked(NewProjectRequest {
                 name: "api".into(),
                 template: catalog_template("fullstack"),
+                modules: Vec::new(),
             }))
         );
     }
@@ -709,7 +784,8 @@ mod tests {
     #[cfg(feature = "tui")]
     #[test]
     fn cancelling_the_interactive_flow_creates_nothing() {
-        let resolved = resolve_new_request(None, None, &terminal_session(), |_, _| Ok(None));
+        let resolved =
+            resolve_new_request(None, None, Vec::new(), &terminal_session(), |_, _| Ok(None));
         assert_eq!(resolved, Ok(Resolved::Cancelled));
     }
 
@@ -719,17 +795,30 @@ mod tests {
     #[test]
     fn printed_equivalent_command_reproduces_the_interactive_request() {
         for &template in Template::ALL {
+            let modules = if template.as_str() == "layered" {
+                vec![declared_module("auth"), declared_module("cache")]
+            } else {
+                Vec::new()
+            };
             let asked = NewProjectRequest {
                 name: "my-api_2".into(),
                 template,
+                modules: modules.clone(),
             };
             let command = asked.equivalent_command();
             let cli = Cli::try_parse_from(command.split_whitespace()).expect("parse");
-            let Some(Commands::New { name, template }) = cli.command else {
+            let Some(Commands::New {
+                name,
+                template,
+                with,
+            }) = cli.command
+            else {
                 panic!("the equivalent command is not `ag new`: {command}");
             };
             let template = template.as_deref().and_then(Template::parse);
-            let resolved = resolve_new_request(name, template, &scripted_session(), must_not_ask);
+            let modules = with.iter().map(|value| declared_module(value)).collect();
+            let resolved =
+                resolve_new_request(name, template, modules, &scripted_session(), must_not_ask);
             assert_eq!(resolved, Ok(Resolved::FromFlags(asked)));
         }
     }

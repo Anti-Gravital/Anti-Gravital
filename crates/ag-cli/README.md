@@ -11,9 +11,14 @@
 
 ## Subcommands
 
-### `ag new [name] [--template rest|realtime|fullstack]`
+### `ag new [name] [--template NAME] [--with MODULE]...`
 
-Creates a new project.
+Creates a new project. `--with` is repeatable and enables a declared module
+(`data`, `auth`, `cache`, `mail`, `workers`, `storage`, `realtime`, `observe`)
+in the `[modules]` table of the generated `ag.toml` (`RFC-0019` stage A). It
+requires a template that produces a manifest (for example `--template layered`);
+otherwise it exits with a clear error before creating anything. The default
+scaffold is unchanged and the printed equivalent command includes the flags.
 
 With every input on the command line it runs without asking anything:
 
@@ -88,6 +93,25 @@ runtime uses, before the file is replaced atomically. Unrelated keys and
 comments are preserved. A legacy `[bind] host/port` table from older templates
 is normalized in memory so scaffolded projects validate; it is rewritten to
 the canonical `bind = "host:port"` form on the next `set`.
+
+### `ag env list|check` (RFC-0020, stage B)
+
+Read-only views over the variables declared in the `[env.*]` tables of
+`ag.toml`, resolved through `ag_core::EnvLoader`:
+
+```bash
+ag env list [--manifest ag.toml] [--env NAME]
+ag env check [--manifest ag.toml] [--env NAME]
+```
+
+`list` prints each declaration with its type, required/secret flags, source and
+presence. `check` resolves the environment exactly as startup would and exits 1
+with every problem at once on failure, so it is usable in CI. Neither command
+writes a file, reads an encrypted secrets file, or prints a value, including a
+non-secret default. `--env NAME` is a label only in stage B: environment-specific
+sources and the `set`/`unset`/`keygen`/`recipients`/`export` commands are later
+stages. Both commands support the global `--output json` flag with the versioned
+`env.list` / `env.check` envelopes of the `0.2.0` contract.
 
 ### `ag` with no arguments (RFC-0018, stage C)
 

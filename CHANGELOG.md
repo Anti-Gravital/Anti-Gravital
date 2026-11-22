@@ -9,6 +9,7 @@ primera version etiquetada.
 
 
 
+
 ### CI maintainability guardrails (RFC-0022)
 
 Added:
@@ -1588,3 +1589,46 @@ Added (documentation and issue-board only; no code, no phase change):
   updated with verified child counts (16 children / 15 CLOSED for #76;
   31 children / 26 CLOSED for #142; #149 is now CLOSED).
 - No issue was closed: every gate is still real and unresolved.
+
+### Declared environment and `Secret<T>` in ag-core (RFC-0020 stage B)
+
+Added:
+
+- `ag_core::secret::Secret<T>` (also re-exported at the crate root). `Debug`
+  and `Display` print `[redacted]`, there is no `Serialize` implementation
+  (enforced by a `compile_fail` doctest), the inner value is overwritten on
+  drop through `zeroize::Zeroize`, and the value is readable only via an
+  explicit `expose() -> &T`.
+- `ag_core::env` with `EnvDeclaration`, `EnvLoader`, `EnvType`, `LoadedEnv`,
+  `EnvValue` and `EnvValidationError`. The loader reads only declared keys
+  from the process environment (non-UTF-8 values are reported, not panics),
+  falls back to a declared default, and validates
+  `string | int | bool | url | duration | path` before returning an immutable
+  `LoadedEnv`. All problems are collected into one error; messages contain
+  the name, expected type and sources checked but never the value. Secret
+  values are delivered as `Secret<String>` with their exact source bytes.
+  `EnvValidationError` converts into `AgError::Config` so a composition root
+  can fail before a listener opens.
+- Explicit workspace dependencies on `zeroize` (secret clearing) and `url`
+  (URL validation). Both were already resolved in `Cargo.lock`, so no new
+  transitive graph is introduced.
+
+Changed:
+
+- `ag-core` crate documentation now describes the secret and declared
+  environment API, its startup contract and the additive migration policy.
+
+Tests:
+
+- Redaction of `Debug`/`Display` (including alternate and container
+  formatting), compile-fail serialization, explicit `expose`, and a probe
+  that observes `Zeroize::zeroize` being called on drop.
+- Declared-key isolation, all six type parsers and duration suffixes,
+  multi-problem fail-fast reporting with no values in the message, optional
+  and default handling, redaction of loaded secrets, process-environment
+  loading and error conversion.
+
+Scope: stage B only. The `[env]` declaration in `ag.toml`, the encrypted
+secrets file, the `ag env` commands and module migration off direct
+`std::env::var` calls remain later stages of RFC-0020. No existing call site
+was changed.

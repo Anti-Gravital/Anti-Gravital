@@ -10,6 +10,22 @@
 - Predecessor RFC: RFC-0019 (`ag.toml`), RFC-0018 (interactive forms)
 - Comment period: waived by BDFL decision.
 
+## Implementation status (stage B, 2026-11-21)
+
+- Stage B / PR 1 is implemented on branch `community4/envsecrets`: `Secret<T>`
+  and the declared environment loader live in `ag-core` with tests covering
+  redaction, absence of serialization, zeroization on drop, explicit expose,
+  type validation, declared-key isolation and fail-fast multi-error
+  reporting without printing values.
+- Resolution order currently implements the process environment and the
+  declared default from section 4.2. The encrypted file source (4.4), the
+  `[env]` declaration in `ag.toml` (4.1), the `ag env` commands (4.6), module
+  migration off direct `std::env::var` reads (PR 4) and `ag env export` with
+  the interactive form (PR 5) are still future stages.
+- Existing `std::env::var` call sites are unchanged: this stage is additive.
+  This note records stage progress only; the accepted design above is not
+  modified.
+
 ## 1. Motivation
 
 Configuration is where most production incidents and most leaks start: a

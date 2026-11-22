@@ -1,7 +1,7 @@
 # Self-hosted runner for the 24-hour fuzz gate
 
 English canonical (ADR-0008). This document prepares a host for the workflow
-`.github/workflows/fuzz-24h.yml`, enabled by RFC-0035. It is an operations
+`.github/workflows/fuzz-24h.yml`, enabled by RFC-0036. It is an operations
 guide, not gate evidence. Preparing the runner does **not** close issue #156 or
 move the `Fuzz 24h` row to `pass`.
 

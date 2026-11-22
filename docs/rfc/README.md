@@ -99,4 +99,4 @@ como `superseded`.
 | 0033 | Domain-to-deploy loop: contrato de dominio, entorno y visibilidad para hacer reachable un proyecto generado (ola 8, solo diseno) | propuesta | `RFC-0034-domain-to-deploy-loop.md` |
 | 0033 | Renderizado local de artefactos de despliegue con `ag deploy plan\|apply\|status` | propuesta; alcance local autorizado en wave 7, NO autoriza el deploy cloud de Fase 5 | `RFC-0034-local-deploy-artifact-rendering.md` |
 | 0035 | Opt-in CI check for independent DKIM verification (#178, no cierra la puerta de buzon real) | aceptada (periodo de comentarios dispensado) | `RFC-0035-independent-dkim-ci.md` |
-| 0035 | Gate de fuzzing de 24 horas programado en runner propio (issue #156) | aceptada (BDFL, periodo de comentarios dispensado); no cierra la issue #156 | `RFC-0035-scheduled-fuzz-24h-gate.md` |
+| 0035 | Gate de fuzzing de 24 horas programado en runner propio (issue #156) | aceptada (BDFL, periodo de comentarios dispensado); no cierra la issue #156 | `RFC-0036-scheduled-fuzz-24h-gate.md` |

@@ -1,6 +1,6 @@
 name: fuzz-24h-gate
 
-# Scheduled 24-hour fuzz gate, enabled by RFC-0035.
+# Scheduled 24-hour fuzz gate, enabled by RFC-0036.
 # Runs ONLY on a dedicated self-hosted runner; public GitHub-hosted runners
 # never carry the self-hosted label used by the jobs below. The jobs also
 # refuse to run when runner.environment is not "self-hosted".
@@ -21,7 +21,7 @@ on:
         type: string
         default: "nightly-2026-11-22"
   schedule:
-    # Monthly at 03:00 UTC on the 1st. Cadence is a policy decision (RFC-0035).
+    # Monthly at 03:00 UTC on the 1st. Cadence is a policy decision (RFC-0036).
     - cron: "0 3 1 * *"
 
 # No default token grants. Each job declares the minimum it needs.
@@ -67,7 +67,7 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
           echo "The 24h fuzz gate must not run on a public hosted runner." >&2
-          echo "See docs/fuzz/self-hosted-runner.md (RFC-0035)." >&2
+          echo "See docs/fuzz/self-hosted-runner.md (RFC-0036)." >&2
           exit 1
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

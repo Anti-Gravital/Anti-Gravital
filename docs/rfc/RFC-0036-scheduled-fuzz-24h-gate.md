@@ -1,4 +1,4 @@
-# RFC-0035 - Scheduled fuzz 24h gate
+# RFC-0036 - Scheduled fuzz 24h gate
 
 - Status: accepted. Comment period waived by recorded BDFL decision
   (2026-11-22). The waiver is recorded in section 10.

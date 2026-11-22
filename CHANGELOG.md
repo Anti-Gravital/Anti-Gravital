@@ -2775,7 +2775,7 @@ Added:
 - `scripts/run-fuzz-window.sh`: optional `FUZZ_TARGETS` input selects a subset
   of the seven canonical targets for per-target automation. Unknown names fail
   closed and the default all-seven behavior is unchanged.
-- `docs/rfc/RFC-0035-scheduled-fuzz-24h-gate.md`: accepted RFC with recorded
+- `docs/rfc/RFC-0036-scheduled-fuzz-24h-gate.md`: accepted RFC with recorded
   BDFL waiver of the comment period (CLAUDE.md rule 28).
 - `docs/fuzz/self-hosted-runner.md`: host requirements, service account and
   network isolation, disk sizing, pinned toolchain, runner labels and

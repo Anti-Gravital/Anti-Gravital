@@ -158,7 +158,7 @@ RAM_HUMAN="$(free -h | awk '/^Mem:/{print $2}')"
 RAM_BYTES="$(free -b | awk '/^Mem:/{print $2}')"
 RAM_KIND="$(ram_type)"
 RAM_KIND="${RAM_KIND:-unknown}"
-STORAGE="$(lsblk -d -n -o MODEL,ROTA 2>/dev/null | tr '\n' ';' | sed 's/;$//' || true)"
+STORAGE="$(lsblk -d -n -o MODEL,ROTA -e 7 2>/dev/null | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | tr '\n' ';' | sed 's/;$//' || true)"
 STORAGE="${STORAGE:-unknown}"
 ULIMIT_N="$(ulimit -n)"
 SOMAXCONN="$(sysctl -n net.core.somaxconn 2>/dev/null || echo unknown)"
@@ -402,6 +402,10 @@ fi
 # Consolidated rule-17 summary. Curating the report
 # (docs/benchmarks/pre-fase5-performance.md) remains a human step: raw oha
 # output is never reduced to a number by this script.
+E2E_ARTIFACTS=""
+if [[ "$MODE" == "reference" ]]; then
+  E2E_ARTIFACTS=" build-hello-world.log binary-size.txt e2e-runs.csv server-N.log oha-run-N.txt"
+fi
 {
   echo "# Rule 17 evidence summary"
   echo "generated_at=$DATE_ISO"
@@ -421,7 +425,7 @@ fi
     echo "methodology=criterion at reduced samples for harness sanity; end-to-end phase not executed; informative hardware only, no design-target claim"
   fi
   echo "standard_deviation_source=std_dev.point_estimate from target/criterion/<bench>/new/estimates.json (see estimates-summary.csv); the printed time triplet is a 95% CI of the mean"
-  echo "artifacts=metadata.txt no-run.log ag-core-criterion.log ag-workers-criterion.log estimates-summary.csv $( [[ "$MODE" == "reference" ]] && echo 'build-hello-world.log binary-size.txt e2e-runs.csv server-N.log oha-run-N.txt' )"
+  echo "artifacts=metadata.txt no-run.log ag-core-criterion.log ag-workers-criterion.log estimates-summary.csv${E2E_ARTIFACTS}"
 } | tee "$OUT_DIR/rule17-summary.txt"
 
 echo "Artifacts written to $OUT_DIR; generated target/criterion is not committed."

@@ -53,9 +53,12 @@ Documentacion del harness de fuzzing del compilador DSL (cargo-fuzz).
 Incluye instrucciones para el gate manual de 24h requerido antes de
 cerrar Fase 3 e historial de crashes encontrados y corregidos. El
 procedimiento canonico de verificacion y el esquema de evidencia JSONL
-estan en `24h-gate-verification.md` y `windows-jsonl-schema.md`. RFC-0035
-autoriza el workflow programado `.github/workflows/fuzz-24h.yml`, que solo
-corre en un runner auto-alojado con la etiqueta `fuzz-dedicated` y no
+estan en `24h-gate-verification.md` y `windows-jsonl-schema.md`. El runbook
+operativo (`24h-gate-runbook.md`) describe el preflight, los siete comandos con
+`FUZZ_TARGETS`, los artefactos y los pasos humanos de cierre; su verificacion
+estructural esta en `docs/audits/fuzz-24h-workflow-structural-verification.md`.
+RFC-0036 autoriza el workflow programado `.github/workflows/fuzz-24h.yml`, que
+solo corre en un runner auto-alojado con la etiqueta `fuzz-dedicated` y no
 cierra la issue #156. La preparacion del host, el aislamiento de red, el
 dimensionamiento de disco y los comandos de verificacion estan en
 `docs/fuzz/self-hosted-runner.md`.

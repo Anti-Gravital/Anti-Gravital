@@ -1,0 +1,4 @@
+name = "microservices-starter"
+description = "Starter for a multi-service workspace with shared contracts."
+category = "infrastructure"
+external_requirements = []

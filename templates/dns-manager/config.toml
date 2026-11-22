@@ -1,0 +1,16 @@
+# Configuration for {{name}}.
+
+[server]
+bind = "127.0.0.1:8080"
+
+[provider]
+# The bundled adapter is a native in-memory implementation of the ag-domains
+# DnsProvider trait: it needs no credentials and is suitable for development
+# and tests. For production, enable ag-domains' adapter feature for your DNS
+# provider and supply its token (for example AG_CLOUDFLARE_TOKEN).
+kind = "memory"
+
+[mail_records]
+# SPF/DKIM/DMARC values the service can publish as TXT records.
+spf = "v=spf1 -all"
+dmarc = "v=DMARC1; p=none; rua=mailto:dmarc@example.com"

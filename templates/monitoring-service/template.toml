@@ -1,0 +1,4 @@
+name = "monitoring-service"
+description = "Metrics and health endpoint scaffold with OpenTelemetry wiring."
+category = "infrastructure"
+external_requirements = []

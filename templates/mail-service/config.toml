@@ -1,0 +1,21 @@
+# Configuration for {{name}}. All values may also be supplied via environment
+# variables; environment variables take precedence in `src/main.rs`.
+
+[server]
+bind = "127.0.0.1:8080"
+
+[smtp]
+# Leave host empty (or unset AG_SMTP_HOST) to run in dry-run mode: emails are
+# logged but never delivered. Set these values to deliver through an SMTP relay.
+host = ""
+port = 587
+username = ""
+password = ""
+from = "no-reply@localhost"
+
+[dkim]
+# Configuration stub only. Real DKIM signing lives in ag-mail's `mta` feature
+# and requires a private key supplied by the deployment. No key is bundled.
+selector = ""
+domain = ""
+key_path = ""

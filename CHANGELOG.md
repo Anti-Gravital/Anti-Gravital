@@ -9,6 +9,7 @@ aun no etiquetados.
 
 
 
+
 ### Added
 
 - `templates/testing-suite/`: plantilla de catálogo con ejemplos de tests
@@ -1962,6 +1963,14 @@ Fixed:
 Note: the generated `config.toml` `[bind]` section is still informational in
 the alpha - the running listener is controlled by `BIND` or the loopback
 default - but its value now matches the safe runtime default.
+
+### Verification
+
+- Se andamiaron las seis plantillas en `/tmp/ag-infra-verify/<nombre>`
+  sustituyendo `{{name}}` en todos los archivos excepto `template.toml`, y se
+  ejecuto `cargo check --offline` con `CARGO_TARGET_DIR` compartido,
+  `CARGO_INCREMENTAL=0` y `CARGO_PROFILE_TEST_DEBUG=0`.
+- Resultado: 6/6 exitosos, sin warnings ni errores de compilacion.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

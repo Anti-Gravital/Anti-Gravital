@@ -172,3 +172,8 @@ La auditoria de seguridad de los artefactos de despliegue (ola 7) cubre
 Dockerfiles, compose, manifiestos de Kubernetes, stacks y `ag deploy` con
 hallazgos por familia, severidad y recomendacion de merge. Referencia:
 `docs/audits/deployment-security-review.md`.
+La auditoria de seguridad del circuito de dominios (ola 8) revisa el
+aprovisionamiento DNS/dominio (`ag-domains`, `ag-edge`) y los disenos de las
+ramas de la ola 8, con checklist de controles, hallazgos por componente y
+recomendacion de go/no-go. Referencia:
+`docs/audits/domain-loop-security-review.md`.

@@ -42,6 +42,25 @@ names, bound-host TLS, no secret material). ER-11 is a command contract and was
 checked by inspection. No DNS record, certificate or cluster operation was
 performed; this is design and example data only.
 
+### Domain loop security review (wave 8)
+
+Added:
+
+- `docs/audits/domain-loop-security-review.md`: read-only audit of DNS/domain
+  provisioning (`ag-domains`, `ag-edge`) and the wave-8 domain-loop designs, with
+  a mission checklist, per-component findings and a go/no-go recommendation.
+
+Fixed / tracked:
+
+- Issue #196: ag-edge wildcard hostname matching accepted non-subdomain hosts
+  (`notexample.com` matched `*.example.com`) in `router.rs`, `tls.rs` and
+  `cert.rs`. Filed with reproduction and verification criteria; blocks wildcard
+  hostnames until fixed. Not a wave-8 regression but reachable by the loop.
+
+Observation: at review time only the envrules design had been merged; the
+remaining wave-8 branch code was not available, so the branch-code audit is
+deferred to a follow-up of the committed tips.
+
 ### Deployment security fixes (issues #194, #195)
 
 Fixed:

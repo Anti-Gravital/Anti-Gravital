@@ -1,0 +1,15 @@
+# Retrieval-augmented generation settings for {{name}}.
+# All stages run locally by default: no model API key or vector database.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[pipeline]
+# Words per chunk produced during ingest.
+chunk_words = 40
+# Number of chunks passed to the answer generator when top_k is omitted.
+top_k = 3
+# "extractive" is the bundled local generator. Remote generators would read
+# their credentials from the environment (for example AG_MODEL_API_KEY).
+generator = "extractive"

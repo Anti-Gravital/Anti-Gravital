@@ -1,0 +1,11 @@
+# WASI host configuration for {{name}}.
+
+[bind]
+# Informational only: this scaffold is a command-line host skeleton.
+host = "127.0.0.1"
+port = 8080
+
+[host]
+# Capabilities the host is willing to grant to a plugin. A manifest that asks
+# for anything outside this list is rejected at registration time.
+allowed_capabilities = ["fs_read", "env_read"]

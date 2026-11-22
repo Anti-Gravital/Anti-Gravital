@@ -1,0 +1,4 @@
+name = "vector-search"
+description = "Semantic search service with a VectorRepository trait and an in-memory vector store"
+category = "ai"
+external_requirements = ["VECTOR_DB_URL (optional: durable backend only)"]

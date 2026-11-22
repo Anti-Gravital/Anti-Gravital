@@ -1,0 +1,4 @@
+name = "wasi-plugin"
+description = "WASI plugin host skeleton with a local plugin registry and capability policy"
+category = "infrastructure"
+external_requirements = ["WASI_MODULE_PATH (optional: path to a compiled WASI module)"]

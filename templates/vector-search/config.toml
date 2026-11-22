@@ -1,0 +1,13 @@
+# Semantic search configuration for {{name}}.
+# The default store is in-memory and needs no database.
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[store]
+# "memory" is the bundled offline store. A durable implementation can be
+# added on top of ag-data and selected here; its connection string would be
+# read from the environment (for example VECTOR_DB_URL), not from this file.
+kind = "memory"
+dimensions = 16

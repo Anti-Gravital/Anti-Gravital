@@ -84,9 +84,40 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### Wave 6 template catalog: AI and data templates
 
+Added:
 
+- Four new `ag new` template directories under `templates/`, each with
+  `template.toml`, `README.md`, `Cargo.toml`, `config.toml` and `src/main.rs`:
+  - `ai-backend-template`: provider-agnostic chat API on `ag-core` with a
+    local echo `ChatProvider` by default; `GET /health`, `GET /providers`,
+    `POST /chat`. No API key or network needed for the default provider.
+  - `vector-search`: `VectorRepository` trait plus an in-memory implementation
+    with deterministic local embeddings and cosine ranking; `POST /documents`,
+    `GET /search`, `GET /health`.
+  - `rag-pipeline`: local ingest (chunking) -> retrieve -> answer flow with an
+    `AnswerGenerator` trait and an extractive local generator; `POST /ingest`,
+    `POST /ask`, `GET /health`.
+  - `wasi-plugin`: WASI host skeleton with `PluginManifest`, a capability
+    allow-list, a registry and load/unload lifecycle; module execution is
+    marked as reserved for the `ag-wasm-host` public API.
+- Optional external needs are declared in `template.toml` metadata
+  (`AG_MODEL_API_KEY`, `VECTOR_DB_URL`, `WASI_MODULE_PATH`). No secret is
+  hardcoded in source or config files.
+- `ag-ai` and `ag-wasm-host` are linked as reserved integration boundaries. At
+  the pinned revision they are Phase 0 skeletons without a public API, so the
+  product concepts are implemented locally and the integration points are
+  documented; no capability is claimed that the crates do not provide.
 
+Verification:
+
+- Each template was scaffolded to a scratch directory with `{{name}}`
+  substituted and `cargo check --offline` passed (shared target dir, all four
+  exit 0, no warnings).
+- Runtime smoke tests: all HTTP endpoints returned the expected JSON, invalid
+  chat/ask inputs returned 422, similarity ranking was correct, and the WASI
+  host ran both with and without `WASI_MODULE_PATH` (exit 0).
 
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 

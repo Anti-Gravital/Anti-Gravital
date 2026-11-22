@@ -88,6 +88,30 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 
 
+### Deployment artifact validation harness (wave 7)
+
+Added:
+
+- `scripts/validate-deploy.sh`: read-only validator for wave-7 deployment
+  artifacts. Parses every YAML file under `DEPLOY_ROOT` with PyYAML, checks
+  every Dockerfile for a non-root final `USER` and a `HEALTHCHECK` on service
+  images, verifies `ag deploy plan` emits a plan id without writing files,
+  verifies `ag deploy apply` refuses without a plan, and verifies `ag deploy
+  status` answers without Docker or a cluster. Optional steps use kustomize,
+  kubeconform, docker and kubectl. Each step reports PASS, FAIL or SKIP with
+  its exit code; a missing artifact is FAIL and an unavailable tool is an
+  honest SKIP. Exits non-zero on any FAIL. Supports `DEPLOY_ROOT`, `AG_BIN`
+  and `PROJECT_DIR` overrides for validating merged in-progress trees.
+- `docs/audits/deployment-validation.md`: real runs at commit `e9347ab` with
+  host, tool versions, date and verbatim output. Against the assembled
+  in-progress artifacts, 34/34 YAML files parsed, 10/10 kustomizations rendered
+  and the Dockerfile passed both checks. After the deploy role finished the
+  CLI, a real locked build produced an `ag` where both plan targets emit a
+  `dpl-<target>-<16 hex>` id without writing files, apply refuses without a
+  plan and status answers offline: final result PASS=9 FAIL=0 SKIP=3. Earlier
+  FAIL runs are kept as history; no stub was used to fake a PASS. Docker build,
+  server-side kubectl dry-run and kubeconform are SKIP with reasons.
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:

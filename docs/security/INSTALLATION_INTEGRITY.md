@@ -105,3 +105,36 @@ Consequently a user must still obtain the manifest through a trusted channel out
 of band. Until that channel and a published key exist, a verified install rests
 on how well the user protected that channel. This is tracked in issue #141; the
 issue stays open until a real out-of-band publication or signature path exists.
+
+## Roadmap to a real trust anchor (RFC-0030)
+
+`RFC-0030` proposes the design that would close the gap. It is a draft: no key
+has been generated, no public key has been published outside the repository,
+and no signed artifact exists. The issue stays open.
+
+The intended order, with each step in its own PR after the RFC is accepted:
+
+1. Accept RFC-0030 by the decisor defined in `docs/rfc/README.md`.
+2. Generate one Ed25519 release key offline with `minisign -G`, with two
+   maintainers present; keep the private key offline and out of CI. Publish the
+   public key and fingerprint in `SECURITY.md` and in two independent out-of-band
+   channels (project DNS TXT record plus a maintainer-controlled channel).
+3. Regenerate the checksum manifest from the exact tagged tree in a release
+   workflow and publish `installers-<tag>.sha256` plus its detached
+   `installers-<tag>.sha256.minisig` as release assets. Signing stays an offline
+   maintainer step; CI never holds the private key.
+4. Pin the public key locally after comparing fingerprints in both channels.
+   Verify the signature first, then the checksums, then run the installer.
+   Verification is local and offline; no keyless or online-only path.
+5. Demonstrate the full flow on a clean machine, keep CI checksum/MSRV parity
+   green, and run `install.ps1` in Windows CI with the external manifest set.
+   Only then propose closing #141 with that evidence.
+
+The signed manifest is data: a `sha256sum`-format file with the bare names
+`install.sh` and `install.ps1`, LF endings, and a detached signature over its
+exact bytes. The installers keep the `AG_INSTALLER_CHECKSUMS` interface and
+still fail closed before any Cargo action. With the variable unset, the
+repository-local list remains a clearly labelled **development path**, not a
+trust anchor. Line-ending conversion of the attested files breaks both the hash
+and the signature. Rotation, revocation and the failure behavior are specified
+in RFC-0030 section 4.6 and 4.9.

@@ -103,6 +103,40 @@ fuera del repositorio, de modo que este mecanismo define la interfaz del ancla
 de confianza pero no crea el ancla. El asunto #141 permanece abierto hasta que
 exista una publicacion o firma realmente externa.
 
+### Hoja de ruta del ancla de confianza (RFC-0030)
+
+`RFC-0030` propone el diseno que podria cerrar #141. Es un borrador: no existe
+clave generada, ni clave publica publicada fuera del repositorio, ni artefacto
+firmado. La RFC no cierra el asunto. El orden previsto, tras la aceptacion de la
+RFC, es:
+
+1. Aceptar RFC-0030 por el decisor definido en `docs/rfc/README.md`.
+2. Generar una clave Ed25519 sin conexion con `minisign -G` con dos
+   mantenedores presentes; la clave privada nunca entra en CI ni en el
+   repositorio. Publicar la clave publica y su huella en `SECURITY.md` y en dos
+   canales independientes fuera del repositorio (registro DNS TXT del proyecto
+   mas un canal controlado por un mantenedor).
+3. Regenerar el manifiesto de checksums desde el arbol etiquetado exacto en un
+   workflow de release y publicar `installers-<tag>.sha256` junto con su firma
+   separada `installers-<tag>.sha256.minisig` como activos del release. La firma
+   se realiza fuera de lineas; CI no posee la clave privada.
+4. Fijar localmente la clave publica tras comparar la huella en ambos canales;
+   verificar primero la firma, despues los checksums y por ultimo ejecutar el
+   instalador. La verificacion es local y sin red: no se exige un servicio
+   externo ni un flujo keyless.
+5. Demostrar el flujo completo en una maquina limpia, mantener en verde la
+   paridad de checksums y MSRV en CI, y ejecutar `install.ps1` en CI de Windows
+   con el manifiesto externo. Solo entonces proponer el cierre de #141.
+
+El manifiesto firmado es un dato: un archivo en formato `sha256sum` con los
+nombres `install.sh` e `install.ps1`, saltos de linea LF y una firma separada
+sobre sus bytes exactos. Los instaladores conservan la interfaz
+`AG_INSTALLER_CHECKSUMS` y siguen fallando en cerrado antes de cualquier accion
+de Cargo. Sin la variable, la lista local sigue siendo una ruta de
+**desarrollo** debidamente etiquetada, no un ancla de confianza. La rotacion,
+revocacion y el comportamiento ante fallos estan en RFC-0030, secciones 4.6 y
+4.9.
+
 ## Reconocimiento
 
 Los reporteros que sigan este proceso seran reconocidos en el

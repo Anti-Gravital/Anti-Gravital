@@ -7,6 +7,21 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Design proposal: signed release manifest and trust anchor (issue #141)
+
+Added (documentation only; no code, no key, no release assets, no phase change):
+
+- `RFC-0030` proposes offline Ed25519 release-key custody, a signed SHA-256
+  manifest published as a release asset, and an independently published public
+  key, so installer verification does not depend on an external service.
+- The RFC records key rotation and revocation, offline bootstrap, signature
+  verification order, Windows and macOS parity, fail-closed behavior, and the
+  exact evidence required before issue #141 can be closed.
+- Roadmap sections added to `SECURITY.md` and
+  `docs/security/INSTALLATION_INTEGRITY.md` state honestly that no key or
+  signed artifact exists yet and that the issue stays open.
+- Refs #141. The RFC is a draft: it advances the issue but does not close it.
+
 
 ### CI verification for the ag-observe OTLP feature (issue #149, RFC-0028)
 

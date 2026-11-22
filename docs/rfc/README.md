@@ -95,3 +95,4 @@ como `superseded`.
 | 0028 | Verificacion en CI del feature opt-in `otlp` de ag-observe | aceptada | `RFC-0028-otlp-feature-ci-verification.md` |
 | 0026 | Sustitucion de chrono: evaluacion y plan de migracion bloqueado | propuesta, bloqueada por la decision OAuth2 de RFC-0029 | `RFC-0026-chrono-replacement.md` |
 | 0029 | Sustituir oauth2 5.0.0 por un cliente nativo de Authorization Code + PKCE en ag-auth | propuesta | `RFC-0029-oauth2-chrono-unblock.md` |
+| 0030 | Signed release manifest and trust anchor (diseno; no cierra #141) | propuesta; no aceptada | `RFC-0030-signed-release-manifest-and-trust-anchor.md` |

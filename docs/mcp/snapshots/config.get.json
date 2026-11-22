@@ -1,0 +1,1 @@
+{"contract_version":"0.2.0","command":"config.get","status":"ok","data":{"key":"bind","kind":"bind","value":"127.0.0.1:8080","source":"file"}}

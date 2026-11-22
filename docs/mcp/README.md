@@ -8,34 +8,39 @@ This directory holds the versioned contract data for machine consumers of the
 | `cli-json-contract-0.2.0.md` | Current human-readable versioned CLI JSON contract. |
 | `cli-json-0.2.0.schema.json` | Current JSON Schema (draft 2020-12) for `--output json`. |
 | `cli-json-contract-0.1.0.md`, `cli-json-0.1.0.schema.json` | Historical 0.1.0 record. |
-| `snapshots/` | Golden outputs asserted by `crates/ag-cli/tests/json_output.rs`. |
+| `snapshots/` | Golden outputs and contract fixtures asserted by `crates/ag-cli/tests/json_output.rs`. |
 
 ## Current state
 
 RFC-0021 stage E is being implemented incrementally. This directory covers
-`ag --output json` for five read-only commands: `schema.lint`, `schema.diff`,
-`workers.list`, `deploy.plan` and `deploy.status`. The contract version is
-`0.2.0` and is unstable until Anti-Gravital 0.5. The two `deploy.*` shapes are
-local artifact rendering only (RFC-0034); the mutating `ag deploy apply`
-deliberately has no JSON shape.
+`ag --output json` for seven emitted read-only commands: `schema.lint`,
+`schema.diff`, `workers.list`, `deploy.plan`, `deploy.status`, `dns.plan` and
+`dns.status`. The contract version is `0.2.0` and is unstable until
+Anti-Gravital 0.5. The `deploy.*` shapes are local artifact rendering only
+(RFC-0034) and the `dns.*` shapes are offline manifest reads (RFC-0033); the
+mutating `ag deploy apply` and `ag dns apply` deliberately have no JSON shape.
+
+Three shapes are also defined in 0.2.0 as additive contract fixtures:
+`config.get`, `env.list` and `env.check` (snapshot files of the same names).
+They are not emitted yet: the CLI dispatch mapping lives in `cli.rs` and
+`main.rs`, owned by the clidev role. Until that wiring lands, `--output json`
+with those commands returns `unsupported_command`. The env shapes contain no
+value or default value, only presence, source and stable problem codes. See
+section 1 of the contract document.
 
 The following RFC-0024 section 9 prerequisites are **not** satisfied by this
 contract alone and remain tracked in `docs/audits/mcp-readiness-review.md`:
 
 - `--plan` / `--apply` and the shared audit sink (prerequisite 1, partial).
 - `Secret<T>` in the CLI executors (prerequisite 2).
-- Typed request/executor pairs for every command group (prerequisite 3).
+- Typed request/executor pairs for every command group (prerequisite 3); the
+  read shapes advance this but do not replace the general request pipeline.
 - The remaining design decisions (prerequisites 4-7).
 
 No `contract_version` bump may be made without updating the JSON Schema, the
 contract document, the `CONTRACT_VERSION` constant and the snapshots together.
+Adding a new command shape without changing an existing one is additive and
+stays inside the current pre-0.5 version (contract section 4, rules 2-4).
 The product owner of this version is Anti-Gravital; Gravital Fabric publishes
 its own independently versioned contract under `docs/mcp/` in its repository
 (ADR-0016).
-| `cli-json-contract-0.2.0.md` | Current human-readable CLI JSON contract. |
-| `cli-json-contract-0.1.0.md` | Superseded contract, kept as a historical artifact. |
-| `cli-json-0.1.0.schema.json` | Superseded schema, kept as a historical artifact. |
-RFC-0021 stage E is being implemented incrementally. The current contract
-version is `0.2.0` (unstable until Anti-Gravital 0.5) and covers five read-only
-commands: `schema.lint`, `schema.diff`, `workers.list`, `dns.plan` and
-`dns.status`. The last two were added by the domain-to-deploy loop (RFC-0033).

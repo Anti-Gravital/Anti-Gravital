@@ -8,6 +8,39 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Versioned config.get JSON shape (RFC-0024 prerequisite 3)
+
+Added:
+
+- `config.get` data shape in `crates/ag-cli/src/output.rs` with a closed field
+  set (`key`, `kind`, `value`, `source`). `key` and `kind` come from closed
+  sets, so command input can only reach the opaque `value` slot. The RFC-0018
+  key set excludes inline secrets, so no token, password or PEM body can be
+  serialized.
+- Additive update of `docs/mcp/cli-json-0.2.0.schema.json` (command enum, data
+  definitions) and `snapshots/config.get.json`, `snapshots/env.list.json` and
+  `snapshots/env.check.json` contract fixtures with tests. The env shapes were
+  requested by the clidev role and pin field order for its `ag env list|check`
+  data structs; they expose declarations, source and presence only, never a
+  value or default value.
+- Contract documents now distinguish emitted shapes from defined fixtures and
+  state that additive command shapes do not bump `contract_version` pre-0.5.
+
+Changed:
+
+- Repaired the duplicated trailing fragments in the 0.2.0 contract document and
+  `docs/mcp/README.md`; the dns.plan and dns.status shapes are now documented
+  in the main body instead of an unheaded tail.
+
+Not changed:
+
+- `contract_version` remains `0.2.0`: no existing shape changed incompatibly.
+- No prose output, mutating behaviour or CLI dispatch changed. `config.get`,
+  `env.list` and `env.check` are defined fixtures, not emitted commands:
+  `cli.rs` and `main.rs` dispatch wiring is owned by the clidev role and is
+  still pending. Mutating commands still refuse `--output json` before
+  dispatch, and no secret is echoed.
+
 ### Edge wildcard matching (issue #196)
 
 Fixed:

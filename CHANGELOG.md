@@ -10,6 +10,7 @@ aun no etiquetados.
 
 
 
+
 ### Added
 
 - `templates/testing-suite/`: plantilla de catálogo con ejemplos de tests
@@ -1971,6 +1972,22 @@ default - but its value now matches the safe runtime default.
   ejecuto `cargo check --offline` con `CARGO_TARGET_DIR` compartido,
   `CARGO_INCREMENTAL=0` y `CARGO_PROFILE_TEST_DEBUG=0`.
 - Resultado: 6/6 exitosos, sin warnings ni errores de compilacion.
+
+### Template design conventions (wave 7)
+
+Added:
+
+- `docs/templates/TEMPLATE_DESIGN.md`: canonical English conventions shared by
+  the template catalog and the wave-7 deployment work. Defines the standard
+  project skeleton, naming and environment variables, the `/health` and
+  `/ready` probe contract, structured logging fields, configuration precedence,
+  secret handling (RFC-0020), the template-versus-adapter boundary, a
+  composition model, the upgrade path and the checklist for new templates.
+  Includes an honest Docker/Kubernetes compatibility matrix that separates
+  generated shapes, operator responsibilities and the native no-service
+  default, plus a list of known drift with existing templates. Documentation
+  only; no template, CLI or master document is modified.
+- `docs/INDEX.md`: entry for `docs/templates/`.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

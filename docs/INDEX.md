@@ -150,3 +150,11 @@ La revision de seguridad del camino de release alpha (ola 5) registra el
 estado de los controles de instalacion, prototypes y workflows, con dos
 defectos (#191 y #192) y cuatro observaciones. Referencia:
 `docs/audits/alpha-release-security-review.md`.
+Convenciones de diseno de las plantillas de proyecto y sus artefactos de
+despliegue. Referencia tecnica en ingles (canonico segun ADR-0008):
+`docs/templates/TEMPLATE_DESIGN.md` define el esqueleto estandar, nombres y
+variables de entorno, contrato de `/health` y `/ready`, precedencia de
+configuracion, secretos (RFC-0020), limite plantilla/adaptador, composicion,
+ruta de actualizacion, matriz Docker/Kubernetes y checklist para nuevas
+plantillas. La tabla de decision bilingue del catalogo esta en
+`docs/templates/README.md` y `docs/templates/GALLERY.md` (ola 6).

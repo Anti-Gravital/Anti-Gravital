@@ -31,7 +31,7 @@ fi
 # fallback. If neither is available, fail loudly instead of passing silently.
 has_emoji() {
     local text=$1
-    if command -v perl >/dev/null 2>&1; then
+    if command -v perl >/dev/null 2>&1 && printf '' | perl -e 'exit 0' 2>/dev/null; then
         printf '%s' "$text" | perl -CSD -ne '$f = 1 if /[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]/; END { exit($f ? 0 : 1) }'
         return $?
     fi

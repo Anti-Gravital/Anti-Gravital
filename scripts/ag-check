@@ -220,6 +220,17 @@ check_prohibited() {
     brand_pattern='\b(Resend|Postmark|Svix)\b|\bSES\b|(Resend|Ses|Postmark)Sender'
     emoji_pattern='[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]'
 
+    # Portable emoji detector, mirroring .githooks/commit-msg. Never degrade
+    # to a silent pass: fail the check if neither detector is available.
+    local emoji_detector="none"
+    if command -v perl >/dev/null 2>&1 && printf '' | perl -e 'exit 0' 2>/dev/null; then
+        emoji_detector="perl"
+    elif printf '%s' 'test' | grep -qP 't' 2>/dev/null; then
+        emoji_detector="grep"
+    else
+        fail prohibited "no emoji detector available (perl or GNU grep -P required)"
+    fi
+
     while IFS= read -r -d '' f; do
         is_excluded "$f" && continue
         # -I skips binary files (for example the master PDF), which would
@@ -230,7 +241,11 @@ check_prohibited() {
         if grep -IqE "$brand_pattern" "$f" 2>/dev/null; then
             fail prohibited "$f: retired third-party brand name (ADR-0011)."
         fi
-        if printf '%s' 'x' | grep -qP 'x' 2>/dev/null && grep -IPq "$emoji_pattern" "$f" 2>/dev/null; then
+        if [ "$emoji_detector" = "perl" ]; then
+            if perl -CSD -ne 'BEGIN { $f = 0 } $f = 1 if /[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]/; END { exit($f ? 0 : 1) }' "$f"; then
+                fail prohibited "$f: emoji in tracked content."
+            fi
+        elif [ "$emoji_detector" = "grep" ] && grep -IPq "$emoji_pattern" "$f" 2>/dev/null; then
             fail prohibited "$f: emoji in tracked content."
         fi
     done < <(find . -type f -not -path './.git/*' -not -path './target/*' -print0 2>/dev/null)

@@ -7,6 +7,16 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Local checks: no silent emoji skip (issue #190)
+
+Fixed:
+
+- `scripts/ag-check` and `.githooks/commit-msg` now verify that a Perl
+  interpreter actually runs before selecting it as the emoji detector, and
+  fail loudly when neither a working Perl nor GNU `grep -P` is available. A
+  missing detector can no longer be reported as `PASS: prohibited`.
+- The hook test suite covers the no-detector path (36 assertions, all passing).
+
 ### Opt-in local verification workflow
 
 Added:

@@ -145,6 +145,34 @@ printf 'emoji \360\237\230\200\n' > "$P/emoji.md"
 AG_CHECK_ROOT="$P" bash "$REPO/scripts/ag-check" --only prohibited >"$TMP/out" 2>&1
 expect_rc 1 $? "prohibited-content check fails on an emoji" "$TMP/out"
 
+# No detector available: must fail loudly instead of reporting a silent PASS.
+BIN="$TMP/no-detector-bin"
+mkdir -p "$BIN"
+for c in grep find git bash sed awk tr cat head; do
+    target="$(command -v "$c" 2>/dev/null)" || continue
+    ln -sf "$target" "$BIN/$c"
+done
+cat > "$BIN/perl" <<'WRAPPER'
+#!/usr/bin/env bash
+exit 127
+WRAPPER
+rm -f "$BIN/grep"
+cat > "$BIN/grep" <<'WRAPPER'
+#!/usr/bin/env bash
+for arg in "$@"; do
+    case "$arg" in
+        -P|-qP|-IPq) exit 2 ;;
+    esac
+done
+exec /usr/bin/grep "$@"
+WRAPPER
+chmod +x "$BIN/perl" "$BIN/grep"
+PATH="$BIN" AG_CHECK_ROOT="$P" bash "$REPO/scripts/ag-check" --only prohibited >"$TMP/out" 2>&1
+expect_rc 1 $? "prohibited-content check fails when no emoji detector exists" "$TMP/out"
+grep -q 'no emoji detector available' "$TMP/out" \
+    && ok "missing emoji detector is reported explicitly" \
+    || not_ok "missing emoji detector" "no explicit failure message"
+
 # --- cargo-backed command overrides -----------------------------------------
 AG_TEST_CMD='false' bash "$REPO/scripts/ag-check" --only test >"$TMP/out" 2>&1
 expect_rc 1 $? "a failing test command fails the check" "$TMP/out"

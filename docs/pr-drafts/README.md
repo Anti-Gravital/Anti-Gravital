@@ -98,3 +98,5 @@ Ramas con descriptor aceptando PR en este momento:
 - `community8/dnsarch`: `docs/pr-drafts/community8-dnsarch.md` (contrato RFC-0033
   del circuito dominio-despliegue y documentacion de extremo a extremo, ola 8,
   solo diseno).
+- `community8/dnsdocs`: `docs/pr-drafts/community8-dnsdocs.md` (guia bilingue
+  del circulo dominio-despliegue y enlaces de navegacion, ola 8).

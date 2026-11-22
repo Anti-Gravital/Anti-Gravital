@@ -9,6 +9,7 @@ aun no etiquetados.
 
 
 
+
 ### Environment and visibility rules for the domain loop (wave 8)
 
 Added:
@@ -2174,6 +2175,28 @@ Changed:
   subcommands with explicit alpha, local-only wording; the Phase 5 cloud
   deploy remains unimplemented. `docs/modules/ag-cli/README.md`, the RFC
   index and the MCP readiness review update note reflect the new scope.
+
+### Domain-to-deploy documentation (wave 8)
+
+Added:
+
+- `docs/dns/README.md`: bilingual guide (canonical English first, Spanish
+  after) for the domain-to-deploy loop. Covers prerequisites, the
+  `dev`/`staging`/`prod` environments, the commands implemented in the alpha
+  versus the wave-8 commands still planned, how to point a custom domain at a
+  running service, public/private visibility, troubleshooting (propagation,
+  ownership, wildcard, TLS) and security notes (no credentials in the repo).
+- Navigation links from `docs/INDEX.md` and the README reading-order tables in
+  both languages, plus a short appendix in
+  `docs/manual/04-instalacion-y-onboarding.md`.
+
+Changed:
+
+- No alpha status wording changed; only navigation links and the manual
+  appendix were added. The guide explicitly marks `ag dns plan|apply|status`,
+  the one-command project-to-URL link and the environment/visibility config
+  keys as planned work on other wave-8 branches. `ag deploy` remains
+  unavailable in the alpha.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

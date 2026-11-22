@@ -33,6 +33,13 @@
 //! expected type and the sources that were checked, but **never the value**,
 //! including for variables that are not secrets.
 //!
+//! To bind this contract to configuration loading, use
+//! [`crate::ShieldConfig::from_path_with_env`]: it resolves the declaration
+//! before returning the config and the [`LoadedEnv`], so a composition root can
+//! fail before binding a listener. Each raw value is taken out of the source
+//! map and moved directly into [`Secret`] when declared secret; no unzeroized
+//! clone is left behind.
+//!
 //! # Resolution order
 //!
 //! Stage B implements the first and last sources of RFC-0020 section 4.2:
@@ -401,8 +408,9 @@ pub struct EnvLoader {
 }
 
 impl EnvLoader {
-    /// Builds a loader from `declarations`. Names must be unique; later
-    /// duplicates overwrite earlier ones during resolution.
+    /// Builds a loader from `declarations`. Names must be unique; if one is
+    /// repeated, the first occurrence is resolved and later duplicates are
+    /// ignored (they must not consume the raw value a second time).
     pub fn new(declarations: Vec<EnvDeclaration>) -> Self {
         Self { declarations }
     }
@@ -433,7 +441,7 @@ impl EnvLoader {
             };
             provided.insert(declaration.name.clone(), raw);
         }
-        self.resolve(&provided)
+        self.resolve(&mut provided)
     }
 
     /// Resolves from an injected set of `(key, value)` pairs.
@@ -464,20 +472,30 @@ impl EnvLoader {
                 provided.insert(key.to_owned(), RawValue::Present(value.as_ref().to_owned()));
             }
         }
-        self.resolve(&provided)
+        self.resolve(&mut provided)
     }
 
     fn resolve(
         &self,
-        provided: &HashMap<String, RawValue>,
+        provided: &mut HashMap<String, RawValue>,
     ) -> Result<LoadedEnv, EnvValidationError> {
         let mut values = HashMap::with_capacity(self.declarations.len());
         let mut problems = Vec::new();
+        // Declaration names must be unique. If a caller repeats one, only the
+        // first occurrence consumes the raw value; later duplicates are ignored
+        // instead of reporting a spurious "missing" problem.
+        let mut seen = HashSet::with_capacity(self.declarations.len());
 
         for declaration in &self.declarations {
+            if !seen.insert(declaration.name.as_str()) {
+                continue;
+            }
+            // Take the raw value out of the map instead of cloning it. A secret
+            // moved into `Secret` is zeroized on drop; a clone left behind in
+            // `provided` would be dropped as a plain, unzeroized String
+            // (wave-4 review observation O5).
             let raw = provided
-                .get(&declaration.name)
-                .cloned()
+                .remove(&declaration.name)
                 .unwrap_or(RawValue::Missing);
             let candidate = match raw {
                 RawValue::Present(value) => Some(value),
@@ -495,17 +513,22 @@ impl EnvLoader {
                 continue;
             };
 
-            match parse_value(declaration.ty, &candidate) {
-                Some(parsed) => {
-                    let value = if declaration.secret {
-                        EnvValue::Secret(Secret::new(candidate))
-                    } else {
-                        parsed
-                    };
-                    values.insert(declaration.name.clone(), value);
-                }
-                None => problems.push(problem(declaration, EnvErrorReason::InvalidSyntax)),
+            // Validate without allocating a copy of `candidate`. Parsing first
+            // and discarding the parsed value would leave a second, unzeroized
+            // copy of secret material (for example a secret declared as a
+            // string or URL). The single owned String now moves straight into
+            // `Secret`; non-secret values are parsed once into their final type.
+            if !is_valid(declaration.ty, &candidate) {
+                problems.push(problem(declaration, EnvErrorReason::InvalidSyntax));
+                continue;
             }
+            let value = if declaration.secret {
+                EnvValue::Secret(Secret::new(candidate))
+            } else {
+                parse_value(declaration.ty, &candidate)
+                    .expect("is_valid guarantees the value parses")
+            };
+            values.insert(declaration.name.clone(), value);
         }
 
         if problems.is_empty() {
@@ -516,7 +539,6 @@ impl EnvLoader {
     }
 }
 
-#[derive(Clone)]
 enum RawValue {
     Missing,
     NotUnicode,
@@ -528,6 +550,26 @@ fn problem(declaration: &EnvDeclaration, reason: EnvErrorReason) -> EnvError {
         name: declaration.name.clone(),
         expected: declaration.ty,
         reason,
+    }
+}
+
+/// Checks that `raw` parses as `ty` without allocating a copy of `raw`.
+///
+/// Kept separate from [`parse_value`] so validating a secret never leaves a
+/// second, unzeroized copy of the material in a discarded parsed value. The two
+/// functions must agree: `is_valid` is a pure pre-check, `parse_value` builds
+/// the final owned value only after validation succeeded.
+fn is_valid(ty: EnvType, raw: &str) -> bool {
+    match ty {
+        EnvType::String => true,
+        EnvType::Int => raw.trim().parse::<i64>().is_ok(),
+        EnvType::Bool => parse_bool(raw.trim()).is_some(),
+        EnvType::Url => match url::Url::parse(raw.trim()) {
+            Ok(url) => url.has_host(),
+            Err(_) => false,
+        },
+        EnvType::Duration => parse_duration(raw.trim()).is_some(),
+        EnvType::Path => !raw.trim().is_empty(),
     }
 }
 
@@ -772,5 +814,81 @@ mod tests {
             .into();
         assert_eq!(error.code(), "config_error");
         assert!(error.to_string().contains("ABSENT"));
+    }
+
+    #[test]
+    fn secret_source_is_taken_out_instead_of_cloned() {
+        // Regression for wave-4 review observation O5. `resolve` must remove
+        // each raw value from the source map rather than clone it, otherwise a
+        // plain, unzeroized copy of a secret survives after the load.
+        let loader = EnvLoader::new(vec![
+            EnvDeclaration::new("TOKEN", EnvType::String).secret(true),
+            EnvDeclaration::new("PORT", EnvType::Int),
+        ]);
+        let mut provided = HashMap::new();
+        provided.insert(
+            "TOKEN".to_owned(),
+            RawValue::Present("s3cr3t-value".to_owned()),
+        );
+        provided.insert("PORT".to_owned(), RawValue::Present("8080".to_owned()));
+
+        let env = loader.resolve(&mut provided).expect("values resolve");
+        assert!(
+            provided.is_empty(),
+            "raw values must be taken out, not left as unzeroized clones"
+        );
+        assert_eq!(
+            env.secret("TOKEN").expect("secret").expose(),
+            "s3cr3t-value"
+        );
+        assert_eq!(env.int("PORT"), Some(8080));
+    }
+
+    #[test]
+    fn typed_secret_preserves_exact_raw_bytes_without_leaking_them() {
+        // Validation must not replace a secret's source with a parsed clone,
+        // including for non-string declared types. The exact raw bytes move
+        // into `Secret`; no parsed copy is left behind.
+        let loader = EnvLoader::new(vec![
+            EnvDeclaration::new("SECRET_URL", EnvType::Url).secret(true),
+            EnvDeclaration::new("SECRET_COUNT", EnvType::Int).secret(true),
+        ]);
+        let env = loader
+            .load_from([
+                ("SECRET_URL", "  https://user:pw@db.example/  "),
+                ("SECRET_COUNT", "  -42  "),
+            ])
+            .expect("typed secrets resolve");
+        let url = env.secret("SECRET_URL").expect("url secret");
+        let count = env.secret("SECRET_COUNT").expect("int secret");
+        assert_eq!(url.expose(), "  https://user:pw@db.example/  ");
+        assert_eq!(count.expose(), "  -42  ");
+        let rendered = format!("{env:?}");
+        assert!(!rendered.contains("pw@db"));
+        assert!(!rendered.contains("-42"));
+        assert!(rendered.contains("[redacted]"));
+    }
+
+    #[test]
+    fn fail_closed_load_never_prints_a_value() {
+        // A required secret that is missing and a malformed non-secret are
+        // both reported in one error, and neither value nor source reaches the
+        // rendered message.
+        let loader = EnvLoader::new(vec![
+            EnvDeclaration::new("NEVER_SET_DURING_TEST", EnvType::String).secret(true),
+            EnvDeclaration::new("BAD", EnvType::Int),
+        ]);
+        let error = loader
+            .load_from([("BAD", "top-secret-non-numeric")])
+            .unwrap_err();
+        assert_eq!(error.len(), 2);
+        assert_eq!(error.problems()[0].reason(), &EnvErrorReason::Missing);
+        assert_eq!(error.problems()[1].reason(), &EnvErrorReason::InvalidSyntax);
+        let rendered = error.to_string();
+        assert!(!rendered.contains("top-secret-non-numeric"));
+        assert!(rendered.contains("NEVER_SET_DURING_TEST"));
+        assert!(rendered.contains("BAD"));
+        let as_config: AgError = error.into();
+        assert!(!as_config.to_string().contains("top-secret-non-numeric"));
     }
 }

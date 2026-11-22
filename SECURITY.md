@@ -82,6 +82,27 @@ Quedan fuera de alcance, aunque cualquier reporte sera atendido:
 - Defaults seguros: sin CORS wildcard, sin CSRF abierto, sin secretos
   hardcodeados.
 
+## Integridad del instalador
+
+Los instaladores (`install.sh`, `install.ps1`) no se autoverifican contra
+`checksums/installers.sha256`: ese archivo vive en el mismo repositorio que los
+scripts y, por tanto, **no es una ancla de confianza**. Solo demuestra que el
+script local coincide con el commit revisado.
+
+Para una verificacion que un atacante con control del repositorio no pueda
+burlar, se debe exportar `AG_INSTALLER_CHECKSUMS` con la ruta a un manifiesto
+SHA-256 obtenido por un canal independiente del checkout. Con la variable
+definida, el instalador verifica sus propios bytes y aborta antes de compilar o
+instalar si el manifiesto falta, no contiene la entrada del script o no coincide
+(fallo cerrado). Sin la variable, los instaladores avisan y conservan el
+comportamiento anterior (fallback de desarrollo); consulte
+`docs/security/INSTALLATION_INTEGRITY.md`.
+
+Limitacion conocida: hoy no existe clave de firma ni canal de publicacion
+fuera del repositorio, de modo que este mecanismo define la interfaz del ancla
+de confianza pero no crea el ancla. El asunto #141 permanece abierto hasta que
+exista una publicacion o firma realmente externa.
+
 ## Reconocimiento
 
 Los reporteros que sigan este proceso seran reconocidos en el

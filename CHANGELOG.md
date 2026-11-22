@@ -13,6 +13,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1255,3 +1256,20 @@ Added:
   `mail-send/dkim` version conflict, the DKIM independent-verifier gap, the
   `allow_invalid_certs` connector trap in `mail-send` 0.7, and the missing
   DSL benchmark and fuzz baseline. No issue was closed by this review.
+
+### Installer integrity trust-anchor hook (issue #141)
+
+Added:
+
+- `install.sh` and `install.ps1` verify their own SHA-256 against an externally
+  supplied manifest when `AG_INSTALLER_CHECKSUMS` is set, and abort before any
+  build or install action on a missing file, a missing entry or a mismatch.
+  Unset, they warn and keep the previous behavior; no in-repository file is
+  treated as a trust anchor.
+- `tools/check-installers.sh` honors the same variable and fails closed when the
+  external manifest is unavailable, keeping the repository-local list as a
+  documented development fallback. It now tests the fail-closed paths.
+
+Known limitation: there is still no release key or out-of-band publication
+channel, so this is a trust-boundary hook rather than a trust anchor. Issue #141
+remains open; see `docs/security/INSTALLATION_INTEGRITY.md`.

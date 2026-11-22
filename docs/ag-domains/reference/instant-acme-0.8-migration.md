@@ -8,16 +8,20 @@ This document records the API surface to port. It does **not** change code:
 until the staging test of #87 passes before and after, the order-flow rewrite
 would be an unverified change to the code that keeps certificates valid.
 
-## Reproduction of the current failures
+## Reproduction of the failures
 
-A scratch checkout with `instant-acme = { version = "0.8", optional = true }`
-was checked with the shared build environment. Both 0.8.0 and 0.8.5 produce
-the same eight compiler errors in `acme/renewal.rs`:
+A throwaway copy outside the repository with
+`instant-acme = { version = "0.8", optional = true }` was checked offline on
+2026-11-22 (base `72b97ad`, rustc 1.99.1). Both 0.8.0 and 0.8.5 produce the
+same eight compiler errors in `acme/renewal.rs`:
 
 ```
-cargo check -p ag-domains --features acme --message-format=short
-cargo check -p ag-domains --all-features --all-targets --message-format=short
+cargo check -p ag-domains --features acme --message-format=short --offline
 ```
+
+The eight line numbers from the 2026-11-10 attempt are kept below as historical
+evidence. On the current tree the same eight errors are at 67, 89, 255, 264,
+285, 287, 295 and 327:
 
 ```
 67:43  E0599  no associated function `create` on `Account`
@@ -31,9 +35,12 @@ cargo check -p ag-domains --all-features --all-targets --message-format=short
 ```
 
 Issue #179 records nine compile errors from the 2026-11-10 attempt; the current
-tree reproduces eight with the published 0.8 releases. The ninth migration
-point below is the ready-wait/certificate polling path, which becomes visible
-once the earlier errors are fixed. Treat both lists as the porting checklist.
+tree reproduces eight with the published 0.8 releases. After those eight are
+fixed, `cargo check` passes and the existing `refresh()` / `certificate()` wait
+loop compiles unchanged. The documented ninth point is therefore a behavioral
+item to verify with the staging run, not a ninth compiler error on this tree.
+The verbatim spike output, the verified nine-point table and the file/line-level
+patch plan are in `docs/audits/instant-acme-08-compile-spike.md`.
 
 ## The nine migration points
 
@@ -94,8 +101,10 @@ once the earlier errors are fixed. Treat both lists as the porting checklist.
    `wait_for_order_ready` loop can be replaced by
    `order.poll_ready(&RetryPolicy)` and
    `order.poll_certificate(&RetryPolicy)`; `order.certificate()` still exists
-   for a manual polling loop. This is the point that also affects
-   `acme::ari` renewal scheduling, so it must be verified by the live run.
+   for a manual polling loop. That replacement is optional: the existing
+   `refresh()` / `certificate()` loops compile unchanged on 0.8 (compile spike).
+   This is the point that also affects `acme::ari` renewal scheduling, so it
+   must be verified by the live run.
 
 ## Current source locations (verified 2026-11-22)
 
@@ -113,14 +122,17 @@ in the scratch-checkout diagnostics are historical; the current
 | 4 `authorizations().await` | 259-262 | 262-265 | yes |
 | 5 manual challenge scan | 275-279 | 278-282 | yes |
 | 6 `key_authorization` | 282 | 285 | yes |
-| 7 `authz.identifier` | 281-284 | 284 | yes |
+| 7 `authz.identifier` | 281-284 | 287 (E0308 call site) | yes |
 | 8 `set_challenge_ready` | 290-295 | 293-298 | yes |
 | 9 `finalize` + wait loop | 315-378 | 326-381 (certificate at 334) | yes |
 
 The drift is additive (the file grew by a few lines), not a change of contract.
-The eight compiler diagnostics recorded above came from a scratch checkout with
-0.8.0/0.8.5 and keep their original line numbers as historical evidence; they
-are not the line numbers of the current tree.
+The eight compiler diagnostics in the historical block above keep their
+2026-11-10 line numbers; the current-tree lines observed in the 2026-11-22 spike
+are listed in the reproduction section and in the table. The E0308 of point 7
+is at line 287 (the `set_dns01_challenge` call), not at the `Identifier::Dns`
+destructure at line 284. Full evidence:
+`docs/audits/instant-acme-08-compile-spike.md`.
 
 ## Exit criteria for the port
 

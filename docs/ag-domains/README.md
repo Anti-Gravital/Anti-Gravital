@@ -37,7 +37,7 @@ historical DEBT-025).
   `reference/abuse-controls.md` (per-tenant limits + global ACME queue),
   `reference/tls-lifecycle.md`, `reference/security-model.md`,
   `reference/migration-compatibility.md`,
-  `reference/instant-acme-0.8-migration.md` (blocked port, #179)
+  `reference/instant-acme-0.8-migration.md` (blocked port, #179; spike in docs/audits/instant-acme-08-compile-spike.md)
 - Explanation: `explanation/apex-vs-subdomain.md`,
   `explanation/why-txt-ownership.md`, `explanation/http01-vs-dns01.md`,
   `explanation/routing-host-sni.md`, `explanation/purchase-vs-attachment.md`

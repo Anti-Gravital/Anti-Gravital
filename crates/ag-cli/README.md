@@ -1,11 +1,11 @@
 # ag-cli
 
-> Status: Phases 2-4.6 — implemented. The `ag` binary exposes project, DSL,
-> transactional-mail, DNS, local domain-attachment, and worker workflows documented
-> below (the `workers` operational group `run`/`enqueue`/`queues`/`dlq`/`doctor`
-> sits behind the default `workers-runtime` feature). `deploy`, `migrate`, and
-> `plugin` are not available; they require their future roadmap phases and approved
-> RFCs.
+> Status: Phases 2-4.7 — implemented. The `ag` binary exposes project, DSL,
+> transactional-mail, DNS, local domain-attachment, worker, and interactive
+> configuration workflows documented below (the `workers` operational group
+> `run`/`enqueue`/`queues`/`dlq`/`doctor` sits behind the default
+> `workers-runtime` feature). `deploy`, `migrate`, and `plugin` are not
+> available; they require their future roadmap phases and approved RFCs.
 > Criticality: Core.
 > Architecture chapter: docs/architecture/05-ecosistema-modulos.md
 
@@ -61,6 +61,45 @@ Other behavior:
 ### Global flag `--no-interactive`
 
 Accepted before or after the subcommand. Forces the non-interactive path.
+
+### `ag config` (RFC-0018, stage B)
+
+Without a subcommand, in an interactive terminal, opens a full-screen form
+for `config.toml`. Fields are grouped by section (bind address, runtime, CORS,
+CSRF, rate limiting, authentication and TLS), show their current value and a
+one-line description, and validate inline while you type. `r` opens a review
+step showing every change and its equivalent command before anything is
+written. Keys: `Up`/`Down` or `j`/`k` select, `Enter` edits, `Esc` cancels an
+edit, `q` aborts.
+
+Non-interactive parity, usable in scripts and CI:
+
+```bash
+ag config get bind                    # prints the value (or its default)
+ag config set rate_limit.enabled true # validates before writing
+ag config validate                    # exits non-zero on an invalid file
+```
+
+Keys are dotted TOML paths such as `bind`, `cors.allow_origins` or
+`rate_limit.per_ip_rps`. Secret material (an inline JWT public key PEM) is not
+exposed by the form or the flags; only file paths and claim names are editable.
+Every write is validated with `ag_core::ShieldConfig`, the same loader the
+runtime uses, before the file is replaced atomically. Unrelated keys and
+comments are preserved. A legacy `[bind] host/port` table from older templates
+is normalized in memory so scaffolded projects validate; it is rewritten to
+the canonical `bind = "host:port"` form on the next `set`.
+
+### `ag` with no arguments (RFC-0018, stage C)
+
+In an interactive terminal it opens a home screen that lists the commands
+available in the current context. Outside a project it offers project
+creation, help and version; inside a project (detected by `config.toml` and a
+`Cargo.toml` depending on `ag-core`) it offers `ag dev`, `ag generate`,
+`ag schema lint`, `ag config` and the read-only status commands. Keys:
+`Up`/`Down` or `j`/`k` select, `Enter` launches, `q` or `Esc` closes. The
+screen performs no work: it returns a command line that `main` re-parses
+through the real CLI and prints before running. Without a terminal it prints
+help, exactly as in earlier releases.
 
 ### `ag dev [--bind host:port]`
 

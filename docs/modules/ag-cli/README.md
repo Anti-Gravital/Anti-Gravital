@@ -23,13 +23,15 @@ and the dependency policy between Anti-Gravital crates.
 
 ## State
 
-Implemented through Phase 4.6. Eight top-level commands:
+Implemented through Phase 4.7. Nine top-level commands (plus bare `ag`):
 
 | Command | Phase | Purpose |
 | --- | --- | --- |
 | `ag new` | 2, 4.7-A | Scaffold a project from the `rest`, `realtime` or `fullstack` template. With missing input in an interactive terminal, a full-screen wizard asks for it (`RFC-0018`) |
 | `ag dev` | 2 | Development server with hot reload via `cargo-watch` |
 | `ag build` | 2 | Release build |
+| `ag config` | 4.7-B | Form for `config.toml` in a terminal; `get`, `set` and `validate` provide non-interactive parity through one shared executor (`RFC-0018`) |
+| bare `ag` | 4.7-C | Home screen that launches existing commands with keyboard navigation; prints help outside a terminal (`RFC-0018`) |
 | `ag generate` | 3 | Compile `schema.ag` into SQL, Rust, TypeScript and OpenAPI |
 | `ag schema lint`, `ag schema diff` | 3 | Schema diagnostics and breaking-change detection |
 | `ag domains ...` | 4.5 / `RFC-0011` | `check`, `sync`, `attach`, `instructions`, `export-zone`, `status`, `list`, `verify`, `detach`, `diagnose` |
@@ -54,15 +56,24 @@ RFC first.
 | `src/cli.rs` | clap definitions |
 | `src/commands/` | One module per command group |
 | `src/request.rs` | Typed requests shared by flags and interface |
+| `src/config.rs` | Config keys, typed config requests and the single validated executor |
 | `src/interactive.rs` | Decision on whether a session may prompt |
 | `src/tui/` | Interactive interface (`tui` Cargo feature) |
 
 ## Interactive interface (`RFC-0018`, accepted)
 
-Stage A is implemented: the `ag new` wizard, the global `--no-interactive`
-flag, automatic non-interactive mode, monochrome theme, degraded line prompts
-and terminal restoration. Flow and architecture diagrams:
-`docs/diagrams/cli-interactive-flow.md`.
+Stages A, B and C are implemented:
 
-Not implemented: stage B (`ag config`, `ag new --with MODULE`) and stage C
-(home screen for bare `ag`).
+- Stage A: the `ag new` wizard, the global `--no-interactive` flag, automatic
+  non-interactive mode, monochrome theme, degraded line prompts and terminal
+  restoration.
+- Stage B: `ag config get|set|validate` and the full-screen configuration form.
+  Both build a typed `ConfigRequest` handled by the single `execute_config`
+  executor. Keys mirror `ag_core::ShieldConfig`; writes are validated with that
+  loader before an atomic, format-preserving replace. Secret material is not
+  exposed. `ag new --with MODULE` (RFC-0018 section 4.4, module selection) is
+  still not implemented; it requires tested scaffold composition first.
+- Stage C: the bare-`ag` home screen, a launcher that returns a command line
+  for `main` to re-parse and run.
+
+Flow and architecture diagrams: `docs/diagrams/cli-interactive-flow.md`.

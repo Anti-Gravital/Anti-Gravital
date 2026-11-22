@@ -187,6 +187,19 @@ ag dev
 
 Walkthrough: [Your first API with Anti-Gravital](docs/manual/02-primera-api.md).
 
+To inspect or change configuration, run `ag config` for the interactive form
+or use its scriptable equivalents:
+
+```bash
+ag config get bind
+ag config set rate_limit.enabled true
+ag config validate
+```
+
+Every write is validated with the same `ShieldConfig` loader the runtime uses,
+and the file is replaced atomically. Bare `ag` opens a home screen in a
+terminal that launches these commands without performing work itself.
+
 ### The Anti-DSL
 
 The `.ag` schema is the source of truth of a project. Abridged excerpt from
@@ -234,7 +247,9 @@ through v0.8 (`worker` declarations). Full reference:
 
 | Command | Purpose |
 | --- | --- |
+| `ag` (no arguments) | In an interactive terminal, opens a home screen that launches existing commands; otherwise prints help |
 | `ag new [NAME] [--template TYPE]` | Scaffold a project (`rest`, `realtime`, `fullstack`). Missing input opens a guided wizard in an interactive terminal; `--no-interactive`, `CI` or a non-terminal session never prompt |
+| `ag config` | In a terminal, opens a full-screen form for `config.toml`. Non-interactive equivalents: `ag config get KEY`, `ag config set KEY VALUE` and `ag config validate` (the last exits non-zero on an invalid file, usable in CI). Secrets are never shown; key paths or environment-variable names only |
 | `ag dev [--bind ADDR]` | Run in development mode on `127.0.0.1:8080` by default (loopback only); pass `--bind 0.0.0.0:8080` to listen on all interfaces. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
@@ -395,7 +410,7 @@ Current state, phase by phase (evidence in
 | 4 | Standard modules: `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe`; DSL v0.5-v0.6 | Implemented; gate open | crates.io releases, scale benchmarks (50K WebSocket connections, 1M cache ops/s), community criteria |
 | 4.5 (additive) | `ag-mail` transactional email; `ag-domains` DNS/ACME/SPF-DKIM-DMARC; DSL v0.7 | Implemented; gate open | Gate re-run on the final consolidation commit; `ag-domains` has active ongoing work |
 | 4.6 (additive) | Pre-Phase-5 hardening: native outbound MTA + signed webhooks in `ag-mail` (A/B/C); `ag-workers` engine (D); DSL v0.8 | In progress | `ag-edge` producer wiring (issue #112); MTA live-delivery evidence (issue #153). The MTA durable spool now ships behind the `queue-postgres` feature (issue #151; its live PostgreSQL test is `#[ignore]`). Stages S1-S5 and the S7 `ag-mail` migration are done; the `ag-workers` PostgreSQL backend was verified against a live database (issues #108/#109/#103) |
-| 4.7 (additive) | Interactive terminal experience: full-screen TUI in the `ag` binary to create and configure a project, with exact non-interactive equivalents | In progress | `RFC-0018` accepted. Stage A done: `ag new` wizard, `--no-interactive`, monochrome and small-terminal modes. Stage B (`ag config`) and stage C (home screen) not started. Stages A-B are required for v0.5, stage C for 1.0 |
+| 4.7 (additive) | Interactive terminal experience: full-screen TUI in the `ag` binary to create and configure a project, with exact non-interactive equivalents | In progress | `RFC-0018` accepted. Stages A-B done: `ag new` wizard, `--no-interactive`, `ag config` get/set/validate plus the full-screen form with validation before write. Stage C done: bare `ag` home screen with keyboard navigation that only launches existing commands. Stages A-B are required for v0.5, stage C for 1.0 |
 | 4.8 (additive) | Project foundations: layered project structure, declared environment and encrypted secrets, verified one-command installation, remote console over SSH, machine-readable interface and a shared capability-scoped MCP interface | Accepted, not started | `RFC-0019`, `RFC-0020` and `RFC-0021` accepted on 2026-11-10; `RFC-0024` accepted on 2026-11-21; no code yet |
 | 5 | `ag-cloud`: simplified build/deploy, secrets, logs, rollback, domains, TLS | Pending | Opens when the pre-Phase-5 gate closes. Milestone: public beta v0.5 |
 | 5.5 (additive) | Serverless functions: independently deployed, sandboxed WebAssembly functions with explicit capabilities, triggered by HTTP, schedule, queue or events | Accepted, not started | `RFC-0023` accepted on 2026-11-10; no code yet |
@@ -644,6 +659,19 @@ ag dev
 
 Guia completa: [Tu primera API con Anti-Gravital](docs/manual/02-primera-api.md).
 
+Para inspeccionar o cambiar la configuracion, ejecuta `ag config` para abrir
+el formulario interactivo o usa sus equivalentes por script:
+
+```bash
+ag config get bind
+ag config set rate_limit.enabled true
+ag config validate
+```
+
+Cada escritura se valida con el mismo loader `ShieldConfig` que usa el runtime
+y el archivo se reemplaza de forma atomica. `ag` sin argumentos abre una
+pantalla de inicio que lanza estos comandos sin realizar trabajo por si misma.
+
 ### El Anti-DSL
 
 El schema `.ag` es la fuente de verdad de un proyecto. Extracto abreviado de
@@ -691,7 +719,9 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 
 | Comando | Proposito |
 | --- | --- |
+| `ag` (sin argumentos) | En una terminal interactiva abre una pantalla de inicio que lanza comandos existentes; en cualquier otro caso imprime la ayuda |
 | `ag new [NOMBRE] [--template TIPO]` | Crear un proyecto (`rest`, `realtime`, `fullstack`). Si falta un dato y la terminal es interactiva se abre un asistente guiado; con `--no-interactive`, `CI` o sin terminal nunca pregunta |
+| `ag config` | En una terminal abre un formulario a pantalla completa para `config.toml`. Equivalentes no interactivos: `ag config get CLAVE`, `ag config set CLAVE VALOR` y `ag config validate` (este ultimo sale con codigo distinto de cero si el archivo es invalido, util en CI). Los secretos nunca se muestran; solo rutas de clave o nombres de variable de entorno |
 | `ag dev [--bind DIR]` | Modo desarrollo; por defecto escucha en `127.0.0.1:8080` (solo loopback); `--bind 0.0.0.0:8080` para escuchar en todas las interfaces. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
@@ -814,7 +844,7 @@ Estado actual, fase por fase (evidencia en
 | 4 | Modulos estandar: `ag-auth`, `ag-cache`, `ag-realtime`, `ag-storage`, `ag-observe`; DSL v0.5-v0.6 | Implementada; puerta abierta | Releases en crates.io, benchmarks de escala (50K conexiones WebSocket, 1M ops/s de cache), criterios de comunidad |
 | 4.5 (aditiva) | Correo transaccional `ag-mail`; `ag-domains` DNS/ACME/SPF-DKIM-DMARC; DSL v0.7 | Implementada; puerta abierta | Reejecucion de la puerta sobre el commit final de consolidacion; `ag-domains` tiene trabajo activo |
 | 4.6 (aditiva) | Endurecimiento pre-Fase 5: MTA outbound nativo + webhooks firmados en `ag-mail` (A/B/C); motor `ag-workers` (D); DSL v0.8 | En curso | Wiring del modo producer en `ag-edge` (issue #112); evidencia de entrega en vivo del MTA (issue #153). El spool durable del MTA ya se entrega tras la feature `queue-postgres` (issue #151; su test con PostgreSQL vivo es `#[ignore]`). Las etapas S1-S5 y la migracion S7 de `ag-mail` estan hechas; el backend PostgreSQL se verifico contra una base viva (issues #108/#109/#103) |
-| 4.7 (aditiva) | Experiencia interactiva de terminal: TUI a pantalla completa en el binario `ag` para crear y configurar un proyecto, con equivalentes no interactivos exactos | En curso | `RFC-0018` aceptada. Etapa A hecha: asistente de `ag new`, `--no-interactive`, modos monocromo y de terminal pequena. Etapas B (`ag config`) y C (pantalla de inicio) sin iniciar. Las etapas A-B son requisito de la v0.5 y la etapa C de la 1.0 |
+| 4.7 (aditiva) | Experiencia interactiva de terminal: TUI a pantalla completa en el binario `ag` para crear y configurar un proyecto, con equivalentes no interactivos exactos | En curso | `RFC-0018` aceptada. Etapas A-B hechas: asistente de `ag new`, `--no-interactive`, `ag config` get/set/validate mas el formulario a pantalla completa con validacion antes de escribir. Etapa C hecha: pantalla de inicio de `ag` sin argumentos, con navegacion por teclado que solo lanza comandos existentes. Las etapas A-B son requisito de la v0.5 y la etapa C de la 1.0 |
 | 4.8 (aditiva) | Fundaciones del proyecto: estructura por capas, entorno declarado y secretos cifrados, instalacion verificada con un comando, consola remota sobre SSH, interfaz legible por maquina e interfaz MCP compartida por capacidades | Aceptada, sin iniciar | `RFC-0019`, `RFC-0020` y `RFC-0021` aceptadas el 2026-11-10; `RFC-0024` aceptada el 2026-11-21; sin codigo aun |
 | 5 | `ag-cloud`: build/deploy simplificados, secretos, logs, rollback, dominios, TLS | Pendiente | Abre cuando cierre la puerta pre-Fase 5. Hito: beta publica v0.5 |
 | 5.5 (aditiva) | Funciones serverless: funciones WebAssembly aisladas, desplegadas de forma independiente, con capacidades explicitas, disparadas por HTTP, schedule, cola o eventos | Aceptada, sin iniciar | `RFC-0023` aceptada el 2026-11-10; sin codigo aun |

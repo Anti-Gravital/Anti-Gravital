@@ -15,7 +15,7 @@
   "crates": [
     { "name": "ag-core", "class": "nucleo", "depends_on": [], "role": "Shield middleware pipeline (logging, rate-limit, CORS, auth-jwt, CSRF), core router/extractors, AgError." },
     { "name": "ag-dsl", "class": "nucleo", "depends_on": [], "role": "Anti-DSL compiler: lexer, parser, AST, semantic analysis, diagnostics, codegen." },
-    { "name": "ag-cli", "class": "nucleo", "depends_on": ["ag-dsl", "ag-domains", "ag-mail", "ag-workers"], "role": "The `ag` binary: scaffolding, dev server, build, DSL codegen, domains/mail/workers operations." },
+    { "name": "ag-cli", "class": "nucleo", "depends_on": ["ag-core", "ag-dsl", "ag-domains", "ag-mail", "ag-workers"], "role": "The `ag` binary: scaffolding, dev server, build, DSL codegen, domains/mail/workers operations, and interactive configuration validated with ag-core's ShieldConfig." },
     { "name": "ag-lsp", "class": "nucleo", "depends_on": ["ag-dsl"], "role": "Language Server Protocol tooling for the DSL (Phase 3)." },
     { "name": "ag-wasm-host", "class": "nucleo", "depends_on": [], "role": "WASM host/runtime surface." },
     { "name": "ag-auth", "class": "estandar", "depends_on": ["ag-data", "ag-mail"], "role": "Authentication: JWT Ed25519, WebAuthn, OAuth, API keys, refresh blacklist. Consumes ag-mail for verification/recovery/magic-links (sixth dependency rule)." },
@@ -44,6 +44,8 @@
     { "command": "ag new [name] [--template rest|realtime|fullstack] [--no-interactive]", "effect": "Scaffold a new project from a template. Missing input opens a guided wizard in an interactive terminal; non-interactive sessions never prompt." },
     { "command": "ag dev", "effect": "Run the development server with optional hot reload." },
     { "command": "ag build", "effect": "Build the project for production." },
+    { "command": "ag config [get KEY|set KEY VALUE|validate]", "effect": "Edit config.toml with a full-screen form in a terminal; get/set/validate give non-interactive parity through one shared executor validated with ag-core ShieldConfig (RFC-0018 stage B)." },
+    { "command": "ag (no arguments)", "effect": "In a terminal, open a home screen that launches existing commands and prints the command run; outside a terminal, print help (RFC-0018 stage C)." },
     { "command": "ag generate", "effect": "Run the DSL codegen over schema.ag." },
     { "command": "ag schema lint", "effect": "Lint/validate the DSL schema." },
     { "command": "ag run", "effect": "Run the built application." },

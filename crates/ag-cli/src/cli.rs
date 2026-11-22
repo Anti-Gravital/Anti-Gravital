@@ -196,7 +196,7 @@ pub(crate) enum Commands {
 pub(crate) enum DnsCommands {
     /// Shows the deterministic record plan from the local manifest (no network).
     Plan {
-        /// Project manifest with a [domain] table.
+        /// Project manifest with a \[domain\] table.
         #[arg(
             long,
             default_value = crate::commands::dns::DEFAULT_MANIFEST
@@ -212,7 +212,7 @@ pub(crate) enum DnsCommands {
     /// The exact plan id from `ag dns plan` is mandatory. Without --provider
     /// this command performs no network operation.
     Apply {
-        /// Project manifest with a [domain] table.
+        /// Project manifest with a \[domain\] table.
         #[arg(
             long,
             default_value = crate::commands::dns::DEFAULT_MANIFEST
@@ -240,7 +240,7 @@ pub(crate) enum DnsCommands {
     },
     /// Reports the last applied plan and whether the manifest is in sync.
     Status {
-        /// Project manifest with a [domain] table.
+        /// Project manifest with a \[domain\] table.
         #[arg(
             long,
             default_value = crate::commands::dns::DEFAULT_MANIFEST

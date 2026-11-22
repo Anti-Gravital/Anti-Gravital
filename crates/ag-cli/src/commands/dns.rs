@@ -1,6 +1,6 @@
 //! `ag dns` commands: local, plan-first domain configuration (RFC-0033).
 //!
-//! The canonical input is the `[domain]` table of the project's `ag.toml`.
+//! The canonical input is the `\[domain\]` table of the project's `ag.toml`.
 //! `plan` is read-only and deterministic; `apply` is gated by the exact plan
 //! id and writes only a local resolved configuration. A provider adapter is
 //! contacted only when `--provider` is passed explicitly. No credential, zone
@@ -506,7 +506,7 @@ fn resolve_binding(raw: &RawDomain, environment: &str) -> Result<Binding, String
     })
 }
 
-/// Loads and validates the `[domain]` binding. Missing required fields are
+/// Loads and validates the `\[domain\]` binding. Missing required fields are
 /// clear errors; no default host, zone or record set is ever fabricated.
 pub(crate) fn load_plan(
     manifest_path: &Path,

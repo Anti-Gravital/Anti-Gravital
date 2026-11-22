@@ -161,7 +161,7 @@ expected_master_hash() {
     # Hardcoding copies here drifted after the alpha roadmap update.
     local version_file="docs/master/VERSION.md" row
     [ -f "$version_file" ] || return 1
-    row="$(grep -F "\`$1\`" "$version_file" | head -n 1 || true)"
+    row="$(grep -F "| \`$1\`" "$version_file" | head -n 1 || true)"
     [ -n "$row" ] || return 1
     printf '%s' "$row" | grep -oE '[0-9a-f]{64}' | tail -n 1
 }

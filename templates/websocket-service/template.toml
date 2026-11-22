@@ -1,0 +1,5 @@
+name = "websocket-service"
+description = "WebSocket echo and broadcast endpoints with per-connection token-bucket rate limits"
+category = "realtime"
+external_requirements = []
+optional_services = ["NATS"]

@@ -1,0 +1,5 @@
+name = "edge-router"
+description = "Hostname-based edge routing with canonical redirects and ACME challenge handling via ag-edge"
+category = "realtime"
+external_requirements = []
+optional_services = ["Cloudflare"]

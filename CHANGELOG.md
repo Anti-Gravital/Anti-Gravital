@@ -5,6 +5,31 @@ semver (https://semver.org/). La primera version etiquetada es el
 prerelease `0.1.0-alpha.1`; las entradas bajo `[Unreleased]` son cambios
 aun no etiquetados.
 
+## [Unreleased]
+
+### Added
+
+- Seis plantillas nuevas de la catalogo de la Fase 6 (categoria `realtime`),
+  cada una con `template.toml`, `README.md`, `Cargo.toml`, `config.toml` y
+  `src/main.rs`, con dependencias de los crates existentes
+  `ag-realtime`, `ag-workers` y `ag-edge` fijadas al rev publico
+  `91a95ff61ed6ef4c9d3f1c9069357e97389d1382`:
+  - `realtime-chat-v2`: salas con presence y difusion SSE por sujeto.
+  - `websocket-service`: echo y broadcast WebSocket con limite de tasa
+    por conexion (token bucket).
+  - `worker-service`: jobs tipados con reintentos y DLQ en el backend
+    de memoria de `ag-workers`.
+  - `scheduled-jobs`: schedules recurrentes tipo cron con el scheduler
+    de instancia unica y store de memoria.
+  - `iot-ingest`: ingesta por lotes con contrapresion mediante canal
+    acotado y resumenes de lote en el bus de `ag-realtime`.
+  - `edge-router`: enrutado por hostname, redirects canonicos y
+    desafios ACME HTTP-01 con `ag-edge`.
+- Cada plantilla declara sus servicios externos opcionales
+  (NATS, Redis, PostgreSQL, proveedor DNS) en los metadatos y la
+  documentacion, sin exigirlos para compilar o ejecutar: el modo
+  nativo en memoria es el defecto.
+
 ## [0.1.0-alpha.1] - 2026-11-22
 
 Primer prerelease etiquetado. Version `0.1.0-alpha.1` tomada del manifest

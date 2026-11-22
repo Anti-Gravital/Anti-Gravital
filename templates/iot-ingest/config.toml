@@ -1,0 +1,20 @@
+# Local configuration for {{name}} (iot-ingest template).
+
+[bind]
+host = "127.0.0.1"
+port = 8080
+
+[ingest]
+# Bounded channel capacity. When full, POST /events returns 503: this is the
+# backpressure signal to the producer.
+channel_capacity = 128
+# Flush a batch once it reaches this size or the interval elapses.
+batch_size = 32
+flush_interval_ms = 200
+# Reject batches larger than this many events.
+max_batch_events = 1000
+
+[realtime]
+# Batch summaries are broadcast on the in-process bus on subject "iot.batch".
+mode = "inprocess"
+broadcast_capacity = 1024

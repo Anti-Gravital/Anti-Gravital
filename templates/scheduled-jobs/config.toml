@@ -1,0 +1,19 @@
+# Local configuration for {{name}} (scheduled-jobs template).
+
+[server]
+# How often the scheduler claims due ticks.
+tick_interval_ms = 20
+# How long the demo runs before triggering shutdown.
+run_ms = 1000
+
+[schedules]
+# Cron-like recurring intervals. v1 supports fixed intervals, not full cron
+# expressions; see README for the reasoning and the migration path.
+cleanup_sessions_ms = 100
+aggregate_metrics_ms = 250
+health_ping_ms = 500
+
+[backend]
+kind = "memory"
+# Durable singleton scheduling across processes requires the `postgres`
+# feature and DATABASE_URL (opt-in, not a build requirement).

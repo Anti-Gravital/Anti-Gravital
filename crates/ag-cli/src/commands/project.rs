@@ -283,7 +283,7 @@ pub(crate) fn write_file(path: &Path, content: &str) -> Result<(), String> {
     fs::write(path, content).map_err(|e| format!("failed to write '{}': {e}", path.display()))
 }
 
-/// Sets `name = true` for each module in the `[modules]` table of a generated
+/// Sets `name = true` for each module in the `\[modules\]` table of a generated
 /// `ag.toml`. Other lines, tables and the trailing newline are preserved.
 ///
 /// This is a targeted text edit rather than a TOML round-trip so the rest of

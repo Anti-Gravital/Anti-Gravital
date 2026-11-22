@@ -83,7 +83,7 @@ impl Module {
             .map(|entry| Module { name: entry.name })
     }
 
-    /// Canonical name used as the key in `ag.toml [modules]`.
+    /// Canonical name used as the key in `ag.toml \[modules\]`.
     pub(crate) fn as_str(self) -> &'static str {
         self.name
     }

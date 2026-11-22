@@ -99,7 +99,7 @@ pub(crate) enum Commands {
         template: Option<String>,
 
         /// Enables an additional Anti-Gravital module in the generated
-        /// ag.toml [modules] table. Repeatable. Requires a template that
+        /// ag.toml \[modules\] table. Repeatable. Requires a template that
         /// generates a manifest (for example `--template layered`); the
         /// default scaffold is unchanged when this flag is absent.
         #[arg(long, value_parser = crate::request::MODULE_NAMES)]

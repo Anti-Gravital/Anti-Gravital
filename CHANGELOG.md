@@ -1114,4 +1114,19 @@ Cambiado:
 - Workflow `quality.yml`: `cargo deny` ya pasa tras anadir
   `Unicode-3.0` a `deny.toml` (commit anterior).
 
+### Infrastructure review of issues #112, #149 and #141
+
+Added (review document only; no code, features or dependency changes):
+
+- `docs/audits/infrastructure-review-112-149-141.md` records the edge-to-workers
+  producer contract (acyclic direction, native default and the marker-feature
+  caveat), the evidence that the protoc premise for OTLP is stale at the pinned
+  dependency versions, a protoc-free path to re-enable the exporter, and an
+  installer trust-anchor design. It includes verification criteria and an
+  ADR-0009/ADR-0011 compliance check.
+- `docs/INDEX.md` now lists the audits directory and this review. No issue is
+  closed by this change: #112 stays blocked on a concrete consumer, #149 awaits
+  the opt-in exporter wiring and CI evidence, and #141 awaits a release
+  publication and signature path.
+
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD

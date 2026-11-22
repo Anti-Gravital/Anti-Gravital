@@ -32,6 +32,9 @@ Changed:
   advisory ignore remains because `object_store 0.14.2` has a non-optional
   chrono dependency behind the opt-in `ag-storage/s3` feature; issue #185 stays
   open until that edge disappears.
+- `fuzz/Cargo.lock` was updated to `time` 0.3.55 so the fuzz targets compile
+  against the migrated `SignedDuration` API; the fuzz smoke gate failed in CI
+  until this separate lockfile was refreshed.
 - Public API change in `ag-auth`: `authorization_url` now returns
   `(Url, OAuthState, PkceVerifier)` and `exchange_code` accepts
   `PkceVerifier` instead of oauth2's `CsrfToken` / `PkceCodeVerifier`.

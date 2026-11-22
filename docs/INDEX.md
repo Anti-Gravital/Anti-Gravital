@@ -51,7 +51,14 @@ Anti-DSL. Incluye la referencia implementada v0.1–v0.4
 ### docs/fuzz/
 Documentacion del harness de fuzzing del compilador DSL (cargo-fuzz).
 Incluye instrucciones para el gate manual de 24h requerido antes de
-cerrar Fase 3 e historial de crashes encontrados y corregidos.
+cerrar Fase 3 e historial de crashes encontrados y corregidos. El
+procedimiento canonico de verificacion y el esquema de evidencia JSONL
+estan en `24h-gate-verification.md` y `windows-jsonl-schema.md`. RFC-0035
+autoriza el workflow programado `.github/workflows/fuzz-24h.yml`, que solo
+corre en un runner auto-alojado con la etiqueta `fuzz-dedicated` y no
+cierra la issue #156. La preparacion del host, el aislamiento de red, el
+dimensionamiento de disco y los comandos de verificacion estan en
+`docs/fuzz/self-hosted-runner.md`.
 ### docs/benchmarks/, docs/security/, docs/governance/
 Vistas verbatim de los capitulos 16, 15 y 17 del maestro de
 Arquitectura, respectivamente.

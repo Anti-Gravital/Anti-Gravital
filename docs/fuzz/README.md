@@ -13,6 +13,20 @@ artefactos y la plantilla de resultados estan en
 esta registrada en `docs/fuzz/results/2026-11-22-smoke.md`. Ninguno de los dos
 documentos sustituye la corrida de 24 horas; la fila `Fuzz 24h` sigue `pending`.
 
+## Ejecucion programada en runner propio (RFC-0035)
+
+El workflow `.github/workflows/fuzz-24h.yml` dispara el gate de forma mensual y
+bajo demanda usando `scripts/run-fuzz-window.sh` con `DURATION=86400`, un target
+por job (siete jobs secuenciales) porque un job no puede alojar 168 h. Solo
+corre en un runner auto-alojado con la etiqueta `fuzz-dedicated`; nunca en un
+runner publico de GitHub. Usa acciones fijadas por SHA, permisos minimos y
+unicamente el `GITHUB_TOKEN`. La preparacion del host, el aislamiento de red,
+el dimensionamiento de disco y los comandos de verificacion estan en
+`self-hosted-runner.md`. Un aviso idempotente informa en la issue #156 si el
+gate falla. Ni el workflow ni la preparacion del runner prueban que el gate
+paso: la aceptacion sigue siendo una decision humana segun
+`24h-gate-verification.md`, y la issue #156 permanece abierta.
+
 Ejecutar en hardware Linux x86-64 antes de mergear la rama `fase-3`:
 
     cd fuzz

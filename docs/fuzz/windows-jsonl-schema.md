@@ -29,7 +29,7 @@ runs. It does not itself assert that the 24-hour gate passed.
 | `toolchain` | string | Toolchain passed to `cargo fuzz` (default `nightly`). |
 | `rustc_stable`, `rustc_toolchain`, `cargo_fuzz` | string | Exact tool versions. |
 | `host` | object | `uname`, `os`, `cpu`, `logical_cpus`, `ram`, `governor` as strings. |
-| `targets` | array of string | The seven target names the script attempted, in order. |
+| `targets` | array of string | The target names the script attempted, in order. All seven in the default path; a single name when `FUZZ_TARGETS` selects one target for per-target automation (RFC-0035). |
 | `all_exit_zero` | boolean | True only if every attempted target exited 0. |
 | `total_crashes` | integer | Total new crash artifacts observed across all targets. |
 | `run_dir` | string | Repo-relative directory with metadata, logs, timeline and crashes. |
@@ -65,6 +65,12 @@ runs. It does not itself assert that the 24-hour gate passed.
 A target that cannot run (toolchain error, build failure, non-zero exit) is
 recorded with its real non-zero `exit_code` and an empty log or partial log;
 it is never recorded as a skip or as a pass.
+
+A full-length run may be split into seven single-target invocations using
+`FUZZ_TARGETS` (RFC-0035), because one GitHub job cannot hold seven 86400 s
+windows. Each invocation writes its own `run` record with one `target` record.
+A human must aggregate all seven before accepting the gate; no single record
+claims a passed gate.
 
 ## Validation
 

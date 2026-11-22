@@ -7,6 +7,31 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Scheduled 24h fuzz gate runner (wave 11, issue #156)
+
+Added:
+
+- `.github/workflows/fuzz-24h.yml`: monthly and on-demand 24h fuzz gate on a
+  dedicated self-hosted runner (`fuzz-dedicated` label), with pinned actions,
+  empty top-level permissions and only the built-in `GITHUB_TOKEN`. It runs a
+  matrix of seven jobs (one target each, `max-parallel: 1`) because a job cannot
+  host 168 h, calls the existing harness with `DURATION=86400`, uploads logs,
+  rc files and crashes as per-target artifacts, and posts one idempotent failure
+  notice on #156 without closing it. It never runs on public GitHub-hosted
+  runners.
+- `scripts/run-fuzz-window.sh`: optional `FUZZ_TARGETS` input selects a subset
+  of the seven canonical targets for per-target automation. Unknown names fail
+  closed and the default all-seven behavior is unchanged.
+- `docs/rfc/RFC-0035-scheduled-fuzz-24h-gate.md`: accepted RFC with recorded
+  BDFL waiver of the comment period (CLAUDE.md rule 28).
+- `docs/fuzz/self-hosted-runner.md`: host requirements, service account and
+  network isolation, disk sizing, pinned toolchain, runner labels and
+  verification commands.
+
+The `Fuzz 24h` gate row stays `pending` and #156 stays open with `Refs #156`.
+No 24-hour run was executed in this worktree; enabling the runner is not
+evidence of a pass.
+
 ### Terminal user journey fixes (issues #199, #200-#206)
 
 Fixed:

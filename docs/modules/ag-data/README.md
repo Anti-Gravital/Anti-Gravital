@@ -45,3 +45,10 @@ generado, estrategia de migraciones y compatibilidad con sqlx 0.9) esta en
 `docs/modules/ag-data/data-layer-rls-tenancy.md`. Es un documento de diseno de
 Fase 5+, no codigo implementado; las decisiones pasaran a una RFC antes de su
 implementacion.
+
+The accepted contract is RFC-0025 with implementation deferred by ADR-0020.
+Concrete Phase 5+ implementation seams (schema annotation spelling, typed
+repository flow, the ag-auth identity hand-off and the rollout gates) are
+collected in `docs/modules/ag-data/phase5-implementation-readiness.md`. That
+note is additive only: it does not change RFC-0025, open Phase 5 or authorise
+code.

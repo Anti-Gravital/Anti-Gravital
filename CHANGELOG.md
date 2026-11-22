@@ -7,7 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### ag-data typed ORM / RLS design readiness (issue #154, wave 12)
 
+Added:
+
+- `docs/modules/ag-data/phase5-implementation-readiness.md`: additive Phase 5+
+  design note for issue #154. It makes the accepted RFC-0025 contract concrete
+  at three open seams without changing it: the `schema.ag` tenant marker
+  grammar (`@tenant` default, `@global` opt-out, generated `tenant_id`, lint
+  diagnostics), the typed repository flow (mandatory `TenantContext`, `AgTx` +
+  `set_config(..., true)`, explicit predicates, `ag generate --check` covering
+  the RLS migration), and the `ag-auth` claim hand-off into `TenantContext`.
+  It records that no second RFC was opened because RFC-0025 is already accepted
+  as design by ADR-0020, and lists the exact conditions that move #154 from
+  deferred to actionable (gate rows Fuzz 24h/Benchmarks/Open debt, Phase 5,
+  a separate implementation PR). No production code, phase or API changed;
+  #154 stays open with `Refs #154`.
 
 
 

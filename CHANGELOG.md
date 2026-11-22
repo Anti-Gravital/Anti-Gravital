@@ -10,6 +10,7 @@ aun no etiquetados.
 
 
 
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:
@@ -2784,6 +2785,31 @@ Added:
 The `Fuzz 24h` gate row stays `pending` and #156 stays open with `Refs #156`.
 No 24-hour run was executed in this worktree; enabling the runner is not
 evidence of a pass.
+
+### Split of oversized CLI, config, env and JSON test modules (issue #189)
+
+Changed:
+
+- `crates/ag-cli/src/cli.rs` 940 → 487 lines: the clap subcommand enums now
+  live in `src/cli/subcommands.rs` and are re-exported from `cli.rs`.
+- `crates/ag-cli/src/config.rs` 760 → 522 lines: `ConfigKey`, `ValueKind` and
+  `validate_change` now live in `src/config/config_key.rs` and are re-exported.
+- `crates/ag-core/src/env.rs` 894 → 591 lines: `LoadedEnv`, `EnvLoader` and the
+  parsing helpers now live in `src/env/loader.rs`; the public `env::{EnvLoader,
+  LoadedEnv}` paths are unchanged.
+- `crates/ag-cli/src/main.rs` 848 → 429 lines: JSON read-command dispatch moved
+  to `src/json_mode.rs` and the command dispatch table to `src/dispatch.rs`.
+- `crates/ag-cli/tests/json_output.rs` 721 → 598 lines: fixtures and helpers
+  moved to `tests/json_output_support/mod.rs` without renaming any test.
+- `tools/file-size-allowlist.txt`: 19 → 14 active exceptions; all five `#189`
+  entries removed. `bash tools/check-file-size.sh` now checks 310 tracked Rust
+  files and reports 14 exceptions.
+
+No CLI behaviour, emitted JSON shape, public API or test name changed. Verified
+with `cargo test -p ag-cli`, `cargo test -p ag-core`,
+`cargo test --workspace --all-features`, `cargo fmt --all -- --check`,
+`cargo clippy --workspace --all-targets --all-features -- -D warnings`,
+`cargo audit` and `cargo deny check`.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

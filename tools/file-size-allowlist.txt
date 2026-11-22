@@ -19,8 +19,3 @@ crates/ag-mail/src/sender/mta/mod.rs #142
 crates/ag-mail/src/sender/mta/queue.rs #142
 crates/ag-storage/src/store/mod.rs #142
 crates/ag-storage/src/store/server.rs #142
-crates/ag-cli/src/cli.rs #189
-crates/ag-cli/src/config.rs #189
-crates/ag-core/src/env.rs #189
-crates/ag-cli/src/main.rs #189
-crates/ag-cli/tests/json_output.rs #189

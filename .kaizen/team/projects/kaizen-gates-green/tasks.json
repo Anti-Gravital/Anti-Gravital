@@ -1,0 +1,30 @@
+[
+  {
+    "task": "F1-crear-tests-runsh",
+    "owner": "platform-engineer",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T20:06:12Z"
+  },
+  {
+    "task": "F4-arreglar-contador-deuda",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T20:06:12Z"
+  },
+  {
+    "task": "F2-ADR-autonomia-nivel3",
+    "owner": "knowledge-curator",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T20:06:12Z"
+  },
+  {
+    "task": "F3-catalogo-needs-human",
+    "owner": "facilitador-equipo",
+    "due": "2026-11-29",
+    "status": "assigned",
+    "created": "2026-11-22T20:06:12Z"
+  }
+]

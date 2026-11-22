@@ -1,0 +1,15 @@
+{
+  "slug": "kaizen-gates-green",
+  "goal": "Dejar kaizen check y kaizen-gates en verde sin relajar linea base ni tocar rutas protegidas",
+  "kpi": "kaizen check FAIL=0 y kaizen-gates framework+ratchet success en main",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "platform-engineer",
+    "knowledge-curator"
+  ],
+  "stage": "execute",
+  "created": "2026-11-22T20:05:49Z",
+  "updated": "2026-11-22T20:06:12Z"
+}

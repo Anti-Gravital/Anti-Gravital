@@ -84,9 +84,21 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### Template design conventions (wave 7)
 
+Added:
 
-
+- `docs/templates/TEMPLATE_DESIGN.md`: canonical English conventions shared by
+  the template catalog and the wave-7 deployment work. Defines the standard
+  project skeleton, naming and environment variables, the `/health` and
+  `/ready` probe contract, structured logging fields, configuration precedence,
+  secret handling (RFC-0020), the template-versus-adapter boundary, a
+  composition model, the upgrade path and the checklist for new templates.
+  Includes an honest Docker/Kubernetes compatibility matrix that separates
+  generated shapes, operator responsibilities and the native no-service
+  default, plus a list of known drift with existing templates. Documentation
+  only; no template, CLI or master document is modified.
+- `docs/INDEX.md`: entry for `docs/templates/`.
 
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 

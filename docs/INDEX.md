@@ -114,6 +114,17 @@ El catalogo de ejemplos incluye la guia de prototipo alpha
 generado sin servicios externos, con matriz de infraestructura requerida
 y evidencia de verificacion.
 
+### docs/templates/
+
+Convenciones de diseno de las plantillas de proyecto y sus artefactos de
+despliegue. Referencia tecnica en ingles (canonico segun ADR-0008):
+`docs/templates/TEMPLATE_DESIGN.md` define el esqueleto estandar, nombres y
+variables de entorno, contrato de `/health` y `/ready`, precedencia de
+configuracion, secretos (RFC-0020), limite plantilla/adaptador, composicion,
+ruta de actualizacion, matriz Docker/Kubernetes y checklist para nuevas
+plantillas. La tabla de decision bilingue del catalogo esta en
+`docs/templates/README.md` y `docs/templates/GALLERY.md` (ola 6).
+
 ### docs/es/ y docs/en/
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.

@@ -79,6 +79,14 @@ Procesos formales del proyecto: RFC para decisiones tecnicas
 importantes y ADR para decisiones arquitectonicas estables. Plantillas
 en `docs/rfc/template.md` y `docs/adr/template.md`.
 
+### docs/audits/
+
+Revisiones tecnicas y de gobernanza con evidencia sobre el estado real
+del repositorio. Incluye `mcp-readiness-review.md`, el analisis de
+brechas de RFC-0024 y ADR-0017 antes de implementar la interfaz de
+maquina por capacidades (solo diseno, sin codigo). Referencia:
+`docs/audits/mcp-readiness-review.md`.
+
 ### docs/diagrams/, docs/graph/, docs/examples/
 
 Espacios reservados para diagramas, knowledge graph y catalogo de

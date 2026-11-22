@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use ag_core::{EnvDeclaration, EnvLoader, EnvType, ShieldConfig};
 
 const OK_KEY: &str = "AG_CORE_CONFIG_ENV_TEST_OK";
+const OK_BOOL_KEY: &str = "AG_CORE_CONFIG_ENV_TEST_OK_BOOL";
 const BAD_KEY: &str = "AG_CORE_CONFIG_ENV_TEST_BAD";
 const UNSET_KEY: &str = "AG_CORE_CONFIG_ENV_TEST_UNSET";
 
@@ -78,14 +79,16 @@ fn from_path_with_env_reports_malformed_value_without_leaking_it() {
 
 #[test]
 fn from_toml_str_with_env_validates_and_returns_both() {
-    std::env::set_var(OK_KEY, "true");
-    let _guard = EnvGuard(OK_KEY);
-    let loader = EnvLoader::new(vec![EnvDeclaration::new(OK_KEY, EnvType::Bool).secret(true)]);
+    std::env::set_var(OK_BOOL_KEY, "true");
+    let _guard = EnvGuard(OK_BOOL_KEY);
+    let loader = EnvLoader::new(vec![
+        EnvDeclaration::new(OK_BOOL_KEY, EnvType::Bool).secret(true)
+    ]);
 
     let (config, env) = ShieldConfig::from_toml_str_with_env(r#"bind = "127.0.0.1:9001""#, &loader)
         .expect("valid config and env");
     assert_eq!(config.bind.port(), 9001);
-    let secret = env.secret(OK_KEY).expect("secret value");
+    let secret = env.secret(OK_BOOL_KEY).expect("secret value");
     assert_eq!(secret.expose(), "true");
     assert_eq!(format!("{secret:?}"), "[redacted]");
 }

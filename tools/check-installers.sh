@@ -72,7 +72,7 @@ if grep -F 'cargo ' "$fake_bin/old.log" >/dev/null; then
 fi
 
 PATH="$fake_bin:$PATH" FAKE_RUST_VERSION="$expected" bash install.sh >"$fake_bin/current.log" 2>&1
-grep -F 'cargo build --workspace --release' "$fake_bin/current.log" >/dev/null
+grep -F 'cargo build --locked --workspace --release' "$fake_bin/current.log" >/dev/null
 grep -F 'cargo install --path crates/ag-cli --locked' "$fake_bin/current.log" >/dev/null
 grep -F 'Installation complete.' "$fake_bin/current.log" >/dev/null
 

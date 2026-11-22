@@ -102,6 +102,15 @@ in the tree. This is a SemVer/API decision, not a mechanical swap.
 - Assessment: **blocking prerequisite**. None of these options belongs in
   #185's stated plan.
 
+Follow-up (2026-11-22, native OAuth implementation): the prerequisite above
+was resolved by RFC-0029 option 3.5. `ag-auth` now uses a native Authorization
+Code + PKCE client and no longer depends on `oauth2`; the `oauth2 5.0.0 ->
+ag-auth -> chrono` edge is gone from `cargo tree -i chrono`. The remaining
+chrono paths are those already listed in section 2: `ag-domains`, `ag-workers`,
+sqlx (via its `chrono` feature) and `workers-scheduled`. This does not change
+the selection of `time` 0.3.x in 3.1, nor the requirement to keep the dated
+`RUSTSEC-2026-0543` ignore until every remaining edge is gone.
+
 ## 4. Proposed design (after the blocker is resolved)
 
 ### 4.1 Dependency changes

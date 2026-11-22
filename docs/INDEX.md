@@ -141,3 +141,7 @@ La revision de seguridad del camino de release alpha (ola 5) registra el
 estado de los controles de instalacion, prototypes y workflows, con dos
 defectos (#191 y #192) y cuatro observaciones. Referencia:
 `docs/audits/alpha-release-security-review.md`.
+La auditoria de seguridad de los artefactos de despliegue (ola 7) cubre
+Dockerfiles, compose, manifiestos de Kubernetes, stacks y `ag deploy` con
+hallazgos por familia, severidad y recomendacion de merge. Referencia:
+`docs/audits/deployment-security-review.md`.

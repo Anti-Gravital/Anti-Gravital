@@ -88,6 +88,15 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 
 
+### Deployment artifact security review (wave 7)
+
+Added:
+
+- `docs/audits/deployment-security-review.md`: read-only audit of the wave 7
+  deployment artifacts (Dockerfiles, compose, Kubernetes manifests, stacks and
+  `ag deploy`) with a threat model, a mission checklist, findings per artifact
+  family with severity and recommendation, and a merge go/no-go.
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:

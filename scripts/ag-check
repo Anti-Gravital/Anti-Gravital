@@ -211,6 +211,8 @@ is_excluded() {
     case "$1" in
         ./CLAUDE.md|.git/*|./.git/*|./target/*) return 0;;
         ./.githooks/commit-msg|./.githooks/pre-push|./scripts/ag-check|./scripts/install-hooks.sh|./tests/hooks/test-hooks.sh) return 0;;
+        # policy source (contains the detector regex itself) -- #207 false positive
+        ./scripts/kaizen|./docs/audits/wave9-roadmap-decisions.md) return 0;;
         ./.github/workflows/docs.yml|./docs/adr/0011-politica-marcas-comerciales.md|./docs/rfc/RFC-0010-ag-mail-superficie-sin-marcas.md) return 0;;
     esac
     return 1
@@ -244,6 +246,9 @@ check_prohibited() {
         if grep -IqE "$brand_pattern" "$f" 2>/dev/null; then
             fail prohibited "$f: retired third-party brand name (ADR-0011)."
         fi
+        # Skip binaries before the UTF-8 emoji scan: perl -CSD decodes raw
+        # PDF bytes as UTF-8 and flags random bytes as emoji -- #207 false positive.
+        grep -Iq . "$f" 2>/dev/null || continue
         if [ "$emoji_detector" = "perl" ]; then
             if perl -CSD -ne 'BEGIN { $f = 0 } $f = 1 if /[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{1F000}-\x{1F2FF}]/; END { exit($f ? 0 : 1) }' "$f"; then
                 fail prohibited "$f: emoji in tracked content."

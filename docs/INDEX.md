@@ -133,3 +133,7 @@ Incluye tambien `wave4-review.md`, la revision de seguridad y de bajo
 nivel de las siete ramas de la wave 4 (tui, machinejson, layered,
 envsecrets, guardrails, hooks y qa), con hallazgos, severidad y
 recomendaciones. Referencia: `docs/audits/wave4-review.md`.
+La revision de seguridad del camino de release alpha (ola 5) registra el
+estado de los controles de instalacion, prototypes y workflows, con dos
+defectos (#191 y #192) y cuatro observaciones. Referencia:
+`docs/audits/alpha-release-security-review.md`.

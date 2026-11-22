@@ -1,0 +1,121 @@
+[
+  {
+    "id": "home-nav-launch",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 3142,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-nav-launch.json"
+  },
+  {
+    "id": "home-in-project",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 5152,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-in-project.json"
+  },
+  {
+    "id": "home-quit",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 4774,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-quit.json"
+  },
+  {
+    "id": "new-wizard-full",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 5559,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-wizard-full.json"
+  },
+  {
+    "id": "new-wizard-cancel",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 4146,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-wizard-cancel.json"
+  },
+  {
+    "id": "new-wizard-invalid-name",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 4498,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-wizard-invalid-name.json"
+  },
+  {
+    "id": "config-form-edit-submit",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 6570,
+    "transcript": "/tmp/opencode/w10-tui-final2/config-form-edit-submit.json"
+  },
+  {
+    "id": "config-form-quit",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 3121,
+    "transcript": "/tmp/opencode/w10-tui-final2/config-form-quit.json"
+  },
+  {
+    "id": "config-small-terminal",
+    "exit_code": 1,
+    "timed_out": false,
+    "total_bytes": 77,
+    "transcript": "/tmp/opencode/w10-tui-final2/config-small-terminal.json"
+  },
+  {
+    "id": "new-small-terminal-lines",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 3087,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-small-terminal-lines.json"
+  },
+  {
+    "id": "new-small-terminal-eof",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 47,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-small-terminal-eof.json"
+  },
+  {
+    "id": "home-no-color",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 4597,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-no-color.json"
+  },
+  {
+    "id": "home-term-dumb",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 1663,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-term-dumb.json"
+  },
+  {
+    "id": "new-noninteractive-flag",
+    "exit_code": 2,
+    "timed_out": false,
+    "total_bytes": 160,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-noninteractive-flag.json"
+  },
+  {
+    "id": "config-noninteractive-flag",
+    "exit_code": 2,
+    "timed_out": false,
+    "total_bytes": 120,
+    "transcript": "/tmp/opencode/w10-tui-final2/config-noninteractive-flag.json"
+  },
+  {
+    "id": "new-stdin-pipe",
+    "exit_code": 2,
+    "timed_out": false,
+    "total_bytes": 158,
+    "transcript": "/tmp/opencode/w10-tui-final2/new-stdin-pipe.json"
+  },
+  {
+    "id": "home-pipe-stdin-tty-out",
+    "exit_code": 0,
+    "timed_out": false,
+    "total_bytes": 1859,
+    "transcript": "/tmp/opencode/w10-tui-final2/home-pipe-stdin-tty-out.json"
+  }
+]

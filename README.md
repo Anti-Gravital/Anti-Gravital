@@ -248,6 +248,16 @@ ag dev
 
 Walkthrough: [Your first API with Anti-Gravital](docs/manual/02-primera-api.md).
 
+### Templates
+
+Use `ag new <name> --template <name> --no-interactive` to scaffold from a
+catalog template. The [template gallery](docs/templates/GALLERY.md) is the
+decision table from use case to template, external requirements and example
+command; [docs/templates/README.md](docs/templates/README.md) is its index.
+The current alpha binary accepts `rest`, `realtime`, `fullstack` and `layered`;
+the remaining wave-6 names arrive with the catalog registry and template
+directories.
+
 To inspect or change configuration, run `ag config` for the interactive form
 or use its scriptable equivalents:
 
@@ -788,6 +798,17 @@ ag dev
 ```
 
 Guia completa: [Tu primera API con Anti-Gravital](docs/manual/02-primera-api.md).
+
+### Templates (plantillas)
+
+Usa `ag new <nombre> --template <nombre> --no-interactive` para crear un
+proyecto desde una plantilla del catalogo. La
+[galeria de plantillas](docs/templates/GALLERY.md) es la tabla de decision de
+caso de uso a plantilla, requisitos externos y comando de ejemplo;
+[docs/templates/README.md](docs/templates/README.md) es su indice. El binario
+alpha actual acepta `rest`, `realtime`, `fullstack` y `layered`; los demas
+nombres de la ola 6 llegan con el registro del catalogo y los directorios de
+plantillas.
 
 Para inspeccionar o cambiar la configuracion, ejecuta `ag config` para abrir
 el formulario interactivo o usa sus equivalentes por script:

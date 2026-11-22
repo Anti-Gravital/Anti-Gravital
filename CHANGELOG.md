@@ -88,6 +88,23 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 
 
+### Template catalog gallery (wave 6)
+
+Added:
+
+- `docs/templates/GALLERY.md`: decision table from use case to template name,
+  external requirements and example command for all 33 wave-6 catalog names,
+  grouped into core, web, api, realtime, infrastructure, ai and testing.
+- `docs/templates/README.md`: bilingual index of the gallery, linked from
+  `docs/INDEX.md`, from both language sections of the root `README.md` and
+  from the bilingual note in `docs/manual/02-primera-api.md`. The alpha
+  status wording in the README was not changed.
+- Honest availability note: only `rest`, `realtime`, `fullstack` and
+  `layered` are accepted by the current alpha CLI; the other names arrive
+  with the wave-6 catalog registry and template directories, and each
+  template's `template.toml` is the authoritative source for
+  `external_requirements`.
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:

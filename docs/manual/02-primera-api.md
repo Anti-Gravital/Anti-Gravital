@@ -65,6 +65,13 @@ ag new mi-api --template fullstack
 The `fullstack` template adds `ag-data`, sqlx and a preconfigured
 `migrations/` directory.
 
+To start from a different catalog template, pass its name explicitly:
+`ag new <name> --template <name>`. The
+[template gallery](../templates/GALLERY.md) lists every wave-6 catalog name
+with its use case, external requirements and example command; its
+[index](../templates/README.md) groups them by category. The alpha `ag`
+binary currently accepts `rest`, `realtime`, `fullstack` and `layered`.
+
 ---
 
 ## 2. Run in development
@@ -322,6 +329,14 @@ ag new mi-api --template fullstack
 
 El template `fullstack` agrega `ag-data`, sqlx y un directorio
 `migrations/` preconfigurado.
+
+Para empezar desde otra plantilla del catalogo, pasa su nombre de forma
+explicita: `ag new <nombre> --template <nombre>`. La
+[galeria de plantillas](../templates/GALLERY.md) enumera todos los nombres
+del catalogo de la ola 6 con su caso de uso, requisitos externos y comando
+de ejemplo; su [indice](../templates/README.md) los agrupa por categoria.
+El binario `ag` alpha acepta actualmente `rest`, `realtime`, `fullstack` y
+`layered`.
 
 ---
 

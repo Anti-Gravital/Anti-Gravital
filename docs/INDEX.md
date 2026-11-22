@@ -114,6 +114,15 @@ El catalogo de ejemplos incluye la guia de prototipo alpha
 generado sin servicios externos, con matriz de infraestructura requerida
 y evidencia de verificacion.
 
+### docs/templates/
+
+Indice y galeria de las plantillas de proyecto consumidas por `ag new`.
+`docs/templates/GALLERY.md` es la tabla de decision de caso de uso a plantilla,
+requisitos externos y comando de ejemplo para los 33 nombres del catalogo de la
+ola 6. `docs/templates/README.md` es su indice bilingue, enlazado tambien desde
+el README raiz y desde `docs/manual/02-primera-api.md`. La disponibilidad real
+de cada nombre depende del cableado del catalogo en la CLI.
+
 ### docs/es/ y docs/en/
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.

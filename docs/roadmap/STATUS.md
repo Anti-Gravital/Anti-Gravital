@@ -9,7 +9,23 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 `- [ ]` significa pendiente, `- [/]` significa parcialmente cumplido
 (con explicacion).
 
-Ultima actualizacion: 2026-11-10 (RFC-0018 a RFC-0023 aceptadas; etapa A de la Fase 4.7 implementada; se anaden las Fases 4.8 y 5.5; el resto del tablero no cambia desde 2026-06-10). Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida; ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
+Ultima actualizacion: 2026-11-22 (reconciliacion de la ola 4 y del hito alpha de la ola 5). Las etapas B y C de la Fase 4.7 estan implementadas; la Fase 4.8 tiene las etapas A, B y E parcialmente implementadas; RFC-0024 sigue bloqueada por sus siete prerrequisitos. Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida: la puerta pre-Fase 5 sigue abierta (filas Audit, Deny, Fuzz 24h, Benchmarks y Open debt); ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
+
+---
+
+## Hito alpha (ola 5, 2026-11-21)
+
+El hito alpha entrega una version instalable para construir y probar
+prototipos; no es una certificacion de produccion y no cierra ninguna fase.
+La version objetivo acordada es `0.1.0-alpha.1`; el cambio de version, el
+workflow de release y `RFC-0032` son propiedad de la rama `release`, por lo que
+este tablero no declara que el codigo ya este a esa version. Las etapas de las
+Fases 4.7 y 4.8 entregadas en la ola 4 se registran abajo con su alcance real.
+
+La puerta `docs/audits/PRE_FASE5_RELEASE_GATE.md` permanece ABIERTA. Siguen en
+`fail` o `pending` las filas: Audit (issue #173), Deny (issues #173 y #174),
+Fuzz 24h (issue #156), Benchmarks (issue #157) y Open debt (tablero de Issues).
+La Fase 5 (`ag-cloud`) sigue pendiente y `ag-cloud` no se declara listo.
 
 ---
 
@@ -428,9 +444,12 @@ prueban; su verificacion manual cerro los Issues #108 (verificacion PG), #109
 
 ## Fase 4.7 - Experiencia interactiva de terminal (TUI de ag)
 
-Estado: En curso. `RFC-0018` aceptada el 2026-11-10. Etapa A implementada;
-etapas B y C sin iniciar. Fase aditiva: no mueve los hitos 0.5 ni 1.0.
-Entregables y criterios en `fase-04-7-experiencia-interactiva-de-terminal.md`.
+Estado: En curso. `RFC-0018` aceptada el 2026-11-10. Etapas A, B y C
+implementadas tras la ola 4 (2026-11-22): `ag config` con get/set/validate y
+formulario, y pantalla de inicio de `ag` sin argumentos. Fase aditiva: no mueve
+los hitos 0.5 ni 1.0 y no cierra la puerta pre-Fase 5. Quedan abiertos los
+criterios de salida que requieren evidencia humana o de plataforma. Entregables
+y criterios en `fase-04-7-experiencia-interactiva-de-terminal.md`.
 
 ### Criterios de entrada (4.7.1)
 
@@ -447,14 +466,25 @@ Entregables y criterios en `fase-04-7-experiencia-interactiva-de-terminal.md`.
   `cargo test -p ag-cli` (52 tests unitarios y 6 de regresion con el binario
   real), tambien con `--no-default-features`; verificacion manual en
   pseudo-terminal a 80x24 y 60x15, con `NO_COLOR`, cancelacion y `Ctrl-C`.
-- [ ] Etapa B: `ag config` (get/set/validate y formulario) y `ag new --with`.
-- [ ] Etapa C: pantalla de inicio de `ag` sin argumentos.
+- [/] Etapa B: `ag config` (get/set/validate y formulario) y `ag new --with`.
+  Implementado `ag config` en la ola 4 (executor unico, registry de 21 claves,
+  validacion antes de escribir, edicion que preserva comentarios). Verificado
+  con 89 tests unitarios y 11 de integracion de `ag-cli`. NO implementado
+  `ag new --with MODULE` (RFC-0018 seccion 4.4): no existe en el arbol mergeado.
+- [x] Etapa C: pantalla de inicio de `ag` sin argumentos. Implementada en la ola
+  4 con menu contextual dentro/fuera de proyecto, navegacion por teclado y
+  comando equivalente impreso; `ag` sin argumentos con stdin cerrado imprime
+  ayuda y no bloquea. La comprobacion interactiva en terminal sigue abierta como
+  criterio de salida manual.
 
 ### Criterios de salida (4.7.3)
 
 - [ ] Prueba con tres personas externas.
 - [/] Suite de regresion no interactiva en las cuatro plataformas de CI.
-  (Pasa en Linux x86-64; las otras tres se verifican al correr CI.)
+  `crates/ag-cli/tests/wave4_regression.rs` fue mergeada en la ola 4; la
+  evidencia disponible se recogio antes del merge (con SKIPs por funcionalidad
+  entonces ausente). Requiere reejecucion sobre el arbol mergeado y en las
+  cuatro plataformas; solo Linux x86-64 tiene evidencia verde.
 - [ ] Verificado sobre SSH, dentro de `tmux` y en la consola de Windows.
 - [ ] Aumento de tamano del binario release medido y publicado.
 - [x] Ningun flujo interactivo tiene una capacidad ausente en los flags (test
@@ -465,24 +495,44 @@ Entregables y criterios en `fase-04-7-experiencia-interactiva-de-terminal.md`.
 ## Fase 4.8 - Fundaciones del proyecto
 
 Estado: Aceptada el 2026-11-10 (`RFC-0019` capas, `RFC-0020` entorno y
-secretos, `RFC-0021` instalacion, consola remota e interfaz de maquina); sin
-iniciar. Quedan por decidir dos preguntas de `RFC-0021` (alcance de `ag setup`
-y custodia de la llave de release) antes de su etapa C. Fase aditiva. Entregables y criterios en
-`fase-04-8-fundaciones-del-proyecto.md`.
+secretos, `RFC-0021` instalacion, consola remota e interfaz de maquina);
+parcialmente implementada en la ola 4 (2026-11-22). Quedan por decidir dos
+preguntas de `RFC-0021` (alcance de `ag setup` y custodia de la llave de
+release) antes de su etapa C; la etapa C sigue abierta. El hito alpha de la ola
+5 no cierra esta fase ni la puerta pre-Fase 5. Fase aditiva. Entregables y
+criterios en `fase-04-8-fundaciones-del-proyecto.md`.
 
 ### Entregables (4.8.2)
 
-- [ ] Etapa A: `ag.toml` y layout por capas forzado por Cargo.
-- [ ] Etapa B: entorno declarado, `Secret<T>`, secretos cifrados, `ag env`.
+- [/] Etapa A: `ag.toml` y layout por capas forzado por Cargo. Implementado en
+  la ola 4 como plantilla opt-in `ag new <name> --template layered`, con el
+  layout de cuatro crates y el manifiesto `ag.toml`. Desviacion documentada:
+  el layout no se fuerza por defecto en `realtime`/`fullstack` y faltan el
+  reader de `ag.toml` y `ag generate --check` (RFC-0019 PR 1 y PR 4).
+- [/] Etapa B: entorno declarado, `Secret<T>`, secretos cifrados, `ag env`.
+  Implementados en la ola 4 el loader declarado y `Secret<T>` en `ag-core`
+  (14 tests unitarios y 2 doctests). Faltan el archivo cifrado, los comandos
+  `ag env`, la migracion de las llamadas directas a `std::env::var` y la
+  llamada al loader desde el composition root antes de abrir el listener.
 - [ ] Etapa C: binarios de release firmados, instalador verificado, `ag setup`.
-- [ ] Etapa D: `ag servers` y `ag connect` sobre SSH.
-- [ ] Etapa E: `--output json`, `ag describe`, plan/apply.
+  Sin iniciar; siguen sin decidir dos preguntas de `RFC-0021`. El canal alpha
+  del instalador previsto para la ola 5 mantiene la verificacion fail-closed
+  sin inventar una llave de firma; no equivale a binarios firmados.
+- [ ] Etapa D: `ag servers` y `ag connect` sobre SSH. Sin iniciar.
+- [/] Etapa E: `--output json`, `ag describe`, plan/apply. Implementado en la
+  ola 4 `--output json` versionado (contrato 0.1.0) para tres comandos de
+  solo lectura (`schema.lint`, `schema.diff`, `workers.list`), con rechazo
+  explicito de comandos mutantes. Faltan `ag describe` y plan/apply. RFC-0024
+  sigue bloqueada por sus siete prerrequisitos; no hay codigo MCP.
 
 ---
 
 ## Fase 5 - ag-cloud
 
-Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`.
+Estado: Pendiente. Vease `docs/roadmap/fase-05-ag-cloud.md`. El hito alpha no
+modifica este estado: la puerta `docs/audits/PRE_FASE5_RELEASE_GATE.md` sigue
+abierta (Audit, Deny, Fuzz 24h, Benchmarks y Open debt) y `ag-cloud` no se da
+por listo.
 
 
 ## Fase 5.5 - Funciones serverless

@@ -7,8 +7,8 @@
 
 ## Phase 4.7 — Interactive terminal experience (`ag` TUI)
 
-**Status: in progress (`RFC-0018` accepted 2026-11-10). Stage A is implemented;
-stages B and C are not started.** Additive phase.
+**Status: in progress (`RFC-0018` accepted 2026-11-10). Stages A, B and C are
+implemented; external, platform and binary-size exit criteria remain open.** Additive phase.
 
 **Objective.** Make creating and configuring a project discoverable and guided
 from the terminal, through a full-screen interactive interface in the `ag`

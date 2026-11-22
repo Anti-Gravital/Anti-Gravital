@@ -38,8 +38,8 @@ README "Evidence-based roadmap" table and the formal `PRE_FASE5_RELEASE_GATE.md`
 | 4     | Standard modules (auth, data, realtime)    | 3 months           | Implemented and tested; scale evidence and documented debt open |
 | 4.5   | `ag-mail` + `ag-domains`: communication and domains | 1–2 months | Implemented; `ag-domains` active, release/doc evidence open |
 | 4.6   | Additive pre-Phase-5 hardening (`ag-mail` MTA, `ag-workers`) | — | Implemented and CI-verified; live-DB parity and producer wiring open (issues #108/#109/#103/#112) |
-| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | In progress: stage A implemented (`RFC-0018` accepted); stages B and C not started |
-| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Accepted (`RFC-0019`, `RFC-0020`, `RFC-0021`); not started |
+| 4.7   | Interactive terminal experience (`ag` TUI) | 1–2 months         | In progress: stages A–C implemented (`RFC-0018`); external/platform criteria open (STATUS.md) |
+| 4.8   | Project foundations: layers, environment, installation, remote operation | 2–3 months | Accepted; stages A/B/E partial (opt-in layered, `Secret<T>`+env, read-only JSON); C/D open (STATUS.md) |
 | 5     | `ag-cloud` — simplified deployment         | 2 months           | Next |
 | 5.5   | Serverless functions                       | 2 months           | Accepted (`RFC-0023`); not started |
 | 6     | `ag-ai` and Knowledge Graph                | 2 months           | Pending |

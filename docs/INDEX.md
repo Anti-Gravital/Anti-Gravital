@@ -28,7 +28,9 @@ difiera del markdown, gobierna `v4.1.md` (`docs/master/VERSION.md`, politica
 1. Empiece por la version vigente en `docs/master/VERSION.md`.
 2. Lea el preambulo de la Hoja de Ruta:
    `docs/roadmap/preambulo.md`.
-3. Identifique la fase activa en `docs/roadmap/STATUS.md`.
+3. Identifique la fase activa en `docs/roadmap/STATUS.md`. El estado del hito
+   alpha (ola 5) y las filas abiertas de la puerta pre-Fase 5 estan registrados
+   en la seccion `Hito alpha` de ese mismo archivo.
 4. Lea el capitulo de arquitectura correspondiente a la fase activa
    bajo `docs/architecture/`.
 5. Lea el README del modulo o crate especifico bajo

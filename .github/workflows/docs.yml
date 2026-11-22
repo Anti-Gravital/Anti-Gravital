@@ -39,14 +39,16 @@ jobs:
           # Cambios a los maestros requieren ADR aprobado y actualizacion
           # coordinada de VERSION.md y este workflow en el mismo PR.
           # Estado actual: retirada de ag-ui del roster (issue #182, RFC-0019),
-          # 2026-11-21. Arquitectura y Hoja-de-Ruta bilingues (EN-primero).
+          # 2026-11-21; Hoja-de-Ruta con estado de Fases 4.7/4.8 sincronizado
+          # con la ola 4 y el hito alpha, 2026-11-22. Arquitectura y
+          # Hoja-de-Ruta bilingues (EN-primero).
           # Blueprint v4.1.md es la fuente markdown versionable. Blueprint PDF
           # queda en v4.0 como deuda explicita pendiente de re-export a v4.1;
           # los maestros markdown gobiernan (VERSION.md politica #4).
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82"
           expected_arch="7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e"
-          expected_road="d1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518"
+          expected_road="210a8b8720659393fa0b5439586e7f7e56ea534eb813a36392adefe26ec062af"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"
           got_arch="$(sha256sum docs/master/ANTI-GRAVITAL-Arquitectura-Tecnica.md | awk '{print $1}')"

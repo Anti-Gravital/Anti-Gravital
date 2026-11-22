@@ -324,8 +324,10 @@ through v0.8 (`worker` declarations). Full reference:
 | Command | Purpose |
 | --- | --- |
 | `ag` (no arguments) | In an interactive terminal, opens a home screen that launches existing commands; otherwise prints help |
-| `ag new [NAME] [--template TYPE]` | Scaffold a project (`rest`, `realtime`, `fullstack`). Missing input opens a guided wizard in an interactive terminal; `--no-interactive`, `CI` or a non-terminal session never prompt |
+| `ag new [NAME] [--template TYPE] [--with MODULE]...` | Scaffold a project (`rest`, `realtime`, `fullstack`, `layered`, ...). `--with` is repeatable and enables a declared module (`data`, `auth`, `cache`, `mail`, `workers`, `storage`, `realtime`, `observe`) in the generated `ag.toml [modules]`; it requires a template with a manifest such as `layered` and leaves the default scaffold unchanged. Missing input opens a guided wizard in an interactive terminal; `--no-interactive`, `CI` or a non-terminal session never prompt |
 | `ag config` | In a terminal, opens a full-screen form for `config.toml`. Non-interactive equivalents: `ag config get KEY`, `ag config set KEY VALUE` and `ag config validate` (the last exits non-zero on an invalid file, usable in CI). Secrets are never shown; key paths or environment-variable names only |
+| `ag env list [--manifest PATH] [--env NAME]` | Read-only list of variables declared in `ag.toml [env.*]`: name, type, required/secret flags, source and presence. No value (not even a non-secret default) is printed |
+| `ag env check [--manifest PATH] [--env NAME]` | Validates the declared environment exactly as startup would, using the process environment and declared defaults. Exits 1 and reports every problem at once; values are never printed. Encrypted secrets and environment-specific files are later stages (RFC-0020) |
 | `ag dev [--bind ADDR]` | Run in development mode; the CLI default bind is `127.0.0.1:8080`. Caveat: generated templates currently hardcode `0.0.0.0:8080` and ignore `BIND` (issue #191), so the server listens on all interfaces until fixed. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
 | `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
@@ -347,7 +349,8 @@ through v0.8 (`worker` declarations). Full reference:
 
 The global `--output json` flag produces versioned machine-readable output for
 the read-only commands `ag schema lint`, `ag schema diff`, `ag workers list`,
-`ag deploy plan` and `ag deploy status` (contract `0.2.0`, documented in
+`ag deploy plan`, `ag deploy status`, `ag dns plan`, `ag dns status`,
+`ag env list` and `ag env check` (contract `0.2.0`, documented in
 [docs/mcp/](docs/mcp/)). Other commands, including `ag deploy apply`, refuse it
 before doing any work; prose output is unchanged when the flag is absent.
 
@@ -889,8 +892,10 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | Comando | Proposito |
 | --- | --- |
 | `ag` (sin argumentos) | En una terminal interactiva abre una pantalla de inicio que lanza comandos existentes; en cualquier otro caso imprime la ayuda |
-| `ag new [NOMBRE] [--template TIPO]` | Crear un proyecto (`rest`, `realtime`, `fullstack`). Si falta un dato y la terminal es interactiva se abre un asistente guiado; con `--no-interactive`, `CI` o sin terminal nunca pregunta |
+| `ag new [NOMBRE] [--template TIPO] [--with MODULO]...` | Crear un proyecto (`rest`, `realtime`, `fullstack`, `layered`, ...). `--with` es repetible y habilita un modulo declarado (`data`, `auth`, `cache`, `mail`, `workers`, `storage`, `realtime`, `observe`) en el `ag.toml [modules]` generado; requiere un template con manifest como `layered` y no cambia el scaffold por defecto. Si falta un dato y la terminal es interactiva se abre un asistente guiado; con `--no-interactive`, `CI` o sin terminal nunca pregunta |
 | `ag config` | En una terminal abre un formulario a pantalla completa para `config.toml`. Equivalentes no interactivos: `ag config get CLAVE`, `ag config set CLAVE VALOR` y `ag config validate` (este ultimo sale con codigo distinto de cero si el archivo es invalido, util en CI). Los secretos nunca se muestran; solo rutas de clave o nombres de variable de entorno |
+| `ag env list [--manifest RUTA] [--env NOMBRE]` | Lista de solo lectura de las variables declaradas en `ag.toml [env.*]`: nombre, tipo, flags required/secret, origen y presencia. No imprime ningun valor (ni siquiera un default no secreto) |
+| `ag env check [--manifest RUTA] [--env NOMBRE]` | Valida el entorno declarado igual que lo haria el arranque, usando el entorno de proceso y los defaults declarados. Sale con 1 y reporta todos los problemas a la vez; los valores nunca se imprimen. Los secretos cifrados y los archivos por entorno son etapas posteriores (RFC-0020) |
 | `ag dev [--bind DIR]` | Modo desarrollo; el default de la CLI es `127.0.0.1:8080`. Advertencia: los templates generados fijan `0.0.0.0:8080` e ignoran `BIND` (issue #191), por lo que el servidor escucha en todas las interfaces hasta corregirlo. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
 | `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
@@ -912,7 +917,8 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 
 El flag global `--output json` produce salida versionada legible por maquinas
 para los comandos de solo lectura `ag schema lint`, `ag schema diff`,
-`ag workers list`, `ag deploy plan` y `ag deploy status` (contrato `0.2.0`,
+`ag workers list`, `ag deploy plan`, `ag deploy status`, `ag dns plan`,
+`ag dns status`, `ag env list` y `ag env check` (contrato `0.2.0`,
 documentado en [docs/mcp/](docs/mcp/)). Los demas comandos, incluido
 `ag deploy apply`, lo rechazan antes de actuar; la salida en prosa no cambia
 cuando el flag esta ausente.

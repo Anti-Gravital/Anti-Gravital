@@ -7,6 +7,32 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### CLI roadmap gaps: `ag new --with` and `ag env list|check` (wave 9)
+
+Added:
+
+- `ag new NAME --with MODULE` (repeatable) enables a declared Anti-Gravital
+  module in the generated `ag.toml [modules]` table (RFC-0019 stage A).
+  Accepted names: `data`, `auth`, `cache`, `mail`, `workers`, `storage`,
+  `realtime`, `observe`. It requires a template with a manifest (for example
+  `--template layered`) and returns a clear error before scaffolding otherwise.
+  The default scaffold is byte-for-byte unchanged and repeat values are
+  deduplicated. The interactive-equivalent command prints the `--with` flags.
+- `ag env list` and `ag env check` (RFC-0020 stage B): read-only views over the
+  `[env.*]` declarations in `ag.toml`, resolved through `ag_core::EnvLoader`.
+  `list` shows name, type, required/secret flags, source and presence; `check`
+  validates exactly as startup would and exits 1 with every problem at once on
+  failure. No value is ever printed, including non-secret defaults.
+  `--output json` emits versioned `env.list` and `env.check` envelopes through
+  the existing `0.2.0` contract. `--env NAME` is accepted as a label; encrypted
+  secret files and environment-specific sources are later stages and are not
+  faked here.
+
+Tests: 157 ag-cli unit tests plus 10 new integration tests, all passing;
+workspace `--all-features` green; fmt and clippy `-D warnings` clean.
+`cargo audit` and `cargo deny` are currently blocked by the pre-existing
+RUSTSEC-2026-0592 advisory for `url` 2.5.8 (fixed in 2.5.9); this branch does
+not change Cargo.toml or Cargo.lock.
 
 ### Edge wildcard matching (issue #196)
 

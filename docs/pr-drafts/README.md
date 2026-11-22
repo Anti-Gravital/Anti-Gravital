@@ -102,3 +102,5 @@ Ramas con descriptor aceptando PR en este momento:
   del circulo dominio-despliegue y enlaces de navegacion, ola 8).
 - `community8/dnsapi`: `docs/pr-drafts/community8-dnsapi.md` (comandos locales
   `ag dns plan|apply|status` y `ag domains attach` desde `ag.toml`, ola 8).
+- `community9/clidev`: `docs/pr-drafts/community9-clidev.md` (`ag new --with`
+  y `ag env list|check`, RFC-0019/0020, ola 9).

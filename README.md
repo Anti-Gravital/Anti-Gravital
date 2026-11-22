@@ -251,6 +251,11 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag workers dlq list\|inspect\|retry\|purge` | Inspect and manage the dead-letter queue |
 | `ag workers doctor` | Check workers config and durable-backend connectivity |
 
+The global `--output json` flag produces versioned machine-readable output for
+the read-only commands `ag schema lint`, `ag schema diff` and `ag workers list`
+(contract `0.1.0`, documented in [docs/mcp/](docs/mcp/)). Other commands refuse
+it before doing any work; prose output is unchanged when the flag is absent.
+
 Run `ag COMMAND --help` for authoritative flags and environment variables.
 `ag deploy`, `ag migrate` and `ag plugin` are future commands and are not in
 the current binary. Detailed workflows: [`ag-cli` guide](crates/ag-cli/README.md)
@@ -707,6 +712,12 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag workers queues` | Mostrar profundidad de colas en el backend durable |
 | `ag workers dlq list\|inspect\|retry\|purge` | Inspeccionar y gestionar la dead-letter queue |
 | `ag workers doctor` | Verificar configuracion de workers y conectividad del backend durable |
+
+El flag global `--output json` produce salida versionada legible por maquinas
+para los comandos de solo lectura `ag schema lint`, `ag schema diff` y
+`ag workers list` (contrato `0.1.0`, documentado en [docs/mcp/](docs/mcp/)).
+Los demas comandos lo rechazan antes de actuar; la salida en prosa no cambia
+cuando el flag esta ausente.
 
 Ejecuta `ag COMANDO --help` para los flags y variables de entorno
 autoritativos. `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y

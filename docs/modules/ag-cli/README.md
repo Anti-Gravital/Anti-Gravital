@@ -51,8 +51,9 @@ RFC first.
 | Path | Contents |
 | --- | --- |
 | `src/main.rs` | Dispatch and exit codes |
-| `src/cli.rs` | clap definitions |
+| `src/cli.rs` | clap definitions, including the global `--output` selector |
 | `src/commands/` | One module per command group |
+| `src/output.rs` | Versioned JSON envelope and read-command data shapes (`docs/mcp/`) |
 | `src/request.rs` | Typed requests shared by flags and interface |
 | `src/interactive.rs` | Decision on whether a session may prompt |
 | `src/tui/` | Interactive interface (`tui` Cargo feature) |

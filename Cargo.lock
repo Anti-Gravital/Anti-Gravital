@@ -71,6 +71,7 @@ dependencies = [
  "clap",
  "ratatui",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror 2.0.21",
  "tokio",

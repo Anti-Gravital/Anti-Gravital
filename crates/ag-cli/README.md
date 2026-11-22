@@ -185,6 +185,17 @@ ag mail test --to me@example.com --smtp-host mail.example.com --smtp-port 587
 `ag dev --bind ADDRESS` passes `BIND` to the child application. Users select
 the address with the flag; `BIND` is not read as CLI configuration.
 
+## Machine-readable output
+
+`ag --output json` (or `--output json` after a read subcommand) emits one
+versioned JSON line for `ag schema lint`, `ag schema diff` and `ag workers
+list`. The flag is refused with a versioned `unsupported_command` error before
+any mutating command does work. Prose output is unchanged when the flag is
+absent. The contract, its JSON Schema and byte-exact snapshots live in
+[`docs/mcp/`](../../docs/mcp/); contract version `0.1.0` is unstable until
+Anti-Gravital 0.5. For `ag generate`, whose directory flag owns `--output`,
+the same selector is exposed as `--output-format`.
+
 ## Command availability
 
 `ag deploy`, `ag migrate`, and `ag plugin` are intentionally unavailable.

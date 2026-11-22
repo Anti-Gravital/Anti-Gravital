@@ -1,0 +1,1 @@
+{"contract_version":"0.1.0","command":"schema.diff","status":"ok","data":{"reference":"reference.ag","schema":"schema_diff.ag","changes":[{"severity":"additive","message":"model 'New' added"},{"severity":"breaking","message":"'Old.name' removed"},{"severity":"additive","message":"'Old.title' added"}]}}

@@ -1,5 +1,6 @@
 //! Command-line definitions of the `ag` binary (clap).
 
+use crate::output::OutputFormat;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -19,8 +20,44 @@ pub(crate) struct Cli {
     #[arg(long, global = true)]
     pub(crate) no_interactive: bool,
 
+    /// Selects the output format. `json` is available only for read-only
+    /// commands with a versioned shape documented under `docs/mcp/`.
+    /// Mutating commands refuse it before doing any work.
+    #[arg(long, global = true, value_enum, default_value = "prose")]
+    pub(crate) output: OutputFormat,
+
     #[command(subcommand)]
     pub(crate) command: Commands,
+}
+
+impl Commands {
+    /// Resolves the format selector, accounting for `ag generate`, whose
+    /// directory flag owns the `--output` long name in that subcommand.
+    pub(crate) fn effective_output_format(&self, global: OutputFormat) -> OutputFormat {
+        match self {
+            Commands::Generate { output_format, .. } if global == OutputFormat::Prose => {
+                *output_format
+            }
+            _ => global,
+        }
+    }
+
+    /// Versioned JSON command name, or `None` when this command has no
+    /// versioned shape yet. Only read-only commands may return `Some`.
+    pub(crate) fn json_command_name(&self) -> Option<&'static str> {
+        match self {
+            Commands::Schema {
+                command: SchemaCommands::Lint { .. },
+            } => Some("schema.lint"),
+            Commands::Schema {
+                command: SchemaCommands::Diff { .. },
+            } => Some("schema.diff"),
+            Commands::Workers {
+                command: WorkersCommands::List { .. },
+            } => Some("workers.list"),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -70,8 +107,24 @@ pub(crate) enum Commands {
         schema: PathBuf,
 
         /// Directory where the generated artifacts are written.
-        #[arg(long, default_value = "generated")]
+        ///
+        /// The argument id is `generate_output` so it does not collide with
+        /// the global `--output` format selector (RFC-0021 section 4.3).
+        #[arg(long, id = "generate_output", default_value = "generated")]
         output: PathBuf,
+
+        /// Format selector for this subcommand. `ag generate --output DIR`
+        /// predates the global flag and owns the `--output` long name here, so
+        /// this variant exposes the same selector as `--output-format`. The
+        /// `output` id prevents clap from propagating the global flag into
+        /// this subcommand, which would create a duplicate long name.
+        #[arg(
+            long = "output-format",
+            id = "output",
+            value_enum,
+            default_value = "prose"
+        )]
+        output_format: OutputFormat,
     },
 
     /// Operations on the DSL schema.
@@ -407,6 +460,7 @@ pub(crate) enum MailCommands {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Parser;
 
     #[test]
     fn dev_bind_defaults_to_loopback() {
@@ -424,5 +478,76 @@ mod tests {
             Commands::Dev { bind } => assert_eq!(bind, "0.0.0.0:8080"),
             _ => panic!("expected the dev command"),
         }
+    }
+
+    // ---- `--output json` (RFC-0021 section 4.3) ----------------------------
+
+    #[test]
+    fn output_defaults_to_prose() {
+        let cli = Cli::try_parse_from(["ag", "schema", "lint"]).expect("parse");
+        assert_eq!(cli.output, OutputFormat::Prose);
+    }
+
+    #[test]
+    fn output_json_is_accepted_before_and_after_the_subcommand() {
+        for args in [
+            ["ag", "--output", "json", "schema", "lint"],
+            ["ag", "schema", "lint", "--output", "json"],
+        ] {
+            let cli = Cli::try_parse_from(args).expect("parse");
+            assert_eq!(cli.output, OutputFormat::Json);
+            assert_eq!(cli.command.json_command_name(), Some("schema.lint"));
+        }
+    }
+
+    #[test]
+    fn output_rejects_unknown_formats() {
+        assert!(Cli::try_parse_from(["ag", "--output", "yaml", "workers", "list"]).is_err());
+    }
+
+    #[test]
+    fn only_read_commands_have_a_versioned_json_shape() {
+        let cases = [
+            (vec!["ag", "schema", "lint"], Some("schema.lint")),
+            (vec!["ag", "schema", "diff", "ref.ag"], Some("schema.diff")),
+            (vec!["ag", "workers", "list"], Some("workers.list")),
+            (vec!["ag", "new", "demo"], None),
+            (vec!["ag", "domains", "list"], None),
+            (vec!["ag", "mail", "test", "--to", "a@example.com"], None),
+        ];
+        for (args, expected) in cases {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert_eq!(cli.command.json_command_name(), expected, "{args:?}");
+        }
+    }
+
+    #[test]
+    fn generate_keeps_its_legacy_output_directory_flag() {
+        let cli = Cli::try_parse_from(["ag", "generate", "--output", "out"]).expect("parse");
+        match &cli.command {
+            Commands::Generate { output, .. } => assert_eq!(output, &PathBuf::from("out")),
+            _ => panic!("expected the generate command"),
+        }
+        assert_eq!(cli.output, OutputFormat::Prose);
+    }
+
+    #[test]
+    fn generate_exposes_the_format_selector_as_output_format() {
+        let cli =
+            Cli::try_parse_from(["ag", "generate", "--output-format", "json"]).expect("parse");
+        assert_eq!(
+            cli.command.effective_output_format(cli.output),
+            OutputFormat::Json
+        );
+        assert_eq!(cli.command.json_command_name(), None);
+    }
+
+    #[test]
+    fn generate_accepts_the_global_selector_before_the_subcommand() {
+        let cli = Cli::try_parse_from(["ag", "--output", "json", "generate"]).expect("parse");
+        assert_eq!(
+            cli.command.effective_output_format(cli.output),
+            OutputFormat::Json
+        );
     }
 }

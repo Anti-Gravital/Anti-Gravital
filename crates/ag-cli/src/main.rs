@@ -18,6 +18,7 @@
 mod cli;
 mod commands;
 mod interactive;
+mod output;
 mod request;
 #[cfg(feature = "tui")]
 mod tui;
@@ -29,10 +30,86 @@ use commands::mail::*;
 use commands::project::*;
 use commands::schema::*;
 use commands::workers::*;
+use output::{OutputFormat, CONTRACT_VERSION};
 use std::process;
+
+/// Runs a read-only command in JSON mode and returns its exit code.
+///
+/// Commands without a versioned shape are refused *before* dispatch, so no
+/// mutating executor is ever reached. The refusal itself is a versioned JSON
+/// error; no secret, argument value or filesystem content is echoed.
+fn run_json_command(command: &Commands) -> i32 {
+    let Some(name) = command.json_command_name() else {
+        output::emit_error(
+            "unknown",
+            "unsupported_command",
+            format!(
+                "--output json is not supported by this command in contract version \
+                 {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, workers.list"
+            ),
+        );
+        return 2;
+    };
+
+    match command {
+        Commands::Schema {
+            command: SchemaCommands::Lint { schema },
+        } => match lint_report(schema) {
+            Ok(data) => {
+                let exit_code = if data.result == "errors" { 1 } else { 0 };
+                output::emit(name, data);
+                exit_code
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Schema {
+            command: SchemaCommands::Diff { reference, schema },
+        } => match diff_report(schema, reference) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Workers {
+            command: WorkersCommands::List { schema },
+        } => match workers_report(schema) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        // Unreachable: `json_command_name` returns None for every other arm.
+        _ => {
+            output::emit_error(name, "unsupported_command", "command has no JSON shape");
+            2
+        }
+    }
+}
 
 fn main() {
     let cli = Cli::parse();
+
+    // RFC-0021 section 4.3: JSON mode is a separate output path for read-only
+    // commands. The prose path below is left byte-for-byte unchanged.
+    if cli.command.effective_output_format(cli.output) == OutputFormat::Json {
+        let exit_code = run_json_command(&cli.command);
+        if exit_code != 0 {
+            process::exit(exit_code);
+        }
+        return;
+    }
+
     let result = match cli.command {
         Commands::New { name, template } => {
             match cmd_new(name, template.as_deref(), cli.no_interactive) {
@@ -46,7 +123,11 @@ fn main() {
         }
         Commands::Dev { bind } => cmd_dev(&bind),
         Commands::Build { target } => cmd_build(target.as_deref()),
-        Commands::Generate { schema, output } => cmd_generate(&schema, &output),
+        Commands::Generate {
+            schema,
+            output,
+            output_format: _,
+        } => cmd_generate(&schema, &output),
         Commands::Workers { command } => match command {
             WorkersCommands::List { schema } => cmd_workers_list(&schema),
             #[cfg(feature = "workers-runtime")]
@@ -158,7 +239,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::CommandFactory;
+    use clap::{CommandFactory, Parser};
 
     #[test]
     fn command_tree_matches_the_documented_public_surface() {

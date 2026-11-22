@@ -41,6 +41,7 @@ clap = { workspace = true }
 # is re-exported and used for raw mode and key events. Justified by RFC-0018.
 ratatui = { version = "0.30", optional = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

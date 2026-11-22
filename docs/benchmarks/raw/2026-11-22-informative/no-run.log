@@ -1,0 +1,5 @@
+    Finished `bench` profile [optimized] target(s) in 0.21s
+  Executable benches src/lib.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/ag_core-1ece7bb766316b56)
+  Executable benches/shield_hello_world.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/shield_hello_world-cbb2b0c836c93603)
+  Executable benches src/lib.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/ag_workers-b512a3eaf8051fd5)
+  Executable benches/queue_throughput.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/queue_throughput-a95029b4868d41f1)

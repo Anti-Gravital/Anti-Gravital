@@ -176,7 +176,9 @@ docs/benchmarks/raw/<YYYY-MM-DD>-reference/
 ```
 
 `target/criterion/` HTML and JSON are generated and are not committed. The raw
-directory and the curated report are committed.
+directory and the curated report are committed. The root `.gitignore` excludes
+`*.log` globally but re-includes `docs/benchmarks/raw/**/*.log` so the criterion
+and server logs above are not silently dropped.
 
 ## Evidence template (empty copy for `pre-fase5-performance.md`)
 

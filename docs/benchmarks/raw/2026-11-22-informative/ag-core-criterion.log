@@ -1,0 +1,29 @@
+    Finished `bench` profile [optimized] target(s) in 0.28s
+     Running benches/shield_hello_world.rs (/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/release/deps/shield_hello_world-86b466094229c106)
+Benchmarking bare_axum_hello
+Benchmarking bare_axum_hello: Warming up for 1.0000 s
+Benchmarking bare_axum_hello: Collecting 10 samples in estimated 1.0002 s (154k iterations)
+Benchmarking bare_axum_hello: Analyzing
+bare_axum_hello         time:   [4.7582 µs 5.0248 µs 5.4705 µs]
+                        change: [−5.6483% −0.4925% +5.0845%] (p = 0.87 > 0.05)
+                        No change in performance detected.
+
+Benchmarking shield_default_hello
+Benchmarking shield_default_hello: Warming up for 1.0000 s
+Benchmarking shield_default_hello: Collecting 10 samples in estimated 1.0000 s (151k iterations)
+Benchmarking shield_default_hello: Analyzing
+shield_default_hello    time:   [5.7183 µs 5.8678 µs 6.1209 µs]
+                        change: [+5.1896% +9.4851% +14.998%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking shield_full_default_hello
+Benchmarking shield_full_default_hello: Warming up for 1.0000 s
+Benchmarking shield_full_default_hello: Collecting 10 samples in estimated 1.0002 s (144k iterations)
+Benchmarking shield_full_default_hello: Analyzing
+shield_full_default_hello
+                        time:   [6.2691 µs 6.6002 µs 6.8621 µs]
+                        change: [−15.643% −11.265% −6.5776%] (p = 0.00 < 0.05)
+                        Performance has improved.
+

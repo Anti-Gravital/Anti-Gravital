@@ -1,0 +1,153 @@
+name: fuzz-24h-gate
+
+# Scheduled 24-hour fuzz gate, enabled by RFC-0035.
+# Runs ONLY on a dedicated self-hosted runner; public GitHub-hosted runners
+# never carry the self-hosted label used by the jobs below. The jobs also
+# refuse to run when runner.environment is not "self-hosted".
+# This workflow does NOT close issue #156, does NOT move the Fuzz 24h gate row
+# to pass and does NOT claim a result. Human verification is still required:
+# see docs/fuzz/24h-gate-verification.md and docs/fuzz/self-hosted-runner.md.
+#
+# One target per matrix job: a self-hosted job is capped at 5 days and the
+# GITHUB_TOKEN at 24 hours, so seven sequential 86400 s windows cannot fit in
+# a single job. max-parallel: 1 keeps the dedicated host quiet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      toolchain:
+        description: "Dated nightly toolchain, e.g. nightly-2026-11-22"
+        required: false
+        type: string
+        default: "nightly-2026-11-22"
+  schedule:
+    # Monthly at 03:00 UTC on the 1st. Cadence is a policy decision (RFC-0035).
+    - cron: "0 3 1 * *"
+
+# No default token grants. Each job declares the minimum it needs.
+permissions: {}
+
+env:
+  DURATION: "86400"
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
+concurrency:
+  group: fuzz-24h-gate
+  cancel-in-progress: false
+
+jobs:
+  fuzz:
+    name: 24h fuzz gate (${{ matrix.target }})
+    runs-on: [self-hosted, linux, x64, fuzz-dedicated]
+    # 86400 s of fuzzing plus setup, under the 5-day self-hosted job limit.
+    # GITHUB_TOKEN may expire at hour 24, so the artifact step is best effort
+    # and the on-host evidence under docs/fuzz/results/ remains authoritative.
+    timeout-minutes: 1500
+    permissions:
+      contents: read
+    env:
+      FUZZ_TOOLCHAIN: ${{ inputs.toolchain || vars.FUZZ_NIGHTLY_TOOLCHAIN || 'nightly-2026-11-22' }}
+      FUZZ_TARGETS: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        target:
+          - fuzz_lexer
+          - fuzz_parser
+          - fuzz_compile
+          - fuzz_resp
+          - fuzz_storage_key
+          - fuzz_signed_url
+          - fuzz_workers_payload
+    steps:
+      - name: Refuse public hosted runners
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          echo "The 24h fuzz gate must not run on a public hosted runner." >&2
+          echo "See docs/fuzz/self-hosted-runner.md (RFC-0035)." >&2
+          exit 1
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          echo "runner.environment=${{ runner.environment }}"
+          echo "target=$FUZZ_TARGETS"
+          echo "toolchain=$FUZZ_TOOLCHAIN"
+          echo "duration=$DURATION"
+          echo "commit=$(git rev-parse HEAD)"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Refusing to run on a dirty tree; the gate needs a clean checkout." >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+          rustc +"$FUZZ_TOOLCHAIN" --version
+          cargo fuzz --version
+          cargo metadata --locked --manifest-path fuzz/Cargo.toml >/dev/null
+          echo "Preflight OK: clean tree, dated toolchain, cargo-fuzz, synchronized fuzz lockfile."
+
+      - name: Run one full-length target with the existing harness
+        run: |
+          set -uo pipefail
+          bash scripts/run-fuzz-window.sh "$DURATION"
+
+      - name: Upload this target's evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-24h-${{ github.run_id }}-${{ matrix.target }}
+          path: |
+            docs/fuzz/results/
+            fuzz/artifacts/
+          if-no-files-found: warn
+          retention-days: 90
+
+  notify-failure:
+    name: Record gate failure on issue #156
+    needs: fuzz
+    if: ${{ failure() }}
+    runs-on: [self-hosted, linux, x64, fuzz-dedicated]
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Refuse public hosted runners
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          echo "Gate notification must not run on a public hosted runner." >&2
+          exit 1
+
+      - name: Add one idempotent failure notice to issue #156
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: "156"
+          RUN_ID: ${{ github.run_id }}
+          COMMIT: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          marker="<!-- fuzz-24h-gate run ${RUN_ID} -->"
+          if gh issue view "$ISSUE" --json comments --jq '.comments[].body' | grep -Fq "$marker"; then
+            echo "Failure for run ${RUN_ID} is already recorded; keeping issue open."
+            exit 0
+          fi
+          body_file="$(mktemp)"
+          cat > "$body_file" <<EOF
+          $marker
+          The scheduled 24h fuzz gate FAILED on commit $COMMIT.
+          Run: $RUN_URL
+          Requested duration: $DURATION seconds for each of seven targets.
+          Evidence: artifacts named fuzz-24h-$RUN_ID-<target> (logs, rc files, metadata and any crash inputs).
+          The Fuzz 24h gate row stays pending and this issue stays open with the blocked label.
+          Do not close this issue from this automated notice. A human must verify the full-length
+          run with docs/fuzz/24h-gate-verification.md before any closure.
+          EOF
+          gh issue comment "$ISSUE" --body-file "$body_file"
+          gh issue edit "$ISSUE" --add-label blocked || echo "warning: could not ensure blocked label" >&2
+          rm -f "$body_file"
+          echo "Idempotent failure notice recorded for run ${RUN_ID}."

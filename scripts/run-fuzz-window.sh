@@ -18,13 +18,17 @@
 #   RUN_DIR              output directory (default under docs/fuzz/results).
 #   EVIDENCE_FILE        JSONL file to append to (default docs/fuzz/results/windows.jsonl).
 #   FUZZ_TOOLCHAIN       toolchain passed to cargo fuzz (default nightly).
+#   FUZZ_TARGETS         comma/space separated subset of the seven canonical
+#                        targets, for per-target automation (CI matrix). Every
+#                        name is checked against the canonical list below.
+#                        Default: all seven targets, unchanged.
 #
 # Exit status: 0 only if every target exits 0 and no new crash artifact appears.
 
 set -uo pipefail
 
 usage() {
-  sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -44,6 +48,29 @@ TARGETS=(
   fuzz_workers_payload
 )
 FULL_GATE_SECONDS=86400
+
+# Optional subset for per-target automation (RFC-0035). The workflow runs one
+# target per job because a single GitHub job cannot host seven 86400 s windows.
+# Unknown names fail closed; the default path is untouched when unset.
+if [[ -n "${FUZZ_TARGETS:-}" ]]; then
+  SELECTED=()
+  IFS=', ' read -r -a REQUESTED <<< "$FUZZ_TARGETS"
+  for candidate in "${REQUESTED[@]}"; do
+    known=false
+    for canonical in "${TARGETS[@]}"; do
+      if [[ "$candidate" == "$canonical" ]]; then
+        known=true
+        break
+      fi
+    done
+    if [[ "$known" != true ]]; then
+      echo "ERROR: unknown fuzz target in FUZZ_TARGETS: $candidate" >&2
+      exit 2
+    fi
+    SELECTED+=("$candidate")
+  done
+  TARGETS=("${SELECTED[@]}")
+fi
 
 DURATION="${1:-${FUZZ_WINDOW_SECONDS:-300}}"
 if ! [[ "$DURATION" =~ ^[1-9][0-9]*$ ]]; then

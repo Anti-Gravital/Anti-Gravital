@@ -113,8 +113,9 @@ impl CertStore {
             return Some(k.clone());
         }
         for (base, key) in &self.wildcard {
-            if let Some(prefix) = sni.strip_suffix(base) {
-                let prefix = prefix.strip_suffix('.').unwrap_or(prefix);
+            // Require a dot boundary: `notexample.com` must not match `*.example.com`.
+            let anchored = format!(".{base}");
+            if let Some(prefix) = sni.strip_suffix(&anchored) {
                 if !prefix.is_empty() && !prefix.contains('.') {
                     return Some(key.clone());
                 }

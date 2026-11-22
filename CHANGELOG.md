@@ -7,9 +7,13 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Edge wildcard matching (issue #196)
 
+Fixed:
 
-
+- `ag-edge` route, TLS and certificate wildcard matching now requires a dot
+  boundary, so `notexample.com` no longer matches a `*.example.com` binding.
+  Added a regression test; the `ag-edge` suite passes 23/23.
 
 
 ### Environment and visibility rules for the domain loop (wave 8)

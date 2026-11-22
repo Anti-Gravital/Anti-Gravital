@@ -86,9 +86,10 @@ impl BindingCache {
 
     fn match_wildcard(&self, ascii: &str) -> Option<&RouteBinding> {
         for (base, binding) in &self.wildcard {
-            if let Some(prefix) = ascii.strip_suffix(base) {
-                // Require exactly one label before the base: `<label>.<base>`.
-                let prefix = prefix.strip_suffix('.').unwrap_or(prefix);
+            // A wildcard covers exactly one label: `<label>.<base>`. The dot
+            // is mandatory, so `notexample.com` cannot match `*.example.com`.
+            let anchored = format!(".{base}");
+            if let Some(prefix) = ascii.strip_suffix(&anchored) {
                 if !prefix.is_empty() && !prefix.contains('.') {
                     return Some(binding);
                 }
@@ -192,6 +193,14 @@ mod tests {
         cache.insert(binding("*.example.com", "svc_wild"));
         let r = resolve_hostname(&cache, "anything.example.com", no_legacy);
         assert!(matches!(r, RouteResolution::Custom(b) if b.target_ref == "svc_wild"));
+    }
+
+    #[test]
+    fn wildcard_requires_a_dot_boundary() {
+        let mut cache = BindingCache::new();
+        cache.insert(binding("*.example.com", "svc_wild"));
+        let r = resolve_hostname(&cache, "notexample.com", no_legacy);
+        assert!(matches!(r, RouteResolution::ExistingFallback));
     }
 
     #[test]

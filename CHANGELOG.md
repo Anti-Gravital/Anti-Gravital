@@ -7,6 +7,18 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
+
+Added (documentation only; no code, no phase change):
+
+- `RFC-0025` proposes a Phase 5+ design for DSL-generated typed repositories,
+  explicit `TenantContext`, transaction-local RLS scope and expand/contract
+  migrations. It is a proposal, not accepted and not implemented.
+- The design incorporates the data-model review note at
+  `docs/modules/ag-data/data-layer-rls-tenancy.md`, including the pooled
+  connection hazard, fail-closed policies, generated output paths and the
+  dependency on the issue #185 date/time decision.
+
 ### Crate roster: ag-ui removed (issue #182, RFC-0019)
 
 Removed:

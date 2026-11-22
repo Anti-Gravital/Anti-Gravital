@@ -7,6 +7,19 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Managed email API DX design (issue #152)
+
+Added (documentation only; no code):
+
+- `docs/modules/ag-mail/managed-api-dx-design.md` fixes the precise managed
+  REST surface before implementation: versioned endpoints and marketing
+  objects, request/response shapes, an RFC 9457 problem+json error model,
+  tenant-scoped idempotency, capability-scoped agent access per RFC-0024,
+  the `ag new -> ag dev` ergonomics guarantee, and the exact gate condition
+  to start. Mail C/D remain design-only; the RFC-0009 Mail A deliverability
+  gate has no external evidence yet and RFC-0024 needs a mail/marketing
+  tool-group amendment. The module sheet now indexes the design.
+
 ### Master documentation consistency (issues #170, #172)
 
 Changed:

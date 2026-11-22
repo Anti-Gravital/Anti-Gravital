@@ -1,0 +1,49 @@
+# Realtime family: an SSE/WebSocket service with an optional cache dependency.
+# Optional deployment target only; `cargo run` / `ag dev` remain the dev path.
+# The cache is integrated, not required: ag-realtime runs in memory by default.
+name: ag-realtime
+
+services:
+  realtime:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.template
+      args:
+        PACKAGE: ${REALTIME_PACKAGE:-realtime-chat}
+        BINARY: ${REALTIME_BINARY:-realtime-chat}
+    image: ${REALTIME_IMAGE:-ag-realtime:local}
+    environment:
+      PORT: "3000"
+      BIND: 0.0.0.0:3000
+      REDIS_URL: redis://cache:6379
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${REALTIME_PORT:-3000}:3000"
+    volumes:
+      - realtime-state:/var/lib/ag
+    depends_on:
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/wget -q -O /dev/null http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  realtime-state:

@@ -84,6 +84,31 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### Optional Docker packaging for template families (wave 7)
+
+Added:
+
+- `deploy/docker/Dockerfile.template`: multi-stage build on `rust:1.99.1`,
+  static musl release binary, minimal `scratch` runtime with a numeric
+  non-root user, explicit `EXPOSE`, a busybox-backed `HEALTHCHECK` and the CA
+  certificate bundle. No credential is baked into the image; runtime values
+  come from the environment.
+- `deploy/docker/compose/`: one Compose file per template family (`web`,
+  `api`, `realtime`, `infrastructure`, `ai`) using environment variables and
+  named volumes, plus `.env.example` with placeholders only.
+- `deploy/docker/README.md`, `deploy/docker/verify.sh` and
+  `deploy/docker/VERIFICATION.md`: adaptation guide and reproducible checks.
+
+Changed:
+
+- `docs/INDEX.md` points to the new optional packaging directory.
+
+Verification: `docker compose config -q` passed for all five files, PyYAML
+parsed all five, and the Dockerfile static lint passed (23 PASS, 0 FAIL). A
+real `docker build` was SKIPPED because no Docker daemon is reachable in this
+environment; no image was built or published. Docker remains an optional
+deployment target and `cargo run` / `ag dev` stay the default dev path.
+
 
 
 

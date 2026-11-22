@@ -37,6 +37,20 @@ means a `fail` or `pending` on that row forbids advancing.
 | Docs honesty | pass | `pre-fase5-docs-reconciliation.md`: evidence-based phase states across README/master/calendar; no completion claim against an open gate, 2026-06-11 | yes | 10 |
 | Open debt | pending | tracked on the GitHub Issues board (label `tech-debt`); `docs/DEBT.md` is a frozen historical record | yes | all |
 
+### Wave 11 handoff (informational; no row state changed)
+
+Reconciled 2026-11-22 in `docs/audits/issue-board-reconciliation.md`. Every
+wave-11 branch is local and AWAITING MERGE, so none of its results are cited as
+gate evidence here.
+
+- Fuzz 24h stays `pending`: gatefuzz prepares the scheduled runner (#156);
+  short windows remain non-gate evidence.
+- Benchmarks stays `pending`: gatebench prepares the reference-hardware
+  procedure and runner (#157); the informative host run does not settle it.
+- Audit and Deny remain `pass` on merged commit `800b671` (`Closes #198`,
+  `url` 2.5.9). Earlier text calling them `fail` was an older snapshot.
+- No `pending` row was flipped in this wave.
+
 ## Findings severity classification
 
 Used across all `docs/audits/pre-fase5-*.md` reports.

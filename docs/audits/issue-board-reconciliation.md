@@ -232,3 +232,102 @@ and untracked reason: RUSTSEC-2026-0592 (`url` 2.5.8, fixed in 2.5.9), published
 This addendum closes nothing and adds no `Closes #NNN` keyword. Parent counts
 are unchanged: #76 still has one open child (#87) and #142 still has five open
 children (#141, #152, #154, #156, #157), so neither child checklist was edited.
+
+## Wave 11 addendum (2026-11-22) - ownership handoff and gate discipline
+
+Scope: record the wave-11 owner of every issue that received one, restate the
+exact closure condition from the issue body and its governing document, and
+state the merge status of the branch expected to carry evidence. The wave-4
+classification above remains the authority for why an issue is blocked or
+deferred. This addendum adds current cross-links only; it closes nothing and
+changes no gate row.
+
+Board verified 2026-11-22 with the REST API (`gh api`, `gh issue view` is broken
+by the Projects classic sunset): exactly 14 issues are OPEN in
+Anti-Gravital/Anti-Gravital (#76, #87, #112, #141, #142, #152, #154, #156,
+#157, #178, #179, #180, #185, #189) and their labels match the matrix above.
+Parent counts were re-checked child by child: #76 has 16 children (15 CLOSED,
+#87 OPEN) and #142 has 31 children (26 CLOSED, five OPEN). In Gravital-Fabric
+two issues are OPEN (#2, #3); wave 11 owns #3 only. No label was changed and no
+parent checklist was edited.
+
+### Ownership and closure matrix
+
+Every "AWAITING MERGE" entry means the wave-11 branch existed locally at
+reconciliation time but was not on `main`. A local branch, a short window, a
+local test key, an informative host run or a scheduled workflow is never gate
+evidence and never closes an issue.
+
+| Issue | Wave-11 owner (branch) | Board status | Evidence command | Exact closure condition | Merge status |
+| --- | --- | --- | --- | --- | --- |
+| #189 | split (AG), `community11/split` | OPEN, `tech-debt`, `p3` | `bash tools/check-file-size.sh`; `cargo test -p ag-cli -p ag-core`; `cargo clippy --workspace --all-targets --all-features -- -D warnings` | All five current allowlist entries removed: `crates/ag-cli/src/{cli.rs,config.rs,main.rs,tests/json_output.rs}` and `crates/ag-core/src/env.rs`. Each file reduced to <=600 lines or split into focused modules with the public API re-exported and no CLI/API behaviour change; size check, tests and clippy green | AWAITING MERGE; no gate row affected |
+| #156 | gatefuzz (AG), `community11/gatefuzz` | OPEN, `blocked`, `p2` | `cargo +nightly fuzz run <target> -- -max_total_time=86400` for all SEVEN targets per `docs/fuzz/24h-gate-verification.md`; logs under `docs/fuzz/results/YYYY-MM-DD/24h/` | 24h logs for all seven targets archived with no unresolved crashes, crash triage reviewed; the scheduled runner with self-hosted-host requirements and no secret exposure supports the run but is not itself evidence | AWAITING MERGE; Fuzz 24h row stays `pending` |
+| #157 | gatebench (AG), `community11/gatebench` | OPEN, `blocked`, `p2` | criterion plus `oha` suites per `docs/benchmarks/verification-package.md`, written to `docs/benchmarks/pre-fase5-performance.md` | Rule-17 metadata (hardware, OS, Rust version, commit, configuration, methodology, runs, standard deviation) on reference hardware with stabilized code; gate Benchmarks row updated with command/date/commit and README performance claim reconciled. One-command runner alone does not close it | AWAITING MERGE; Benchmarks row stays `pending` |
+| #141 | signing (AG), `community11/signing` | OPEN, `blocked`, `p3`, `security` | Read RFC-0030 section 11; clean-machine verification of the tagged manifest | All six RFC-0030 section 11 conditions: accepted RFC, offline key published in two out-of-band channels, tag-published signed manifest, clean-machine verification, CI parity, SECURITY.md limits. A LOCAL test key and the human key-ceremony doc prove tooling only | AWAITING MERGE; no gate row affected |
+| #178 | mailverify (AG), `community11/mailverify` | OPEN, `blocked`, `p2`, `ag-mail` | `docs/security/DKIM_INDEPENDENT_VERIFICATION.md` and the ignored `dkim_signatures_verify_with_dkimpy` test; real-mailbox send with port 25 egress | A runner with port 25 egress sends through the native MTA to a real mailbox and records the `Authentication-Results` header (RFC-0009 Mail A gate). The dependency upgrade and independent verifier are already satisfied; an opt-in CI check is an improvement, not a Done-when item, and default CI must stay green | AWAITING MERGE; `blocked` stays |
+| #185 | chrono (AG), `community11/chrono` | OPEN, `blocked`, `p2`, `security` | `cargo tree --workspace --all-features -i chrono`; `cargo deny --all-features check` without the RUSTSEC-2026-0543 ignore | `object_store` drops its non-optional chrono or the S3 adapter is replaced; the RUSTSEC-2026-0543 ignore is removed; the tree is empty under all features and deny, audit and all-features tests are green. Both in-repo roots (oauth2, workspace/DSL codegen) are already gone on `main`; a precise "cannot be done yet" note is an acceptable deliverable, not a closure | AWAITING MERGE; no gate row affected |
+| Fabric #3 | fabricfix (Fabric repo), `community/fabric-fix-11` | OPEN, `bug`, `good first issue` | 32 concurrent `fabric-node register --state PATH` writers to one path; `cargo test -p fabric-node`; `kaizen check` | Unique per-invocation temporary file in the destination directory, atomic rename and own-only cleanup; all concurrent writers exit 0, final state is valid JSON, the concurrency regression test passes and `kaizen check` is green. Fabric Phase 1 acceptance and alpha gate remain unmet and unchanged | AWAITING MERGE; no AG gate row affected |
+
+### Gate rows: cited evidence and merge discipline
+
+The gate table in `docs/audits/PRE_FASE5_RELEASE_GATE.md` was NOT edited by this
+addendum. The two pending rows stay pending; only evidence already merged on
+`main` is cited below.
+
+- Fuzz 24h: `pending`. Merged evidence is reproducible preparation only:
+  `docs/fuzz/24h-gate-verification.md`, the 30 s smoke of all seven targets in
+  `docs/fuzz/results/2026-11-22-smoke.md`, and the 60 s window evidence in
+  `docs/fuzz/wave9-window-evidence.md`. All are labelled non-gate. gatefuzz is
+  AWAITING MERGE; no pass is inferred.
+- Benchmarks: `pending`. Merged evidence is the procedure in
+  `docs/benchmarks/verification-package.md` and the informative host run in
+  `docs/benchmarks/wave9-host-results.md`, which uses non-reference hardware
+  and does not settle the gate. gatebench is AWAITING MERGE; no numbers were
+  invented and no pass is inferred.
+- Audit and Deny: `pass` on merged evidence (commit `800b671`, `Closes #198`,
+  `url` 2.5.9 in `Cargo.lock`). Correction to historical text above: the
+  wave-4 and wave-9 rows saying Audit/Deny are `fail` and that #198 is OPEN
+  describe an earlier snapshot. #198 was CLOSED 2026-11-22T12:54:23Z. This
+  correction does not change any gate state.
+- Open debt: `pending`. The 14 open AG issues and the two open Fabric issues
+  remain tracked on their boards; this addendum closes none of them.
+
+### Clarifications where the issue text is stale
+
+No new issue was warranted for these; the authoritative source is named in
+each case and the existing comments already carry the correction.
+
+- #189: the issue body's three-file table and the wave-9 "refactor covers
+  deploy.rs and dns.rs only" comment are historical. On merged `main` those two
+  files are 30 and 34 lines and are already off the allowlist. The five current
+  `tools/file-size-allowlist.txt` entries define the close condition. `env.rs`
+  belongs to `ag-core`, not `ag-cli`; the wave-11 split ownership list is
+  correct and no other wave-11 role claims those five files.
+- #178: mailverify's opt-in CI check is not a Done-when item. Independence of
+  the DKIM verifier is already recorded; the real-mailbox header is still the
+  only remaining closure evidence.
+- #141: a local test key cannot satisfy the out-of-band publication condition;
+  the six RFC-0030 section 11 conditions are unchanged.
+- #156 and #157: a scheduled runner and a one-command runner make the gates
+  reproducible but do not produce gate evidence.
+
+### Comments and closure
+
+Short ownership comments were posted on the seven newly assigned issues:
+#189, #156, #157, #141, #178, #185 and Fabric #3. Each is ASCII only, at most
+256 characters, with no emoji and no AI-tool attribution.
+
+| Issue | Comment |
+| --- | --- |
+| #189 | https://github.com/Anti-Gravital/Anti-Gravital/issues/189#issuecomment-7080942672 |
+| #156 | https://github.com/Anti-Gravital/Anti-Gravital/issues/156#issuecomment-7080942892 |
+| #157 | https://github.com/Anti-Gravital/Anti-Gravital/issues/157#issuecomment-7080943095 |
+| #141 | https://github.com/Anti-Gravital/Anti-Gravital/issues/141#issuecomment-7080943287 |
+| #178 | https://github.com/Anti-Gravital/Anti-Gravital/issues/178#issuecomment-7080943448 |
+| #185 | https://github.com/Anti-Gravital/Anti-Gravital/issues/185#issuecomment-7080943715 |
+| Fabric #3 | https://github.com/Anti-Gravital/Gravital-Fabric/issues/3#issuecomment-7080943902 |
+
+No issue was closed, reassigned by label edit or given a `Closes #NNN` keyword
+by this branch. No new issue was opened because no live contradiction between
+the board, the issue bodies and the merged gate was found; the stale passages
+above are dated historical snapshots and are corrected in this addendum.

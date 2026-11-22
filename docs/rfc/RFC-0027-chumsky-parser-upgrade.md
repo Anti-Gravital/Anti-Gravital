@@ -366,3 +366,37 @@ Under the recommended "defer" decision none of these PRs are created now.
 - chumsky 0.13 logos integration example (input/span pattern):
   https://docs.rs/crate/chumsky/0.13.0/source/examples/logos.rs
 - chumsky changelog: https://docs.rs/crate/chumsky/0.13.0/source/CHANGELOG.md
+
+## 11. Additive spike evidence (2026-11-22, issue #180)
+
+This section was added after the acceptance decision. It records new evidence
+only and does NOT reopen, amend or weaken section 9 or ADR-0021. The decision
+remains DEFER; chumsky 0.9.3 stays pinned.
+
+A throwaway spike outside the repository ported one cohesive slice of
+`parser.rs` (`config_parser()` + `config_field_parser()`, the `parse_tokens()`
+input plumbing, the error-message conversion and a `map_with_span` probe) from
+0.9.3 to the current stable 0.14.2, then measured it. Full evidence, verbatim
+compiler errors, raw benchmark trials and rule 17 metadata are in
+`docs/audits/chumsky-migration-spike.md`.
+
+Three findings refine section 2.3 and section 4.2 without changing the plan:
+
+1. Two additional concrete migration items were confirmed by compilation: in
+   0.14 `.repeated()` yields `()` unless `.collect()` is present, and
+   `RichPattern: Display` requires `Token: Display` (production `Token` has no
+   `Display`). The expected-token hint therefore needs an explicit rendering
+   decision, not only a new `match` arm.
+2. On the same malformed input, 0.9 produced no expected-token hint while 0.14
+   produced `se esperaba uno de: valor de config` from the retained label.
+   This is a DX improvement and an exact-text change; it reinforces the
+   requirement for golden diagnostics tests before any port.
+3. A small, noisy microbenchmark (load 16-17 on 12 logical CPUs, 5 interleaved
+   trials per version, 5000 measured iterations each) showed median means
+   208.1 us on 0.9.3 and 176.3 us on 0.14.2 for the slice. Standard deviation
+   exceeded the mean in individual trials. This is negative evidence against
+   an obvious 0.14 slowdown, NOT a performance claim and NOT ADR-0021 trigger
+   (d), which requires a tracked `ag-dsl::compile()` benchmark on a quiet host.
+
+Reopening conditions are unchanged and are listed in section 9 and in
+`docs/audits/chumsky-migration-spike.md` section 7.

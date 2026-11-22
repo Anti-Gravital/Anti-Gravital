@@ -64,6 +64,7 @@ dependencies = [
 name = "ag-cli"
 version = "0.0.0"
 dependencies = [
+ "ag-core",
  "ag-domains",
  "ag-dsl",
  "ag-mail",
@@ -75,6 +76,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "toml",
+ "toml_edit",
 ]
 
 [[package]]
@@ -7212,6 +7214,7 @@ dependencies = [
  "indexmap 2.14.2",
  "toml_datetime",
  "toml_parser",
+ "toml_writer",
  "winnow",
 ]
 

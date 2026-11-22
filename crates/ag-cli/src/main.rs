@@ -14,43 +14,130 @@
 //! - `ag domains check --domain example.com [--expected value] [--min-confirmed N]`
 //! - `ag domains sync --schema schema.ag --zone-id ZONE --token TOKEN`
 //! - `ag mail test --to dest@email.com [--from from@email.com] [--smtp-host ...]`
+//!
+//! Phase 4.7 commands (RFC-0018):
+//! - `ag config [get KEY | set KEY VALUE | validate]`
+//! - bare `ag` opens the home screen in an interactive terminal.
 
 mod cli;
 mod commands;
+mod config;
 mod interactive;
 mod request;
 #[cfg(feature = "tui")]
 mod tui;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use cli::*;
+use commands::config::*;
 use commands::domains::*;
 use commands::mail::*;
 use commands::project::*;
 use commands::schema::*;
 use commands::workers::*;
+#[cfg(feature = "tui")]
+use interactive::Session;
 use std::process;
+
+/// Exit classification of a command. Usage errors use exit code 2, every
+/// other failure uses exit code 1 (as in earlier releases).
+enum CliError {
+    Usage(String),
+    Failed(String),
+}
 
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Commands::New { name, template } => {
-            match cmd_new(name, template.as_deref(), cli.no_interactive) {
-                Ok(()) => Ok(()),
-                Err(NewError::Failed(msg)) => Err(msg),
-                Err(NewError::Usage(msg)) => {
-                    eprintln!("error: {msg}");
-                    process::exit(2);
+        Some(command) => dispatch(command, cli.no_interactive),
+        None => {
+            #[cfg(feature = "tui")]
+            {
+                let session = Session::from_environment(cli.no_interactive);
+                if session.is_interactive() {
+                    if let Some(command_line) = tui::run_home(&session) {
+                        println!("{command_line}");
+                        launch(&command_line, cli.no_interactive);
+                        return;
+                    }
                 }
             }
+            Cli::command().print_help().expect("write help");
+            println!();
+            Ok(())
         }
-        Commands::Dev { bind } => cmd_dev(&bind),
-        Commands::Build { target } => cmd_build(target.as_deref()),
-        Commands::Generate { schema, output } => cmd_generate(&schema, &output),
+    };
+    handle(result);
+}
+
+/// Runs a command line selected on the home screen. The screen only returns
+/// text; re-parsing through the real CLI guarantees it runs the same command
+/// the user could have typed (RFC-0018 principle 1 and section 4.5).
+#[cfg(feature = "tui")]
+fn launch(command_line: &str, no_interactive: bool) {
+    let cli = match Cli::try_parse_from(command_line.split_whitespace()) {
+        Ok(cli) => cli,
+        Err(error)
+            if matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) =>
+        {
+            print!("{error}");
+            return;
+        }
+        Err(error) => {
+            handle(Err(CliError::Failed(error.to_string())));
+            return;
+        }
+    };
+    let result = match cli.command {
+        Some(command) => dispatch(command, no_interactive || cli.no_interactive),
+        None => Ok(()),
+    };
+    handle(result);
+}
+
+/// Prints an error and exits with the documented code.
+fn handle(result: Result<(), CliError>) {
+    if let Err(error) = result {
+        match error {
+            CliError::Usage(message) => {
+                eprintln!("error: {message}");
+                process::exit(2);
+            }
+            CliError::Failed(message) => {
+                eprintln!("error: {message}");
+                process::exit(1);
+            }
+        }
+    }
+}
+
+/// Single dispatch table for the flag path and for commands launched by the
+/// home screen. Every branch converts a command error into an exit class.
+fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
+    match command {
+        Commands::New { name, template } => cmd_new(name, template.as_deref(), no_interactive)
+            .map_err(|error| match error {
+                NewError::Failed(message) => CliError::Failed(message),
+                NewError::Usage(message) => CliError::Usage(message),
+            }),
+        Commands::Config { command } => {
+            cmd_config(command, no_interactive).map_err(|error| match error {
+                ConfigCommandError::Failed(message) => CliError::Failed(message),
+                ConfigCommandError::Usage(message) => CliError::Usage(message),
+            })
+        }
+        Commands::Dev { bind } => cmd_dev(&bind).map_err(CliError::Failed),
+        Commands::Build { target } => cmd_build(target.as_deref()).map_err(CliError::Failed),
+        Commands::Generate { schema, output } => {
+            cmd_generate(&schema, &output).map_err(CliError::Failed)
+        }
         Commands::Workers { command } => match command {
-            WorkersCommands::List { schema } => cmd_workers_list(&schema),
+            WorkersCommands::List { schema } => cmd_workers_list(&schema).map_err(CliError::Failed),
             #[cfg(feature = "workers-runtime")]
-            WorkersCommands::Run => cmd_workers_run(),
+            WorkersCommands::Run => cmd_workers_run().map_err(CliError::Failed),
             #[cfg(feature = "workers-runtime")]
             other => {
                 let rt = tokio::runtime::Builder::new_current_thread()
@@ -58,18 +145,21 @@ fn main() {
                     .build()
                     .expect("failed to create the Tokio runtime");
                 rt.block_on(cmd_workers_runtime(other))
+                    .map_err(CliError::Failed)
             }
         },
         Commands::Schema { command } => match command {
-            SchemaCommands::Lint { schema } => cmd_schema_lint(&schema),
-            SchemaCommands::Diff { reference, schema } => cmd_schema_diff(&schema, &reference),
+            SchemaCommands::Lint { schema } => cmd_schema_lint(&schema).map_err(CliError::Failed),
+            SchemaCommands::Diff { reference, schema } => {
+                cmd_schema_diff(&schema, &reference).map_err(CliError::Failed)
+            }
         },
         Commands::Domains { command } => {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .expect("failed to create the Tokio runtime");
-            match command {
+            let result = match command {
                 DomainsCommands::Check {
                     domain,
                     expected,
@@ -127,14 +217,15 @@ fn main() {
                     ips,
                     state,
                 } => rt.block_on(cmd_domains_diagnose(&domain, &edge_host, &ips, &state)),
-            }
+            };
+            result.map_err(CliError::Failed)
         }
         Commands::Mail { command } => {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .expect("failed to create the Tokio runtime");
-            match command {
+            let result = match command {
                 MailCommands::Test {
                     to,
                     from,
@@ -146,12 +237,9 @@ fn main() {
                 } => rt.block_on(cmd_mail_test(
                     &to, &from, &subject, &smtp_host, smtp_port, smtp_user, smtp_pass,
                 )),
-            }
+            };
+            result.map_err(CliError::Failed)
         }
-    };
-    if let Err(msg) = result {
-        eprintln!("error: {msg}");
-        process::exit(1);
     }
 }
 
@@ -169,7 +257,10 @@ mod tests {
             .collect();
         assert_eq!(
             root_commands,
-            ["new", "dev", "build", "generate", "schema", "domains", "mail", "workers",]
+            [
+                "new", "dev", "build", "config", "generate", "schema", "domains", "mail",
+                "workers",
+            ]
         );
         assert!(!root_commands.contains(&"deploy"));
         assert!(!root_commands.contains(&"migrate"));
@@ -198,6 +289,16 @@ mod tests {
                 "diagnose",
             ]
         );
+
+        let config = command
+            .get_subcommands()
+            .find(|subcommand| subcommand.get_name() == "config")
+            .expect("config command must exist");
+        let config_commands: Vec<_> = config
+            .get_subcommands()
+            .map(|subcommand| subcommand.get_name())
+            .collect();
+        assert_eq!(config_commands, ["get", "set", "validate"]);
     }
 
     #[test]
@@ -355,7 +456,7 @@ mod tests {
             };
             let command = asked.equivalent_command();
             let cli = Cli::try_parse_from(command.split_whitespace()).expect("parse");
-            let Commands::New { name, template } = cli.command else {
+            let Some(Commands::New { name, template }) = cli.command else {
                 panic!("the equivalent command is not `ag new`: {command}");
             };
             let template = template.as_deref().and_then(Template::parse);

@@ -106,3 +106,83 @@ fn help_and_read_only_commands_emit_no_escape_sequences() {
         assert_no_escape_sequences(&output);
     }
 }
+
+// ---- `ag config` non-interactive parity (RFC-0018 stage B) ----------------
+
+#[test]
+fn bare_ag_without_a_terminal_prints_help_and_does_not_block() {
+    let dir = scratch_dir("bare");
+    let output = ag(&[], &dir);
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Usage: ag"), "{stdout}");
+    assert_no_escape_sequences(&output);
+}
+
+#[test]
+fn config_without_a_terminal_is_a_usage_error_and_opens_no_form() {
+    let dir = scratch_dir("config-form");
+    let output = ag(&["config"], &dir);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ag config get KEY"));
+    assert_no_escape_sequences(&output);
+
+    let output = ag(&["--no-interactive", "config"], &dir);
+    assert_eq!(output.status.code(), Some(2));
+    assert_no_escape_sequences(&output);
+}
+
+#[test]
+fn config_get_set_and_validate_round_trip() {
+    let dir = scratch_dir("config-parity");
+    std::fs::write(
+        dir.join("config.toml"),
+        "# project config\nbind = \"127.0.0.1:8080\"\n\n[rate_limit]\nenabled = false\n",
+    )
+    .expect("write config");
+
+    let output = ag(&["config", "get", "bind"], &dir);
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "127.0.0.1:8080"
+    );
+
+    let output = ag(&["config", "set", "rate_limit.enabled", "true"], &dir);
+    assert!(output.status.success(), "{output:?}");
+    assert_no_escape_sequences(&output);
+
+    let written = std::fs::read_to_string(dir.join("config.toml")).expect("read config");
+    assert!(written.contains("# project config"), "{written}");
+    assert!(written.contains("enabled = true"), "{written}");
+
+    let output = ag(&["config", "validate"], &dir);
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("valid"));
+    assert_no_escape_sequences(&output);
+}
+
+#[test]
+fn config_validate_fails_on_an_unknown_key() {
+    let dir = scratch_dir("config-invalid");
+    std::fs::write(dir.join("config.toml"), "[cors]\ntypo = true\n").expect("write config");
+    let output = ag(&["config", "validate"], &dir);
+    assert_eq!(output.status.code(), Some(1));
+    assert_no_escape_sequences(&output);
+}
+
+#[test]
+fn config_validate_accepts_a_scaffolded_config_file() {
+    let dir = scratch_dir("config-scaffold");
+    let output = ag(&["new", "api"], &dir);
+    assert!(output.status.success(), "{output:?}");
+    let project = dir.join("api");
+    let output = Command::new(env!("CARGO_BIN_EXE_ag"))
+        .args(["config", "validate"])
+        .current_dir(&project)
+        .stdin(Stdio::null())
+        .output()
+        .expect("run ag config validate");
+    assert!(output.status.success(), "{output:?}");
+    assert_no_escape_sequences(&output);
+}

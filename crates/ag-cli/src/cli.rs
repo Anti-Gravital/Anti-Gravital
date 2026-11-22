@@ -19,8 +19,10 @@ pub(crate) struct Cli {
     #[arg(long, global = true)]
     pub(crate) no_interactive: bool,
 
+    /// Omitted in an interactive terminal: opens the home screen (stage C).
+    /// In every other case it prints help, as in earlier releases.
     #[command(subcommand)]
-    pub(crate) command: Commands,
+    pub(crate) command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -57,6 +59,15 @@ pub(crate) enum Commands {
         /// Cross-compilation triple (e.g.: `x86_64-unknown-linux-musl`).
         #[arg(long)]
         target: Option<String>,
+    },
+
+    /// Views, edits and validates the project's config.toml (RFC-0018).
+    ///
+    /// With no subcommand it opens a full-screen form in an interactive
+    /// terminal. `get`, `set` and `validate` are the non-interactive parity.
+    Config {
+        #[command(subcommand)]
+        command: Option<ConfigCommands>,
     },
 
     /// Generates artifacts (Rust, SQL, TypeScript, OpenAPI) from schema.ag.
@@ -116,6 +127,25 @@ pub(crate) enum SchemaCommands {
         #[arg(long, default_value = "schema.ag")]
         schema: PathBuf,
     },
+}
+
+/// Sub-commands of `ag config` (RFC-0018 section 4.2).
+#[derive(Subcommand)]
+pub(crate) enum ConfigCommands {
+    /// Prints the current value of a key (or its default when unset).
+    Get {
+        /// Dotted key, for example `bind` or `rate_limit.per_ip_rps`.
+        key: String,
+    },
+    /// Sets one key after validating the whole resulting document.
+    Set {
+        /// Dotted key, for example `bind` or `rate_limit.per_ip_rps`.
+        key: String,
+        /// New value. Lists are comma separated; booleans are true/false.
+        value: String,
+    },
+    /// Exits non-zero when the project configuration is invalid (CI friendly).
+    Validate,
 }
 
 /// Sub-commands of `ag workers`.
@@ -412,7 +442,7 @@ mod tests {
     fn dev_bind_defaults_to_loopback() {
         let cli = Cli::parse_from(["ag", "dev"]);
         match cli.command {
-            Commands::Dev { bind } => assert_eq!(bind, "127.0.0.1:8080"),
+            Some(Commands::Dev { bind }) => assert_eq!(bind, "127.0.0.1:8080"),
             _ => panic!("expected the dev command"),
         }
     }
@@ -421,8 +451,30 @@ mod tests {
     fn dev_bind_can_opt_in_to_all_interfaces() {
         let cli = Cli::parse_from(["ag", "dev", "--bind", "0.0.0.0:8080"]);
         match cli.command {
-            Commands::Dev { bind } => assert_eq!(bind, "0.0.0.0:8080"),
+            Some(Commands::Dev { bind }) => assert_eq!(bind, "0.0.0.0:8080"),
             _ => panic!("expected the dev command"),
+        }
+    }
+
+    #[test]
+    fn bare_ag_parses_without_a_command() {
+        let cli = Cli::try_parse_from(["ag"]).expect("parse");
+        assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn config_subcommands_parse() {
+        for args in [
+            vec!["ag", "config"],
+            vec!["ag", "config", "get", "bind"],
+            vec!["ag", "config", "set", "bind", "127.0.0.1:7000"],
+            vec!["ag", "config", "validate"],
+        ] {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert!(
+                matches!(cli.command, Some(Commands::Config { .. })),
+                "{args:?}"
+            );
         }
     }
 }

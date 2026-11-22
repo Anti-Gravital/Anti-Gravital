@@ -10,7 +10,6 @@ members = [
     "crates/ag-cache",
     "crates/ag-storage",
     "crates/ag-observe",
-    "crates/ag-ui",
     "crates/ag-cloud",
     "crates/ag-ai",
     "crates/ag-mobile",

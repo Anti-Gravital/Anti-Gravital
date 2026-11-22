@@ -350,10 +350,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ag-ui"
-version = "0.0.0"
-
-[[package]]
 name = "ag-wasm-host"
 version = "0.0.0"
 

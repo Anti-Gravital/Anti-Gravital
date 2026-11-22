@@ -80,8 +80,9 @@ progress due to external deliverables (Discord, landing, domain). Phase 5
 deliverables of the already-completed Phase 4. It does not advance the v0.5 BETA milestone, which
 remains at the end of Phase 5. The ecosystem count goes from 15 to 17
 crates with the incorporation of `ag-mail` and `ag-domains`, and grows
-additively to 20 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
-(`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard).
+additively to 19 with `ag-lsp` (Phase 3 DSL tooling), `ag-edge`
+(`ADR-0012`) and `ag-workers` (`ADR-0013`, the second deferred standard),
+after `ag-ui` was removed by `RFC-0019` (backend-only scope).
 
 > Phases 0-4.5 are technically implemented; formal completion is gated by the
 > pre-Phase-5 release gate. Outstanding technical debt that must be closed before

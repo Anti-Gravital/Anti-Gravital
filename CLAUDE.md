@@ -317,9 +317,10 @@ Se favorece:
 ## 14. Regla de crates
 
 La separacion es estricta. El ecosistema arranco en 17 crates clasificados en
-cuatro niveles y ha crecido de forma aditiva a 20 con `ag-lsp` (tooling DSL de
+cuatro niveles y ha crecido de forma aditiva a 19 con `ag-lsp` (tooling DSL de
 la Fase 3), `ag-edge` (`ADR-0012`/`RFC-0011`) y `ag-workers`
-(`RFC-0012`/`ADR-0013`). La clasificacion "estandar diferido" fue introducida
+(`RFC-0012`/`ADR-0013`), tras retirar `ag-ui` del roster por decision de
+`RFC-0019`. La clasificacion "estandar diferido" fue introducida
 por `ADR-0007` (Fase 4.5):
 
 Nucleo:
@@ -354,11 +355,14 @@ templates oficiales; se incorpora cuando el proyecto lo necesita):
 
 Opcionales:
 
-- `ag-ui`
 - `ag-cloud`
 - `ag-ai`
 - `ag-mobile`
 - `ag-migrate`
+
+Nota: `ag-ui` fue retirado del roster por `RFC-0019` (decision 2, 2026-11-10).
+Anti-Gravital es una herramienta backend y no renderiza interfaces de usuario;
+los clientes UI se generan como SDK (TypeScript, Dart, Go).
 
 Opcionales de infraestructura:
 

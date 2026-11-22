@@ -139,7 +139,7 @@ ag-edge    -> producer-only consumer of the enqueue API; never hosts workers
 ```
 
 Forbidden (would create cycles or violate layering): `ag-workers` must not depend on
-`ag-mail`, `ag-auth`, `ag-cloud`, `ag-domains`, `ag-edge`, `ag-ui` or `ag-cli`.
+`ag-mail`, `ag-auth`, `ag-cloud`, `ag-domains`, `ag-edge` or `ag-cli`.
 `ag-workers` classification is estándar diferido (ADR-0007 precedent, `ag-mail`):
 production-grade but not installed by default in official templates; pulled in when
 `schema.ag` declares a `worker` or a feature enables it.

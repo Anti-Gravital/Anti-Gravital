@@ -69,11 +69,12 @@ Each request traverses the whole system with a unique correlation ID that appear
 
 `tokio-console` is integrated in development mode for live inspection of the Tokio tasks.
 
-### 8.7 `ag-ui` — Optional Server-Side Rendering
+### 8.7 Scope decision: no UI module (`RFC-0019`)
 
-The SSR module exists for cases where a SPA frontend is excessive: internal dashboards, marketing pages, simple forms, and administrative interfaces. It is based on `askama` (build-time compiled templating, with verified types) and native integration with HTMX for interactivity without heavy JavaScript frameworks.
-
-This module is explicitly *not* a competitor of React, Vue, Svelte, or Next.js. For SPA or rich SSR applications, the recommended pattern is Anti-Gravital as backend with a Next.js (or other) frontend that consumes the generated TypeScript client.
+`ag-ui` (server-side rendering with askama and HTMX) was an empty skeleton and
+was removed from the roster by `RFC-0019` (section 9, decision 2). Anti-Gravital
+is a backend tool: the interface side is served by generated client SDKs
+(TypeScript, Dart, Go) and by external frontend frameworks.
 
 ### 8.8 `ag-mail` — Transactional communication (deferred standard)
 

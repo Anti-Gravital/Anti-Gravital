@@ -127,10 +127,6 @@ write_cargo "ag-observe"   "Observabilidad: tracing, OpenTelemetry, Prometheus, 
 write_lib   "ag-observe"   "Observabilidad nativa: tracing, OpenTelemetry exporter, metricas Prometheus y tokio-console."
 write_readme "ag-observe"  "Estandar"  "Observabilidad nativa: tracing estructurado, exporter OpenTelemetry (OTLP), metricas Prometheus, integracion con tokio-console en modo dev y dashboards Grafana incluidos como JSON. Cero configuracion para casos comunes."  "Fase 4"  "14-observabilidad-ag-observe.md"
 
-write_cargo "ag-ui"        "SSR con askama e integracion HTMX"
-write_lib   "ag-ui"        "Renderizado del lado del servidor con askama e integracion progresiva HTMX."
-write_readme "ag-ui"       "Opcional"  "Renderizado del lado del servidor con askama, hidratacion selectiva e integracion HTMX. No compite con frameworks SPA: cubre el rango donde un stack JS completo es excesivo. Para SPA o SSR ricas, el patron recomendado es Anti-Gravital como backend mas Next.js como frontend."  "Fase 4 o posterior"  "05-ecosistema-modulos.md"
-
 write_cargo "ag-cloud"     "Despliegue simplificado al estilo Railway/Fly.io"
 write_lib   "ag-cloud"     "Subsistema de despliegue simplificado: docker-compose, Fly.io, Railway y Kubernetes."
 write_readme "ag-cloud"    "Opcional"  "Despliegue simplificado al estilo Railway/Fly.io. Soporta cuatro targets: docker-compose con Caddy como reverse proxy y TLS automatico, Fly.io via flyctl, Railway via su API, y Kubernetes con generacion de manifests estandar. Genera Dockerfiles multi-stage optimizados."  "Fase 5"  "10-despliegue-ag-cloud.md"

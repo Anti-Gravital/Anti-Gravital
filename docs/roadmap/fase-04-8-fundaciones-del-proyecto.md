@@ -27,7 +27,7 @@ for Go, WebAssembly and Flutter consumers; it does not render user interfaces.
 ### 4.8.1 Entry criteria
 
 - [ ] `RFC-0019`, `RFC-0020` and `RFC-0021` accepted with their open questions
-  resolved (default layout, fate of `ag-ui`, gRPC and Go in scope, default
+  resolved (default layout, `ag-ui` removal per `RFC-0019`, gRPC and Go in scope, default
   secret storage, remote transport, scope of `ag setup`, release key custody).
 - [ ] Phase 4.7 stage A complete (the interactive foundation these flows use).
 

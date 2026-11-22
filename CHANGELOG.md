@@ -7,6 +7,24 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Crate roster: ag-ui removed (issue #182, RFC-0019)
+
+Removed:
+
+- `ag-ui` from the workspace, the crate roster (rule 14), the three master
+  documents, the README tiers and the generated module scaffolding. The
+  backend-only scope of `RFC-0019` section 4.6 now holds without exceptions;
+  UI consumers use generated client SDKs instead.
+- The empty `crates/ag-ui/` and `docs/modules/ag-ui/` skeletons.
+
+Changed:
+
+- Crate count 20 to 19 (placeholders 6 to 5) across masters, CLAUDE.md and
+  README (EN+ES). Chapter 8.7 of the architecture master now records the scope
+  decision rather than a UI module.
+- Master hashes in `VERSION.md` and `.github/workflows/docs.yml`, derived files
+  and the line ranges of `tools/split-masters.sh` were recalculated.
+
 ### Master documentation consistency (issues #170, #172)
 
 Changed:

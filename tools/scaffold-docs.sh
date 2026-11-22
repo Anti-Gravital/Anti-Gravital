@@ -79,10 +79,6 @@ write_module "ag-observe"   "Estandar" "14-observabilidad-ag-observe.md"   "Fase
   "Depende de ag-core." \
   "Tracing estructurado, OpenTelemetry, Prometheus, tokio-console, dashboards Grafana."
 
-write_module "ag-ui"        "Opcional" "05-ecosistema-modulos.md"          "Fase 4 o posterior" \
-  "Depende de ag-core." \
-  "SSR con askama, hidratacion selectiva, integracion HTMX. No compite con frameworks SPA."
-
 write_module "ag-cloud"     "Opcional" "10-despliegue-ag-cloud.md"         "Fase 5" \
   "Depende de ag-cli." \
   "Despliegue simplificado: docker-compose, Fly.io, Railway, Kubernetes. Genera Dockerfile multi-stage."
@@ -125,7 +121,6 @@ un puntero al capitulo correspondiente de la arquitectura tecnica.
 | `ag-cache` | Estandar | 8 | Fase 4 |
 | `ag-storage` | Estandar | 8 | Fase 4 |
 | `ag-observe` | Estandar | 14 | Fase 4 |
-| `ag-ui` | Opcional | 5 | Fase 4 o posterior |
 | `ag-cloud` | Opcional | 10 | Fase 5 |
 | `ag-ai` | Opcional | 11 | Fase 6 |
 | `ag-mobile` | Opcional | 13 | Fase 8 |

@@ -32,7 +32,6 @@ con `ag-lsp` (Fase 3), `ag-edge` (`ADR-0012`/`RFC-0011`) y `ag-workers`
 | `ag-mail` | Estandar diferido | 8.8 | Fase 4.5 |
 | `ag-workers` | Estandar diferido | 8.10 | Fase 4.6-D |
 | `ag-lsp` | Nucleo | 7 | Fase 3 |
-| `ag-ui` | Opcional | 5 | Fase 4 o posterior |
 | `ag-cloud` | Opcional | 10 | Fase 5 |
 | `ag-domains` | Opcional infra | 8.9 / 10.6 | Fase 4.5 |
 | `ag-ai` | Opcional | 11 | Fase 6 |

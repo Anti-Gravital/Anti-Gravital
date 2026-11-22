@@ -45,7 +45,7 @@ closes.
    modules, never inside `ag-core`, with a strict acyclic dependency direction
    (`ag-workers -> { ag-data?, ag-observe?, ag-cache?, ag-realtime? }`, all
    feature-gated). It must not depend on `ag-mail`, `ag-auth`, `ag-cloud`,
-   `ag-domains`, `ag-edge`, `ag-ui` or `ag-cli`. Roadmap slot: Phase 4.6-D.
+   `ag-domains`, `ag-edge` or `ag-cli`. Roadmap slot: Phase 4.6-D.
 
 2. **One job model.** A typed `JobHandler` trait with a closed registry; an explicit
    job state machine whose illegal transitions the persistence layer rejects;

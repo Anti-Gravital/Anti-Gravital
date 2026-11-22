@@ -101,8 +101,8 @@ and Redis backends are deferred and feature-gated.
 - May depend on `ag-data` (`postgres` feature), `ag-observe` (metrics/tracing),
   `ag-cache` (optional idempotency hints) and `ag-realtime` (optional future backend),
   all feature-gated.
-- **Must not depend on** `ag-mail`, `ag-auth`, `ag-cloud`, `ag-domains`, `ag-edge`,
-  `ag-ui` or `ag-cli` (would create cycles or violate layering).
+- **Must not depend on** `ag-mail`, `ag-auth`, `ag-cloud`, `ag-domains`, `ag-edge`
+  or `ag-cli` (would create cycles or violate layering).
 - `ag-cli` depends on `ag-workers` only through a Cargo feature (fourth dependency rule).
 - `ag-mail` may later consume `ag-workers` through an adapter (RFC-0012 §5, S7), never the
   reverse.

@@ -29,9 +29,9 @@ desde el origen autorizado antes de continuar.
 | Archivo | Tamano (bytes) | SHA-256 |
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
-| `ANTI-GRAVITAL-Blueprint-v4.1.md` | 11948 | `64bded4c90aba7037b038e71ae908592efce8c51515a57375692642b9736fad6` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 206984 | `e055e7f4ea9f1fbbf0cf6bd05208afcefb31c7f2c7f849012d89da67885726f5` |
-| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 122981 | `cc01977c8ba1800adbe8768221b616a02675fd20cc9daf87f63eea136845d825` |
+| `ANTI-GRAVITAL-Blueprint-v4.1.md` | 12168 | `36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 206223 | `7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e` |
+| `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 123200 | `d1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518` |
 
 ### Deuda explícita — Blueprint PDF v4.1
 
@@ -72,6 +72,7 @@ nueva del historial de revisiones.
 | 2026-11-10 | Hoja-de-Ruta: `RFC-0018` a `RFC-0023` aceptadas por el BDFL; Fase 4.7 pasa a "en curso" con los criterios de entrada y los entregables de la etapa A marcados (asistente de `ag new` implementado); Fases 4.8 y 5.5 pasan a "aceptada, sin iniciar". EN+ES. Hoja-de-Ruta → `a0dd357c7ab70b2042b498bc0df0e49319c3f07925bfa7beda1bcabfc4541745` (122852 bytes). | Decision del BDFL del 2026-11-10; implementacion de `RFC-0018` etapa A. |
 | 2026-11-21 | Blueprint v4.1 (issue #170): el alcance de `ag-mail` describe el MTA outbound nativo (`RFC-0009`/`ADR-0010`) y conserva fuera del alcance el correo entrante; `ag-cache` refleja L1 + L2 nativo con backend Redis opcional; la seccion de entrega incluye las Fases 4.6 y 4.7 y la interfaz MCP de `RFC-0024`. EN+ES. Blueprint → `64bded4c90aba7037b038e71ae908592efce8c51515a57375692642b9736fad6` (11948 bytes). | Sincronizacion de decisiones ya aprobadas (issues #170, RFC-0024). |
 | 2026-11-21 | Hoja-de-Ruta (issue #172): las casillas del maestro describen el contrato de cada fase, no su estado; el estado verificado vive en `docs/roadmap/STATUS.md`. Se desmarcan las 63 casillas marcadas y se regeneran los derivados. EN+ES. Hoja-de-Ruta → `cc01977c8ba1800adbe8768221b616a02675fd20cc9daf87f63eea136845d825` (122981 bytes). | Criterio B de la issue #172; `ADR-0008`. |
+| 2026-11-21 | Retirada de `ag-ui` del roster de crates (issue #182, decision 2 de `RFC-0019`): los tres maestros eliminan el crate de la lista de opcionales y del diagrama, sustituyen la descripcion de SSR por la decision de alcance backend-only y ajustan el conteo 20→19. Se eliminan `crates/ag-ui/` y `docs/modules/ag-ui/`, se regeneran derivados y se recalculan los rangos de `tools/split-masters.sh`. EN+ES. Blueprint → `36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82` (12168 bytes); Arquitectura → `7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e` (206223 bytes); Hoja-de-Ruta → `d1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518` (123200 bytes). | Decision del BDFL vía `RFC-0019`. |
 
 ## Verificación local
 

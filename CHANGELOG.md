@@ -7,6 +7,28 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Real-terminal TUI audit (wave 10)
+
+Added:
+
+- `tools/tui-pty-harness.py`: standard-library harness that drives `ag` in a
+  real pseudo-terminal (`pty.fork` plus `TIOCSWINSZ`), injects key sequences,
+  captures timestamped raw output and reconstructs the visible screen from the
+  ANSI stream with a small emulator that accumulates differential redraws.
+- `docs/audits/tui-user-journey.md` and `docs/audits/tui-transcripts/`:
+  seventeen captured scenarios covering the bare `ag` home screen (outside and
+  inside a project), the `ag new` wizard, the `ag config` form and degraded
+  modes (`NO_COLOR=1`, `TERM=dumb`, 60x20 terminal, non-TTY stdin and
+  `--no-interactive`). Every process exited on its own; no prompt hung. Exact
+  key sequences, verbatim screens, exit codes and escape markers are recorded.
+
+Observed:
+
+- The truncated `dns` subcommand help text was reproduced from the real
+  terminal fallback help. It is already tracked as issue #200, so a
+  corroborating observation was added there; no duplicate issue was opened and
+  no issue was closed.
+
 ### Fuzz window automation and partial evidence (wave 9, issue #156)
 
 Added:

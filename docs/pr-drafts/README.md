@@ -110,3 +110,5 @@ Ramas con descriptor aceptando PR en este momento:
 - `community11/mailverify`: `docs/pr-drafts/community11-mailverify.md` (check
   opt-in de verificacion DKIM independiente, RFC-0035 y evidencia real; no
   cierra #178, ola 11).
+- `community12/i141`: `docs/pr-drafts/community12-i141.md` (verificador opt-in
+  de firma de prueba con evidencia real; no cierra #141, ola 12).

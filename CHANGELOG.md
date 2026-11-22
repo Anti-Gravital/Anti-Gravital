@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### CLI help and domain guide fixes (issues #200, #201, #202)
 
 Fixed:
@@ -18,7 +19,6 @@ Fixed:
 - `docs/dns/DOMAIN_LOOP.md` worked example uses the shipped command forms
   (`--plan`, `ag domains instructions|verify|export-zone`, `ag domains detach`)
   and no longer claims the implemented commands are missing (#202).
-
 
 ### DNS/deploy/env/config real-user terminal journey (wave 10)
 
@@ -2599,6 +2599,22 @@ workspace `--all-features` green; fmt and clippy `-D warnings` clean.
 `cargo audit` and `cargo deny` are currently blocked by the pre-existing
 RUSTSEC-2026-0592 advisory for `url` 2.5.8 (fixed in 2.5.9); this branch does
 not change Cargo.toml or Cargo.lock.
+
+### Lockfile reproducibility audit (wave 10)
+
+Added:
+
+- `docs/audits/lockfile-user-journey.md`: definitive list of the four committed
+  `Cargo.lock` files with SHA-256 hashes and `cargo metadata --locked --offline`
+  results, exact drift-reproduction commands, script-by-script `--locked`
+  coverage, timings and remediation steps. All four locks resolve under
+  `--locked` at commit `72fa9d8`; none is stale.
+- Issue #199 (reported, not fixed): `scripts/run-fuzz-window.sh`,
+  `scripts/run-benchmarks.sh` and the release-build line of `install.sh` omit
+  `--locked` and can silently rewrite a stale committed lockfile, the exact
+  failure mode recorded in wave 9's `fuzz/Cargo.lock` regeneration.
+
+The audit does not change any gate result. Issues #156 and #157 stay open.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

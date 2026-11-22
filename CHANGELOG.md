@@ -7,6 +7,26 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Issue board reconciliation and wave-9 cross-links
+
+Added:
+
+- `docs/audits/issue-board-reconciliation.md` now carries a wave-9 addendum:
+  owner, status, exact evidence command and exact closure condition for every
+  open issue, plus a note that #189 is a multi-owner issue (refactor, clidev
+  and coredev) that no single role can close.
+- Short wave-9 assignment comments on #189 (refactor), #156 (qafuzz),
+  #157 (qabench) and #87/#179 (dnsacme). Each states that local automation,
+  mocks or short windows are not gate evidence.
+- Issue #198: the release gate Audit/Deny rows cite closed issues #173/#174
+  and resolved advisories, while the real current blocker RUSTSEC-2026-0592
+  (`url` 2.5.8) is untracked. Filed with reproducible commands and Done-when
+  criteria; no issue was closed.
+
+Verification: `cargo audit` reported 1 vulnerability (RUSTSEC-2026-0592),
+`cargo deny check advisories` reported `advisories FAILED` on the same advisory,
+and `cargo tree -i url` showed it as a direct dependency of `ag-core` and
+`ag-auth`. Parent child counts are unchanged (#76: 15/1; #142: 26/5).
 
 ### Edge wildcard matching (issue #196)
 

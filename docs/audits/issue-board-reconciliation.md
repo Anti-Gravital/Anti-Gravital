@@ -5,6 +5,11 @@ the board reflects the real state of the repository. Source of truth for each
 classification is the issue body, its latest comments and the accepted
 ADR/RFC/roadmap decision that governs it. No issue was closed by this work.
 
+This document keeps the wave-4 matrix below as the historical baseline. The
+wave-9 addendum at the end records the current owner, status, evidence command
+and exact closure condition for every open issue. It does not override any
+closure condition below; it only adds current cross-links.
+
 ## Reconciliation matrix
 
 Legend:
@@ -151,3 +156,79 @@ now. No reviewer issue had appeared at final verification either.
 - Label changes limited to adding `blocked` to #141; all other labels preserved.
 - No issue was closed, reassigned or edited outside the two parent bodies.
 - Master documents in `docs/master/` were not touched.
+
+## Wave 9 addendum (2026-11-22) - owner and evidence matrix
+
+Scope: cross-link every open issue with the wave-9 role that touches it, or
+state explicitly that no role does. The wave-4 classification above remains the
+authority for why an issue is blocked or deferred. The evidence commands below
+are the exact reproducible checks an owner or coordinator must run; a short
+fuzz window, a local ACME mock, a reduced benchmark sample or a partial file
+split is NOT gate evidence and never closes an issue.
+
+| Issue | Wave-9 owner | Status (2026-11-22) | Evidence command | Exact closure condition |
+| --- | --- | --- | --- | --- |
+| #76 | none; parent monitored by trackers | OPEN, 16 children (15 CLOSED / 1 OPEN) | `gh issue list --state open` filtered to children #78-#93 | `Closes #87` first, then all 16 children CLOSED; only then `Closes #76` |
+| #87 | dnsacme (local ACME mock harness and staging docs ONLY) | OPEN, `blocked` (external gate) | `cargo test -p ag-domains --features acme --test acme_staging -- --ignored --exact staging_dns01_issue_and_serve_sni --nocapture` | Credentialed staging run passes and real logs are linked; then update #76 |
+| #112 | none; deferred by RFC-0012 S6 / ADR-0013 | OPEN, deferred | `cargo test --workspace --all-features` plus dependency-cycle check | Concrete ag-edge consumer exists; `producer`-only wiring and integration test land; acyclic dependency check green |
+| #141 | none; needs a human key ceremony | OPEN, `blocked` | Read RFC-0030 section 11 and verify each of the six conditions | All six RFC-0030 section 11 conditions hold: key ceremony, signed tagged manifest, clean-machine run, CI parity |
+| #142 | none; parent monitored by trackers | OPEN, 31 children (26 CLOSED / 5 OPEN) | `gh issue list --state open` filtered to its 31 children | All five open children (#141, #152, #154, #156, #157) CLOSED |
+| #152 | none; deferred by RFC-0009 Mail A gate / BDFL decision | OPEN, deferred | RFC-0009 Mail A gate evidence; real delivery with aligned SPF/DKIM/DMARC | Mail A evidence recorded, or an amendment moving C/D out; REST/marketing surface tested |
+| #154 | none; deferred by ADR-0020 | OPEN, deferred | Read `docs/audits/PRE_FASE5_RELEASE_GATE.md`: Audit and Deny rows are still `fail` | Phase 5 open, all blocking gate rows `pass`, generated ORM/RLS/tenancy tested |
+| #156 | qafuzz (fuzz automation and short-window evidence ONLY) | OPEN, `blocked` (external gate) | `cargo +nightly fuzz run <target> -max_total_time=86400` per each of seven targets; archived logs under `docs/fuzz/results/YYYY-MM-DD/24h/` | 24h logs for all seven targets archived, no unresolved crashes, crash triage reviewed |
+| #157 | qabench (benchmark procedure and reduced-sample evidence ONLY) | OPEN, `blocked` (external gate) | `cargo bench -p ag-core -p ag-workers --no-run`, then criterion and `oha` runs per `docs/benchmarks/verification-package.md` | Rule-17 benchmark evidence on reference hardware, `pre-fase5-performance.md` written, gate row and README reconciled |
+| #178 | none; security analysis explicitly NOT in wave 9 | OPEN, `blocked` | Real-mailbox send through native MTA with port 25 egress; capture `Authentication-Results` header | Header recorded from a real-mailbox send with port 25 egress |
+| #179 | dnsacme (0.8 migration notes and local harness ONLY) | OPEN, `blocked` by #87 | Same staging E2E command as #87, run before and after the 0.7 -> 0.8 order-flow port | Staging E2E passes before and after the port; no unverified renewal rewrite |
+| #180 | none; deferred by ADR-0021 (RFC-0027 accepted) | OPEN, deferred | DSL grammar freeze or concrete blocker; generated artifacts byte-identical; fuzz smoke green | RFC superseding ADR-0021, tests unchanged, artifacts byte-identical, fuzz smoke green |
+| #185 | none; security analysis explicitly NOT in wave 9 | OPEN, `blocked` | `cargo tree -i chrono` (empty under all features); `cargo deny --all-features check` | `object_store` drops non-optional chrono, RUSTSEC-2026-0543 ignore removed, deny/audit/test green |
+| #189 | refactor (commands/deploy.rs and commands/dns.rs ONLY) | OPEN, in progress in wave 9 | `bash tools/check-file-size.sh`; `cargo test -p ag-cli -p ag-core`; `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Every allowlisted file at or below 600 lines or split into focused modules, its allowlist entry removed, checks green |
+| #198 | trackers (filed this wave) | OPEN, no owner assigned yet | `cargo audit`; `cargo deny check advisories`; `cargo tree -i url` | Gate Audit/Deny rows cite current RUSTSEC-2026-0592 blocker and an OPEN tracker; stale #173/#174 text corrected |
+
+### Ownership notes
+
+- #189 is a multi-owner issue. `refactor` owns only `commands/deploy.rs` and
+  `commands/dns.rs`. `clidev` owns `cli.rs`, `config.rs` and `main.rs`;
+  `coredev` owns `crates/ag-core/**`, including `env.rs`. The issue body's file
+  list was extended by a later comment that added the wave-7/8 modules. No
+  single wave-9 role can close #189: the coordinator must combine all owners'
+  splits and the allowlist cleanup before using `Closes #189`.
+- #185 and #178 have no wave-9 owner. Security analysis for both is explicitly
+  outside this wave; their blocked status and conditions are unchanged.
+- #141 needs a human. The RFC-0030 section 11 key ceremony cannot be performed
+  by an automation agent, so no agent owner is assigned.
+- #112, #152, #154 and #180 are deferred by accepted decisions. Wave 9 adds no
+  work to them and does not add a `blocked` label.
+- #156, #157, #87 and #179 have a wave-9 owner only for local automation,
+  evidence or documentation. The external gate still belongs to the
+  coordinator; none of these issues may be closed from wave-9 branch evidence.
+
+### Wave-9 cross-link comments
+
+Short status comments were posted on the five issues with a new assignment.
+Each is ASCII only and at most 256 characters. No other issue was commented on
+because the wave-4 comments already state its status.
+
+| Issue | Comment |
+| --- | --- |
+| #189 | https://github.com/Anti-Gravital/Anti-Gravital/issues/189#issuecomment-7079363459 |
+| #156 | https://github.com/Anti-Gravital/Anti-Gravital/issues/156#issuecomment-7079363705 |
+| #157 | https://github.com/Anti-Gravital/Anti-Gravital/issues/157#issuecomment-7079363952 |
+| #87 | https://github.com/Anti-Gravital/Anti-Gravital/issues/87#issuecomment-7079364282 |
+| #179 | https://github.com/Anti-Gravital/Anti-Gravital/issues/179#issuecomment-7079364623 |
+
+### Board inconsistency filed this wave
+
+Issue #198 (https://github.com/Anti-Gravital/Anti-Gravital/issues/198) records a
+real false-status inconsistency. The release gate Audit and Deny rows are
+`fail` with 2026-11-10 evidence that names #173 and #174 and three advisories
+that are now resolved in the lockfile (`crypto-bigint` 0.7.11,
+`libsqlite3-sys` 0.39.0, `astral-tokio-tar` 0.6.4 under a dated `deny.toml`
+ignore). Both #173 and #174 are CLOSED. The gate is still red for a different
+and untracked reason: RUSTSEC-2026-0592 (`url` 2.5.8, fixed in 2.5.9), published
+2026-11-20. Verified here with `cargo audit` (1 vulnerability),
+`cargo deny check advisories` (`advisories FAILED`, one error) and
+`cargo tree -i url` (direct dependency of `ag-core` and `ag-auth`).
+
+This addendum closes nothing and adds no `Closes #NNN` keyword. Parent counts
+are unchanged: #76 still has one open child (#87) and #142 still has five open
+children (#141, #152, #154, #156, #157), so neither child checklist was edited.

@@ -42,10 +42,6 @@ pub fn generate_models(schema: &Schema) -> String {
         .models
         .iter()
         .any(|m| m.fields.iter().any(|f| f.ty.value == FieldType::Uuid));
-    let needs_chrono = schema
-        .models
-        .iter()
-        .any(|m| m.fields.iter().any(|f| f.ty.value == FieldType::Timestamp));
     let needs_decimal = schema
         .models
         .iter()
@@ -54,9 +50,6 @@ pub fn generate_models(schema: &Schema) -> String {
     out.push_str("use serde::{Deserialize, Serialize};\n");
     if needs_uuid {
         out.push_str("use uuid::Uuid;\n");
-    }
-    if needs_chrono {
-        out.push_str("use chrono::{DateTime, Utc};\n");
     }
     if needs_decimal {
         out.push_str("use rust_decimal::Decimal;\n");
@@ -97,6 +90,7 @@ fn generate_model_struct(model: &ModelDef) -> String {
             out.push_str("    pub id: Uuid,\n");
         } else {
             let rust_ty = rust_field_type(field);
+            out.push_str(timestamp_serde_attr(field, false));
             out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
         }
     }
@@ -130,6 +124,7 @@ fn generate_create_request(model: &ModelDef) -> String {
     for field in create_fields {
         let rust_ty = rust_field_type(field);
         let fname = &field.name.value;
+        out.push_str(timestamp_serde_attr(field, false));
         out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
     }
 
@@ -159,6 +154,7 @@ fn generate_update_request(model: &ModelDef) -> String {
     for field in update_fields {
         let base_ty = field.ty.value.rust_type(false);
         let fname = &field.name.value;
+        out.push_str(timestamp_serde_attr(field, true));
         out.push_str(&format!("    pub {fname}: Option<{base_ty}>,\n"));
     }
 
@@ -171,6 +167,23 @@ fn rust_field_type(field: &FieldDef) -> String {
     // @auto or @auto_update fields are always present in the DB,
     // but in response structs they are included as required.
     field.ty.value.rust_type(field.optional)
+}
+
+/// Serde adapter emitted for timestamp fields (RFC-0026 / issue #185).
+///
+/// `time::OffsetDateTime`'s default serde representation is a numeric array,
+/// while generated models previously exposed an RFC 3339 string via chrono.
+/// The `rfc3339` adapter preserves that string wire format. `forced_optional`
+/// is used for update-request fields, whose generated type is always `Option<T>`.
+fn timestamp_serde_attr(field: &FieldDef, forced_optional: bool) -> &'static str {
+    if field.ty.value != FieldType::Timestamp {
+        return "";
+    }
+    if forced_optional || field.optional {
+        "    #[serde(with = \"time::serde::rfc3339::option\")]\n"
+    } else {
+        "    #[serde(with = \"time::serde::rfc3339\")]\n"
+    }
 }
 
 /// True if the field has @auto or @auto_update.
@@ -242,6 +255,7 @@ fn generate_request_struct(req: &RequestDef) -> String {
     for field in &req.fields {
         let rust_ty = field.ty.value.rust_type(field.optional);
         let fname = &field.name.value;
+        out.push_str(timestamp_serde_attr(field, false));
         out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
     }
     out.push_str("}\n");
@@ -258,6 +272,7 @@ fn generate_response_struct(resp: &ResponseDef) -> String {
     for field in &resp.fields {
         let rust_ty = field.ty.value.rust_type(field.optional);
         let fname = &field.name.value;
+        out.push_str(timestamp_serde_attr(field, false));
         out.push_str(&format!("    pub {fname}: {rust_ty},\n"));
     }
     out.push_str("}\n");
@@ -683,6 +698,56 @@ model Item {
         );
         let out = generate_models(&schema);
         assert!(out.contains("use uuid::Uuid;"));
+    }
+
+    #[test]
+    fn timestamp_emits_time_with_rfc3339_serde_adapters() {
+        let schema = schema_from(
+            r#"
+model Event {
+    id   UUID       @primary @auto
+    at   Timestamp
+    seen Timestamp?
+}
+request EventRequest { at Timestamp }
+response EventResponse { at Timestamp }
+"#,
+        );
+        let models = generate_models(&schema);
+        let types = generate_types(&schema);
+
+        // RFC-0026 / issue #185: generated projects must never require chrono.
+        assert!(
+            !models.contains("chrono"),
+            "chrono leaked into models: {models}"
+        );
+        assert!(
+            !types.contains("chrono"),
+            "chrono leaked into types: {types}"
+        );
+
+        assert!(models.contains("pub at: time::OffsetDateTime,"));
+        assert!(models.contains("pub seen: Option<time::OffsetDateTime>,"));
+        assert!(
+            models.contains(
+                "#[serde(with = \"time::serde::rfc3339\")]\n    pub at: time::OffsetDateTime,"
+            ),
+            "full model/create timestamp must use the rfc3339 adapter: {models}"
+        );
+        assert!(
+            models.contains("#[serde(with = \"time::serde::rfc3339::option\")]\n    pub at: Option<time::OffsetDateTime>,"),
+            "update request timestamp must use the option adapter: {models}"
+        );
+        assert!(
+            models.contains("#[serde(with = \"time::serde::rfc3339::option\")]\n    pub seen: Option<time::OffsetDateTime>,"),
+            "optional timestamp must use the option adapter: {models}"
+        );
+        assert!(
+            types.contains(
+                "#[serde(with = \"time::serde::rfc3339\")]\n    pub at: time::OffsetDateTime,"
+            ),
+            "API request/response timestamps must use the rfc3339 adapter: {types}"
+        );
     }
 
     // ---- Tests DSL v0.4 ----

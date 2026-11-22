@@ -76,7 +76,7 @@ model User {
 | `Int`       | `i64`                          | `BIGINT`          | `number`  | `integer / int64`  |
 | `Float`     | `f64`                          | `DOUBLE PRECISION`| `number`  | `number / double`  |
 | `Bool`      | `bool`                         | `BOOLEAN`         | `boolean` | `boolean`          |
-| `Timestamp` | `chrono::DateTime<chrono::Utc>`| `TIMESTAMPTZ`     | `string`  | `string / date-time` |
+| `Timestamp` | `time::OffsetDateTime`         | `TIMESTAMPTZ`     | `string`  | `string / date-time` |
 | `Decimal`   | `rust_decimal::Decimal`        | `NUMERIC`         | `string`  | `string / decimal` |
 
 ### Tipos relacionales (v0.4)
@@ -87,6 +87,15 @@ model User {
 | `ModelName[]`  | Lista 1:N                      | No          | `Vec<M>`       | `M[]?`     |
 
 Los tipos relacionales requieren la anotacion `@relation`. Nunca generan columna SQL.
+
+Timestamp serialization (RFC-0026): generated timestamp fields carry
+`#[serde(with = "time::serde::rfc3339")]`, or `time::serde::rfc3339::option` for
+nullable fields. Generated projects must depend on `time` with the `serde`
+feature; without the adapter the default representation is a numeric array.
+Two textual changes are intentional breaking changes for literal string
+comparisons: trailing-zero fractions lose the zeros (`...00.100Z` becomes
+`...00.1Z`) and explicit UTC formatting spells `Z` instead of `+00:00`.
+Golden-string tests cover both.
 
 ### Opcionalidad
 
@@ -212,8 +221,10 @@ pub struct User {
     pub email: String,
     pub name: String,
     pub age: Option<i64>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: time::OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: time::OffsetDateTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

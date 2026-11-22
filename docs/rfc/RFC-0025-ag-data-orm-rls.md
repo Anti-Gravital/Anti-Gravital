@@ -1,7 +1,8 @@
 # RFC-0025 - DSL-generated typed ORM, row-level security and multi-tenancy for ag-data
 
-- Status: proposed. NOT ACCEPTED. NOT IMPLEMENTED. No code may be written under
-  this RFC before acceptance.
+- Status: ACCEPTED AS DESIGN; IMPLEMENTATION DEFERRED. Decision recorded in
+  ADR-0020 (2026-11-22, BDFL). No code may be written under this RFC until
+  Phase 5 opens and the pre-Phase-5 release gate closes.
 - Author: Architecture working group, Anti-Gravital community
 - Draft date: 2026-11-21
 - Target phase: Phase 5 and later (Phase 5+). The first ORM increment may start
@@ -341,13 +342,20 @@ migration is applied.
 - [ ] Master documents, module docs and the dependency/context diagram are
       updated in the same PR as the code that changes them.
 
-Current status: **none of the boxes above is met**. Issue #154 stays open.
+Current status: **none of the boxes above is met**. Accepted as design on
+2026-11-22 with implementation deferred (ADR-0020). Issue #154 stays open.
 
 ## 10. Decision
 
-- Decisor: BDFL or technical committee, after the comment period.
-- Decision date: pending.
-- Result: pending. This document is a proposal only.
+- Decisor: BDFL (Angel Nereira, project maintainer); recorded by the
+  architecture committee chair.
+- Decision date: 2026-11-22 (`CLAUDE.md` rule 28).
+- Result: ACCEPTED AS DESIGN. Implementation is DEFERRED until Phase 5 opens
+  and every blocking row of `docs/audits/PRE_FASE5_RELEASE_GATE.md` is `pass`
+  (ADR-0020). No increment I1-I3 may start before then; the gate is still open
+  on the decision date (Audit and Deny `fail`, Fuzz 24h, Benchmarks and Open
+  debt `pending`). The #185 timestamp decision must land before the DSL type
+  map is frozen in generated code. Issue #154 stays open.
 
 ## 11. References
 

@@ -42,3 +42,5 @@ Consecuencias, Alternativas, Estado.
 | 0016 | Interfaces abiertas entre Anti-Gravital y Gravital Fabric | aceptado | `0016-open-interfaces-between-ag-and-fabric.md` |
 | 0017 | MCP como interfaz de maquina por capacidades | aceptado | `0017-mcp-capability-scoped-machine-interface.md` |
 | 0019 | ag-observe: transporte OTLP sin protoc | aceptado | `0019-ag-observe-otlp-transport.md` |
+| 0020 | ag-data ORM, RLS y multi-tenancy: diseno aceptado, implementacion diferida | aceptado (solo diseno) | `0020-ag-data-orm-rls-decision.md` |
+| 0021 | Diferir la actualizacion de chumsky; mantener 0.9.3 | aceptado | `0021-chumsky-upgrade-deferral.md` |

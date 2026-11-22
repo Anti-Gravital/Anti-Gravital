@@ -7,6 +7,25 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### DNS/deploy/env/config real-user terminal journey (wave 10)
+
+Added:
+
+- `docs/audits/dns-deploy-user-journey.md`: real terminal evidence for
+  `ag config get`, `ag env list|check`, `ag dns plan|apply|status`,
+  `ag domains attach` and `ag deploy plan|apply|status`, including exact
+  outputs, exit codes, per-command wall-clock timings, the private state
+  paths used, documented manifest setup, refusal checks for missing and
+  stale plan ids, `--output json` read forms, and a canary test proving no
+  declared secret is echoed. Built `ag 0.1.0-alpha.2` in a private target
+  dir from commit `72fa9d8`; no live provider, CA or cluster was contacted.
+
+Issues opened (none closed):
+
+- #200: `ag dns --help` shows a truncated doc-comment fragment.
+- #201: JSON `unsupported_command` message omits `env.list` and `env.check`.
+- #202: `docs/dns/DOMAIN_LOOP.md` worked example uses commands the CLI rejects.
+
 ### Fuzz window automation and partial evidence (wave 9, issue #156)
 
 Added:

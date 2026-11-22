@@ -131,6 +131,17 @@ pinned revision. The pin is good supply-chain practice, but a generated project
 needs a warm Cargo cache to build offline; QA's smoke relies on that cache.
 "Runs offline" should be worded as "builds offline with cached dependencies".
 
+### O5 - Generated config.toml still advertises `host = "0.0.0.0"`
+
+- Severity: observation
+- Affected branch: `community5/examples`
+
+After the D1 fix, the generated server binds loopback and honors `BIND`, but
+`templates/*/config.toml.tmpl` still contains `host = "0.0.0.0"`. The generated
+`main.rs` does not read that key, so there is no exposure, but the value is
+misleading to a tester who expects the config file to control the listener.
+Recommend aligning the config default with the actual loopback behavior.
+
 ## Controls verified clean on the baseline
 
 - `install.sh` / `install.ps1`: fail-closed self integrity via externally

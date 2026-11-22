@@ -7,6 +7,25 @@
 > (English canonical); `ADR-0009` (native default); `ADR-0011` (no third-party
 > brand names in public surface); `RFC-0024` (capability-scoped agents).
 
+## Committee decision (2026-11-22)
+
+- Decider: BDFL (Angel Nereira, project maintainer); recorded by the
+  architecture committee chair. `CLAUDE.md` rule 28.
+- Result: Mail C and Mail D are formally DEFERRED. No REST route, data model
+  or marketing-object implementation may start until either the Mail A gate of
+  RFC-0009 has recorded evidence (a message delivered by the native MTA to a
+  real external mailbox passing aligned SPF, DKIM and DMARC, with date, commit
+  and headers) or an RFC-0009 amendment formally moves C/D out of Phase 4.6
+  under Hoja de Ruta 4.6.3. This design is the contract for that future work;
+  the rest of the section 7 gate conditions still apply when work resumes.
+- Rationale: outbound port 25 is blocked (DEBT-022 / issue #153), so no Mail A
+  evidence exists; RFC-0009 section 5 sequences C/D after A/B, and starting
+  them first would be `adelantarse de fase` (`CLAUDE.md` rule 8). Hoja de Ruta
+  4.6.3 permits deferral and states C/D do not block Phase 5, so this decision
+  closes no release gate.
+- Issue #152 stays open with `Refs`; the deferral is recorded here and on the
+  issue board, not by closing the issue.
+
 ## 1. Purpose and decision
 
 This document closes the design gap for the "managed REST API and marketing

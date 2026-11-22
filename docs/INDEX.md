@@ -123,6 +123,14 @@ ola 6. `docs/templates/README.md` es su indice bilingue, enlazado tambien desde
 el README raiz y desde `docs/manual/02-primera-api.md`. La disponibilidad real
 de cada nombre depende del cableado del catalogo en la CLI.
 
+### docs/dns/
+
+Guia bilingue del circulo dominio-despliegue (ola 8): como una plantilla
+generada se vuelve alcanzable mediante un dominio propio. Cubre requisitos,
+los tres entornos, los comandos implementados frente a los planificados,
+publico vs privado, resolucion de problemas y seguridad. La seccion inglesa
+es canonica segun ADR-0008. Referencia: `docs/dns/README.md`.
+
 ### docs/es/ y docs/en/
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.

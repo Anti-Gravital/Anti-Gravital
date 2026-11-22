@@ -149,6 +149,16 @@ documented separately by `ag domains sync --help`.
 `ag deploy`, `ag migrate`, and `ag plugin` are future commands and are not
 available in the current binary.
 
+### Domain-to-deploy loop
+
+The [domain-to-deploy guide](../dns/README.md) expands this workflow into a
+full loop: prerequisites, the `dev`/`staging`/`prod` environments, public vs
+private visibility, pointing a custom domain at a running service, and
+troubleshooting (propagation, ownership, wildcards and TLS). It distinguishes
+the `ag domains` commands that exist in the alpha from the wave-8 commands
+that are still planned. Provider tokens stay in environment variables, never
+in the repository.
+
 ## Troubleshooting
 
 | Problem | Likely cause | Fix |
@@ -251,6 +261,16 @@ Los comandos implementados son `attach`, `instructions`, `export-zone`,
 
 `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y no estan
 disponibles en el binario actual.
+
+### Circulo dominio-despliegue
+
+La [guia del circulo dominio-despliegue](../dns/README.md) amplia este flujo
+hasta un circulo completo: requisitos, los entornos `dev`/`staging`/`prod`,
+visibilidad publica vs privada, como senalar un dominio propio a un servicio
+en ejecucion y resolucion de problemas (propagacion, propiedad, comodines y
+TLS). Distingue los comandos `ag domains` presentes en el alpha de los
+comandos de la ola 8 aun planificados. Los tokens del proveedor quedan en
+variables de entorno, nunca en el repositorio.
 
 ## Configurar correo (opcional)
 

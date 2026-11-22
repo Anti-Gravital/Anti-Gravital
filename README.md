@@ -542,6 +542,7 @@ technical constitution, and documentation takes precedence over code.
 | [`docs/architecture/`](docs/architecture/) | Architecture chapters derived from the masters |
 | [`docs/rfc/`](docs/rfc/) and [`docs/adr/`](docs/adr/) | Design proposals and accepted decisions |
 | [`docs/manual/`](docs/manual/) | User manual chapters (Shield as library, first API, domains/TLS/mail) |
+| [`docs/dns/`](docs/dns/README.md) | Bilingual domain-to-deploy guide: attach, verify, environments, public/private, troubleshooting |
 | [`docs/modules/`](docs/modules/) | Per-crate module documentation |
 | [`docs/benchmarks/`](docs/benchmarks/) | Measured benchmarks with hardware and methodology |
 | [`docs/graph/`](docs/graph/) | Structured knowledge graph of modules, commands and relations |
@@ -1062,6 +1063,7 @@ sobre el codigo.
 | [`docs/architecture/`](docs/architecture/) | Capitulos de arquitectura derivados de los maestros |
 | [`docs/rfc/`](docs/rfc/) y [`docs/adr/`](docs/adr/) | Propuestas de diseno y decisiones aceptadas |
 | [`docs/manual/`](docs/manual/) | Capitulos del manual de usuario (Shield como libreria, primera API, dominios/TLS/correo) |
+| [`docs/dns/`](docs/dns/README.md) | Guia bilingue del circulo dominio-despliegue: adjunto, verificacion, entornos, publico/privado, resolucion de problemas |
 | [`docs/modules/`](docs/modules/) | Documentacion por crate |
 | [`docs/benchmarks/`](docs/benchmarks/) | Benchmarks medidos con hardware y metodologia |
 | [`docs/graph/`](docs/graph/) | Knowledge graph estructurado de modulos, comandos y relaciones |

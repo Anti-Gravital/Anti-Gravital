@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Reproducible benchmark runner for issue #157 (Stage 6 of the pre-Phase-5 gate).
 #
-# Two modes:
+# Two modes plus a preflight modifier:
 #   informative (default): reduced samples, no host gating. Every number is
 #     labelled informative hardware; none may settle the design-target table.
 #   --reference: fail-closed host validation, official criterion defaults and
 #     the end-to-end load phase. Only this mode may feed the release gate.
+#   --dry-run: runs the same fail-closed reference host validation and prints
+#     the commands and artifacts a reference run WOULD produce. It executes no
+#     benchmark and writes no artifact, so a maintainer can check the host in
+#     one session before committing to a long reference run.
 #
 # A single invocation writes every CLAUDE.md rule-17 context field to
 # metadata.txt and rule17-summary.txt, and the estimates.json mean/std dev to
@@ -16,7 +20,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/run-benchmarks.sh [--reference] [--runs N] [--help]
+Usage: ./scripts/run-benchmarks.sh [--reference] [--runs N] [--dry-run] [--help]
 
   --reference   Reference-hardware mode. Validates the host first and refuses
                 to start when any profile check fails. Forces criterion
@@ -24,6 +28,10 @@ Usage: ./scripts/run-benchmarks.sh [--reference] [--runs N] [--help]
                 the oha/wrk end-to-end phase with the server restarted between
                 independent runs.
   --runs N      Independent end-to-end runs in --reference mode (default 3).
+  --dry-run     Fail-closed reference host validation plus a printed plan of
+                the commands and artifacts a reference run WOULD produce.
+                Implies --reference. No benchmark runs and no artifact is
+                written. Exit 0 when the host passes, 3 when it fails.
   --help        Show this text.
 
 Environment (informative mode):
@@ -34,14 +42,28 @@ Environment (reference mode):
   AG_QUIET_HOST_ATTESTED=yes  required human attestation of a quiet host.
   REPORTER=<human name>       required, recorded in the rule-17 summary.
   OUT_DIR, CARGO_TARGET_DIR, OHA_DURATION, OHA_CONCURRENCY as above.
+
+Environment (--dry-run):
+  Same as reference mode, but AG_QUIET_HOST_ATTESTED and REPORTER are not
+  required: the quiet attestation is reported by the validation gate itself
+  and no artifact is written. Set both when rehearsing the exact real command.
 USAGE
 }
 
 REFERENCE=0
+DRY_RUN=0
 RUNS="${RUNS:-3}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reference)
+      REFERENCE=1
+      shift
+      ;;
+    --dry-run)
+      # A dry run is a reference preflight: it must validate the same profile
+      # and use the same official criterion defaults, but it stops before any
+      # benchmark or artifact write.
+      DRY_RUN=1
       REFERENCE=1
       shift
       ;;
@@ -89,13 +111,20 @@ if [[ "$REFERENCE" -eq 1 ]]; then
   SAMPLE_SIZE=100
   WARMUP_TIME=3
   MEASUREMENT_TIME=5
-  if [[ "${AG_QUIET_HOST_ATTESTED:-no}" != "yes" ]]; then
-    echo "ERROR: --reference needs AG_QUIET_HOST_ATTESTED=yes (quiet, non-throttling host)." >&2
-    exit 2
-  fi
-  if [[ -z "${REPORTER:-}" || "${REPORTER}" == "unspecified" ]]; then
-    echo "ERROR: --reference needs REPORTER=<human name> for rule-17 traceability." >&2
-    exit 2
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    if [[ "${AG_QUIET_HOST_ATTESTED:-no}" != "yes" ]]; then
+      echo "ERROR: --reference needs AG_QUIET_HOST_ATTESTED=yes (quiet, non-throttling host)." >&2
+      exit 2
+    fi
+    if [[ -z "${REPORTER:-}" || "${REPORTER}" == "unspecified" ]]; then
+      echo "ERROR: --reference needs REPORTER=<human name> for rule-17 traceability." >&2
+      exit 2
+    fi
+  else
+    # A dry run writes no artifact, so a reporter name is not required. The
+    # quiet attestation is NOT waived: validate_reference reports it as a FAIL
+    # so a bare --dry-run still fails closed with exit 3 on an unready host.
+    REPORTER="${REPORTER:-unspecified}"
   fi
 else
   SAMPLE_SIZE="${SAMPLE_SIZE:-30}"
@@ -181,7 +210,7 @@ fi
 # ---------------------------------------------------------------------------
 validate_reference() {
   local failures=0
-  local ok cpu_ok ram_ok kernel_ok gov_ok tool_ok tc_ok dirty_ok time_ok
+  local ok cpu_ok ram_ok kernel_ok gov_ok tool_ok tc_ok dirty_ok time_ok attestation
   check() {
     local label="$1" actual="$2" result="$3"
     if [[ "$result" == "yes" ]]; then
@@ -246,7 +275,8 @@ validate_reference() {
   [[ "$DIRTY" == "0" ]] && dirty_ok=yes
   check clean_tree "$DIRTY dirty files" "$dirty_ok"
 
-  check quiet_attestation "${AG_QUIET_HOST_ATTESTED:-no}" yes
+  attestation="${AG_QUIET_HOST_ATTESTED:-no}"
+  check quiet_attestation "$attestation" "$attestation"
 
   if [[ $failures -ne 0 || "$time_ok" != "yes" ]]; then
     echo "ERROR: $failures reference-profile check(s) failed; refusing to label this run as reference." >&2
@@ -256,8 +286,45 @@ validate_reference() {
   echo "Reference profile validated ($failures failures)."
 }
 
+# A dry run stops here: the validation above is the real gate, and everything
+# below is printed as a plan rather than executed. No directory, log or CSV is
+# created, so a rehearsal cannot be mistaken for collected evidence.
+print_dry_run_plan() {
+  echo
+  echo "DRY RUN: reference profile validated; no benchmark was executed and no artifact was written."
+  echo "This is the plan for the real reference run on this exact host."
+  echo
+  echo "Mode=${MODE}; commit=${COMMIT}; branch=${BRANCH}"
+  echo "Configuration: sample_size=${SAMPLE_SIZE} warmup_s=${WARMUP_TIME} measurement_s=${MEASUREMENT_TIME} e2e_runs=${RUNS} load_duration=${OHA_DURATION} load_concurrency=${OHA_CONCURRENCY}"
+  echo "Output directory that WOULD be created: ${OUT_DIR}"
+  echo "Cargo target directory (shared with the real run): ${CARGO_TARGET_DIR}"
+  echo
+  echo "Commands that WOULD run, in order:"
+  echo "  1. cargo bench --locked -p ag-core -p ag-workers --no-run"
+  echo "  2. cargo bench --locked -p ag-core --bench shield_hello_world -- --sample-size ${SAMPLE_SIZE} --warm-up-time ${WARMUP_TIME} --measurement-time ${MEASUREMENT_TIME} --noplot"
+  echo "  3. cargo bench --locked -p ag-workers --bench queue_throughput -- --sample-size ${SAMPLE_SIZE} --warm-up-time ${WARMUP_TIME} --measurement-time ${MEASUREMENT_TIME} --noplot"
+  echo "  4. python3 std-dev extraction from ${CARGO_TARGET_DIR}/criterion/<bench>/new/estimates.json into estimates-summary.csv"
+  echo "  5. cargo build --locked --release -p ag-core --example hello_world"
+  echo "  6. ${RUNS} independent ${LOAD_TOOL} runs against 127.0.0.1:8080 with the server restarted between runs, idle RSS at 5 s and fork-to-listening cold start"
+  echo
+  echo "Artifacts that WOULD be written under ${OUT_DIR}/:"
+  echo "  metadata.txt rule17-summary.txt no-run.log ag-core-criterion.log ag-workers-criterion.log estimates-summary.csv"
+  echo "  build-hello-world.log binary-size.txt e2e-runs.csv server-1.log..server-${RUNS}.log ${LOAD_TOOL}-run-1.txt..${LOAD_TOOL}-run-${RUNS}.txt"
+  echo
+  echo "Exact invocation for the real run (use a human name for REPORTER):"
+  echo "  AG_QUIET_HOST_ATTESTED=yes REPORTER='<human name>' CARGO_TARGET_DIR='${CARGO_TARGET_DIR}' ./scripts/run-benchmarks.sh --reference"
+  echo
+  echo "After the real run, a human still curates docs/benchmarks/pre-fase5-performance.md, edits the Benchmarks row of docs/audits/PRE_FASE5_RELEASE_GATE.md and reconciles the README EN/ES performance claim."
+  echo "See docs/benchmarks/REFERENCE_RUNBOOK.md for the complete handoff."
+}
+
 if [[ "$MODE" == "reference" ]]; then
   validate_reference
+fi
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  print_dry_run_plan
+  exit 0
 fi
 
 # ---------------------------------------------------------------------------
@@ -385,10 +452,10 @@ run_e2e() {
       sleep 5
       rss_kb="$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
       rss_kb="${rss_kb:-unavailable}"
-      if ! "${load_cmd[@]}" > "$OUT_DIR/oha-run-$i.txt" 2>&1; then
+      if ! "${load_cmd[@]}" > "$OUT_DIR/${LOAD_TOOL}-run-$i.txt" 2>&1; then
         echo "WARNING: load tool exited nonzero on run $i" >&2
       fi
-      echo "$i,$cold_ms,$rss_kb,$OUT_DIR/oha-run-$i.txt"
+      echo "$i,$cold_ms,$rss_kb,$OUT_DIR/${LOAD_TOOL}-run-$i.txt"
       kill "$pid" 2>/dev/null || true
       wait "$pid" 2>/dev/null || true
     done
@@ -404,7 +471,7 @@ fi
 # output is never reduced to a number by this script.
 E2E_ARTIFACTS=""
 if [[ "$MODE" == "reference" ]]; then
-  E2E_ARTIFACTS=" build-hello-world.log binary-size.txt e2e-runs.csv server-N.log oha-run-N.txt"
+  E2E_ARTIFACTS=" build-hello-world.log binary-size.txt e2e-runs.csv server-N.log ${LOAD_TOOL}-run-N.txt"
 fi
 {
   echo "# Rule 17 evidence summary"

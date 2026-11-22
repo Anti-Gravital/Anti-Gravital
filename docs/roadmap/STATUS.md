@@ -11,6 +11,8 @@ Convencion: `- [x]` significa cumplido y verificable en el repositorio,
 
 Ultima actualizacion: 2026-11-22 (reconciliacion de la ola 4 y del hito alpha de la ola 5). Las etapas B y C de la Fase 4.7 estan implementadas; la Fase 4.8 tiene las etapas A, B y E parcialmente implementadas; RFC-0024 sigue bloqueada por sus siete prerrequisitos. Auditoria y consolidacion de fases 0-4.5 en curso; la Fase 4.6-D (`ag-workers`) tiene S1-S5 entregadas y su trabajo restante rastreado en GitHub Issues. La implementacion disponible no equivale a cierre de los criterios de salida: la puerta pre-Fase 5 sigue abierta (filas Audit, Deny, Fuzz 24h, Benchmarks y Open debt); ver docs/audits/PRE_FASE5_RELEASE_GATE.md y los Issues con etiqueta `tech-debt` (docs/DEBT.md queda congelado como registro historico).
 
+Nota de planificacion (ola 9, 2026-11-22): esta reconciliacion no marca ninguna casilla. Los roles de la ola 9 entregan ampliaciones parciales (`ag new --with MODULE`, `ag env list|check`, endurecimiento de `Secret<T>`, forma JSON de `config.get`, automatizacion de ventanas de fuzz y conciliacion del tablero); ninguna cierra por si sola una casilla de Fase 4.7 o 4.8. La matriz completa, la evidencia exacta requerida y las ediciones preparadas para aplicar tras la fusion se registran en `docs/audits/wave9-roadmap-decisions.md`. La puerta pre-Fase 5 permanece abierta y los 14 Issues abiertos iniciales (mas #198, abierto durante la ola) siguen abiertos hasta verificar evidencia real.
+
 ---
 
 ## Hito alpha (ola 5, 2026-11-21)

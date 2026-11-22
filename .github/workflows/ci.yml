@@ -96,3 +96,41 @@ jobs:
 
       - name: cargo clippy (mta + api)
         run: cargo clippy --locked -p ag-mail --features mta,api,minijinja --all-targets -- -D warnings
+
+  # The opt-in `otlp` feature (ADR-0019, RFC-0028) is off by default, so the
+  # matrix build above never exercises it. This job checks, tests and lints
+  # ag-observe with the feature on. It needs no protoc: opentelemetry-proto
+  # 0.33.x ships pre-generated protobuf sources and has no build script.
+  # It also needs no external collector: the feature tests only build the
+  # HTTP exporter against a synthetic endpoint and never contact it.
+  # The default-feature matrix is unchanged.
+  otlp:
+    name: ag-observe otlp feature
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          components: clippy
+
+      - name: Cache cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-otlp-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-otlp-
+
+      - name: cargo check (otlp)
+        run: cargo check --locked -p ag-observe --features otlp --all-targets
+
+      - name: cargo test (otlp)
+        run: cargo test --locked -p ag-observe --features otlp
+
+      - name: cargo clippy (otlp)
+        run: cargo clippy --locked -p ag-observe --features otlp --all-targets -- -D warnings

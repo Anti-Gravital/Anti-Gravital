@@ -1,0 +1,14 @@
+START fuzz_lexer 2026-11-22T13:01:52Z
+END fuzz_lexer rc=0 crashes=0 2026-11-22T13:02:54Z
+START fuzz_parser 2026-11-22T13:02:54Z
+END fuzz_parser rc=0 crashes=0 2026-11-22T13:03:55Z
+START fuzz_compile 2026-11-22T13:03:55Z
+END fuzz_compile rc=0 crashes=0 2026-11-22T13:04:57Z
+START fuzz_resp 2026-11-22T13:04:57Z
+END fuzz_resp rc=0 crashes=0 2026-11-22T13:05:59Z
+START fuzz_storage_key 2026-11-22T13:05:59Z
+END fuzz_storage_key rc=0 crashes=0 2026-11-22T13:07:00Z
+START fuzz_signed_url 2026-11-22T13:07:00Z
+END fuzz_signed_url rc=0 crashes=0 2026-11-22T13:08:02Z
+START fuzz_workers_payload 2026-11-22T13:08:02Z
+END fuzz_workers_payload rc=0 crashes=0 2026-11-22T13:09:04Z

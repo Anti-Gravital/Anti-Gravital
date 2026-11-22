@@ -1,0 +1,5 @@
+# Raw libFuzzer logs are verbatim audit-trail artifacts. Their INFO lines can
+# carry trailing whitespace; keep them byte-for-byte and exclude only the
+# whitespace check for *.log under results/ (git diff --check still checks all
+# other files, including the JSONL and Markdown evidence).
+*.log -whitespace

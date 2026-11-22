@@ -36,3 +36,12 @@ como binario estatico MUSL (5.3 MB) en imagen `FROM scratch` (2.49 MB).
 
 El ORM generado por DSL y las funcionalidades avanzadas (relaciones,
 paginacion, caches de queries) llegan en fases posteriores.
+
+## Diseno de capa de datos (issue #154)
+
+La propuesta de diseno para el ORM tipado, row-level security y multi-tenancy
+(propagacion de la clave de tenant, modelo de politicas RLS, forma del codigo
+generado, estrategia de migraciones y compatibilidad con sqlx 0.9) esta en
+`docs/modules/ag-data/data-layer-rls-tenancy.md`. Es un documento de diseno de
+Fase 5+, no codigo implementado; las decisiones pasaran a una RFC antes de su
+implementacion.

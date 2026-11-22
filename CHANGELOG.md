@@ -7,6 +7,7 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -537,7 +538,6 @@ y la API REST ya estan implementados. Permanecen diferidos el almacen SQL
 (Postgres, fase D), Domain Connect y adaptadores de proveedor adicionales
 (fase E; Cloudflare y exportacion BIND ya existen), wildcards DNS-01 y el modulo
 `ag-registrars` (fase F).
-
 
 ### ag-mail - Motor de plantillas externo (minijinja) (2026-06-04)
 
@@ -1145,3 +1145,22 @@ Cambiado:
   `Unicode-3.0` a `deny.toml` (commit anterior).
 
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD
+
+### Data-layer design note (issue #154)
+
+Added (documentation only; no code and no phase change):
+
+- `docs/modules/ag-data/data-layer-rls-tenancy.md` records the design for the
+  Phase 5+ typed ORM, row-level security and multi-tenancy: shared `TenantId`
+  and explicit `TenantContext` propagation, fail-closed RLS policies with a
+  transaction-local GUC set through `AgTx`, generated ORM layout under RFC-0019,
+  expand/contract migrations and the sqlx 0.9 feature matrix.
+- `docs/modules/ag-data/README.md` points to the design note. The design
+  remains non-normative until the architect's RFC is accepted; it introduces no
+  implementation and does not advance the roadmap state.
+- The note records the data-model constraints for issue #185: the DSL
+  `Timestamp` mapping is a hidden chrono dependency, sqlx 0.9 supports `time`
+  but not `jiff`, and serialized date/time formats need golden-string tests.
+  It includes the measured result that `time::OffsetDateTime` needs an explicit
+  `serde` adapter to keep RFC 3339 strings, and that trailing-zero fractions
+  still differ from chrono's output.

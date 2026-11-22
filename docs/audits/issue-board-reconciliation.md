@@ -406,3 +406,110 @@ template in `docs/ag-domains/how-to/acme-staging-test.md` filled (no keys or
 credentials), and that closure must be merged to `main`. Only then are all 16
 children CLOSED and `Closes #76` permissible. This branch does not close #76;
 the coordinator closes it after merge and after #87 is genuinely resolved.
+## Wave 12 addendum (2026-11-22) - #142 child-by-child reconciliation
+Scope: verify every child of the tracking parent #142 against the live board,
+count parent progress child by child, inventory stale text, and state the exact
+condition under which #142 may be closed. This addendum closes nothing, edits no
+parent body and changes no gate row. The wave-4 matrix and the wave-9/wave-11
+addenda remain the authority for why each issue is blocked or deferred.
+Method: `gh api repos/Anti-Gravital/Anti-Gravital/issues/<n>` for all 31 children
+(`gh issue view` is unreliable since the Projects classic sunset), cross-checked
+against a full open+closed issue listing (114 issues) so no child is hidden by
+the default view. Verification date 2026-11-22; branch `community12/i142`;
+no push or merge.
+### Verified count
+- Children listed in the #142 body: 31.
+- CLOSED: 26. OPEN: 5 (#141, #152, #154, #156, #157).
+- This confirms the board owner's "31 children, 26 CLOSED, 5 OPEN" correction.
+  No arithmetic correction is needed: 26 + 5 = 31 and the parent body is
+  accurate, so the parent body was not edited.
+### Child matrix
+The group column reproduces the grouping used in the parent issue body. State is
+the live board state on 2026-11-22. "Verified" means the child was read
+individually via the REST API and its closure is already recorded on `main`; no
+child was re-opened or re-closed by this wave.
+| Child | Group (parent body) | Short title | State | Verification / stale text |
+| #125 | Documentation | docs/manual bilingual (ADR-0008) | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #126 | Documentation | docs/DEBT.md freeze vs Issues | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #127 | Documentation | RFC-0003 / RFC-0004 reference | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #128 | Documentation | canonical Blueprint ambiguity | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #129 | Documentation | docs/graph and docs/diagrams placeholders | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #130 | Documentation | docs/audits status under rule 29 | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #131 | Code | ag-mail Spanish error strings | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #132 | Code | ag-auth Spanish comments/messages | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #133 | Code | ag-storage signed.rs Spanish docs | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #134 | Code | ag-auth panic paths | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #135 | Code | TECH-DEBT markers without issue refs | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #136 | Code | `#[non_exhaustive]` policy | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #137 | Code | ag-data thin test coverage | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #138 | Tooling/CI/governance | pr-drafts cleanup policy | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #139 | Tooling/CI/governance | templates pin ag-* deps | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #140 | Tooling/CI/governance | pin actions to commit SHAs | CLOSED | Verified; closed by PR #163, recorded on main |
+| #141 | Tooling/CI/governance | installer integrity trust anchor | OPEN | Gate unmet: six RFC-0030 section 11 conditions; test-key tooling merged but is not evidence |
+| #144 | Spawned from #135 | Redis L2 deferred | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #145 | Spawned from #135 | AVIF support | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #146 | Spawned from #135 | lossy WebP encoding | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #147 | Spawned from #135 | strong ETag truncation | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #148 | Spawned from #135 | ag-storage auth feature | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #149 | Spawned from #135 | OTLP exporter deferred | CLOSED | Verified; community2/otlp merge. The first #142 comment calling it open is stale |
+| #150 | Spawned from #135 | ag-dsl unwrap removal | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #151 | Spawned from #126 | MTA durable spool | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #152 | Spawned from #126 | managed REST API and marketing objects | OPEN | Gate unmet: RFC-0009 Mail A evidence or an amendment moving C/D out |
+| #153 | Spawned from #126 | MTA live-delivery test | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #154 | Spawned from #126 | typed ORM, RLS, tenancy | OPEN | Deferred by ADR-0020; Phase 5 and release gate not met |
+| #155 | Spawned from #126 | broaden fuzz/property coverage | CLOSED | Verified; closure recorded on main by wave-4 reconciliation |
+| #156 | Spawned from #126 | 24h fuzz manual gate | OPEN | Gate unmet: all seven targets need 24h logs and triage; scheduled workflow is not evidence |
+| #157 | Spawned from #130 | final benchmark evidence | OPEN | Gate unmet: rule-17 numbers on reference hardware; reference runner is not evidence |
+### Stale text inventory
+1. The first #142 comment (2026-11-21, comment id
+   `IC_kwDOShmGl88AAAABpYFzuA`) says "six children are still open" and lists
+   #149 among them. #149 is CLOSED via the community2/otlp merge. The parent
+   body and the two later comments already state five open children; a short
+   wave-12 status comment was posted so the first comment no longer stands
+   uncorrected.
+2. The wave-4 and wave-9 passages above saying the Audit and Deny rows are
+   `fail` and #198 is OPEN are dated snapshots. The wave-11 addendum corrects
+   them, and `docs/audits/PRE_FASE5_RELEASE_GATE.md` now records both rows as
+   `pass` on merged commit `800b671` (`Closes #198`). This is not a #142
+   child-state error; it is recorded here for board completeness.
+3. `docs/audits/terminal-user-review.md` is evidence-backed wave-10 user
+   journeys and makes no claim about #142 child states. Its "board state at
+   final verification" list covers different issues (#199, #200-#206 and
+   Fabric #3) and is a dated snapshot; no edit is needed here.
+4. The wave-11 addendum lists 14 open AG issues, including #189. #189 is now
+   CLOSED on `main` (commit `c1cf387`, community11/split). #189 is not a #142
+   child, so the parent counts are unchanged.
+### No false closure
+All 26 closed children are CLOSED on the live board. The five open children stay
+open even though wave-11 tooling has merged: a local test key, a scheduled
+workflow, a fail-closed reference runner and an opt-in CI check are capability,
+not gate evidence. `docs/audits/PRE_FASE5_RELEASE_GATE.md` still shows Fuzz 24h,
+Benchmarks and Open debt as `pending`. #142 therefore stays OPEN.
+### Exact closure condition for #142
+Use `Closes #142` only after all five open children are CLOSED with evidence
+merged on `main`:
+- #141: all six RFC-0030 section 11 conditions (accepted RFC, offline key
+  published in two out-of-band channels, tag-published signed manifest,
+  clean-machine verification, CI parity, SECURITY.md limits).
+- #152: RFC-0009 Mail A evidence (real external delivery with aligned
+  SPF/DKIM/DMARC) or an amendment moving C/D out, and the REST/marketing
+  surface tested.
+- #154: Phase 5 open, every blocking release-gate row `pass` (Audit and Deny
+  already pass; Fuzz 24h, Benchmarks and Open debt are still pending), and the
+  generated ORM/RLS/tenancy code tested.
+- #156: 24h logs for all seven fuzz targets archived with no unresolved
+  crashes and crash triage reviewed.
+- #157: rule-17 benchmark evidence on reference hardware,
+  `docs/benchmarks/pre-fase5-performance.md` written, and the gate row and
+  README reconciled.
+Never close the parent while any child is open. This branch uses `Refs #142`
+only and posts no `Closes #142` keyword.
+### Comment posted
+A short wave-12 status comment correcting the stale "six children open" claim
+is recorded at https://github.com/Anti-Gravital/Anti-Gravital/issues/142#issuecomment-7082525974
+### Verification performed
+- All 31 child states read individually via `gh api` on 2026-11-22.
+- Full open+closed issue list (114 issues) cross-checked; no child missing.
+- Parent progress recomputed from the parent body checklist: 26 + 5 = 31.
+- No issue closed, no label changed, no parent body edited, no gate row flipped.
+- `git diff --check`, link check and prohibited-content scans run on this branch.

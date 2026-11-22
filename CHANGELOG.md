@@ -11,6 +11,7 @@ aun no etiquetados.
 
 
 
+
 ### Tracking parent #76 child reconciliation (wave 12)
 
 Added:
@@ -2823,6 +2824,18 @@ with `cargo test -p ag-cli`, `cargo test -p ag-core`,
 `cargo test --workspace --all-features`, `cargo fmt --all -- --check`,
 `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
 `cargo audit` and `cargo deny check`.
+
+### Tracking parent #142 reconciliation (wave 12)
+
+Added:
+
+- `docs/audits/issue-board-reconciliation.md`: wave-12 addendum with a verified
+  child-by-child matrix for tracking parent #142. All 31 children were read via
+  the REST API; 26 are CLOSED and 5 remain OPEN (#141, #152, #154, #156, #157).
+  The board owner's "31 children, 26 CLOSED" count is confirmed, the stale
+  first comment claiming six open children (including the closed #149) is
+  corrected on the issue, and the exact per-child closure conditions are
+  recorded. #142 stays OPEN; this change uses `Refs #142` only.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

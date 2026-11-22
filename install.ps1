@@ -46,7 +46,7 @@ function Verify-InstallerIntegrity {
     $expected = ($entries[0] -split '\s+', 2)[0].Trim().ToLowerInvariant()
     $actual = (Get-FileHash -LiteralPath $scriptPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $expected) {
-        Log "Integrity check failed for $scriptName: expected $expected, got $actual."
+        Log "Integrity check failed for ${scriptName}: expected $expected, got $actual."
         exit 1
     }
     Log "Integrity verified for $scriptName against $manifest."

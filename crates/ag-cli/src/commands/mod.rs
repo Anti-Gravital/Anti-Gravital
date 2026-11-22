@@ -4,6 +4,7 @@ pub(crate) mod config;
 pub(crate) mod deploy;
 pub(crate) mod dns;
 pub(crate) mod domains;
+pub(crate) mod env;
 pub(crate) mod mail;
 pub(crate) mod project;
 pub(crate) mod schema;

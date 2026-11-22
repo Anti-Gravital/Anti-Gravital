@@ -69,6 +69,12 @@ impl Commands {
             Commands::Dns {
                 command: DnsCommands::Status { .. },
             } => Some("dns.status"),
+            Commands::Env {
+                command: EnvCommands::List { .. },
+            } => Some("env.list"),
+            Commands::Env {
+                command: EnvCommands::Check { .. },
+            } => Some("env.check"),
             _ => None,
         }
     }
@@ -91,6 +97,13 @@ pub(crate) enum Commands {
         /// names are a usage error.
         #[arg(long, short = 't', value_parser = crate::catalog::TEMPLATE_NAMES)]
         template: Option<String>,
+
+        /// Enables an additional Anti-Gravital module in the generated
+        /// ag.toml [modules] table. Repeatable. Requires a template that
+        /// generates a manifest (for example `--template layered`); the
+        /// default scaffold is unchanged when this flag is absent.
+        #[arg(long, value_parser = crate::request::MODULE_NAMES)]
+        with: Vec<String>,
     },
 
     /// Starts the server in development mode with hot reload.
@@ -118,6 +131,17 @@ pub(crate) enum Commands {
     Config {
         #[command(subcommand)]
         command: Option<ConfigCommands>,
+    },
+
+    /// Reads and validates the project's declared environment (RFC-0020).
+    ///
+    /// Read-only: the declarations come from the `[env.*]` tables of ag.toml.
+    /// No encrypted file is read, no value is ever printed, and nothing is
+    /// written. Stage B resolves the process environment and declared defaults
+    /// only; environment-specific files are a later stage.
+    Env {
+        #[command(subcommand)]
+        command: EnvCommands,
     },
 
     /// Generates artifacts (Rust, SQL, TypeScript, OpenAPI) from schema.ag.
@@ -295,6 +319,39 @@ pub(crate) enum ConfigCommands {
     },
     /// Exits non-zero when the project configuration is invalid (CI friendly).
     Validate,
+}
+
+/// Sub-commands of `ag env` (RFC-0020 section 4.6, read-only subset).
+#[derive(Subcommand)]
+pub(crate) enum EnvCommands {
+    /// Lists declared variables with type, required/secret flags, source and
+    /// whether a value is present. Never prints a value, not even a default.
+    List {
+        /// Project manifest with `[env.*]` declarations.
+        #[arg(
+            long,
+            default_value = crate::commands::env::DEFAULT_MANIFEST
+        )]
+        manifest: PathBuf,
+        /// Environment label. Stage B always uses the process environment and
+        /// declared defaults; environment-specific files are later work.
+        #[arg(long = "env")]
+        env: Option<String>,
+    },
+    /// Validates the declared environment exactly as startup would (CI friendly).
+    /// Exits 1 with every problem reported at once; values are never printed.
+    Check {
+        /// Project manifest with `[env.*]` declarations.
+        #[arg(
+            long,
+            default_value = crate::commands::env::DEFAULT_MANIFEST
+        )]
+        manifest: PathBuf,
+        /// Environment label. Stage B always uses the process environment and
+        /// declared defaults; environment-specific files are later work.
+        #[arg(long = "env")]
+        env: Option<String>,
+    },
 }
 
 /// Sub-commands of `ag workers`.
@@ -685,6 +742,8 @@ mod tests {
                 ],
                 None,
             ),
+            (vec!["ag", "env", "list"], Some("env.list")),
+            (vec!["ag", "env", "check"], Some("env.check")),
             (vec!["ag", "new", "demo"], None),
             (vec!["ag", "domains", "list"], None),
             (vec!["ag", "mail", "test", "--to", "a@example.com"], None),
@@ -806,5 +865,75 @@ mod tests {
             .err()
             .expect("unknown template must fail");
         assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
+    }
+
+    // ---- `ag new --with MODULE` (RFC-0019 stage A) ------------------------
+
+    #[test]
+    fn every_declared_module_is_accepted_and_unknown_names_are_rejected() {
+        for name in crate::request::MODULE_NAMES {
+            let cli = Cli::try_parse_from(["ag", "new", "demo", "--with", name])
+                .unwrap_or_else(|error| panic!("module '{name}' was rejected: {error}"));
+            match cli.command {
+                Some(Commands::New { with, .. }) => assert_eq!(with, vec![name.to_owned()]),
+                _ => panic!("expected the new command for '{name}'"),
+            }
+        }
+        let error = Cli::try_parse_from(["ag", "new", "demo", "--with", "not-a-module"])
+            .err()
+            .expect("unknown module must fail");
+        assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
+    }
+
+    #[test]
+    fn with_is_repeatable_and_absent_by_default() {
+        let cli = Cli::try_parse_from([
+            "ag",
+            "new",
+            "demo",
+            "--template",
+            "layered",
+            "--with",
+            "auth",
+            "--with",
+            "cache",
+        ])
+        .expect("parse");
+        match cli.command {
+            Some(Commands::New { with, .. }) => {
+                assert_eq!(with, vec!["auth".to_owned(), "cache".to_owned()])
+            }
+            _ => panic!("expected the new command"),
+        }
+        let cli = Cli::try_parse_from(["ag", "new", "demo"]).expect("parse");
+        match cli.command {
+            Some(Commands::New { with, .. }) => assert!(with.is_empty()),
+            _ => panic!("expected the new command"),
+        }
+    }
+
+    // ---- `ag env list|check` (RFC-0020 stage B) ---------------------------
+
+    #[test]
+    fn env_subcommands_parse_with_manifest_and_environment() {
+        for args in [
+            vec!["ag", "env", "list"],
+            vec!["ag", "env", "list", "--env", "prod"],
+            vec!["ag", "env", "list", "--manifest", "custom.toml"],
+            vec!["ag", "env", "check"],
+            vec!["ag", "env", "check", "--env", "prod"],
+            vec!["ag", "env", "check", "--manifest", "custom.toml"],
+        ] {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert!(
+                matches!(cli.command, Some(Commands::Env { .. })),
+                "{args:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn env_requires_a_subcommand() {
+        assert!(Cli::try_parse_from(["ag", "env"]).is_err());
     }
 }

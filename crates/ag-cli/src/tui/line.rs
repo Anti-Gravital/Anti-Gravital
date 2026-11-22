@@ -88,7 +88,11 @@ pub(crate) fn prompt_new_project<R: BufRead, W: Write>(
         }
     };
 
-    let request = NewProjectRequest { name, template };
+    let request = NewProjectRequest {
+        name,
+        template,
+        modules: Vec::new(),
+    };
     writeln!(output, "{}: ./{}", text::REVIEW_DIRECTORY, request.name)?;
     writeln!(output, "{}: {}", text::REVIEW_TEMPLATE, request.template)?;
     for file in request.template.files() {
@@ -141,6 +145,7 @@ mod tests {
             Some(NewProjectRequest {
                 name: "shop".into(),
                 template: catalog_template("fullstack"),
+                modules: Vec::new(),
             })
         );
     }
@@ -153,6 +158,7 @@ mod tests {
             Some(NewProjectRequest {
                 name: "api".into(),
                 template: catalog_template("rest"),
+                modules: Vec::new(),
             })
         );
     }
@@ -189,6 +195,7 @@ mod tests {
             Some(NewProjectRequest {
                 name: "given".into(),
                 template: catalog_template("realtime"),
+                modules: Vec::new(),
             })
         );
         assert!(!output.contains(text::LINE_NAME_PROMPT));

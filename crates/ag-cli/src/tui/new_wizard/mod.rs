@@ -142,6 +142,7 @@ impl Wizard {
         NewProjectRequest {
             name: self.name.clone(),
             template: Template::ALL[self.selected],
+            modules: Vec::new(),
         }
     }
 

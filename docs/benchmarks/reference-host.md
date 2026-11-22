@@ -9,7 +9,9 @@ Benchmarks must follow CLAUDE.md rule 17 (hardware, OS, Rust version, commit,
 configuration, methodology, number of runs, standard deviation) and
 `docs/benchmarks/measurement-template.md`. The curated report belongs in
 `docs/benchmarks/pre-fase5-performance.md`; the surrounding procedure is
-`docs/benchmarks/verification-package.md`.
+`docs/benchmarks/verification-package.md`. The one-session maintainer handoff,
+including the gate-row and README edits and the close-out evidence checklist,
+is `docs/benchmarks/REFERENCE_RUNBOOK.md`.
 
 ## Why this document exists
 
@@ -82,7 +84,22 @@ the report as a cross-check, not as an extra independent run.
 
 ## Exact commands
 
-Run from the repository root, on a clean tree at the final stabilization commit.
+Rehearse first with the fail-closed preflight. It runs the same validation as
+`--reference` and prints the commands and artifacts of the real run, but writes
+nothing and executes no benchmark. Exit 0 means the host is ready; exit 3 means
+the profile was not met and no artifact was produced:
+
+```sh
+AG_QUIET_HOST_ATTESTED=yes REPORTER="<human name>" \
+  ./scripts/run-benchmarks.sh --dry-run
+```
+
+A bare `--dry-run` without the attestation fails closed as well: the missing
+attestation is reported as `FAIL quiet_attestation no`. Supply the human name
+that will sign the final report so the rehearsal matches the real invocation.
+
+Then run the real command below from the repository root, on a clean tree at the
+final stabilization commit.
 The default output directory is
 `docs/benchmarks/raw/<YYYY-MM-DD>-reference`; set `OUT_DIR` to override it. Use
 a private `CARGO_TARGET_DIR` on the reference host so the run is not affected by
@@ -144,7 +161,7 @@ cat docs/benchmarks/raw/<YYYY-MM-DD>-reference/rule17-summary.txt
 cat docs/benchmarks/raw/<YYYY-MM-DD>-reference/estimates-summary.csv
 
 # 2. Inspect each independent load run and the server logs.
-for f in docs/benchmarks/raw/<YYYY-MM-DD>-reference/oha-run-*.txt; do
+for f in docs/benchmarks/raw/<YYYY-MM-DD>-reference/*-run-*.txt; do
   echo "== $f"; cat "$f"
 done
 

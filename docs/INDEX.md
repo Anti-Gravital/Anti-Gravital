@@ -65,6 +65,10 @@ dimensionamiento de disco y los comandos de verificacion estan en
 ### docs/benchmarks/, docs/security/, docs/governance/
 Vistas verbatim de los capitulos 16, 15 y 17 del maestro de
 Arquitectura, respectivamente.
+El handoff de una sesion para la puerta de benchmarks (preflight, `--dry-run`,
+artefactos, edicion de la fila de puerta y del README EN/ES) esta en
+`docs/benchmarks/REFERENCE_RUNBOOK.md`; la definicion del host de referencia y
+el procedimiento canonico estan en `docs/benchmarks/reference-host.md`.
 ### docs/audits/
 Registros de auditoria y revisiones independientes, no derivados verbatim de los
 maestros: recogen evidencia de verificacion y hallazgos sin modificar el

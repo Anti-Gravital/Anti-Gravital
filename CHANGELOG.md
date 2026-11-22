@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Chrono edge drift monitor (issue #185)
 
 Added:
@@ -23,8 +24,6 @@ Added:
 Issue #185 remains open and `blocked`: a monitor PASS means "no drift", not
 "resolved", and no gate was claimed. The `RUSTSEC-2026-0543` ignore, manifests,
 lockfile and CI workflows are unchanged. Refs #185.
-
-
 
 ### Tracking parent #76 child reconciliation (wave 12)
 
@@ -2878,6 +2877,33 @@ Issue #87 sigue abierta y `blocked`: solo se cierra con la prueba ignorada
 `tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` superada contra el
 directorio staging con la plantilla rellena y los logs before/after. #179
 permanece bloqueada por #87.
+
+### Benchmark reference-host handoff (issue #157)
+
+Added:
+
+- `docs/benchmarks/REFERENCE_RUNBOOK.md`: one-session handoff for a maintainer
+  with a reference host. Exact preflight checks, dry-run rehearsal, reference
+  command, artifact verification, report curation, gate-row and README EN/ES
+  edits, and the close-out evidence checklist. No results are claimed (#157).
+- `scripts/run-benchmarks.sh --dry-run`: runs the fail-closed reference host
+  validation and prints the commands and artifacts a reference run would
+  produce, without executing a benchmark or writing an artifact. Exits 0 on a
+  passing host and 3 when the profile is not met.
+- A dry-run preflight step and a link to the runbook in
+  `docs/benchmarks/reference-host.md`.
+
+Fixed:
+
+- The quiet-host attestation check no longer always passes; a missing
+  attestation is now reported as `FAIL quiet_attestation` by the gate.
+- Load-tool output files are named after the selected tool (`oha-run-N.txt` or
+  `wrk-run-N.txt`), matching `docs/benchmarks/reference-host.md` and the paths
+  written to `e2e-runs.csv`.
+
+The Benchmarks row of `docs/audits/PRE_FASE5_RELEASE_GATE.md` stays `pending`,
+issue #157 stays open with `blocked`, and no reference-hardware number is
+invented or promoted from an informative run.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

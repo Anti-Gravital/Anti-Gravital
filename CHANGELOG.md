@@ -8,6 +8,44 @@ primera version etiquetada.
 ## [Unreleased]
 
 
+### CI maintainability guardrails (RFC-0022)
+
+Added:
+
+- New `guardrails` workflow: `derived-docs` regenerates the verbatim files in a
+  scratch copy and fails on any drift from the masters; `file-size` rejects
+  tracked Rust files over 600 lines unless listed in the new
+  `tools/file-size-allowlist.txt` with an issue number; `script-tests` runs the
+  standalone script tests. Stale allowlist entries also fail, so the list can
+  only shrink. The 14 current exceptions are seeded with the audit parent
+  issue #142 until focused refactoring issues exist.
+- New `security-audit` workflow: weekly (and manually triggered) `cargo audit`
+  and `cargo deny check --all-features` on `main`. A new `tools/security-report.sh`
+  maintains exactly one issue labelled `security`, updated in place, closed
+  when both checks pass and reopened if a later run fails. The issue carries an
+  ownership marker so human issues
+  are never reused, and the scheduled job stays green after reporting.
+- New `stale-prs` workflow: daily `tools/close-stale-prs.sh` labels, notes and
+  closes pull requests with no activity for 30 days without deleting branches.
+  A manual `dry_run` input previews candidates.
+- `clippy.toml` now carries the configured 80-line `too_many_lines` threshold.
+  The command-table check from RFC-0022 section 4.6 was deliberately not added:
+  a literal comparison against clap help text is brittle.
+
+Changed:
+
+- `tools/README.md` documents every guardrail script; `CONTRIBUTING.md` explains
+  how to react to each failure.
+
+Tests:
+
+- `tools/test-guardrails.sh` covers the size limit, allowlist format and stale
+  entries, derived-doc drift and missing files, all four security-issue states
+  (create, update, human-issue preservation, close), and stale-PR closure with
+  and without dry run, using a fake `gh` CLI. No network and no cargo needed.
+
+Refs #168 (context: the `--locked` gate it introduced; the issue is closed).
+
 ### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
 
 Added:

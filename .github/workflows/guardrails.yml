@@ -1,0 +1,40 @@
+name: guardrails
+
+# Enforces RFC-0022 sections 4.3 and 4.6 on every push and pull request:
+# source files stay within the size limit (or carry a justified exception) and
+# derived documents stay byte-identical to their masters. The script tests run
+# as a separate job so a broken guardrail script is itself a build failure.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  derived-docs:
+    name: derived documents match masters
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Check derived documents
+        run: bash tools/check-derived-docs.sh
+
+  file-size:
+    name: source file size allowlist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Check Rust source file sizes
+        run: bash tools/check-file-size.sh
+
+  script-tests:
+    name: guardrail script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Run standalone guardrail tests
+        run: bash tools/test-guardrails.sh

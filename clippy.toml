@@ -2,3 +2,7 @@ avoid-breaking-exported-api = true
 disallowed-methods = []
 disallowed-types = []
 msrv = "1.99.1"
+# RFC-0022 section 4.3: configured threshold for clippy::too_many_lines.
+# The lint is restriction-level and is enabled per crate as each crate adopts
+# it; the workspace-wide clippy gate does not enable it yet.
+too-many-lines-threshold = 80

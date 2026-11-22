@@ -1,0 +1,26 @@
+# Local S3-compatible endpoint backed by S3Mock (testing tool, not production
+# storage). Objects persist in a named volume. Satisfies ag-storage S3Backend
+# and the MINIO_URL / STORAGE_ENDPOINT aliases used by the examples.
+# See README.md for ports and connection settings.
+services:
+  s3mock:
+    image: adobe/s3mock:5.2.3
+    restart: unless-stopped
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockroot
+      COM_ADOBE_TESTING_S3MOCK_STORE_REGION: ${S3_REGION:-us-east-1}
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${S3_BUCKET:-ag-local}
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
+    ports:
+      - "${S3_PORT:-9090}:9090"
+    volumes:
+      - s3data:/s3mockroot
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/favicon.ico"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  s3data:

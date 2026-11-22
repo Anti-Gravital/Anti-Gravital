@@ -179,3 +179,10 @@ compose por familia con variables de entorno y volumenes con nombre, una guia
 de adaptacion y evidencia de verificacion con SKIP explicito del build real
 cuando no hay demonio disponible. Referencia: `deploy/docker/README.md` y
 `deploy/docker/VERIFICATION.md`.
+### Guia de stacks locales (ola 7)
+`docs/templates/STACKS.md` relaciona caso de uso, stack, familia de plantilla,
+dependencia externa y puertos. Los archivos Compose estan en `deploy/stacks/`,
+con un `README.md` por stack y una guia comun. Cada stack usa `.env.example`
+sin secretos, volumenes con nombre y healthchecks. La evidencia de verificacion
+(YAML y `docker compose config`, sin servicios iniciados) esta en
+`deploy/stacks/VERIFICATION.md`.

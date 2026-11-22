@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Optional Docker packaging for template families (wave 7)
 
 Added:
@@ -31,7 +32,6 @@ parsed all five, and the Dockerfile static lint passed (23 PASS, 0 FAIL). A
 real `docker build` was SKIPPED because no Docker daemon is reachable in this
 environment; no image was built or published. Docker remains an optional
 deployment target and `cargo run` / `ag dev` stay the default dev path.
-
 
 ### Template catalog and data-driven scaffolding (wave 6)
 
@@ -2057,6 +2057,29 @@ Added:
   is set. `cargo check --offline` never opens a connection.
 - `webhook-gateway` and `file-upload-service` include unit tests for signature
   verification and capability confinement respectively.
+
+### Local deployment stacks (wave 7)
+
+Added:
+
+- `deploy/stacks/` with six independent Compose projects: `postgres-api`
+  (PostgreSQL 16 plus an optional generated API behind the `app` profile),
+  `redis-cache`, `nats-events` (JetStream), `mail-sink` (local SMTP capture),
+  `monitoring` (Prometheus + Grafana) and `object-storage` (S3-compatible
+  endpoint). Each has pinned image tags, named volumes, healthchecks, a
+  `.env.example` with local-only placeholders and a README listing ports and
+  the environment variables used by a generated project. `.env` stays
+  gitignored; no real credentials are committed.
+- `docs/templates/STACKS.md`: decision table mapping use case to stack,
+  template family, external dependency and host ports, with honest limits.
+- `deploy/stacks/VERIFICATION.md`: real PyYAML parse of all seven YAML files,
+  `docker compose config` on all six stacks (plus `--profile app` for the
+  gated API service), tag-existence checks, and explicit SKIPs for service
+  start, image pulls and endpoint probes because the Docker daemon was down.
+
+No service was started and no image was pulled during verification. These
+stacks are opt-in local infrastructure; native and in-memory template defaults
+remain unchanged. No master document or CLI file was modified.
 
 ## [0.1.0-alpha.1] - 2026-11-22
 

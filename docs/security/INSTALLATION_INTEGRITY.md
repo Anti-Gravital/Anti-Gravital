@@ -11,9 +11,96 @@ The supported installation path starts with a Git checkout. Do not pipe
 3. Verify the installer checksums as described below.
 
 The installers do not use elevated privileges, modify system package managers,
-or download and execute another script. They require an existing Rust toolchain,
-build the checked-out workspace, and install `ag` into Cargo's user bin directory.
-Integrity verification runs before any build or install action.
+or download and execute another script. In the default `source` channel they
+require an existing Rust toolchain, build the checked-out workspace, and install
+`ag` into Cargo's user bin directory. The opt-in `alpha` channel installs a
+prebuilt binary instead (see below). Integrity verification runs before any
+build, download-based install or install action.
+
+## Alpha channel: prebuilt binary with checksum verification
+
+Wave 5 provides a testable alpha. The prebuilt-binary path is opt-in:
+
+```bash
+AG_INSTALLER_CHANNEL=alpha \
+AG_INSTALLER_BASE_URL=https://github.com/Anti-Gravital/Anti-Gravital/releases/download/v0.1.0-alpha.1 \
+bash install.sh
+```
+
+`AG_INSTALLER_RELEASE_TAG=v0.1.0-alpha.1` is an alternative to the full base URL;
+it expands to the project's GitHub release assets URL. A `file://` base URL is
+supported for local mirrors and offline testing. Replace the example tag with
+the one you reviewed.
+
+Inputs:
+
+- `AG_INSTALLER_CHANNEL=alpha` selects the channel. Any value other than `alpha`
+  or `source` is rejected before any action.
+- `AG_INSTALLER_BASE_URL` (or `AG_INSTALLER_RELEASE_TAG`) locates the assets. If
+  neither is set, the installer aborts; it never guesses a version.
+- `AG_INSTALLER_TARGET` overrides the auto-detected target triple. Detection
+  uses `uname` on Linux/macOS and `PROCESSOR_ARCHITECTURE` on Windows.
+- `AG_INSTALLER_MANIFEST` overrides the manifest filename (default
+  `checksums.txt`).
+- `AG_INSTALLER_BIN_DIR` overrides the destination (default `~/.cargo/bin`).
+- `AG_INSTALLER_BINARY_CHECKSUMS` points to a local checksum manifest obtained
+  out of band. When set, `checksums.txt` is NOT downloaded from the release, so
+  the checksum cannot be substituted by whoever controls that release location.
+  A missing file, a missing entry or a mismatch still aborts before install.
+
+The release assets directory must contain the binary named exactly as produced
+by the release workflow (`ag-<target>` on Linux/macOS, `ag-<target>.exe` on
+Windows) and `checksums.txt`, a `sha256sum`-format manifest with bare asset
+filenames and LF line endings:
+
+```
+<64 hex digits>  ag-x86_64-unknown-linux-gnu
+<64 hex digits>  ag-aarch64-unknown-linux-gnu
+...
+```
+
+Order of operations (fail closed):
+
+1. The self-integrity check for the installer script using
+   `AG_INSTALLER_CHECKSUMS` (described below) runs first for both channels.
+2. Download `checksums.txt` into a temporary directory.
+3. Download `ag-<target>` into the same temporary directory. The binary is never
+   executed or installed before step 5.
+4. Find the manifest entry for the exact binary filename; a missing entry
+   aborts.
+5. Compute the SHA-256 of the downloaded binary and compare it with the
+   manifest. A mismatch aborts with a non-zero exit and no file is written to
+   the install directory.
+6. Only after a match, copy the binary to `AG_INSTALLER_BIN_DIR` with mode 0755.
+   No elevated privileges are used and the temporary files are removed.
+
+**This is checksum verification, not signature verification.** No release
+signing key exists and no signature artifact is published. The installer never
+claims authenticity: the base URL or release tag you supply is the trust
+boundary, and a party who controls that location can substitute both the binary
+and its checksum. The alpha channel is for evaluating a testable alpha, not a
+verified release channel. It does not close issue #141; the signed-manifest
+design remains RFC-0030.
+
+To remove the same-channel substitution risk for the checksum, save a copy of
+`checksums.txt` from a source you independently reviewed and export
+`AG_INSTALLER_BINARY_CHECKSUMS=/path/to/checksums.txt`. The installer then uses
+that local manifest and does not download one from the release. This still does
+not authenticate the release: it only moves the checksum's origin out of the
+release channel. No key or signature is involved.
+
+Windows mirrors the same flow:
+
+```powershell
+$env:AG_INSTALLER_CHANNEL = "alpha"
+$env:AG_INSTALLER_BASE_URL = "https://github.com/Anti-Gravital/Anti-Gravital/releases/download/v0.1.0-alpha.1"
+.\install.ps1
+```
+
+`install.ps1` downloads with `Invoke-WebRequest`, hashes with `Get-FileHash
+-Algorithm SHA256`, and fails closed on a missing entry, a download error or a
+mismatch. Keep LF line endings in `checksums.txt` to match the format emitted by
+the release workflow.
 
 ## Trust anchor: `AG_INSTALLER_CHECKSUMS`
 
@@ -98,13 +185,17 @@ This mechanism defines and enforces the *interface* for an out-of-band trust
 anchor; it does not create one. The project currently has:
 
 - no release signing key and no signed installer or signature artifact;
-- no release workflow that publishes checksums through a channel independent of
-  the repository.
+- no out-of-band publication channel: even when a release workflow publishes a
+  checksum manifest alongside prebuilt binaries, that manifest travels in the
+  same trust domain as the binaries it attests and is not a trust anchor.
 
 Consequently a user must still obtain the manifest through a trusted channel out
 of band. Until that channel and a published key exist, a verified install rests
-on how well the user protected that channel. This is tracked in issue #141; the
-issue stays open until a real out-of-band publication or signature path exists.
+on how well the user protected that channel. The `alpha` channel verifies a checksum from the same release location unless
+`AG_INSTALLER_BINARY_CHECKSUMS` supplies a local manifest; either way it is
+explicitly not a substitute for a signed, out-of-band anchor. This is tracked in
+issue #141; the issue stays open until a real out-of-band publication or
+signature path exists.
 
 ## Roadmap to a real trust anchor (RFC-0030)
 

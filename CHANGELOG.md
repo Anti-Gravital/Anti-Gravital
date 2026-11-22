@@ -84,6 +84,7 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:
@@ -132,8 +133,6 @@ Added:
 
 This is a local, opt-in developer aid. It does not modify `.github/` or any
 master document, so no RFC is required.
-
-
 
 ### CI maintainability guardrails (RFC-0022)
 
@@ -1894,3 +1893,26 @@ Scope: stage B only. The `[env]` declaration in `ag.toml`, the encrypted
 secrets file, the `ag env` commands and module migration off direct
 `std::env::var` calls remain later stages of RFC-0020. No existing call site
 was changed.
+
+### Alpha installer channel (wave 5)
+
+Added:
+
+- `install.sh` and `install.ps1` accept `AG_INSTALLER_CHANNEL=alpha`: download a
+  prebuilt `ag` binary plus `checksums.txt` from a configurable base URL or
+  GitHub release tag, verify the SHA-256 checksum before installing, and fail
+  closed on a missing entry, a download error or a mismatch. No install to a
+  privileged location; the default destination is `~/.cargo/bin`.
+- The default `source` channel is unchanged; the development-only local
+  fallback is now labelled explicitly when `AG_INSTALLER_CHECKSUMS` is unset.
+- `AG_INSTALLER_BINARY_CHECKSUMS` supplies a local, out-of-band binary manifest;
+  when set, `checksums.txt` is not downloaded from the release channel.
+- `tools/test-alpha-installer.sh` exercises the real `file://` download and
+  verify path plus the fail-closed cases and the out-of-band manifest path;
+  `tools/check-installers.sh` runs it.
+- `docs/security/INSTALLATION_INTEGRITY.md` documents the alpha channel inputs,
+  verification order and its limits.
+
+The alpha channel verifies checksums only. No signing key exists and no
+signature is claimed; the supplied release location is the trust boundary.
+Issue #141 stays open; RFC-0030 remains the signed-manifest design.

@@ -115,4 +115,8 @@ if grep -F 'cargo ' "$fake_bin/bad.log" >/dev/null; then
     exit 1
 fi
 
+# Alpha channel: local file:// release exercises the real download, checksum
+# verification and install path, plus every fail-closed case (no network).
+bash tools/test-alpha-installer.sh
+
 printf 'Installer checks passed (MSRV %s).\n' "$expected"

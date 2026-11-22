@@ -11,6 +11,27 @@ aun no etiquetados.
 
 
 
+### Real-mailbox delivery verification kit (issue #178)
+
+Added:
+
+- `docs/security/REAL_MAILBOX_VERIFICATION.md`: step-by-step, reproducible
+  procedure to exercise the native `MtaSender` against a loopback SMTP sink and
+  against a real mailbox, with the exact `Authentication-Results` and
+  `DKIM-Signature` fields to capture and the precise condition that closes the
+  external gate of #178. It never claims the gate passed.
+- `docs/security/REAL_MAILBOX_RESULTS_TEMPLATE.md`: empty results template
+  with an explicit unfilled-by-design statement; inference of empty fields is
+  forbidden.
+- `scripts/check-mail-delivery.sh`: opt-in checker with honest PASS/SKIP/FAIL
+  outcomes. It SKIPs without `AG_MAIL_DELIVERY_OPT_IN=1`, when port 25 egress
+  or the local sink is unreachable, when identities are absent, or when no
+  evidence is recorded. Wire-scope PASS explicitly prints
+  `gate.real_mailbox=NOT_SATISFIED`; only real-mailbox scope can PASS the gate.
+
+Issue #178 stays open with `Refs #178`: no real mailbox was contacted here and
+no receiving-MTA `Authentication-Results` header was recorded.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

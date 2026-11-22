@@ -125,7 +125,11 @@ This closes the independent-verifier Done-when item of #178. The other
 verification step in that issue, sending through the native MTA to a real
 mailbox and recording the receiver's `Authentication-Results` header, is
 still manual because port 25 egress is blocked here. Issue #178 therefore
-stays open with `Refs #178` until that gate is recorded.
+stays open with `Refs #178` until that gate is recorded. The reproducible
+hand-off for that remaining gate is
+`docs/security/REAL_MAILBOX_VERIFICATION.md`, with the empty results template
+in `docs/security/REAL_MAILBOX_RESULTS_TEMPLATE.md` and the opt-in checker
+`scripts/check-mail-delivery.sh`.
 
 ## 7. Opt-in check wrapper and CI wiring
 

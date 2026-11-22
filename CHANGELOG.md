@@ -11,6 +11,19 @@ aun no etiquetados.
 
 
 
+### Tracking parent #76 child reconciliation (wave 12)
+
+Added:
+
+- `docs/audits/issue-board-reconciliation.md`: wave-12 addendum with a verified
+  child-by-child matrix for #76. All 16 children (#78-#93) were checked against
+  the live REST board and against `origin/main`: 15 are CLOSED with a merged
+  implementation commit each, and #87 remains OPEN and `blocked` with no
+  staging pass and no ignored E2E test target. No resolved-but-open or
+  closed-without-verification child and no stale current text was found, so no
+  status comment was posted and no issue was closed. #76 stays OPEN with
+  `Refs #76`; it can close only after #87 is verified CLOSED on merged evidence.
+
 ### Release signing rehearsal and key ceremony (issue #141)
 
 Added:

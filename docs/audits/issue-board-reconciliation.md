@@ -331,3 +331,78 @@ No issue was closed, reassigned by label edit or given a `Closes #NNN` keyword
 by this branch. No new issue was opened because no live contradiction between
 the board, the issue bodies and the merged gate was found; the stale passages
 above are dated historical snapshots and are corrected in this addendum.
+
+## Wave 12 addendum (2026-11-22) - child-by-child reconciliation of #76
+
+Scope: verify the tracking parent #76 against the live board and against merged
+`main`, one child at a time. The wave-11 board owner recorded the snapshot
+"#76: 16/15 closed" (16 children, 15 closed). This addendum re-derives those
+numbers independently and does NOT close any issue. It adds no `Closes #NNN`
+keyword; #76 stays OPEN with `Refs #76` in the owning branch descriptor.
+
+### Verification method
+
+- Board state read with the REST API (`gh api repos/Anti-Gravital/Anti-Gravital/issues/<n>`),
+  because `gh issue view` is broken by the Projects classic sunset.
+- The parent body lists exactly 16 children (#78-#93). All 16 were queried
+  individually; no child exists outside that range in the body or on the board.
+- "Merged evidence on main" means a commit reachable from `origin/main` that
+  implements the child's feature. It was checked with
+  `git log origin/main --oneline --grep="#<n>\b"`. A docs-only or mock-only
+  commit is explicitly NOT closure evidence for a gate child.
+- The parent body checklist (15 `[x]`, one `[ ]` for #87) was compared with the
+  live board state of every child.
+
+### Child matrix (verified 2026-11-22)
+
+| Child | Short title | Board state | Merged evidence on `main` | Verdict |
+| --- | --- | --- | --- | --- |
+| #78 | eTLD+1 via PSL | CLOSED | `9e0d525` PSL-correct eTLD+1 behind `psl` feature | Verified closed |
+| #79 | provider adapter SDK seam | CLOSED | `ccbb3ab` adapter SDK seam (diff/apply/verify/rollback) | Verified closed |
+| #80 | Route 53 adapter | CLOSED | `759f92f` Route 53 adapter behind `route53` feature | Verified closed |
+| #81 | Google Cloud DNS adapter | CLOSED | `f81b4f8` Google Cloud DNS adapter behind feature | Verified closed |
+| #82 | Azure DNS adapter | CLOSED | `0a6d6a5` Azure DNS adapter behind `azure-dns` feature | Verified closed |
+| #83 | Namecheap adapter | CLOSED | `ea14237` Namecheap adapter behind `namecheap` feature | Verified closed |
+| #84 | Domain Connect support | CLOSED | `8b99e7d` Domain Connect discovery + template flow | Verified closed |
+| #85 | DNS-01 wildcard automation | CLOSED | `bd4dbe0` automated DNS-01 wildcard issuance | Verified closed |
+| #86 | ARI-aware renewal scheduling | CLOSED | `993a50d` ARI-aware renewal scheduling (RFC 9773) | Verified closed |
+| #87 | live ACME staging E2E | OPEN, `blocked` | only `b4b4216` (staging procedure) and `1bfc05a` (offline mock harness); no staging pass, ignored test target absent | Correctly open and blocked |
+| #88 | remaining control-plane metrics | CLOSED | `3affbda` blueprint 16.1 control-plane metrics | Verified closed |
+| #89 | dangling-DNS detection worker | CLOSED | `afb5253` dangling-DNS detection worker | Verified closed |
+| #90 | abuse controls | CLOSED | `2ee43de` per-tenant limits + global ACME queue | Verified closed |
+| #91 | HTTP-to-HTTPS upgrade at listener | CLOSED | `b8c141b` HTTP-to-HTTPS upgrade listener (closes #91) | Verified closed |
+| #92 | documentation gaps | CLOSED | `1708c0c` tutorials, reference and explanation pages | Verified closed |
+| #93 | ag-registrars design RFC | CLOSED | `6dfbe9f` accepted RFC-0015 (`ac30f02` draft) | Verified closed |
+
+Result: 16 children, 15 CLOSED, 1 OPEN (#87). This matches the body checklist,
+the wave-4 baseline, the wave-9 and wave-11 addenda and the wave-11 snapshot.
+No number changed in this wave.
+
+### Findings
+
+- No resolved-but-open child. #87's own body defines Done as an `#[ignore]` test
+  that passes against Let's Encrypt staging in a credentialed environment; the
+  `tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` target does not
+  exist yet and the four issue comments explicitly claim no pass. The label set
+  (`tech-debt`, `ag-domains`, `p3`, `blocked`) is correct. #179 depends on #87
+  for before/after evidence and is likewise open and blocked.
+- No closed-without-verification child. Each of the 15 CLOSED children has a
+  merged implementation commit on `origin/main` (matrix above).
+- No stale current text claiming a wrong state. The wave-4 issue comment
+  "15 children: 14 CLOSED" is a dated historical snapshot that was corrected the
+  next minute ("the correct count is 16/15") and in the parent body; it is not a
+  live contradiction. The `blocked` label still attached to the CLOSED #78 is a
+  historical label, not a state claim, and was left untouched.
+- No status comment was posted on #76: the board, the body and the merged
+  evidence already agree, so there is no inconsistency to correct.
+
+### Exact closure condition for #76
+
+#76 can be closed only after #87 is verified CLOSED first: the ignored target
+`tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` must exist, pass
+against the Let's Encrypt staging directory on a credentialed runner with a
+controlled domain, DNS write access and outbound HTTPS, with the evidence
+template in `docs/ag-domains/how-to/acme-staging-test.md` filled (no keys or
+credentials), and that closure must be merged to `main`. Only then are all 16
+children CLOSED and `Closes #76` permissible. This branch does not close #76;
+the coordinator closes it after merge and after #87 is genuinely resolved.

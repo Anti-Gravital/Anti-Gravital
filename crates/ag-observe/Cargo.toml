@@ -16,14 +16,18 @@ publish = false
 
 [features]
 dev-console = ["dep:console-subscriber"]
+# Opt-in OTLP trace export over HTTP/protobuf. Off by default so the native
+# logging and Prometheus exporters keep working without any collector (ADR-0009).
+otlp = ["dep:opentelemetry-otlp", "dep:rustls"]
 
 [dependencies]
 tracing                     = { workspace = true }
 tracing-subscriber          = { workspace = true }
-# TECH-DEBT (issue #149): OTLP exporter deferred; opentelemetry-otlp needs protoc in multiplatform CI.
 tracing-opentelemetry       = { workspace = true }
 opentelemetry               = { workspace = true }
 opentelemetry_sdk           = { workspace = true }
+opentelemetry-otlp          = { workspace = true, optional = true }
+rustls                      = { workspace = true, optional = true }
 tokio                       = { workspace = true }
 serde                       = { workspace = true }
 axum                        = { workspace = true }

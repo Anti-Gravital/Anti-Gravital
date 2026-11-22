@@ -15,6 +15,7 @@ primera version etiquetada.
 
 
 
+
 ### Design proposal: ag-data ORM, RLS and tenancy (issue #154)
 
 Added (documentation only; no code, no phase change):
@@ -1298,3 +1299,20 @@ Changed:
   a clean tree.
 - Release gate `Fuzz 24h` and `Benchmarks` rows now point to the verification
   packages; both remain `pending`.
+
+### OTLP trace exporter for ag-observe (issue #149)
+
+Added:
+
+- New opt-in Cargo feature `ag-observe/otlp` (off by default) exports traces
+  over OTLP/HTTP with binary protobuf. When enabled and
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set, `init()` installs a
+  `tracing-opentelemetry` layer backed by a thread-based batch exporter.
+- `SERVICE_NAME` now sets the `service.name` resource attribute for OTLP
+  (default `ag-service`). The native logging and Prometheus exporters remain
+  the default and require no collector.
+- `ADR-0019` records why the HTTP/protobuf transport is used: the pinned
+  `opentelemetry-otlp`/`opentelemetry-proto` versions ship pre-generated code,
+  so no `protoc` is needed in multiplatform CI, and the blocking client needs
+  no Tokio runtime. The stale `TECH-DEBT` markers in the workspace and
+  `ag-observe` manifests were removed.

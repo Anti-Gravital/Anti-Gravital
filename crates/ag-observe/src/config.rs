@@ -14,10 +14,12 @@ pub enum LogFormat {
 /// Observability subsystem configuration.
 #[derive(Debug, Clone)]
 pub struct ObserveConfig {
-    /// Reserved OTLP endpoint for exporting traces.
+    /// OTLP traces endpoint for exporting traces.
     ///
-    /// None keeps OTLP disabled. Some returns an explicit initialization error
-    /// until a real exporter is implemented.
+    /// None keeps OTLP disabled. With the `otlp` Cargo feature, Some builds
+    /// an OTLP/HTTP exporter; the value is used as the full traces URL and
+    /// must include the signal path (e.g. `http://localhost:4318/v1/traces`).
+    /// Without the feature, Some returns an explicit initialization error.
     /// Variable: OTEL_EXPORTER_OTLP_ENDPOINT
     pub otlp_endpoint: Option<String>,
     /// Port where /metrics is exposed in Prometheus format.

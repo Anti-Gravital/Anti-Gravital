@@ -85,6 +85,7 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 ## [Unreleased]
 
 
+
 ### Roadmap and STATUS reconciliation for the alpha (waves 4 and 5)
 
 Changed:
@@ -1916,3 +1917,31 @@ Added:
 The alpha channel verifies checksums only. No signing key exists and no
 signature is claimed; the supplied release location is the trust boundary.
 Issue #141 stays open; RFC-0030 remains the signed-manifest design.
+
+### Evidencia de aceptacion alpha (smoke offline)
+
+Anadido:
+
+- `scripts/release-smoke.sh`: prueba end-to-end reproducible y sin red que
+  compila el workspace con `--locked --offline`, genera un proyecto con
+  `ag new ... --no-interactive`, compila un esquema DSL con `ag generate`,
+  resuelve el lockfile y ejecuta `cargo check`/`cargo build` del proyecto
+  generado, inicia `ag dev` en loopback con timeout y comprueba `GET /` con
+  curl. Imprime PASS/FAIL con codigo de salida por paso, usa un directorio
+  temporal y limpia el proceso y los archivos al terminar.
+- `docs/audits/alpha-smoke-evidence.md`: salida real de la ejecucion con SO,
+  version de Rust, commit, fecha y comando, ademas del inventario de criterios
+  de aceptacion cubiertos y de los que requieren infraestructura externa.
+
+Verificado:
+
+- Ejecucion real: 10 pasos PASS, 0 FAIL, codigo de salida 0. Sin servicios
+  externos y con el trafico de red de cargo desactivado.
+
+Notas:
+
+- No se inventa ningun resultado. Un intento con directorio de compilacion
+  nuevo fallo por cuota de disco (`os error 122`); el script informo FAIL con
+  codigo 101 y ese intento no se usa como evidencia. El defecto de bind
+  (`0.0.0.0` ignorando `BIND`) se registra en la revision de seguridad de esta
+  ola; no se abre un issue duplicado.

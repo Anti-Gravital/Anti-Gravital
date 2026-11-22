@@ -1,0 +1,123 @@
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-workers/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-workers` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-cache/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-cache` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-dsl/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-dsl` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-storage/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-storage` (manifest) generated 1 warning
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.14s
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-workers/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-workers` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-cache/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-cache` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-dsl/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-dsl` (manifest) generated 1 warning
+warning: `package.homepage` is redundant with `package.repository`
+ --> /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/crates/ag-storage/Cargo.toml:9:1
+  |
+8 | repository.workspace = true
+  | ----------
+9 | homepage.workspace = true
+  | ^^^^^^^^
+  |
+  = note: `cargo::redundant_homepage` is set to `warn` by default
+help: consider removing `package.homepage`
+warning: `ag-storage` (manifest) generated 1 warning
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.11s
+     Running `/home/angel-nereira/Github-local-angelnereira/shared-cargo-target/x86_64-unknown-linux-gnu/release/fuzz_signed_url -artifact_prefix=/home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/fuzz/artifacts/fuzz_signed_url/ -max_total_time=60 /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/fuzz/corpus/fuzz_signed_url`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4169067027
+INFO: Loaded 1 modules   (1064 inline 8-bit counters): 1064 [0x64ce978d4230, 0x64ce978d4658), 
+INFO: Loaded 1 PC tables (1064 PCs): 1064 [0x64ce978d4658,0x64ce978d88d8), 
+INFO:       51 files found in /home/angel-nereira/Github-local-angelnereira/worktrees9/qafuzz/fuzz/corpus/fuzz_signed_url
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 51 min: 1b max: 147b total: 1297b rss: 77Mb
+#52	INITED cov: 164 ft: 246 corp: 49/1271b exec/s: 0 rss: 77Mb
+#64	NEW    cov: 165 ft: 247 corp: 50/1273b lim: 147 exec/s: 0 rss: 77Mb L: 2/147 MS: 2 InsertByte-ChangeByte-
+#1068	REDUCE cov: 165 ft: 247 corp: 50/1272b lim: 154 exec/s: 0 rss: 77Mb L: 1/147 MS: 4 InsertByte-ChangeBit-EraseBytes-EraseBytes-
+#39080	REDUCE cov: 165 ft: 247 corp: 50/1271b lim: 524 exec/s: 0 rss: 77Mb L: 55/147 MS: 2 ChangeBit-EraseBytes-
+#47775	REDUCE cov: 165 ft: 247 corp: 50/1268b lim: 605 exec/s: 0 rss: 77Mb L: 144/144 MS: 5 ChangeBit-ShuffleBytes-ShuffleBytes-ChangeASCIIInt-EraseBytes-
+#331950	REDUCE cov: 165 ft: 247 corp: 50/1267b lim: 3423 exec/s: 0 rss: 83Mb L: 143/143 MS: 5 CrossOver-CMP-ChangeBit-EraseBytes-CopyPart- DE: "\377\377\377\377"-
+#367396	REDUCE cov: 165 ft: 247 corp: 50/1265b lim: 3775 exec/s: 0 rss: 88Mb L: 141/143 MS: 1 EraseBytes-
+#381294	REDUCE cov: 165 ft: 247 corp: 50/1260b lim: 3907 exec/s: 0 rss: 89Mb L: 136/143 MS: 3 ChangeBit-EraseBytes-CopyPart-
+#452723	NEW    cov: 165 ft: 255 corp: 51/1887b lim: 4096 exec/s: 0 rss: 98Mb L: 627/627 MS: 4 InsertRepeatedBytes-InsertRepeatedBytes-CopyPart-CopyPart-
+#456518	REDUCE cov: 165 ft: 255 corp: 51/1883b lim: 4096 exec/s: 0 rss: 99Mb L: 623/623 MS: 5 ChangeByte-ShuffleBytes-InsertRepeatedBytes-ChangeASCIIInt-EraseBytes-
+#459580	REDUCE cov: 165 ft: 255 corp: 51/1875b lim: 4096 exec/s: 0 rss: 100Mb L: 615/615 MS: 2 CrossOver-EraseBytes-
+#463404	REDUCE cov: 165 ft: 255 corp: 51/1867b lim: 4096 exec/s: 0 rss: 101Mb L: 607/607 MS: 4 InsertByte-CrossOver-InsertByte-EraseBytes-
+#465562	REDUCE cov: 165 ft: 255 corp: 51/1843b lim: 4096 exec/s: 0 rss: 101Mb L: 583/583 MS: 3 PersAutoDict-ChangeBit-EraseBytes- DE: "\377\377\377\377"-
+#468168	REDUCE cov: 165 ft: 255 corp: 51/1787b lim: 4096 exec/s: 0 rss: 102Mb L: 527/527 MS: 1 EraseBytes-
+#2097152	pulse  cov: 165 ft: 255 corp: 51/1787b lim: 4096 exec/s: 699050 rss: 317Mb
+#4194304	pulse  cov: 165 ft: 255 corp: 51/1787b lim: 4096 exec/s: 699050 rss: 499Mb
+#4215989	REDUCE cov: 165 ft: 255 corp: 51/1786b lim: 4096 exec/s: 702664 rss: 499Mb L: 18/527 MS: 2 ChangeByte-EraseBytes-
+#8388608	pulse  cov: 165 ft: 255 corp: 51/1786b lim: 4096 exec/s: 559240 rss: 517Mb
+#16777216	pulse  cov: 165 ft: 255 corp: 51/1786b lim: 4096 exec/s: 599186 rss: 517Mb
+#33554432	pulse  cov: 165 ft: 255 corp: 51/1786b lim: 4096 exec/s: 645277 rss: 517Mb
+#39539476	DONE   cov: 165 ft: 255 corp: 51/1786b lim: 4096 exec/s: 648188 rss: 517Mb
+###### Recommended dictionary. ######
+"\377\377\377\377" # Uses: 3380242
+###### End of recommended dictionary. ######
+Done 39539476 runs in 61 second(s)

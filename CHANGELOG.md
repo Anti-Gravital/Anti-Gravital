@@ -7,6 +7,35 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Fuzz window automation and partial evidence (wave 9, issue #156)
+
+Added:
+
+- `scripts/run-fuzz-window.sh`: runs all seven fuzz targets for a configurable
+  duration (default 300 s), records per-target exit codes, crash artifacts,
+  host/OS/Rust/commit metadata and appends schema-versioned JSONL evidence.
+  It labels short runs `SHORT_WINDOW_NOT_GATE` and never claims the 24h gate;
+  outputs are preserved under `docs/fuzz/results/` with per-target logs and
+  SHA-256 hashes.
+- `docs/fuzz/windows-jsonl-schema.md`: schema v1 for the run and target JSONL
+  records, including the gate-label enum and a validation command.
+- `docs/fuzz/wave9-window-evidence.md`: real 60 s per-target window, 76,367,567
+  executions across seven targets, all exit 0, no crash artifacts, exact
+  metadata, verbatim final lines, artifact paths and the exact condition to
+  close issue #156.
+- `docs/fuzz/scheduled-24h-gate-draft.md`: design note for a self-hosted
+  86400 s per target runner with explicit host requirements. Documentation
+  only; no enabled workflow is added.
+
+Changed:
+
+- `fuzz/Cargo.lock` regenerated to match the current workspace versions
+  (`0.1.0-alpha.2`). The stale lock was mutated by the first fuzz invocation,
+  which would violate the clean-tree requirement of the 24h gate. A follow-up
+  window confirmed the lock now stays unchanged.
+
+The `Fuzz 24h` release-gate row remains `pending` and issue #156 stays open
+with `Refs #156`. No 24-hour result is claimed.
 
 ### Edge wildcard matching (issue #196)
 

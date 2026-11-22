@@ -1,0 +1,4 @@
+# Root .gitignore ignores *.log globally. Fuzz gate evidence is the exception:
+# raw per-target logs under results/ are the audit trail and must be committed
+# (docs/fuzz/24h-gate-verification.md, "Artifacts to keep for each run").
+!*.log

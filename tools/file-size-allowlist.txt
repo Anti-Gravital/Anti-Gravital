@@ -23,3 +23,4 @@ crates/ag-cli/src/cli.rs #189
 crates/ag-cli/src/config.rs #189
 crates/ag-core/src/env.rs #189
 crates/ag-cli/src/main.rs #189
+crates/ag-cli/tests/json_output.rs #189

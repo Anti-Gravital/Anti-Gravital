@@ -1146,6 +1146,22 @@ Cambiado:
 - Workflow `quality.yml`: `cargo deny` ya pasa tras anadir
   `Unicode-3.0` a `deny.toml` (commit anterior).
 
+### MCP readiness review (RFC-0024 / ADR-0017)
+
+Added (documentation only; no code):
+
+- `docs/audits/mcp-readiness-review.md` maps every proposed MCP tool to the
+  current CLI request/executor surface and records that the stage E substrate
+  (`--output json`, `ag describe`, plan/apply, audit log), `Secret<T>` and
+  `ag deploy` do not exist yet.
+- The review proposes a versioned capability manifest schema, the per-tool
+  security checks (capability gate, plan id, apply, redaction, audit record),
+  self-debug boundaries, a prioritized implementation checklist and test cases
+  including refusal of an agent without the required capability.
+- Contract risks for arbitration: the two conflicting plan models in RFC-0024,
+  the `deploy.*` tools versus Phase 5, and ownership of the shared versioned
+  schema under ADR-0016. `docs/INDEX.md` links the new audit.
+
 [Unreleased]: https://github.com/anti-gravital/anti-gravital/compare/HEAD..HEAD
 
 ### Data-layer design note (issue #154)

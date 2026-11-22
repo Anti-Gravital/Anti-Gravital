@@ -7,6 +7,12 @@ por 60 segundos en cada PR y push. Verifica que el harness no este roto.
 
 ## Gate manual de 24 horas (requerido antes de cerrar Fase 3)
 
+El procedimiento verificable, los 7 targets obligatorios, las rutas de
+artefactos y la plantilla de resultados estan en
+`docs/fuzz/24h-gate-verification.md`. Una ejecucion de smoke de 30 s por target
+esta registrada en `docs/fuzz/results/2026-11-22-smoke.md`. Ninguno de los dos
+documentos sustituye la corrida de 24 horas; la fila `Fuzz 24h` sigue `pending`.
+
 Ejecutar en hardware Linux x86-64 antes de mergear la rama `fase-3`:
 
     cd fuzz

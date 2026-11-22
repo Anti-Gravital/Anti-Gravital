@@ -56,10 +56,16 @@ No se almacena la clave en claro; solo el hash.
 
 ### OAuth2
 
-`OAuthClient` para Google y GitHub con flujo PKCE:
+`OAuthClient` para Google y GitHub con flujo Authorization Code + PKCE S256
+nativo (sin dependencia `oauth2`, segun RFC-0029):
 
-- `authorization_url(provider)` genera la URL de redireccion.
-- `exchange_code(provider, code, verifier)` intercambia el codigo por tokens.
+- `authorization_url(provider, redirect_uri)` devuelve
+  `(url, OAuthState, PkceVerifier)`. El estado es de 128 bits y el verifier
+  tiene 43 caracteres. Ambos son newtypes secretos: `expose_secret()` devuelve
+  el valor y `Debug` lo redacta. La aplicacion debe persistirlos en la sesion
+  y comparar el estado en el callback.
+- `exchange_code(provider, code, verifier, redirect_uri)` intercambia el codigo
+  por tokens y devuelve `OAuthUser`. No hay grant de refresh de proveedor.
 - Provider deshabilitado si las variables de entorno no estan definidas.
 
 ### Refresh tokens

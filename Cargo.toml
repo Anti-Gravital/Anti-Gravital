@@ -107,7 +107,6 @@ cap-fs-ext               = "4.0.2"
 cap-std                  = "4.0.2"
 getrandom                = "0.4"
 passkey-types            = "0.6"
-oauth2                   = { version = "5", default-features = false }
 ciborium                 = "0.2"
 sha2                     = "0.11"
 p256                     = { version = "0.14", default-features = false, features = ["ecdsa"] }

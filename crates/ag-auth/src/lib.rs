@@ -34,7 +34,7 @@ pub use config::{AuthConfig, AuthConfigError};
 pub use jwt::{Claims, JwtError, JwtSigner};
 #[cfg(feature = "mail")]
 pub use mailer::{AuthMailer, AuthMailerError};
-pub use oauth::{OAuthClient, OAuthError, OAuthProvider, OAuthUser};
+pub use oauth::{OAuthClient, OAuthError, OAuthProvider, OAuthState, OAuthUser, PkceVerifier};
 pub use refresh::RefreshBlacklist;
 pub use webauthn::{
     AuthenticationChallenge, AuthenticationResponse, RegistrationChallenge, RegistrationResponse,

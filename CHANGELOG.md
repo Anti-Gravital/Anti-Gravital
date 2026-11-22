@@ -7,6 +7,44 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### Native OAuth2/PKCE client in ag-auth (issue #185, RFC-0029)
+
+Added:
+
+- `OAuthState` and `PkceVerifier`, local secret newtypes returned by
+  `OAuthClient::authorization_url`. Both expose `expose_secret() -> &str` and
+  redact their `Debug` output so a state or verifier cannot be logged by
+  accident. Sizes are unchanged: 128-bit state (22 base64url chars) and a
+  43-character S256 verifier from 32 CSPRNG bytes.
+- `OAuthError::Entropy` for CSPRNG failure (the enum is `#[non_exhaustive]`).
+
+Changed:
+
+- Replaced the `oauth2` 5.0.0 dependency with a native Authorization Code +
+  PKCE implementation built only from existing primitives (base64ct, sha2,
+  getrandom, url, reqwest, serde_json). Removed `oauth2` from the workspace
+  dependency table and from `Cargo.lock`; `cargo tree -i oauth2` is now empty
+  and the `oauth2 -> chrono` edge is gone.
+- Public API change in `ag-auth`: `authorization_url` now returns
+  `(Url, OAuthState, PkceVerifier)` and `exchange_code` accepts
+  `PkceVerifier` instead of oauth2's `CsrfToken` / `PkceCodeVerifier`.
+  `OAuthProvider`, `OAuthUser`, both method names and the request/response wire
+  format are unchanged. No crate outside `ag-auth` used those newtypes and
+  `ag-auth` is `publish = false`.
+- Query parameter order, form body order, endpoints, scopes and error mapping
+  stay byte-compatible with the former oauth2 5.0.0 behavior (RFC-0029 4.3).
+
+Tests:
+
+- RFC 7636 Appendix B known-answer vector, CSRF state length/uniqueness,
+  43-character URL-safe verifier, redacted `Debug`, golden authorization URL,
+  form-encoding edge cases, and wiremock token/userinfo tests covering exact
+  request body, non-2xx, malformed JSON, missing `access_token`, transport
+  failure and the GitHub `User-Agent`.
+
+Refs #185. This removes the blocking oauth2 edge only; issue #185 stays open
+until RFC-0026 removes the remaining chrono edges and the deny ignore.
+
 ### CI: supported macOS runner (issue #186)
 
 Changed:

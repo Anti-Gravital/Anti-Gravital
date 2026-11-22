@@ -74,9 +74,10 @@ pub(crate) enum Commands {
         name: Option<String>,
 
         /// Starting template. When omitted in an interactive terminal, the
-        /// wizard asks for it. In non-interactive sessions it defaults to
-        /// "rest".
-        #[arg(long, short = 't', value_parser = ["rest", "realtime", "fullstack", "layered"])]
+        /// selector asks for it. In non-interactive sessions it defaults to
+        /// "rest". Every name in templates/CATALOG.md is accepted; unknown
+        /// names are a usage error.
+        #[arg(long, short = 't', value_parser = crate::catalog::TEMPLATE_NAMES)]
         template: Option<String>,
     },
 
@@ -617,5 +618,29 @@ mod tests {
                 "{args:?}"
             );
         }
+    }
+
+    // ---- template catalog parity -----------------------------------------
+
+    #[test]
+    fn every_catalog_name_is_accepted_by_the_value_parser() {
+        for name in crate::catalog::TEMPLATE_NAMES {
+            let cli = Cli::try_parse_from(["ag", "new", "demo", "--template", name])
+                .unwrap_or_else(|error| panic!("catalog name '{name}' was rejected: {error}"));
+            match cli.command {
+                Some(Commands::New { template, .. }) => {
+                    assert_eq!(template.as_deref(), Some(name), "name '{name}'");
+                }
+                _ => panic!("expected the new command for '{name}'"),
+            }
+        }
+    }
+
+    #[test]
+    fn an_unknown_template_name_is_a_usage_error() {
+        let error = Cli::try_parse_from(["ag", "new", "demo", "--template", "not-a-template"])
+            .err()
+            .expect("unknown template must fail");
+        assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
     }
 }

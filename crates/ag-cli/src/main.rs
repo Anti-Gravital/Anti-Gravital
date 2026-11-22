@@ -1,7 +1,7 @@
 //! Unified `ag` binary of the Anti-Gravital ecosystem.
 //!
 //! Phase 2 commands:
-//! - `ag new <name> [--template rest|realtime|fullstack|layered]`
+//! - `ag new <name> [--template <name>]` (catalog: `templates/CATALOG.md`)
 //! - `ag dev [--bind host:port]`
 //! - `ag build [--target triple]`
 //!
@@ -19,12 +19,14 @@
 //! - `ag config [get KEY | set KEY VALUE | validate]`
 //! - bare `ag` opens the home screen in an interactive terminal.
 
+mod catalog;
 mod cli;
 mod commands;
 mod config;
 mod interactive;
 mod output;
 mod request;
+mod scaffold;
 #[cfg(feature = "tui")]
 mod tui;
 
@@ -455,11 +457,15 @@ mod tests {
         panic!("a prompt was opened in a session that must never prompt");
     }
 
+    fn catalog_template(name: &str) -> Template {
+        Template::parse(name).expect("cataloged template")
+    }
+
     #[test]
     fn complete_flags_never_prompt_even_in_a_terminal() {
         let resolved = resolve_new_request(
             Some("api".into()),
-            Some(Template::Realtime),
+            Some(catalog_template("realtime")),
             &terminal_session(),
             must_not_ask,
         );
@@ -467,7 +473,7 @@ mod tests {
             resolved,
             Ok(Resolved::FromFlags(NewProjectRequest {
                 name: "api".into(),
-                template: Template::Realtime,
+                template: catalog_template("realtime"),
             }))
         );
     }
@@ -480,7 +486,7 @@ mod tests {
             resolved,
             Ok(Resolved::FromFlags(NewProjectRequest {
                 name: "api".into(),
-                template: Template::Rest,
+                template: catalog_template("rest"),
             }))
         );
     }
@@ -513,7 +519,7 @@ mod tests {
                 assert_eq!(template, None);
                 Ok(Some(NewProjectRequest {
                     name: "api".into(),
-                    template: Template::Fullstack,
+                    template: catalog_template("fullstack"),
                 }))
             },
         );
@@ -521,7 +527,7 @@ mod tests {
             resolved,
             Ok(Resolved::Asked(NewProjectRequest {
                 name: "api".into(),
-                template: Template::Fullstack,
+                template: catalog_template("fullstack"),
             }))
         );
     }
@@ -538,7 +544,7 @@ mod tests {
     /// cannot prompt, yields the same request the interactive flow built.
     #[test]
     fn printed_equivalent_command_reproduces_the_interactive_request() {
-        for template in Template::ALL {
+        for &template in Template::ALL {
             let asked = NewProjectRequest {
                 name: "my-api_2".into(),
                 template,

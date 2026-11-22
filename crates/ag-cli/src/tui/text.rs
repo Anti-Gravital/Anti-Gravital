@@ -23,11 +23,17 @@ pub(crate) const ERROR_PREFIX: &str = "Error: ";
 pub(crate) const NAME_TAKEN: &str = "a file or directory with this name already exists here";
 
 pub(crate) const TEMPLATE_LABEL: &str = "Choose a starting template";
+pub(crate) const TEMPLATE_POSITION: &str = "Template";
+pub(crate) const TEMPLATE_MORE_ABOVE: &str = "more above";
+pub(crate) const TEMPLATE_MORE_BELOW: &str = "more below";
+pub(crate) const TEMPLATE_FILES_PENDING: &str =
+    "(files are defined by the template; not embedded in this build)";
 pub(crate) const FILES_LABEL: &str = "Files it creates";
 
 pub(crate) const REVIEW_LABEL: &str = "Review before creating";
 pub(crate) const REVIEW_DIRECTORY: &str = "Directory";
 pub(crate) const REVIEW_TEMPLATE: &str = "Template";
+pub(crate) const REVIEW_EXTERNAL: &str = "External requirements";
 pub(crate) const REVIEW_FILES: &str = "Files to be created";
 pub(crate) const REVIEW_COMMAND: &str = "Equivalent command";
 pub(crate) const REVIEW_NOTHING_WRITTEN: &str = "Nothing has been written yet.";

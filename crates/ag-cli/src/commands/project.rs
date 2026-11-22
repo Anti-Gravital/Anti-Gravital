@@ -7,48 +7,9 @@ use std::process;
 use crate::interactive::Session;
 use crate::request::{NewProjectRequest, Template};
 
-// Templates embedded in the binary at compile time. The paths are relative
-// to the workspace root directory (crates/ag-cli/src/commands/../../../../templates/).
-
-const REST_CARGO_TOML: &str = include_str!("../../../../templates/rest/Cargo.toml.tmpl");
-const REST_MAIN_RS: &str = include_str!("../../../../templates/rest/src/main.rs.tmpl");
-const REST_CONFIG_TOML: &str = include_str!("../../../../templates/rest/config.toml.tmpl");
-
-const REALTIME_CARGO_TOML: &str = include_str!("../../../../templates/realtime/Cargo.toml.tmpl");
-const REALTIME_MAIN_RS: &str = include_str!("../../../../templates/realtime/src/main.rs.tmpl");
-const REALTIME_CONFIG_TOML: &str = include_str!("../../../../templates/realtime/config.toml.tmpl");
-
-const FULLSTACK_CARGO_TOML: &str = include_str!("../../../../templates/fullstack/Cargo.toml.tmpl");
-const FULLSTACK_MAIN_RS: &str = include_str!("../../../../templates/fullstack/src/main.rs.tmpl");
-const FULLSTACK_CONFIG_TOML: &str =
-    include_str!("../../../../templates/fullstack/config.toml.tmpl");
-const FULLSTACK_MIGRATION: &str =
-    include_str!("../../../../templates/fullstack/migrations/0001_init.sql.tmpl");
-
-// Opt-in layered workspace (RFC-0019 stage A). Kept separate from the three
-// default templates so `ag new` behaviour stays unchanged.
-const LAYERED_AG_TOML: &str = include_str!("../../../../templates/layered/ag.toml.tmpl");
-const LAYERED_CARGO_TOML: &str = include_str!("../../../../templates/layered/Cargo.toml.tmpl");
-const LAYERED_CONFIG_TOML: &str = include_str!("../../../../templates/layered/config.toml.tmpl");
-const LAYERED_MAIN_RS: &str = include_str!("../../../../templates/layered/src/main.rs.tmpl");
-const LAYERED_DOMAIN_CARGO_TOML: &str =
-    include_str!("../../../../templates/layered/crates/domain/Cargo.toml.tmpl");
-const LAYERED_DOMAIN_LIB_RS: &str =
-    include_str!("../../../../templates/layered/crates/domain/src/lib.rs.tmpl");
-const LAYERED_APP_CARGO_TOML: &str =
-    include_str!("../../../../templates/layered/crates/app/Cargo.toml.tmpl");
-const LAYERED_APP_LIB_RS: &str =
-    include_str!("../../../../templates/layered/crates/app/src/lib.rs.tmpl");
-const LAYERED_INFRA_CARGO_TOML: &str =
-    include_str!("../../../../templates/layered/crates/infra/Cargo.toml.tmpl");
-const LAYERED_INFRA_LIB_RS: &str =
-    include_str!("../../../../templates/layered/crates/infra/src/lib.rs.tmpl");
-const LAYERED_INFRA_MIGRATION: &str =
-    include_str!("../../../../templates/layered/crates/infra/migrations/0001_init.sql.tmpl");
-const LAYERED_API_CARGO_TOML: &str =
-    include_str!("../../../../templates/layered/crates/api/Cargo.toml.tmpl");
-const LAYERED_API_LIB_RS: &str =
-    include_str!("../../../../templates/layered/crates/api/src/lib.rs.tmpl");
+// Template files are discovered and embedded by `build.rs` (see
+// crates/ag-cli/src/scaffold.rs). The catalogue of accepted names lives in
+// crates/ag-cli/src/catalog.rs and is documented in templates/CATALOG.md.
 
 /// Why `ag new` could not produce a project.
 #[derive(Debug, PartialEq, Eq)]
@@ -100,11 +61,11 @@ pub(crate) fn resolve_new_request(
         }
         (Some(name), None) => Ok(Resolved::FromFlags(NewProjectRequest {
             name,
-            template: Template::Rest,
+            template: Template::DEFAULT,
         })),
         (None, _) => Err(NewError::Usage(
             "the project name is required when the session is not interactive.\n\
-             usage: ag new <NAME> [--template rest|realtime|fullstack|layered]"
+             usage: ag new <NAME> [--template <name>] (see templates/CATALOG.md)"
                 .to_owned(),
         )),
     }
@@ -126,12 +87,7 @@ pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), String> {
         request.template
     );
 
-    match request.template {
-        Template::Rest => scaffold_rest(name, project_dir),
-        Template::Realtime => scaffold_realtime(name, project_dir),
-        Template::Fullstack => scaffold_fullstack(name, project_dir),
-        Template::Layered => scaffold_layered(name, project_dir),
-    }?;
+    crate::scaffold::scaffold(name, request.template.as_str(), project_dir)?;
 
     println!();
     println!("Project '{name}' created.");
@@ -281,85 +237,4 @@ pub(crate) fn write_file(path: &Path, content: &str) -> Result<(), String> {
             .map_err(|e| format!("failed to create directory '{}': {e}", parent.display()))?;
     }
     fs::write(path, content).map_err(|e| format!("failed to write '{}': {e}", path.display()))
-}
-
-pub(crate) fn scaffold_rest(name: &str, dir: &Path) -> Result<(), String> {
-    write_file(
-        &dir.join("Cargo.toml"),
-        &apply_template(REST_CARGO_TOML, name),
-    )?;
-    write_file(
-        &dir.join("src/main.rs"),
-        &apply_template(REST_MAIN_RS, name),
-    )?;
-    write_file(
-        &dir.join("config.toml"),
-        &apply_template(REST_CONFIG_TOML, name),
-    )?;
-    Ok(())
-}
-
-pub(crate) fn scaffold_realtime(name: &str, dir: &Path) -> Result<(), String> {
-    write_file(
-        &dir.join("Cargo.toml"),
-        &apply_template(REALTIME_CARGO_TOML, name),
-    )?;
-    write_file(
-        &dir.join("src/main.rs"),
-        &apply_template(REALTIME_MAIN_RS, name),
-    )?;
-    write_file(
-        &dir.join("config.toml"),
-        &apply_template(REALTIME_CONFIG_TOML, name),
-    )?;
-    Ok(())
-}
-
-pub(crate) fn scaffold_fullstack(name: &str, dir: &Path) -> Result<(), String> {
-    write_file(
-        &dir.join("Cargo.toml"),
-        &apply_template(FULLSTACK_CARGO_TOML, name),
-    )?;
-    write_file(
-        &dir.join("src/main.rs"),
-        &apply_template(FULLSTACK_MAIN_RS, name),
-    )?;
-    write_file(
-        &dir.join("config.toml"),
-        &apply_template(FULLSTACK_CONFIG_TOML, name),
-    )?;
-    write_file(
-        &dir.join("migrations/0001_init.sql"),
-        &apply_template(FULLSTACK_MIGRATION, name),
-    )?;
-    Ok(())
-}
-
-/// Scaffolds the opt-in layered workspace (RFC-0019 section 4.2).
-///
-/// This function is additive: it is reached only through `--template layered`
-/// and never changes what the three default templates produce.
-pub(crate) fn scaffold_layered(name: &str, dir: &Path) -> Result<(), String> {
-    let files: &[(&str, &str)] = &[
-        ("ag.toml", LAYERED_AG_TOML),
-        ("Cargo.toml", LAYERED_CARGO_TOML),
-        ("config.toml", LAYERED_CONFIG_TOML),
-        ("src/main.rs", LAYERED_MAIN_RS),
-        ("crates/domain/Cargo.toml", LAYERED_DOMAIN_CARGO_TOML),
-        ("crates/domain/src/lib.rs", LAYERED_DOMAIN_LIB_RS),
-        ("crates/app/Cargo.toml", LAYERED_APP_CARGO_TOML),
-        ("crates/app/src/lib.rs", LAYERED_APP_LIB_RS),
-        ("crates/infra/Cargo.toml", LAYERED_INFRA_CARGO_TOML),
-        ("crates/infra/src/lib.rs", LAYERED_INFRA_LIB_RS),
-        (
-            "crates/infra/migrations/0001_init.sql",
-            LAYERED_INFRA_MIGRATION,
-        ),
-        ("crates/api/Cargo.toml", LAYERED_API_CARGO_TOML),
-        ("crates/api/src/lib.rs", LAYERED_API_LIB_RS),
-    ];
-    for (relative, template) in files {
-        write_file(&dir.join(relative), &apply_template(template, name))?;
-    }
-    Ok(())
 }

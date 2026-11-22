@@ -111,6 +111,10 @@ mod tests {
         false
     }
 
+    fn catalog_template(name: &str) -> Template {
+        Template::parse(name).expect("cataloged template")
+    }
+
     fn run(
         typed: &str,
         name: Option<&str>,
@@ -136,7 +140,7 @@ mod tests {
             request,
             Some(NewProjectRequest {
                 name: "shop".into(),
-                template: Template::Fullstack,
+                template: catalog_template("fullstack"),
             })
         );
     }
@@ -148,7 +152,7 @@ mod tests {
             request,
             Some(NewProjectRequest {
                 name: "api".into(),
-                template: Template::Rest,
+                template: catalog_template("rest"),
             })
         );
     }
@@ -162,8 +166,11 @@ mod tests {
 
     #[test]
     fn template_is_accepted_by_name_and_rejected_when_unknown() {
-        let (request, output) = run("9\nrealtime\ny\n", Some("x"), None);
-        assert_eq!(request.map(|r| r.template), Some(Template::Realtime));
+        let (request, output) = run("999\nrealtime\ny\n", Some("x"), None);
+        assert_eq!(
+            request.map(|r| r.template),
+            Some(catalog_template("realtime"))
+        );
         assert!(output.contains(text::LINE_TEMPLATE_INVALID));
     }
 
@@ -176,12 +183,12 @@ mod tests {
 
     #[test]
     fn given_inputs_are_not_asked_again() {
-        let (request, output) = run("y\n", Some("given"), Some(Template::Realtime));
+        let (request, output) = run("y\n", Some("given"), Some(catalog_template("realtime")));
         assert_eq!(
             request,
             Some(NewProjectRequest {
                 name: "given".into(),
-                template: Template::Realtime,
+                template: catalog_template("realtime"),
             })
         );
         assert!(!output.contains(text::LINE_NAME_PROMPT));

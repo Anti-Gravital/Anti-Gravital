@@ -20,6 +20,25 @@ use crate::request::{NewProjectRequest, Template};
 /// Longest project name the input field accepts.
 const MAX_NAME_LENGTH: usize = 64;
 
+/// Maximum number of templates drawn at once. The catalog is longer than a
+/// terminal can show, so the list is a window that follows the selection.
+const MAX_VISIBLE_TEMPLATES: usize = 6;
+
+/// Half-open range `[start, end)` of template indices to render. The window
+/// follows the selection and stays inside the catalog for every input.
+pub(crate) fn template_window(selected: usize, total: usize) -> (usize, usize) {
+    if total == 0 {
+        return (0, 0);
+    }
+    let selected = selected.min(total - 1);
+    let half = MAX_VISIBLE_TEMPLATES / 2;
+    let start = selected
+        .saturating_sub(half)
+        .min(total.saturating_sub(MAX_VISIBLE_TEMPLATES));
+    let end = (start + MAX_VISIBLE_TEMPLATES).min(total);
+    (start, end)
+}
+
 /// The three steps of the wizard, in order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Step {
@@ -305,11 +324,29 @@ fn name_lines<'a>(wizard: &'a Wizard, theme: &Theme) -> Vec<Line<'a>> {
 }
 
 fn template_lines<'a>(wizard: &'a Wizard, theme: &Theme) -> Vec<Line<'a>> {
+    let total = Template::ALL.len();
+    let (start, end) = template_window(wizard.selected, total);
     let mut lines = vec![
         Line::from(Span::styled(text::TEMPLATE_LABEL, theme.label)),
+        Line::from(Span::styled(
+            format!(
+                "  {} {} of {}",
+                text::TEMPLATE_POSITION,
+                wizard.selected + 1,
+                total
+            ),
+            theme.hint,
+        )),
         Line::raw(""),
     ];
-    for (index, template) in Template::ALL.iter().enumerate() {
+    if start > 0 {
+        lines.push(Line::from(Span::styled(
+            format!("  ... {} {}", start, text::TEMPLATE_MORE_ABOVE),
+            theme.hint,
+        )));
+    }
+    for index in start..end {
+        let template = &Template::ALL[index];
         let chosen = index == wizard.selected;
         let marker = if chosen { "> " } else { "  " };
         let style = if chosen {
@@ -318,18 +355,36 @@ fn template_lines<'a>(wizard: &'a Wizard, theme: &Theme) -> Vec<Line<'a>> {
             ratatui::style::Style::new()
         };
         lines.push(Line::from(Span::styled(
-            format!("{marker}{:<10}", template.as_str()),
+            format!("{marker}{:<22}", template.as_str()),
             style,
         )));
         lines.push(Line::from(Span::styled(
-            format!("    {}", template.description()),
+            format!(
+                "    [{}] {}",
+                template.category().as_str(),
+                template.description()
+            ),
+            theme.hint,
+        )));
+    }
+    if end < total {
+        lines.push(Line::from(Span::styled(
+            format!("  ... {} {}", total - end, text::TEMPLATE_MORE_BELOW),
             theme.hint,
         )));
     }
     lines.push(Line::raw(""));
     lines.push(Line::from(Span::styled(text::FILES_LABEL, theme.label)));
-    for file in Template::ALL[wizard.selected].files() {
-        lines.push(Line::raw(format!("  {file}")));
+    let files = Template::ALL[wizard.selected].files();
+    if files.is_empty() {
+        lines.push(Line::from(Span::styled(
+            text::TEMPLATE_FILES_PENDING,
+            theme.hint,
+        )));
+    } else {
+        for file in files {
+            lines.push(Line::raw(format!("  {file}")));
+        }
     }
     lines
 }
@@ -340,10 +395,25 @@ fn review_lines<'a>(wizard: &'a Wizard, theme: &Theme) -> Vec<Line<'a>> {
         Line::from(Span::styled(text::REVIEW_LABEL, theme.label)),
         Line::raw(""),
         Line::raw(format!("{}: ./{}", text::REVIEW_DIRECTORY, request.name)),
-        Line::raw(format!("{}: {}", text::REVIEW_TEMPLATE, request.template)),
+        Line::raw(format!(
+            "{}: {} [{}]",
+            text::REVIEW_TEMPLATE,
+            request.template,
+            request.template.category().as_str()
+        )),
+    ];
+    let external = request.template.external_requirements();
+    if !external.is_empty() {
+        lines.push(Line::raw(format!(
+            "{}: {}",
+            text::REVIEW_EXTERNAL,
+            external.join(", ")
+        )));
+    }
+    lines.extend([
         Line::raw(""),
         Line::from(Span::styled(text::REVIEW_FILES, theme.label)),
-    ];
+    ]);
     for file in request.template.files() {
         lines.push(Line::raw(format!("  {}/{file}", request.name)));
     }

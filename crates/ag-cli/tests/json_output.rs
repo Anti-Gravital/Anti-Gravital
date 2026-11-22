@@ -28,6 +28,8 @@ fn snapshot(name: &str) -> &'static str {
         "workers.list" => include_str!("../../../docs/mcp/snapshots/workers.list.json"),
         "dns.plan" => include_str!("../../../docs/mcp/snapshots/dns.plan.json"),
         "dns.status" => include_str!("../../../docs/mcp/snapshots/dns.status.json"),
+        "deploy.plan" => include_str!("../../../docs/mcp/snapshots/deploy.plan.json"),
+        "deploy.status" => include_str!("../../../docs/mcp/snapshots/deploy.status.json"),
         "unsupported_command" => {
             include_str!("../../../docs/mcp/snapshots/unsupported_command.json")
         }
@@ -425,6 +427,7 @@ fn snapshots_are_valid_json_with_a_matching_version() {
     );
 }
 
+#[test]
 fn mutating_commands_refuse_json_before_doing_work_deploy() {
     let dir = scratch_dir("refuse-mutating");
     write(&dir, "schema.ag", clean_schema());
@@ -458,6 +461,7 @@ fn mutating_commands_refuse_json_before_doing_work_deploy() {
     );
 }
 
+#[test]
 fn read_commands_without_a_shape_are_refused_deploy() {
     let dir = scratch_dir("refuse-read");
     for args in [
@@ -470,6 +474,7 @@ fn read_commands_without_a_shape_are_refused_deploy() {
     }
 }
 
+#[test]
 fn every_supported_document_carries_the_contract_version_deploy() {
     let dir = scratch_dir("version");
     write(&dir, "schema.ag", clean_schema());
@@ -496,6 +501,7 @@ fn every_supported_document_carries_the_contract_version_deploy() {
     }
 }
 
+#[test]
 fn snapshots_are_valid_json_with_a_matching_version_deploy() {
     for name in [
         "schema.lint.clean",
@@ -521,6 +527,7 @@ fn snapshots_are_valid_json_with_a_matching_version_deploy() {
     );
 }
 
+#[test]
 fn deploy_plan_and_status_match_snapshots() {
     let dir = docker_project();
     let plan = ag(
@@ -550,6 +557,7 @@ fn deploy_plan_and_status_match_snapshots() {
     assert_snapshot(&status, "deploy.status");
 }
 
+#[test]
 fn deploy_apply_refuses_json_without_writing() {
     let dir = docker_project();
     let output = ag(

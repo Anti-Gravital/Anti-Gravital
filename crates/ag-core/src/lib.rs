@@ -92,6 +92,12 @@
 //! # }
 //! ```
 //!
+//! To bind validation to configuration loading, use
+//! [`ShieldConfig::from_path_with_env`] or
+//! [`ShieldConfig::from_toml_str_with_env`]. They return
+//! `(ShieldConfig, LoadedEnv)` and fail before a listener opens; the plain
+//! [`ShieldConfig::from_path`] keeps its non-validating behaviour.
+//!
 //! This API is additive: existing crates keep their direct `std::env::var`
 //! calls and migrate one crate per pull request. The encrypted secrets file
 //! and the `ag env` command are later stages of RFC-0020.

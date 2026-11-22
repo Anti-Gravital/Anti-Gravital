@@ -7,6 +7,45 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### RFC-0020 stage B hardening in ag-core (wave 9)
+
+Fixed:
+
+- Observation O5 from the wave-4 security review: `EnvLoader::resolve` cloned
+  each raw value from the source map. A secret moved into `Secret` was zeroized,
+  but the clone left in the map was dropped as a plain, unzeroized `String`.
+  The loader now takes values out of the map (no clone) and validates without
+  allocating a parsed copy, so a single owned string moves directly into
+  `Secret`. Added regression tests in `env.rs` for the take-not-clone
+  invariant, exact raw-byte preservation for typed secrets and fail-closed
+  errors with no value leakage. In `secret.rs`, compile-fail doctests now lock
+  in the absence of `Clone` and comparison traits, and a test covers every
+  formatting path (width, alignment, precision, both Debug modes, containers).
+
+Added:
+
+- Opt-in documented APIs `ShieldConfig::from_path_with_env` and
+  `ShieldConfig::from_toml_str_with_env`. They validate the keys declared in an
+  `EnvLoader` before returning `(ShieldConfig, LoadedEnv)`, so a composition
+  root can fail before a listener opens. All problems are reported at once and
+  no value is printed, including for non-secret variables. Plain `from_path`
+  and `from_toml_str` are unchanged: defaults and all existing direct
+  `std::env::var` call sites are untouched. Documented in crate/module docs and
+  `crates/ag-core/README.md`.
+
+Changed:
+
+- `Cargo.lock`: patch bump `url` 2.5.8 -> 2.5.9 and `form_urlencoded` 1.2.2 ->
+  1.2.3 to clear the newly published RUSTSEC-2026-0592 advisory (stack overflow
+  in `Url::origin()`). No Cargo.toml constraint changed (`url = "2"`).
+
+Verification: `cargo test --locked -p ag-core` (82 unit tests, 5 integration
+tests in `tests/config_env.rs` and 10 doctests including the new compile-fail
+cases), `cargo test --locked --workspace
+--all-features` (85 passing result groups), `cargo fmt --all -- --check`,
+`cargo clippy --locked -p ag-core --all-features --all-targets -- -D warnings`,
+`cargo audit` and `cargo deny check` all passed. Full logs in
+`/tmp/opencode/w9-coredev-*.log`.
 
 ### Edge wildcard matching (issue #196)
 

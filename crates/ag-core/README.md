@@ -5,7 +5,8 @@
 > adoption) remain open; see `docs/roadmap/STATUS.md`.
 > Criticality: Core.
 > Architecture chapter: docs/architecture/06-nucleo-shield-y-core.md
-> Governing RFC: docs/rfc/RFC-0002-diseno-shield-mvp.md
+> Governing RFCs: docs/rfc/RFC-0002-diseno-shield-mvp.md,
+> docs/rfc/RFC-0020-environment-and-secrets.md (stage B)
 
 ## Domain
 
@@ -34,6 +35,16 @@ Core layer (`src/core/`, `src/runtime/`, `src/error.rs`, `src/config/`):
 - `AgError` / `AgResult` with automatic mapping to HTTP responses.
 - Router and typed extractors consumed by generated projects (Phase 2).
 
+Declared environment and secrets (`src/env.rs`, `src/secret.rs`, RFC-0020 stage B):
+
+- `Secret<T>`: `Debug`/`Display` print `[redacted]`, no `Serialize`, no `Clone`,
+  no comparison traits, zeroized on drop, readable only via `expose()`.
+- `EnvLoader` / `EnvDeclaration`: resolve and validate only declared process
+  variables; every problem is reported at once and values are never printed.
+- `ShieldConfig::from_path_with_env` / `from_toml_str_with_env`: opt-in
+  fail-fast startup validation returning `(ShieldConfig, LoadedEnv)`. The
+  plain `from_path` still reads no environment variables.
+
 ## Pending (phase gates, not code)
 
 - Reference performance evidence on recorded hardware (Phase 2 targets).
@@ -48,6 +59,7 @@ not list debt (CLAUDE.md rule 29).
 - `docs/architecture/06-nucleo-shield-y-core.md`.
 - `docs/roadmap/fase-01-shield-mvp.md`, `docs/roadmap/fase-02-core-mvp.md`.
 - `docs/rfc/RFC-0002-diseno-shield-mvp.md`.
+- `docs/rfc/RFC-0020-environment-and-secrets.md`.
 
 ## Applicable rules
 

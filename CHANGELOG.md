@@ -84,7 +84,33 @@ produccion. Gobierno: RFC-0032 (aceptada, dispensa BDFL registrada).
 
 ## [Unreleased]
 
+### Local deployment artifact rendering (`ag deploy`, wave 7)
 
+Added:
+
+- `ag deploy plan --target docker|k8s`, `ag deploy apply --plan ID` and
+  `ag deploy status` (RFC-0033). A capability-scoped local renderer copies
+  authored files from `deploy/docker/` or `deploy/k8s/` into
+  `deploy/generated/` verbatim. It never starts a container runtime, contacts
+  a cluster, registry or network service, and never fabricates a manifest.
+  Missing source sets fail with a message naming the expected files.
+- Plan-first mutation: `plan` prints a deterministic plan id
+  (`dpl-<target>-<16 hex>`) derived from the source set and detected project;
+  `apply` requires that id, rejects malformed or stale ids before writing and
+  records local state plus an append-only audit line under `deploy/generated/`.
+- Read-only JSON shapes `deploy.plan` and `deploy.status` under a bumped CLI
+  JSON contract `0.2.0` (schema, contract document, constant and snapshots
+  updated together). `apply` deliberately has no JSON shape and refuses it.
+- Unit and integration tests for plan/apply parity, stale-plan refusal,
+  missing-source failure, JSON snapshots and a sentinel `PATH` proving no
+  container or cluster command is invoked.
+
+Changed:
+
+- README command tables (EN and ES) now list the three local `ag deploy`
+  subcommands with explicit alpha, local-only wording; the Phase 5 cloud
+  deploy remains unimplemented. `docs/modules/ag-cli/README.md`, the RFC
+  index and the MCP readiness review update note reflect the new scope.
 
 
 

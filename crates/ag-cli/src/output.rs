@@ -16,7 +16,7 @@ use std::io::{self, Write};
 ///
 /// Shapes are unstable until Anti-Gravital 0.5 (RFC-0021 risk table). Any
 /// change to a field name, type, presence or value set bumps this version.
-pub(crate) const CONTRACT_VERSION: &str = "0.1.0";
+pub(crate) const CONTRACT_VERSION: &str = "0.2.0";
 
 /// Value of the global `--output` flag.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -109,6 +109,57 @@ pub(crate) struct WorkersListData {
     pub(crate) workers: Vec<WorkerView>,
 }
 
+/// One artifact summary in a `deploy.plan` result (RFC-0033).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DeployFileView {
+    /// Destination under `deploy/generated/`.
+    pub(crate) path: String,
+    /// Authored source path under the project.
+    pub(crate) source: String,
+    /// Size of the authored file in bytes.
+    pub(crate) bytes: u64,
+    /// 16-hex-digit FNV-1a fingerprint of the source bytes.
+    pub(crate) fingerprint: String,
+}
+
+/// Data of `deploy.plan` (read-only).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DeployPlanData {
+    pub(crate) target: &'static str,
+    pub(crate) project: String,
+    pub(crate) plan_id: String,
+    pub(crate) files: Vec<DeployFileView>,
+}
+
+/// Data of `deploy.status` (read-only).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DeployStatusData {
+    pub(crate) generated: bool,
+    pub(crate) target: Option<String>,
+    pub(crate) plan_id: Option<String>,
+    pub(crate) project: Option<String>,
+    pub(crate) files: Vec<String>,
+    pub(crate) current_plan_id: Option<String>,
+    pub(crate) in_sync: bool,
+    pub(crate) sources_available: bool,
+}
+
+impl DeployStatusData {
+    /// Neutral view returned before any `ag deploy apply` has run.
+    pub(crate) fn empty() -> Self {
+        Self {
+            generated: false,
+            target: None,
+            plan_id: None,
+            project: None,
+            files: Vec::new(),
+            current_plan_id: None,
+            in_sync: false,
+            sources_available: false,
+        }
+    }
+}
+
 /// Writes one compact, deterministic JSON line to stdout.
 fn write_json<T: Serialize>(value: &T) {
     let text = serde_json::to_string(value).expect("versioned JSON shapes are serializable");
@@ -159,7 +210,7 @@ mod tests {
         };
         assert_eq!(
             serde_json::to_string(&value).expect("serialize"),
-            r#"{"contract_version":"0.1.0","command":"workers.list","status":"ok","data":{"schema":"schema.ag","workers":[]}}"#
+            r#"{"contract_version":"0.2.0","command":"workers.list","status":"ok","data":{"schema":"schema.ag","workers":[]}}"#
         );
     }
 
@@ -178,18 +229,18 @@ mod tests {
         let json = serde_json::to_string(&value).expect("serialize");
         assert_eq!(
             json,
-            r#"{"contract_version":"0.1.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"not available"}}"#
+            r#"{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"not available"}}"#
         );
         assert!(!json.contains("\"data\""));
     }
 
     #[test]
     fn contract_matches_the_published_schema() {
-        let schema = include_str!("../../../docs/mcp/cli-json-0.1.0.schema.json");
+        let schema = include_str!("../../../docs/mcp/cli-json-0.2.0.schema.json");
         let parsed: serde_json::Value = serde_json::from_str(schema).expect("valid schema JSON");
         assert_eq!(
             parsed["$id"].as_str(),
-            Some("https://anti-gravital.dev/mcp/cli-json-0.1.0.schema.json")
+            Some("https://anti-gravital.dev/mcp/cli-json-0.2.0.schema.json")
         );
         assert_eq!(
             parsed["properties"]["contract_version"]["const"].as_str(),

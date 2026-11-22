@@ -57,6 +57,12 @@ impl Commands {
             Commands::Workers {
                 command: WorkersCommands::List { .. },
             } => Some("workers.list"),
+            Commands::Deploy {
+                command: DeployCommands::Plan { .. },
+            } => Some("deploy.plan"),
+            Commands::Deploy {
+                command: DeployCommands::Status,
+            } => Some("deploy.status"),
             _ => None,
         }
     }
@@ -160,6 +166,15 @@ pub(crate) enum Commands {
     Workers {
         #[command(subcommand)]
         command: WorkersCommands,
+    },
+
+    /// Renders deployment artifacts locally from authored Docker or Kubernetes
+    /// files (RFC-0033). Plan first, apply with the returned plan id. Never
+    /// contacts a cluster, container runtime, registry or network service;
+    /// this is not the Phase 5 cloud deploy.
+    Deploy {
+        #[command(subcommand)]
+        command: DeployCommands,
     },
 }
 
@@ -309,6 +324,27 @@ pub(crate) enum DlqCommands {
         #[arg(long)]
         dry_run: bool,
     },
+}
+
+/// Sub-commands of `ag deploy` (RFC-0033).
+#[derive(Subcommand)]
+pub(crate) enum DeployCommands {
+    /// Inspects the project and prints a deterministic rendering plan.
+    /// Read-only: no file is written and no external tool is invoked.
+    Plan {
+        /// Artifact family to render.
+        #[arg(long, value_parser = ["docker", "k8s"])]
+        target: String,
+    },
+    /// Writes the artifacts of an exact plan under `deploy/generated/`.
+    /// The plan id is mandatory and is checked against current sources.
+    Apply {
+        /// Identifier printed by `ag deploy plan`.
+        #[arg(long)]
+        plan: String,
+    },
+    /// Reports what was generated and whether the applied plan is current.
+    Status,
 }
 
 /// Sub-commands of `ag domains`.
@@ -544,6 +580,21 @@ mod tests {
             (vec!["ag", "schema", "lint"], Some("schema.lint")),
             (vec!["ag", "schema", "diff", "ref.ag"], Some("schema.diff")),
             (vec!["ag", "workers", "list"], Some("workers.list")),
+            (
+                vec!["ag", "deploy", "plan", "--target", "docker"],
+                Some("deploy.plan"),
+            ),
+            (vec!["ag", "deploy", "status"], Some("deploy.status")),
+            (
+                vec![
+                    "ag",
+                    "deploy",
+                    "apply",
+                    "--plan",
+                    "dpl-docker-0123456789abcdef",
+                ],
+                None,
+            ),
             (vec!["ag", "new", "demo"], None),
             (vec!["ag", "domains", "list"], None),
             (vec!["ag", "mail", "test", "--to", "a@example.com"], None),
@@ -601,6 +652,30 @@ mod tests {
     fn bare_ag_parses_without_a_command() {
         let cli = Cli::try_parse_from(["ag"]).expect("parse");
         assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn deploy_subcommands_parse_and_apply_requires_a_plan() {
+        for args in [
+            vec!["ag", "deploy", "plan", "--target", "docker"],
+            vec!["ag", "deploy", "plan", "--target", "k8s"],
+            vec!["ag", "deploy", "status"],
+            vec![
+                "ag",
+                "deploy",
+                "apply",
+                "--plan",
+                "dpl-docker-0123456789abcdef",
+            ],
+        ] {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert!(
+                matches!(cli.command, Some(Commands::Deploy { .. })),
+                "{args:?}"
+            );
+        }
+        assert!(Cli::try_parse_from(["ag", "deploy", "apply"]).is_err());
+        assert!(Cli::try_parse_from(["ag", "deploy", "plan", "--target", "nomad"]).is_err());
     }
 
     #[test]

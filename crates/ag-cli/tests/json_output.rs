@@ -26,6 +26,8 @@ fn snapshot(name: &str) -> &'static str {
         }
         "schema.diff" => include_str!("../../../docs/mcp/snapshots/schema.diff.json"),
         "workers.list" => include_str!("../../../docs/mcp/snapshots/workers.list.json"),
+        "deploy.plan" => include_str!("../../../docs/mcp/snapshots/deploy.plan.json"),
+        "deploy.status" => include_str!("../../../docs/mcp/snapshots/deploy.status.json"),
         "unsupported_command" => {
             include_str!("../../../docs/mcp/snapshots/unsupported_command.json")
         }
@@ -317,7 +319,7 @@ fn every_supported_document_carries_the_contract_version() {
         assert!(output.status.success(), "{args:?}: {output:?}");
         let value: serde_json::Value =
             serde_json::from_str(stdout(&output).trim()).expect("valid JSON");
-        assert_eq!(value["contract_version"], "0.1.0");
+        assert_eq!(value["contract_version"], "0.2.0");
         assert_eq!(value["status"], "ok");
         assert!(value.get("data").is_some());
         assert!(value.get("error").is_none());
@@ -333,11 +335,13 @@ fn snapshots_are_valid_json_with_a_matching_version() {
         "schema.lint.read_failed",
         "schema.diff",
         "workers.list",
+        "deploy.plan",
+        "deploy.status",
         "unsupported_command",
     ] {
         let value: serde_json::Value =
             serde_json::from_str(snapshot(name)).expect("snapshot is valid JSON");
-        assert_eq!(value["contract_version"], "0.1.0", "{name}");
+        assert_eq!(value["contract_version"], "0.2.0", "{name}");
     }
     // Keep the directory honest if a file is moved.
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOT_DIR);
@@ -345,5 +349,73 @@ fn snapshots_are_valid_json_with_a_matching_version() {
         dir.is_dir(),
         "missing snapshot directory: {}",
         dir.display()
+    );
+}
+
+fn docker_project() -> PathBuf {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static NEXT_DOCKER: AtomicUsize = AtomicUsize::new(0);
+    let dir = scratch_dir(&format!(
+        "deploy-json-{}",
+        NEXT_DOCKER.fetch_add(1, Ordering::Relaxed)
+    ));
+    write(&dir, "Cargo.toml", "[package]\nname = \"demo\"\n");
+    let docker = dir.join("deploy/docker");
+    std::fs::create_dir_all(&docker).expect("docker source directory");
+    std::fs::write(docker.join("Dockerfile"), "FROM scratch\n").expect("Dockerfile");
+    std::fs::write(docker.join("compose.yml"), "services: {}\n").expect("compose file");
+    dir
+}
+
+#[test]
+fn deploy_plan_and_status_match_snapshots() {
+    let dir = docker_project();
+    let plan = ag(
+        &["--output", "json", "deploy", "plan", "--target", "docker"],
+        &dir,
+        &[],
+    );
+    assert!(plan.status.success(), "{plan:?}");
+    assert_snapshot(&plan, "deploy.plan");
+
+    let value: serde_json::Value =
+        serde_json::from_str(stdout(&plan).trim()).expect("valid plan JSON");
+    let plan_id = value["data"]["plan_id"]
+        .as_str()
+        .expect("plan id")
+        .to_owned();
+
+    let applied = ag(&["deploy", "apply", "--plan", &plan_id], &dir, &[]);
+    assert!(applied.status.success(), "{applied:?}");
+    assert_eq!(
+        std::fs::read(dir.join("deploy/generated/docker/Dockerfile")).expect("rendered file"),
+        b"FROM scratch\n"
+    );
+
+    let status = ag(&["--output", "json", "deploy", "status"], &dir, &[]);
+    assert!(status.status.success(), "{status:?}");
+    assert_snapshot(&status, "deploy.status");
+}
+
+#[test]
+fn deploy_apply_refuses_json_without_writing() {
+    let dir = docker_project();
+    let output = ag(
+        &[
+            "--output",
+            "json",
+            "deploy",
+            "apply",
+            "--plan",
+            "dpl-docker-0123456789abcdef",
+        ],
+        &dir,
+        &[],
+    );
+    assert_eq!(output.status.code(), Some(2));
+    assert_snapshot(&output, "unsupported_command");
+    assert!(
+        !dir.join("deploy/generated").exists(),
+        "a refused apply wrote artifacts"
     );
 }

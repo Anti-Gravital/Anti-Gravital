@@ -1,1 +1,1 @@
-{"contract_version":"0.1.0","command":"schema.lint","status":"ok","data":{"schema":"warn.ag","result":"warnings","error_count":0,"warning_count":1,"diagnostics":[{"severity":"warning","message":"el modelo 'Tag' no tiene campo @primary","hint":null,"span_start":0,"span_end":27}]}}
+{"contract_version":"0.2.0","command":"schema.lint","status":"ok","data":{"schema":"warn.ag","result":"warnings","error_count":0,"warning_count":1,"diagnostics":[{"severity":"warning","message":"el modelo 'Tag' no tiene campo @primary","hint":null,"span_start":0,"span_end":27}]}}

@@ -69,6 +69,7 @@ dependencies = [
  "ag-dsl",
  "ag-mail",
  "ag-workers",
+ "cap-std",
  "clap",
  "ratatui",
  "serde",

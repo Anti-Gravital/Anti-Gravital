@@ -1,8 +1,8 @@
 # Domain-to-deploy loop
 
 > Canonical technical document (ADR-0008). Contract source: `RFC-0033`.
-> This is a design document. The CLI commands and `TargetKind::Link` described
-> here are specified by RFC-0033 and are not yet implemented.
+> The contract is RFC-0033. `ag dns plan|apply|status` and `ag domains attach`
+> are implemented; `TargetKind::Link` remains specified but not implemented.
 
 This document shows how a generated project becomes reachable through a
 configured domain, publicly or privately, per environment. It composes existing
@@ -37,7 +37,7 @@ flowchart TD
 
     I --> J{"Person or policy reviews plan"}
     J -->|reject| K["No mutation; state unchanged"]
-    J -->|approve| L["ag dns apply &lt;plan_id&gt;"]
+    J -->|approve| L["ag dns apply --plan &lt;plan_id&gt;"]
 
     L --> M["Stale-state check:<br/>manifest and store unchanged?"]
     M -->|changed| N["Abort: regenerate plan"]
@@ -59,7 +59,7 @@ flowchart TD
     X --> Y["curl https://app.example.com<br/>REQUIRES real provider, real CA,<br/>reachable host and propagated DNS"]
     U --> Z["ag dns status (offline by default)<br/>or ag dns diagnose --online"]
 
-    X --> RB["ag dns apply --rollback &lt;plan_id&gt;<br/>or ag domains detach -> 30-day tombstone"]
+    X --> RB["ag domains detach &lt;domain&gt; -> 30-day tombstone"]
 ```
 
 Legend: the shaded block and `ag dns status` (without `--online`) run offline
@@ -120,7 +120,7 @@ the deploy actions and a `plan_id`. Nothing has been created yet.
 ### Step 4 - review and apply
 
 ```sh
-ag dns apply "$(jq -r .plan_id plan.json)"
+ag dns apply --plan "$(jq -r .plan_id plan.json)"
 ```
 
 Apply re-computes the plan; if the manifest or the local store changed since
@@ -132,7 +132,7 @@ the provider path.
 ### Step 5 - publish DNS records (real provider)
 
 ```sh
-ag dns instructions app.example.com
+ag domains instructions app.example.com
 ```
 
 In native/manual mode the command prints the records to paste at the provider:
@@ -145,12 +145,12 @@ TXT    _ag-domain.app.example.com        ag-verification=<token>
 
 With a feature-gated DNS adapter and explicit credentials the same records are
 applied through `DnsProvider::upsert`. A BIND fragment is available with
-`ag dns export-zone`.
+`ag domains export-zone`.
 
 ### Step 6 - verify ownership (real provider)
 
 ```sh
-ag domains verify app.example.com --online
+ag domains verify app.example.com
 ```
 
 `PropagationChecker` confirms the ownership TXT on at least N of the configured
@@ -241,11 +241,10 @@ internal CA. The edge still fails closed for any host without an active binding.
 
 ## 4. Rollback and safety
 
-- `ag dns apply --rollback <plan_id>` removes only the generated fragment and
-  restores the pre-apply lifecycle from the JSON store snapshot.
 - `ag domains detach app.example.com` stops renewal, sets TLS to `Retired` and
   applies a 30-day tombstone that prevents takeover; re-attaching during the
-  tombstone is refused.
+  tombstone is refused. To abandon a plan before apply, simply discard it:
+  `ag dns apply` has not written any state until it is called with the plan id.
 - In manual mode the operator must delete the provider records; cached DNS may
   linger, but the edge stops serving immediately.
 - No credential, certificate or wildcard host is stored in the repository.

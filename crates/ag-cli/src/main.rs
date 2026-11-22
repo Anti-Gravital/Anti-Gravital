@@ -112,8 +112,8 @@ fn run_json_command(command: &Commands) -> i32 {
             format!(
                 "--output json is not supported by this command in contract version \
                  {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, \
-                 workers.list, deploy.plan, deploy.status, \
-                 dns.plan, dns.status"
+                 workers.list, deploy.plan, deploy.status, dns.plan, dns.status, \
+                 env.list, env.check"
             ),
         );
         return 2;
@@ -571,7 +571,19 @@ fn dispatch(command: Commands, no_interactive: bool) -> Result<(), CliError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::{CommandFactory, Parser};
+    use clap::{CommandFactory, Parser, Subcommand};
+
+    #[test]
+    fn dns_help_is_a_complete_description() {
+        let command = Cli::command();
+        let dns = command
+            .get_subcommands()
+            .find(|subcommand| subcommand.get_name() == "dns")
+            .expect("dns subcommand");
+        let about = dns.get_about().expect("dns about text").to_string();
+        assert!(about.contains("plan-first"), "incomplete dns help: {about}");
+        assert!(!about.starts_with("passed explicitly"), "{about}");
+    }
 
     #[test]
     fn command_tree_matches_the_documented_public_surface() {

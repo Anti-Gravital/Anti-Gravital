@@ -181,7 +181,8 @@ pub(crate) enum Commands {
         command: SchemaCommands,
     },
 
-    /// passed explicitly. See `docs/dns/DOMAIN_LOOP.md`.
+    /// Local, plan-first DNS configuration from the `[domain]` table of
+    /// `ag.toml` (RFC-0033). No network or provider is used by default.
     Dns {
         #[command(subcommand)]
         command: DnsCommands,

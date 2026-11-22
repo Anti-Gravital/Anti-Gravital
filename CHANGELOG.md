@@ -7,6 +7,19 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### CLI help and domain guide fixes (issues #200, #201, #202)
+
+Fixed:
+
+- `ag dns --help` now shows a complete description instead of a truncated
+  doc-comment fragment, with a regression test (#200).
+- The `--output json` refusal message now lists all eight supported read
+  commands, including `env.list` and `env.check` (#201).
+- `docs/dns/DOMAIN_LOOP.md` worked example uses the shipped command forms
+  (`--plan`, `ag domains instructions|verify|export-zone`, `ag domains detach`)
+  and no longer claims the implemented commands are missing (#202).
+
+
 ### DNS/deploy/env/config real-user terminal journey (wave 10)
 
 Added:

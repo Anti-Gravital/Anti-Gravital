@@ -93,6 +93,10 @@ del repositorio. Incluye `mcp-readiness-review.md`, el analisis de
 brechas de RFC-0024 y ADR-0017 antes de implementar la interfaz de
 maquina por capacidades (solo diseno, sin codigo). Referencia:
 `docs/audits/mcp-readiness-review.md`.
+Incluye tambien `wave4-review.md`, la revision de seguridad y de bajo
+nivel de las siete ramas de la wave 4 (tui, machinejson, layered,
+envsecrets, guardrails, hooks y qa), con hallazgos, severidad y
+recomendaciones. Referencia: `docs/audits/wave4-review.md`.
 
 ### docs/diagrams/, docs/graph/, docs/examples/
 

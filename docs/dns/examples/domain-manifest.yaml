@@ -1,0 +1,117 @@
+# Example domain manifest for the environment/visibility rules.
+# Normative reference: docs/dns/ENVIRONMENT_RULES.md (rules ER-01..ER-11).
+# This is data only. No CLI code consumes it in this change.
+# Values are illustrative. Hosts under *.invalid are documentation-only names.
+
+schema_version: 1
+project: shop-api
+
+# Fail closed: a service with no visibility is private. This value and every
+# environment-level default must remain "private" (rules ER-03, ER-04).
+default_visibility: private
+
+environments:
+  dev:
+    # Environment defaults may never be public or vpn-only (rule ER-03).
+    visibility_default: private
+    zone: dev.example.invalid
+    allowed_hosts:
+      - "*.dev.example.invalid"
+    # Wildcards are allowed outside prod (rule ER-09).
+    allow_wildcard: true
+    tls:
+      required: true
+      termination: internal # none | internal | edge
+      min_version: "1.2"
+      hsts: false
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.dev.example.invalid
+        visibility: vpn-only
+        port: 8080
+        allow_sources:
+          - "10.42.0.0/16"
+      - name: admin
+        host: admin.dev.example.invalid
+        visibility: private
+        port: 8080
+      - name: metrics
+        visibility: private
+        port: 8080
+
+  staging:
+    visibility_default: private
+    zone: staging.example.com
+    allowed_hosts:
+      - "*.staging.example.com"
+    allow_wildcard: true
+    tls:
+      required: true
+      termination: edge
+      min_version: "1.2"
+      hsts: false
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.staging.example.com
+        visibility: vpn-only
+        port: 8080
+        allow_sources:
+          - "10.42.0.0/16"
+          - "203.0.113.0/24"
+      - name: docs
+        host: docs.staging.example.com
+        visibility: public
+        port: 8080
+        allow_sources:
+          - "0.0.0.0/0"
+          - "::/0"
+      - name: admin
+        host: admin.staging.example.com
+        visibility: private
+        port: 8080
+
+  prod:
+    visibility_default: private
+    zone: example.com
+    # Exact hosts only. A wildcard here would require allow_wildcard: true and
+    # a security review (rule ER-09).
+    allowed_hosts:
+      - "api.example.com"
+      - "docs.example.com"
+      - "admin.example.com"
+    allow_wildcard: false
+    tls:
+      required: true
+      termination: edge
+      min_version: "1.2"
+      hsts: true
+    ingress: true
+    service_type: ClusterIP
+    services:
+      - name: api
+        host: api.example.com
+        visibility: public
+        port: 8080
+        allow_sources:
+          - "0.0.0.0/0"
+          - "::/0"
+      - name: docs
+        host: docs.example.com
+        visibility: public
+        port: 8080
+        allow_sources:
+          - "0.0.0.0/0"
+          - "::/0"
+      - name: admin
+        host: admin.example.com
+        visibility: vpn-only
+        port: 8080
+        allow_sources:
+          - "10.42.0.0/16"
+      - name: metrics
+        visibility: private
+        port: 8080

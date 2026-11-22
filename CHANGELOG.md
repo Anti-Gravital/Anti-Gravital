@@ -7,6 +7,36 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Environment and visibility rules for the domain loop (wave 8)
+
+Added:
+
+- `docs/dns/ENVIRONMENT_RULES.md`: normative design contract for the
+  domain-to-deploy loop. Defines the four-environment model (`local`, `dev`,
+  `staging`, `prod`), the three visibility values (`private`, `vpn-only`,
+  `public`), default-deny rules, the host allowlist, TLS expectations per
+  environment, which fields live in `ag.toml`, `config/` and the domain
+  manifest, and explicit per-environment manifest selection. Includes a
+  decision table, valid and invalid examples and machine-checkable rule IDs
+  `ER-01` to `ER-11`. Adds no CLI code and requires no live provider.
+- `docs/dns/examples/domain-manifest.yaml`: strict-schema example manifest with
+  `dev`, `staging` and `prod`, exact and wildcard allowlists, internal and edge
+  TLS termination, HSTS in prod and explicit internet CIDRs for public names.
+- `docs/INDEX.md` points to the new rules and example.
+
+Changed:
+
+- No runtime environment selector variable is introduced. RFC-0020 keeps the
+  process environment as the highest-priority value source; environment
+  selection for the domain loop is an explicit `--env` argument or the
+  environment-specific deploy artifact.
+
+Verification: PyYAML 6.0.3 on Python 3.14.4 parsed the example and 77 rule
+checks passed with 0 failures (strict keys, ER-01 to ER-10, unique service
+names, bound-host TLS, no secret material). ER-11 is a command contract and was
+checked by inspection. No DNS record, certificate or cluster operation was
+performed; this is design and example data only.
+
 ### Deployment security fixes (issues #194, #195)
 
 Fixed:

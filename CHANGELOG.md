@@ -7,11 +7,27 @@ primera version etiquetada.
 
 ## [Unreleased]
 
+### CI verification for the ag-observe OTLP feature (issue #149, RFC-0028)
 
+Added:
 
+- `RFC-0028` (accepted) records the BDFL decision to add a dedicated
+  `ci / ag-observe otlp feature` job that checks, tests and lints
+  `ag-observe` with the opt-in `otlp` feature enabled. The default-feature
+  matrix is unchanged; the job makes neither `protoc` nor an external
+  collector mandatory.
+- `ADR-0019` now cross-references RFC-0028 for the verification coverage
+  added after the original decision.
 
+Purpose:
 
-
+- Makes the closure evidence for issue #149 reproducible in CI. Local
+  verification on 2026-11-22 passed: `cargo check`/`cargo test` with
+  `--features otlp` (14 tests, 1 ignored doc-test), `cargo fmt --check`,
+  clippy with `-D warnings` for both the feature and the full workspace,
+  `cargo audit` (4 allowed warnings) and `cargo deny --all-features check`.
+  A fresh target-dir build with `PROTOC=/nonexistent/protoc` also passed,
+  confirming no protobuf compiler is needed.
 
 
 

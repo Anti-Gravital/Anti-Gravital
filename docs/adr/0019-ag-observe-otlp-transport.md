@@ -43,7 +43,10 @@ inaccurate technical debt.
    endpoint still returns `ObserveError::OtlpSetup`.
 4. No CI change is needed: multiplatform CI does not provision `protoc` because
    no build step needs it. This is the documented equivalent of the
-   build-time-arrangement condition in issue #149.
+   build-time-arrangement condition in issue #149. RFC-0028 later adds a
+   dedicated `otlp` feature-on job for verification coverage; it introduces
+   neither `protoc` provisioning nor an external collector, so this decision
+   stands unchanged (see also the Status section).
 5. Both `TECH-DEBT` markers (workspace and `ag-observe` manifests) are removed.
 6. The `otlp` feature installs the `ring` rustls provider idempotently before
    building the exporter client. reqwest 0.13 features are unified across the
@@ -78,4 +81,7 @@ inaccurate technical debt.
 
 ## Status
 
-Accepted and implemented in `crates/ag-observe` for issue #149.
+Accepted and implemented in `crates/ag-observe` for issue #149. RFC-0028
+(accepted 2026-11-22) adds CI verification coverage for the `otlp` feature so
+the issue's closure evidence is reproducible; it does not alter this ADR's
+no-`protoc` and no-collector stance.

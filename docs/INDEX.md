@@ -123,6 +123,19 @@ ola 6. `docs/templates/README.md` es su indice bilingue, enlazado tambien desde
 el README raiz y desde `docs/manual/02-primera-api.md`. La disponibilidad real
 de cada nombre depende del cableado del catalogo en la CLI.
 
+### docs/dns/
+
+Reglas de entorno y visibilidad para el circuito dominio-despliegue (ola 8).
+`docs/dns/ENVIRONMENT_RULES.md` define el modelo de entornos (local, dev,
+staging, prod), los valores de visibilidad (`private`, `vpn-only`, `public`),
+el deny-by-default, la allowlist de hosts, las expectativas de TLS, que campos
+viven en `ag.toml`, `config/` y el manifiesto de dominio, y como se selecciona
+el entorno de forma explicita. Es referencia tecnica en ingles (ADR-0008),
+contrato de diseno sin codigo de CLI. Las reglas verificables `ER-01` a `ER-11`
+son la interfaz para la implementacion del circuito. Incluye un manifiesto de
+ejemplo validado con un parser real en
+`docs/dns/examples/domain-manifest.yaml` (tres entornos).
+
 ### docs/es/ y docs/en/
 
 Indices por idioma. Funcionan como atajo bilingue al resto de `docs/`.

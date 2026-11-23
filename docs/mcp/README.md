@@ -13,20 +13,21 @@ This directory holds the versioned contract data for machine consumers of the
 ## Current state
 
 RFC-0021 stage E is being implemented incrementally. This directory covers
-`ag --output json` for seven emitted read-only commands: `schema.lint`,
-`schema.diff`, `workers.list`, `deploy.plan`, `deploy.status`, `dns.plan` and
-`dns.status`. The contract version is `0.2.0` and is unstable until
-Anti-Gravital 0.5. The `deploy.*` shapes are local artifact rendering only
-(RFC-0034) and the `dns.*` shapes are offline manifest reads (RFC-0033); the
-mutating `ag deploy apply` and `ag dns apply` deliberately have no JSON shape.
+`ag --output json` for ten emitted read-only commands: `config.get`,
+`schema.lint`, `schema.diff`, `workers.list`, `deploy.plan`, `deploy.status`,
+`dns.plan`, `dns.status`, `env.list` and `env.check`. The contract version is
+`0.2.0` and is unstable until Anti-Gravital 0.5. The `deploy.*` shapes are
+local artifact rendering only (RFC-0034) and the `dns.*` shapes are offline
+manifest reads (RFC-0033). `config.get` resolves keys from `config.toml` and
+compiled-in defaults; the env shapes contain no value or default value, only
+presence, source and stable problem codes.
 
-Three shapes are also defined in 0.2.0 as additive contract fixtures:
-`config.get`, `env.list` and `env.check` (snapshot files of the same names).
-They are not emitted yet: the CLI dispatch mapping lives in `cli.rs` and
-`main.rs`, owned by the clidev role. Until that wiring lands, `--output json`
-with those commands returns `unsupported_command`. The env shapes contain no
-value or default value, only presence, source and stable problem codes. See
-section 1 of the contract document.
+The mutating `ag deploy apply`, `ag dns apply` and `ag config set` deliberately
+have no JSON shape and are refused with exit 2 before any executor runs.
+`ag config validate` is read-only but has no published shape yet, so it is
+refused too. `config.get`, `env.list` and `env.check` were published as
+additive 0.2.0 fixtures and are now emitted: no new command and no change to an
+existing shape, so there is no version bump (contract section 4, rule 3).
 
 The following RFC-0024 section 9 prerequisites are **not** satisfied by this
 contract alone and remain tracked in `docs/audits/mcp-readiness-review.md`:

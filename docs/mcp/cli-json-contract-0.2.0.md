@@ -16,10 +16,11 @@
 The flag is global and may appear before or after the subcommand. Without it,
 every command keeps its existing prose output byte-for-byte.
 
-This contract version declares ten shapes. Seven are emitted by the CLI:
+This contract version declares ten shapes. All ten are emitted by the CLI:
 
 | Command | Name in `command` | Reads |
 | --- | --- | --- |
+| `ag config get KEY` | `config.get` | `config.toml` and compiled-in defaults |
 | `ag schema lint [--schema PATH]` | `schema.lint` | one DSL schema file |
 | `ag schema diff REF [--schema PATH]` | `schema.diff` | two DSL schema files |
 | `ag workers list [--schema PATH]` | `workers.list` | one DSL schema file |
@@ -27,29 +28,24 @@ This contract version declares ten shapes. Seven are emitted by the CLI:
 | `ag deploy status` | `deploy.status` | local state under `deploy/generated/` |
 | `ag dns plan [--manifest PATH] [--env ENV]` | `dns.plan` | a local domain manifest |
 | `ag dns status [--manifest PATH] [--state PATH] [--env ENV]` | `dns.status` | local state and manifest |
+| `ag env list [--manifest PATH] [--env ENV]` | `env.list` | declared env variables in `ag.toml` and process presence |
+| `ag env check [--manifest PATH] [--env ENV]` | `env.check` | declared env variables and their parseability |
 
-Three more are **defined contract fixtures**, not yet emitted:
-
-| Command | Name in `command` | Reads | Status |
-| --- | --- | --- | --- |
-| `ag config get KEY` | `config.get` | `config.toml` and compiled-in defaults | shape and schema published in 0.2.0; CLI dispatch wiring pending |
-| `ag env list` | `env.list` | declared env variables in `ag.toml` and process presence | shape and schema published in 0.2.0; CLI dispatch wiring pending |
-| `ag env check` | `env.check` | declared env variables and their parseability | shape and schema published in 0.2.0; CLI dispatch wiring pending |
-
-These shapes are additive: no existing field, enum or command shape changed,
-so `contract_version` stays `0.2.0`. Their JSON Schema definitions and snapshot
-fixtures are published so consumers can prepare against the final shapes, but
-until the dispatch mapping is added, `--output json` with these commands
-returns `unsupported_command` (exit 2). The fixtures are validated by
-`crates/ag-cli/tests/json_output.rs`; they are not captured CLI documents.
-Emission requires small changes in files owned by another wave-9 role:
-`json_command_name()` in `cli.rs` and `run_json_command()` in `main.rs`. Those
-changes are wiring only: no prose output and no mutating behaviour may change
-(RFC-0024 prerequisite 3).
+`config.get`, `env.list` and `env.check` were published as additive fixtures in
+0.2.0 and are now wired into the dispatch layer. They introduce no new CLI
+command and change no existing field, enum or command shape, so
+`contract_version` stays `0.2.0` (RFC-0021 section 4, rule 3). Their emission
+required only wiring in `json_command_name()` (`cli.rs`) and `run_json_command()`
+(`json_mode.rs`): no prose output and no mutating behaviour changed
+(RFC-0024 prerequisite 3). The golden documents under `docs/mcp/snapshots/`
+are now captured CLI output, asserted byte-for-byte by
+`crates/ag-cli/tests/json_output.rs`.
 
 Commands with no shape at all are refused with `unsupported_command` before
 dispatch; no file, database or network operation is performed. In particular
-`ag deploy apply` and `ag dns apply` are mutating and always refuse the flag.
+`ag deploy apply`, `ag dns apply` and `ag config set` are mutating and always
+refuse the flag. `ag config validate` is read-only but has no published shape,
+so it is also refused until a shape is published and reviewed.
 `project.list`, `project.describe`, `schema.describe` and all `debug.*`,
 `domains.*`, `mail.*` and `workers.*` runtime shapes remain undefined: they
 have no CLI counterpart or require an RFC decision (RFC-0024 Q4, audit section
@@ -174,7 +170,7 @@ fields are `null` in that case. `in_sync` compares the applied plan id with a
 fresh computation from the manifest; it is `false` when either is absent.
 `dns.status` never contacts a provider.
 
-### 3.8 `config.get` (defined fixture, emission pending)
+### 3.8 `config.get`
 
 ```json
 {"contract_version":"0.2.0","command":"config.get","status":"ok","data":{"key":"bind","kind":"bind","value":"127.0.0.1:8080","source":"file"}}
@@ -191,9 +187,16 @@ The RFC-0018 key set deliberately excludes inline secret material: it exposes
 paths and non-secret settings only. This shape therefore contains no token,
 password or PEM body, and command input cannot introduce a new field because
 `additionalProperties` is `false` and `key`/`kind` are drawn from closed sets.
-See section 1 for the dispatch wiring boundary.
 
-### 3.9 `env.list` (defined fixture, emission pending)
+`config get KEY` resolves the key through the same parser, document reader and
+value resolver as the prose path (`config.rs` / `commands/config.rs`), so
+`data.value` is byte-identical to the line printed without `--output json`.
+`source` is `default` when the file exists but omits the key, and `file` when
+the key is present. A missing or invalid `config.toml` and an unknown key are
+versioned `read_failed` errors (exit 1); the unknown-key message lists the
+closed key set. No argument becomes a field name.
+
+### 3.9 `env.list`
 
 ```json
 {"contract_version":"0.2.0","command":"env.list","status":"ok","data":{"manifest":"ag.toml","environment":null,"variables":[{"name":"DATABASE_URL","type":"url","required":true,"secret":true,"has_default":false,"source":"process","present":true}]}}
@@ -216,7 +219,7 @@ This shape contains no value, default value or raw environment content. It is
 computed from declarations plus `std::env::var_os` presence, which avoids ever
 loading a secret into the output path (RFC-0020, RFC-0024 section 4.1.5).
 
-### 3.10 `env.check` (defined fixture, emission pending)
+### 3.10 `env.check`
 
 ```json
 {"contract_version":"0.2.0","command":"env.check","status":"ok","data":{"manifest":"ag.toml","environment":"dev","ok":false,"resolved_count":2,"problems":[{"name":"MISSING","type":"url","reason":"missing"}]}}
@@ -234,20 +237,19 @@ loading a secret into the output path (RFC-0020, RFC-0024 section 4.1.5).
 | `problems[].reason` | One of `missing`, `invalid_syntax`, `not_unicode`. |
 
 Problem reasons are stable codes with no interpolated text, so an invalid
-value can never enter a message (RFC-0024 prompt-injection risk). See section 1
-for the dispatch wiring boundary.
+value can never enter a message (RFC-0024 prompt-injection risk).
 
 ### 3.11 Refusal
 
 ```json
-{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: schema.lint, schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, dns.status"}}
+{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: config.get, schema.lint, schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, dns.status, env.list, env.check"}}
 ```
 
 The message is a closed, constant string. It never includes arguments, paths,
 environment values or secret material, even when the refused command would
 have accepted them (RFC-0020 redaction, RFC-0024 section 4.1.5). The list names
-emitted commands only, so it does not mention `config.get`, `env.list` or
-`env.check` while those shapes are fixtures.
+exactly the ten emitted commands; it is asserted byte-for-byte by the
+`unsupported_command` snapshot.
 
 ## 4. Stability and change policy
 

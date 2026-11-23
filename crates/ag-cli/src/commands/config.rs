@@ -2,10 +2,11 @@
 
 use crate::cli::ConfigCommands;
 use crate::config::{
-    config_path, current_values, execute_config, ConfigChange, ConfigKey, ConfigOutcome,
-    ConfigRequest, CONFIG_FILE,
+    config_path, current_values, execute_config, read_for_report, resolve_value, ConfigChange,
+    ConfigKey, ConfigOutcome, ConfigRequest, ValueOrigin, CONFIG_FILE,
 };
 use crate::interactive::Session;
+use crate::output::{ConfigGetData, ConfigValueSource};
 
 /// Why `ag config` could not complete, mapped to an exit code by `main`.
 #[derive(Debug, PartialEq, Eq)]
@@ -14,6 +15,15 @@ pub(crate) enum ConfigCommandError {
     Usage(String),
     /// Reading, validating or writing the file failed (exit code 1).
     Failed(String),
+}
+
+impl ConfigCommandError {
+    /// The message rendered by the caller, shared by both output paths.
+    pub(crate) fn into_message(self) -> String {
+        match self {
+            Self::Usage(message) | Self::Failed(message) => message,
+        }
+    }
 }
 
 /// Entry point of `ag config`.
@@ -79,6 +89,28 @@ pub(crate) fn cmd_config(
     Ok(())
 }
 
+/// Builds the versioned `config.get` data without printing prose (RFC-0021).
+///
+/// The key parser, document reader and value resolver are the same ones the
+/// prose executor uses, so the printed value and the JSON `data.value` cannot
+/// drift. The closed key set is parsed before it can reach the shape; command
+/// input never becomes a field name and no secret material is addressable.
+pub(crate) fn get_data(key: &str) -> Result<ConfigGetData, String> {
+    let key = parse_key(key).map_err(ConfigCommandError::into_message)?;
+    let document = read_for_report(&config_path())?;
+    let (value, origin) = resolve_value(&document, key);
+    let source = match origin {
+        ValueOrigin::File => ConfigValueSource::File,
+        ValueOrigin::Default => ConfigValueSource::Default,
+    };
+    Ok(ConfigGetData::new(
+        key.as_str(),
+        key.kind().as_str(),
+        value,
+        source,
+    ))
+}
+
 /// Parses a key with a helpful error naming every accepted key.
 fn parse_key(value: &str) -> Result<ConfigKey, ConfigCommandError> {
     ConfigKey::parse(value).ok_or_else(|| {
@@ -138,6 +170,16 @@ mod tests {
             }],
         };
         assert_eq!(flag_request, form_request);
+    }
+
+    #[test]
+    fn get_data_rejects_an_unknown_key_before_reading_any_file() {
+        let error = get_data("auth.public_key_pem").expect_err("secret-like key must be refused");
+        assert!(
+            error.contains("bind"),
+            "the closed key set must be listed: {error}"
+        );
+        assert!(error.contains("tls.key_path"));
     }
 
     #[test]

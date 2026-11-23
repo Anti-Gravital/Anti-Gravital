@@ -64,15 +64,13 @@ pub(crate) fn execute_config(
 ) -> Result<ConfigOutcome, String> {
     match request {
         ConfigRequest::Validate => {
-            let mut document = read_document(path)?;
-            normalize_legacy_bind(&mut document);
+            let document = read_for_report(path)?;
             validate_document(&document)?;
             Ok(ConfigOutcome::Valid)
         }
         ConfigRequest::Get { key } => {
-            let mut document = read_document(path)?;
-            normalize_legacy_bind(&mut document);
-            let value = read_value(&document, *key).unwrap_or_else(|| default_value(*key));
+            let document = read_for_report(path)?;
+            let (value, _) = resolve_value(&document, *key);
             Ok(ConfigOutcome::Value(value))
         }
         ConfigRequest::Set { changes } => {
@@ -104,6 +102,39 @@ pub(crate) fn execute_config(
 /// Default path of the project configuration file.
 pub(crate) fn config_path() -> PathBuf {
     PathBuf::from(CONFIG_FILE)
+}
+
+/// Where a resolved configuration value came from.
+///
+/// Used by the versioned `config.get` shape; defined here so the resolution
+/// logic stays in the executor's module and the two output paths cannot drift.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ValueOrigin {
+    File,
+    Default,
+}
+
+/// Reads a document through the same normalization as the executor.
+///
+/// Read-only report builders use this instead of opening the file themselves,
+/// so a legacy `[bind]` table is interpreted identically in prose and JSON.
+pub(crate) fn read_for_report(path: &Path) -> Result<DocumentMut, String> {
+    let mut document = read_document(path)?;
+    normalize_legacy_bind(&mut document);
+    Ok(document)
+}
+
+/// Resolves a key against a document, falling back to the compiled-in default.
+///
+/// This is the single resolution step shared by `execute_config`'s `Get` arm
+/// (prose) and the versioned `config.get` report builder (JSON). The value is
+/// identical in both paths; only the JSON shape additionally records its
+/// provenance through [`ValueOrigin`].
+pub(crate) fn resolve_value(document: &DocumentMut, key: ConfigKey) -> (String, ValueOrigin) {
+    match read_value(document, key) {
+        Some(value) => (value, ValueOrigin::File),
+        None => (default_value(key), ValueOrigin::Default),
+    }
 }
 
 /// Current value of every key, read through the same layer as the executor.
@@ -489,6 +520,39 @@ mod tests {
         assert!(ValueKind::Integer.validate("1").is_ok());
         assert!(ValueKind::Integer.validate("512").is_ok());
         assert!(ValueKind::Integer.validate("9223372036854775807").is_ok());
+    }
+
+    #[test]
+    fn resolve_value_reports_file_or_default_provenance() {
+        let mut empty: DocumentMut = DocumentMut::new();
+        let (fallback, origin) = resolve_value(&empty, ConfigKey::Bind);
+        assert_eq!(origin, ValueOrigin::Default);
+        assert!(
+            !fallback.is_empty(),
+            "the compiled-in default must be usable"
+        );
+
+        empty.insert("bind", Item::Value(Value::from("127.0.0.1:9000")));
+        let (from_file, origin) = resolve_value(&empty, ConfigKey::Bind);
+        assert_eq!(origin, ValueOrigin::File);
+        assert_eq!(from_file, "127.0.0.1:9000");
+        assert_ne!(from_file, fallback);
+    }
+
+    #[test]
+    fn read_for_report_normalizes_the_legacy_bind_table() {
+        let dir = std::env::temp_dir().join(format!("ag-config-report-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("fixture dir");
+        let path = dir.join("config.toml");
+        fs::write(&path, "[bind]\nhost = \"127.0.0.1\"\nport = 7000\n").expect("fixture");
+
+        let document = read_for_report(&path).expect("read");
+        let (value, origin) = resolve_value(&document, ConfigKey::Bind);
+        assert_eq!(origin, ValueOrigin::File);
+        assert_eq!(value, "127.0.0.1:7000");
+
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

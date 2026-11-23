@@ -274,8 +274,10 @@ fn every_supported_document_carries_the_contract_version() {
     let dir = scratch_dir("version");
     write(&dir, "schema.ag", clean_schema());
     write(&dir, "workers.ag", workers_schema());
+    write(&dir, "config.toml", config_toml());
     for args in [
         vec!["--output", "json", "schema", "lint"],
+        vec!["--output", "json", "config", "get", "bind"],
         vec![
             "--output",
             "json",
@@ -481,10 +483,10 @@ fn deploy_apply_refuses_json_without_writing() {
     );
 }
 
-/// The config.get snapshot is a contract fixture: the shape is defined and
-/// versioned here, but emission still needs the dispatch mapping in cli.rs and
-/// main.rs (owned by clidev in this wave). These checks validate the fixture
-/// against the published schema so the two can never drift silently.
+/// `config.get` is emitted (RFC-0021 section 4.3). The golden document is
+/// asserted byte-for-byte by `config_get_matches_snapshot`; these checks pin
+/// the same shape against the published schema so code and contract cannot
+/// drift silently.
 #[test]
 fn config_get_fixture_matches_the_published_schema() {
     let schema: serde_json::Value =
@@ -535,9 +537,110 @@ fn config_get_shape_has_no_secret_or_arbitrary_field_names() {
     }
 }
 
-/// The env shapes were requested by the clidev role, which owns their data
-/// structs and CLI dispatch. These fixtures pin the exact field order so the
-/// emitted documents cannot drift from the published contract.
+#[test]
+fn config_get_matches_snapshot() {
+    let dir = scratch_dir("config-get");
+    write(&dir, "config.toml", config_toml());
+    let output = ag(&["--output", "json", "config", "get", "bind"], &dir, &[]);
+    assert!(output.status.success(), "{output:?}");
+    assert_snapshot(&output, "config.get");
+}
+
+#[test]
+fn config_get_default_source_and_closed_shape() {
+    // A config.toml exists but omits this key: the compiled-in default is used
+    // and the shape still carries a closed, fixed field set. A missing file is
+    // a read_failed error in both prose and JSON (existing behaviour).
+    let dir = scratch_dir("config-get-default");
+    write(&dir, "config.toml", config_toml());
+    let output = ag(
+        &["--output", "json", "config", "get", "rate_limit.per_ip_rps"],
+        &dir,
+        &[],
+    );
+    assert!(output.status.success(), "{output:?}");
+    let value: serde_json::Value =
+        serde_json::from_str(stdout(&output).trim()).expect("valid JSON");
+    assert_eq!(value["contract_version"], "0.2.0");
+    assert_eq!(value["command"], "config.get");
+    assert_eq!(value["status"], "ok");
+    assert_eq!(value["data"]["key"], "rate_limit.per_ip_rps");
+    assert_eq!(value["data"]["kind"], "integer");
+    assert_eq!(value["data"]["source"], "default");
+    assert!(value["data"]["value"]
+        .as_str()
+        .unwrap()
+        .parse::<u64>()
+        .is_ok());
+    assert!(value.get("error").is_none());
+    let mut names: Vec<&str> = value["data"]
+        .as_object()
+        .expect("data object")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    names.sort_unstable();
+    assert_eq!(names, ["key", "kind", "source", "value"]);
+}
+
+#[test]
+fn config_get_unknown_key_is_a_versioned_read_error() {
+    let dir = scratch_dir("config-get-unknown");
+    const CANARY: &str = "CANARY-SECRET-9f3a";
+    let output = ag(
+        &["--output", "json", "config", "get", "not.a.key"],
+        &dir,
+        &[("AG_CONFIG_CANARY", CANARY)],
+    );
+    assert_eq!(output.status.code(), Some(1));
+    let value: serde_json::Value =
+        serde_json::from_str(stdout(&output).trim()).expect("valid JSON");
+    assert_eq!(value["contract_version"], "0.2.0");
+    assert_eq!(value["command"], "config.get");
+    assert_eq!(value["status"], "error");
+    assert_eq!(value["error"]["code"], "read_failed");
+    assert!(
+        stdout(&output).contains("bind"),
+        "the closed key set must be listed"
+    );
+    assert!(!stdout(&output).contains(CANARY));
+}
+
+#[test]
+fn config_set_refuses_json_without_writing() {
+    let dir = scratch_dir("config-set-refuse");
+    let output = ag(
+        &[
+            "--output",
+            "json",
+            "config",
+            "set",
+            "bind",
+            "127.0.0.1:9000",
+        ],
+        &dir,
+        &[],
+    );
+    assert_eq!(output.status.code(), Some(2));
+    assert_snapshot(&output, "unsupported_command");
+    assert!(
+        !dir.join("config.toml").exists(),
+        "a refused config set wrote a file"
+    );
+}
+
+#[test]
+fn config_get_prose_is_unchanged_without_the_flag() {
+    let dir = scratch_dir("config-get-prose");
+    write(&dir, "config.toml", config_toml());
+    let output = ag(&["config", "get", "bind"], &dir, &[]);
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(stdout(&output), "127.0.0.1:8080\n");
+    assert!(!stdout(&output).contains("contract_version"));
+}
+
+/// The env fixtures pin the exact field order so the emitted documents cannot
+/// drift from the published contract.
 #[test]
 fn env_fixtures_match_the_published_schema() {
     let schema: serde_json::Value =

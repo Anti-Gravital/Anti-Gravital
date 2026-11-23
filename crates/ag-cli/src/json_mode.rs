@@ -3,6 +3,7 @@
 //! Moved from `main.rs` without changing any emitted document or exit code.
 
 use crate::cli::*;
+use crate::commands::config::get_data;
 use crate::commands::deploy::{plan_report, status_report, DeployTarget};
 use crate::commands::dns::{load_plan, resolve_status};
 use crate::commands::env::{check_data, list_data, EnvRequest};
@@ -73,15 +74,27 @@ pub(crate) fn run_json_command(command: &Commands) -> i32 {
             "unsupported_command",
             format!(
                 "--output json is not supported by this command in contract version \
-                 {CONTRACT_VERSION}; supported commands: schema.lint, schema.diff, \
-                 workers.list, deploy.plan, deploy.status, dns.plan, dns.status, \
-                 env.list, env.check"
+                 {CONTRACT_VERSION}; supported commands: config.get, schema.lint, \
+                 schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, \
+                 dns.status, env.list, env.check"
             ),
         );
         return 2;
     };
 
     match command {
+        Commands::Config {
+            command: Some(ConfigCommands::Get { key }),
+        } => match get_data(key) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
         Commands::Schema {
             command: SchemaCommands::Lint { schema },
         } => match lint_report(schema) {
@@ -240,9 +253,22 @@ mod tests {
     }
 
     #[test]
-    fn json_mode_refuses_mutating_commands_before_dispatch() {
+    fn json_mode_refuses_commands_without_a_shape_before_dispatch() {
         let rc = run_json_command(&Commands::Build { target: None });
         assert_eq!(rc, 2, "mutating command must be refused in JSON mode");
+
+        let rc = run_json_command(&Commands::Config {
+            command: Some(ConfigCommands::Set {
+                key: "bind".to_owned(),
+                value: "127.0.0.1:9000".to_owned(),
+            }),
+        });
+        assert_eq!(rc, 2, "config set must be refused in JSON mode");
+
+        let rc = run_json_command(&Commands::Config {
+            command: Some(ConfigCommands::Validate),
+        });
+        assert_eq!(rc, 2, "a command without a published shape must be refused");
     }
 
     #[test]

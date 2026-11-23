@@ -115,6 +115,10 @@ pub(crate) fn dns_manifest() -> &'static str {
      value = \"edge.example-cloud.net\" }]\n"
 }
 
+pub(crate) fn config_toml() -> &'static str {
+    "bind = \"127.0.0.1:8080\"\n"
+}
+
 pub(crate) fn workers_schema() -> &'static str {
     "worker SendWelcomeEmail {\n  queue \"mail\"\n  mode static\n  concurrency 4\n  retry {\n    max_attempts 5\n  }\n  input {\n    user_id UUID\n    email String @email\n  }\n}\n"
 }

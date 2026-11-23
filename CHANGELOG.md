@@ -8,6 +8,7 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+
 ### Audit/Deny documentation reconciliation (task D1, roadmap-avance)
 
 Added:
@@ -3233,6 +3234,29 @@ Added:
 No cambia: `.github/`, `scripts/ag-check`, ningun manifiesto Cargo ni ninguna regla de dependencias. Verificacion: guarda en verde en el workspace real (19 crates, 17 aristas declaradas, 1 autodependencia de test excluida) y cinco escenarios de violacion simulados mas dos de uso, todos con el comportamiento esperado; salida exacta en el descriptor.
 
 Refs: CLAUDE.md reglas 14/15, `ANTI-GRAVITAL-Arquitectura-Tecnica` seccion 5.3, ADR-0007/0012, RFC-0011/0012, `docs/audits/oportunidades-arquitectura.md` A5.
+
+### CLI JSON: `config.get` emission (roadmap-avance P1, RFC-0021)
+
+Added:
+
+- `ag --output json config get KEY` now emits the already published 0.2.0
+  `config.get` shape: `key`, `kind`, `value` and `source` (`file` or `default`).
+  The key parser, document reader and value resolver are shared with the prose
+  path, so the JSON value is identical to the line printed without the flag.
+- Dispatch wiring in `cli.rs` (`json_command_name`) and `json_mode.rs`
+  (`run_json_command`), plus the `get_data` report builder and a closed
+  `ValueKind::as_str()` name set. No new CLI command and no change to an
+  existing JSON shape: `contract_version` stays `0.2.0` (RFC-0021 section 4,
+  rule 3). No RFC is required for additive wiring of an existing command.
+- Tests: emitted `config.get` matches its golden snapshot; default/file
+  provenance and closed field set; unknown key returns `read_failed` (exit 1);
+  `config set` still returns `unsupported_command` (exit 2) and writes nothing;
+  prose output is unchanged. The refusal snapshot now lists all ten commands.
+- Documentation: contract 0.2.0 and `docs/mcp/README.md` now describe all ten
+  emitted shapes instead of listing three as pending fixtures.
+
+Refs: RFC-0021 section 4.3, RFC-0024 section 9 prerequisite 3, RFC-0018,
+ADR-0008, `docs/mcp/cli-json-contract-0.2.0.md`, board task roadmap-avance/P1.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

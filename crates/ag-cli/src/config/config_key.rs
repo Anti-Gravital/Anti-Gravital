@@ -199,6 +199,20 @@ pub(crate) enum ValueKind {
 }
 
 impl ValueKind {
+    /// Stable name used by the versioned `config.get` JSON shape.
+    ///
+    /// This closed set mirrors the `kind` enum of `configGetData` in
+    /// `docs/mcp/cli-json-0.2.0.schema.json`; consumers parse `value` with it.
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            ValueKind::Bool => "bool",
+            ValueKind::Integer => "integer",
+            ValueKind::String => "string",
+            ValueKind::StringList => "string_list",
+            ValueKind::Bind => "bind",
+        }
+    }
+
     /// Validates the textual form of a value. Returns a user-readable problem.
     pub(crate) fn validate(self, value: &str) -> Result<(), String> {
         match self {

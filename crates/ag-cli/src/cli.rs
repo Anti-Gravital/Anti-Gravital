@@ -48,6 +48,9 @@ impl Commands {
     /// versioned shape yet. Only read-only commands may return `Some`.
     pub(crate) fn json_command_name(&self) -> Option<&'static str> {
         match self {
+            Commands::Config {
+                command: Some(ConfigCommands::Get { .. }),
+            } => Some("config.get"),
             Commands::Schema {
                 command: SchemaCommands::Lint { .. },
             } => Some("schema.lint"),
@@ -272,6 +275,10 @@ mod tests {
     #[test]
     fn only_read_commands_have_a_versioned_json_shape() {
         let cases = [
+            (vec!["ag", "config", "get", "bind"], Some("config.get")),
+            (vec!["ag", "config", "set", "bind", "127.0.0.1:7000"], None),
+            (vec!["ag", "config", "validate"], None),
+            (vec!["ag", "config"], None),
             (vec!["ag", "schema", "lint"], Some("schema.lint")),
             (vec!["ag", "schema", "diff", "ref.ag"], Some("schema.diff")),
             (vec!["ag", "workers", "list"], Some("workers.list")),

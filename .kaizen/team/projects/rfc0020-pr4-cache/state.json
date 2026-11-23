@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4-cache",
+  "goal": "RFC-0020 PR4: migrar ag-cache de std::env::var a EnvLoader declarado",
+  "kpi": "6 claves declaradas; sin cambio de guarda (ag-core ya permitido); CI verde",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T21:00:29Z",
+  "updated": "2026-11-23T21:00:29Z"
+}

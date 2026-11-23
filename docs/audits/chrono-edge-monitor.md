@@ -128,3 +128,74 @@ CI workflows. No issue was closed and no gate was claimed.
 - RUSTSEC-2026-0543: https://rustsec.org/advisories/RUSTSEC-2026-0543.html
 - Upstream issue: https://github.com/apache/arrow-rs-object-store/issues/909
 - Registry metadata: https://crates.io/api/v1/crates/object_store
+
+## 7. Revalidation 2026-11-23 (wave 29, branch `community29/i185`)
+
+This is an additive, dated re-check. It does not restate the wave-11 definitive
+analysis or the wave-12 upstream probe; it only records what was observed today
+and the exact condition that would allow #185 to be closed. Issue #185 stays OPEN
+and `blocked`; this work uses `Refs #185`, never `Closes #185`.
+
+### 7.1 Local state (commands run in this worktree)
+
+```
+$ cargo tree --workspace --all-features -i chrono
+chrono v0.4.45
+└── object_store v0.14.2
+    └── ag-storage v0.1.0-alpha.2 (<repo>/crates/ag-storage)
+        [dev-dependencies]
+        └── ag-integration-tests v0.1.0-alpha.2 (<repo>/tests/integration)
+```
+
+The single edge is byte-for-byte the one in section 4. No manifest, `Cargo.lock`,
+Rust source, `deny.toml` ignore or CI workflow was changed.
+
+### 7.2 Upstream probe (live, read-only, 2026-11-23)
+
+| Probe | Result today | Change vs wave 12 |
+| --- | --- | --- |
+| `cargo search object_store --limit 3` | `object_store = "0.14.2"` | none |
+| `https://crates.io/api/v1/crates/object_store` | `default_version`/`newest_version`/`max_version`/`max_stable_version` all `0.14.2`; `updated_at` 2026-09-15; `num_versions` 37 | none |
+| 0.14.2 feature map | `cloud-base` still lists `chrono/serde`; `aws` still derives from `cloud-base` | none |
+| `https://api.github.com/repos/apache/arrow-rs-object-store/issues/909` | `state=open`, no assignee, no milestone, `comments=1`, created 2026-11-17, updated 2026-11-17 | none |
+| GitHub PR search `repo:apache/arrow-rs-object-store is:pr chrono in:title` | `total_count=0` | none |
+
+There is no newer `object_store` release and no upstream PR removing its
+non-optional chrono dependency. The external gate is unchanged, so no minimal
+safe fix became available.
+
+### 7.3 Monitor result and an honest transient finding
+
+First invocation of `bash scripts/check-chrono-edge.sh` on a cold advisory cache
+returned `FAIL` (exit 1) with `deny.exit=1`, `deny.status=none` and hash
+`0b8710…c39368`. A direct `cargo deny --all-features check` immediately after
+returned exit 0 with `advisories ok, bans ok, licenses ok, sources ok`, and a
+second monitor invocation returned:
+
+```
+chrono.tree.empty=false
+deny.exit=0
+deny.status=advisories ok, bans ok, licenses ok, sources ok;
+hash.current=dd4fb95d59b23b3d47aeb7a18f742e091227b7e93076cbba3e015fff26ccc83f
+hash.baseline=dd4fb95d59b23b3d47aeb7a18f742e091227b7e93076cbba3e015fff26ccc83f
+RESULT: PASS reason=no-drift-from-baseline detail=chrono edge and deny outcome unchanged; issue #185 REMAINS OPEN (PASS is not a closure signal)
+```
+
+The recorded baseline hash was NOT changed. The cold-cache `FAIL` is reported as
+a tool-reliability finding (S-11 outbox `chrono-monitor-cold-cache-false-fail.md`,
+also summarised in the PR descriptor): the script maps both a policy violation
+and a `cargo deny` tool/fetch failure to exit 1, and an empty `deny.status`, so
+an infrastructure hiccup can look like dependency drift. Root cause was not
+reproduced on a warm cache; the hypothesis is a first-run advisory-DB fetch
+error. This does not affect the #185 conclusion, which rests on the reproducible
+warm-cache PASS and the unchanged upstream facts above.
+
+### 7.4 Exact condition to close #185
+
+`Closes #185` becomes permissible only when the conjunction in
+`docs/audits/chrono-unblock-analysis.md` section 4 is fully met: the reverse tree
+is empty; the chrono-free graph comes from an upstream chrono-free
+`object_store` release or an accepted RFC plus a verified native S3 adapter;
+`cargo deny --all-features check` passes with the `RUSTSEC-2026-0543` ignore
+removed; `cargo audit` shows no chrono warning; and test, fmt and clippy gates
+are green. Until then the ignore stays and the keyword remains `Refs #185`.

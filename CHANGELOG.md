@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
 
 Added / Changed:
@@ -3688,6 +3689,23 @@ Verified: `cargo test -p ag-cli` (170 unit + all integration tests, 9 new),
 `cargo clippy -D warnings`, `bash scripts/ag-check`,
 `bash tools/check-file-size.sh`, `git diff --check` and content scans.
 Refs RFC-0024 section 4.2.
+
+### Chrono edge revalidation 2026-11-23 (issue #185, wave 29)
+
+Added:
+
+- Additive dated section 7 in `docs/audits/chrono-edge-monitor.md`: re-ran
+  `cargo tree -i chrono`, the drift monitor and live read-only upstream probes.
+  The single `object_store 0.14.2 -> chrono 0.4.45` edge is unchanged; object_store
+  is still 0.14.2, upstream issue #909 is still open with no fix PR. The monitor
+  returns PASS with the unchanged baseline hash. No manifest, lockfile, source,
+  `deny.toml` ignore or CI change.
+- Honest finding: a cold-advisory-cache first run produced a false monitor FAIL;
+  reported to the S-11 outbox (`chrono-monitor-cold-cache-false-fail.md`) and in
+  the PR descriptor, with a proposal to separate tool errors from policy drift.
+
+Issue #185 remains open and `blocked`; closure requires the full conjunction in
+`docs/audits/chrono-unblock-analysis.md` section 4. Refs #185.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

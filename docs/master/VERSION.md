@@ -30,7 +30,7 @@ desde el origen autorizado antes de continuar.
 | --- | --- | --- |
 | `ANTI-GRAVITAL-Blueprint-v4.0.pdf` | 511945 | `59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660` |
 | `ANTI-GRAVITAL-Blueprint-v4.1.md` | 12168 | `36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82` |
-| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 206223 | `7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e` |
+| `ANTI-GRAVITAL-Arquitectura-Tecnica.md` | 209710 | `ed89854fffd1ce7dc6f25d8955a60ee54fb871396ff726ad27a2db06a46347fb` |
 | `ANTI-GRAVITAL-Hoja-de-Ruta.md` | 123499 | `210a8b8720659393fa0b5439586e7f7e56ea534eb813a36392adefe26ec062af` |
 
 ### Deuda explícita — Blueprint PDF v4.1
@@ -74,6 +74,7 @@ nueva del historial de revisiones.
 | 2026-11-21 | Hoja-de-Ruta (issue #172): las casillas del maestro describen el contrato de cada fase, no su estado; el estado verificado vive en `docs/roadmap/STATUS.md`. Se desmarcan las 63 casillas marcadas y se regeneran los derivados. EN+ES. Hoja-de-Ruta → `cc01977c8ba1800adbe8768221b616a02675fd20cc9daf87f63eea136845d825` (122981 bytes). | Criterio B de la issue #172; `ADR-0008`. |
 | 2026-11-21 | Retirada de `ag-ui` del roster de crates (issue #182, decision 2 de `RFC-0019`): los tres maestros eliminan el crate de la lista de opcionales y del diagrama, sustituyen la descripcion de SSR por la decision de alcance backend-only y ajustan el conteo 20→19. Se eliminan `crates/ag-ui/` y `docs/modules/ag-ui/`, se regeneran derivados y se recalculan los rangos de `tools/split-masters.sh`. EN+ES. Blueprint → `36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82` (12168 bytes); Arquitectura → `7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e` (206223 bytes); Hoja-de-Ruta → `d1c6d34f82446ae35afc94975aab7fccaf51d5daa1fb22ca92a30681946e2518` (123200 bytes). | Decision del BDFL vía `RFC-0019`. |
 | 2026-11-22 | Hoja-de-Ruta: etiquetas de estado de las Fases 4.7 y 4.8 sincronizadas con la implementacion de la ola 4 y el hito alpha (4.7 etapas A-C implementadas; 4.8 etapas A/B/E parciales, C/D abiertas; `RFC-0024` bloqueada por sus siete prerrequisitos). El detalle verificable sigue en `docs/roadmap/STATUS.md`; la puerta pre-Fase 5 permanece abierta. Sin cambios en Arquitectura ni Blueprint; los rangos de `tools/split-masters.sh` no varian. EN+ES. Hoja-de-Ruta → `210a8b8720659393fa0b5439586e7f7e56ea534eb813a36392adefe26ec062af` (123499 bytes). | Implementacion de `RFC-0018`, `RFC-0019`, `RFC-0020` y `RFC-0021` (olas 4 y 5); `ADR-0008`. |
+| 2026-11-22 | Arquitectura Tecnica: seccion 14.4 con el alcance implementado de `ag-observe` y los scopes de proyecto (`AG_PROJECT_ID`, salud de componentes, limites explicitos de lo NO implementado) segun `RFC-0038`. Arquitectura → `ed89854fffd1ce7dc6f25d8955a60ee54fb871396ff726ad27a2db06a46347fb` (209710 bytes). Sin cambios en Blueprint ni Hoja-de-Ruta. | Implementacion de `RFC-0038`; `ADR-0008`. |
 
 ## Verificación local
 

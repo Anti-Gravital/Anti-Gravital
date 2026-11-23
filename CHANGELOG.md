@@ -9,6 +9,31 @@ aun no etiquetados.
 
 
 
+### S6 producer readiness audit (task S6, top5-roadmap)
+
+Added:
+
+- `docs/audits/s6-producer-readiness.md`: characterizes the real gap for issue
+  #112. The `ag-edge` producer port (`EnqueueRequest`, `DeferredJobProducer`,
+  `emit`), its unit test and the `examples/workers-producer-edge` adapter exist
+  and are green, but no event inside `ag-edge` emits through the port and there
+  is no `ag-edge -> ag-workers` dependency in either direction. The audit records
+  the exact gap, why a synthetic emitter would violate CLAUDE.md rules 5/8/21/28/30,
+  the contract a future emitter must satisfy, and the six conditions to close #112.
+- Descriptors `docs/kaizen/pr-drafts/community20-s6-workers.md` and its mirror
+  `docs/pr-drafts/community20-s6-workers.md` (`Closes: none`, `Refs #112`).
+- Outbox finding `s6-rfc-section-drift.md`: issue #112 and `STATUS.md:404` cite
+  RFC-0012 sections 17.4/32 that do not exist (the RFC has 10 sections; S6 is in
+  section 5, :187-188).
+- Journal entry `docs/kaizen/journal/2026-11-23-s6-producer-readiness-0905.md`.
+
+Changed: none in production code. `Closes: none`. Refs #112 as context only;
+the issue stays open until a real emitter and full verification exist.
+
+Verified: `cargo test -p ag-edge --features producer` (24 passed, RC=0),
+`cargo tree -p ag-edge --features producer` and `-e features` (no `ag-workers`),
+reverse tree (no `ag-edge` in `ag-workers`), content scans for emit call sites.
+
 ### Audit/Deny documentation reconciliation (task D1, roadmap-avance)
 
 Added:

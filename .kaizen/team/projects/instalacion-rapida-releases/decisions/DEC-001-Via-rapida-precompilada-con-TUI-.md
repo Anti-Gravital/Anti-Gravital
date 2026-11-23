@@ -44,4 +44,4 @@ human_owner: BDFL
 Tras implementar los instaladores, `checksums/installers.sha256` se regenero:
 `install.sh` = `8a08f28fc10523344126f0d2836952dd5262924e68fb7b5923c51c8f21a4356e`,
 `install.ps1` = `b77ae838a43f4553237ff14d1219fc062c4c89b44c6fd033404aa5da1bbd9e6f`.
-`sha256sum -c checksums/installers.sha256` → ambos OK (antes FAILED: los hashes del audit ya no coincidian). El manifest sigue siendo desarrollo, no trust anchor (S-11/INSTALLA­TION_INTEGRITY).
+`sha256sum -c checksums/installers.sha256` → ambos OK (antes FAILED: los hashes del audit ya no coincidian). El manifest sigue siendo desarrollo, no trust anchor (S-11/INSTALLATION_INTEGRITY).

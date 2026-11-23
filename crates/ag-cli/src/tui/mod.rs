@@ -6,6 +6,7 @@
 
 mod config_form;
 mod home;
+mod project_context;
 mod line;
 mod new_wizard;
 mod terminal;
@@ -23,8 +24,12 @@ use crate::config::{ConfigKey, ConfigRequest};
 use crate::interactive::{fits_full_screen, Session};
 use crate::request::{NewProjectRequest, Template};
 use config_form::{msg_for as config_msg_for, view as config_view, Effect as ConfigEffect, Form};
-use home::{msg_for as home_msg_for, view as home_view, Effect as HomeEffect, Model as HomeModel};
+use home::{
+    msg_for as home_msg_for, view as home_view, Effect as HomeEffect, Model as HomeModel,
+    Msg as HomeMsg,
+};
 use new_wizard::{msg_for, view, Effect, Wizard};
+use project_context::detect_context;
 use terminal::{CrosstermOps, Guard};
 use theme::Theme;
 

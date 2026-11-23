@@ -347,6 +347,7 @@ mod tests {
     use ratatui::backend::TestBackend;
     use ratatui::style::Color;
     use ratatui::Terminal;
+    use std::time::SystemTime;
 
     fn press(code: KeyCode) -> KeyEvent {
         KeyEvent::new(code, KeyModifiers::NONE)
@@ -462,6 +463,172 @@ mod tests {
             assert_eq!(cell.bg, Color::Reset);
         }
         for c in rows.join("\n").chars() {
+            let box_drawing = ('\u{2500}'..='\u{257F}').contains(&c);
+            assert!(c.is_ascii() || box_drawing, "unexpected glyph {c:?}");
+        }
+    }
+
+    // --- New tests (QA plan cases a-h). Synthetic data only (L-6). --------
+
+    fn render_with(model: &Model, theme: &Theme, w: u16, h: u16) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(w, h)).expect("terminal");
+        terminal
+            .draw(|frame| view(frame, model, theme))
+            .expect("draw");
+        let buffer = terminal.backend().buffer();
+        let width = buffer.area.width as usize;
+        buffer
+            .content()
+            .chunks(width)
+            .map(|row| row.iter().map(|cell| cell.symbol()).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn running_context() -> ProjectContext {
+        ProjectContext {
+            exists: true,
+            path: Some("demo-api".into()),
+            template: Some("layered".into()),
+            running: true,
+            pid: Some(4242),
+            bind: Some("127.0.0.1:8080".into()),
+            status_source: StatusSource::Real,
+            detected_at: Some(SystemTime::now()),
+        }
+    }
+
+    fn unknown_context() -> ProjectContext {
+        ProjectContext {
+            exists: true,
+            path: Some("demo-api".into()),
+            template: Some("layered".into()),
+            running: false,
+            pid: None,
+            bind: None,
+            status_source: StatusSource::Unknown,
+            detected_at: Some(SystemTime::now()),
+        }
+    }
+
+    #[test]
+    fn home_running_project_shows_pid_and_bind() {
+        let model = Model::from_context(&running_context());
+        let screen = render_with(&model, &Theme::color(), 120, 40);
+        assert!(screen.contains(text::STATE_RUNNING), "{screen}");
+        assert!(screen.contains("4242"), "{screen}");
+        assert!(screen.contains("127.0.0.1:8080"), "{screen}");
+        assert!(screen.contains("demo-api"), "{screen}");
+        assert!(screen.contains("layered"), "{screen}");
+        assert!(!screen.contains("Create a new project"), "{screen}");
+        assert!(model.entries.iter().all(|entry| entry.command != "ag new"));
+    }
+
+    #[test]
+    fn home_unknown_state_never_claims_running() {
+        let model = Model::from_context(&unknown_context());
+        let screen = render_with(&model, &Theme::color(), 120, 40);
+        assert!(screen.contains(text::HOME_IN_PROJECT), "{screen}");
+        assert!(screen.contains(text::STATE_UNKNOWN), "{screen}");
+        assert!(!screen.contains(text::STATE_RUNNING), "{screen}");
+        assert!(!screen.to_ascii_lowercase().contains("running"), "{screen}");
+        assert!(!screen.contains("PID: 4242"), "{screen}");
+        assert!(!screen.contains("127.0.0.1"), "{screen}");
+        assert!(screen.contains("? for help"), "{screen}");
+    }
+
+    #[test]
+    fn home_status_does_not_show_absolute_paths() {
+        let ctx = ProjectContext {
+            path: None,
+            ..unknown_context()
+        };
+        let model = Model::from_context(&ctx);
+        let screen = render_with(&model, &Theme::color(), 120, 40);
+        assert!(screen.contains(text::NAME_UNKNOWN), "{screen}");
+        assert!(!screen.contains("/home/"), "{screen}");
+        assert!(!screen.contains("/Users/"), "{screen}");
+        assert!(!screen.contains("C:\\"), "{screen}");
+    }
+
+    #[test]
+    fn no_create_entry_inside_project() {
+        let model = Model::from_context(&running_context());
+        assert!(model.entries.len() >= 4);
+        assert!(model.entries.iter().all(|entry| entry.command != "ag new"));
+        let screen = render_with(&model, &Theme::color(), 120, 40);
+        assert!(!screen.contains("Create a new project"), "{screen}");
+    }
+
+    #[test]
+    fn create_request_returns_notice_not_launch() {
+        let mut model = Model::from_context(&running_context());
+        // Simulate a create entry reaching the menu through a race.
+        model.entries.push(Entry {
+            label: "Create a new project".into(),
+            detail: "injected by a race".into(),
+            command: "ag new".into(),
+        });
+        model.selected = model.entries.len() - 1;
+        assert_eq!(
+            model.update(Msg::Enter),
+            Some(Effect::Notice(text::NOTICE_CREATE_DISABLED.into()))
+        );
+    }
+
+    #[test]
+    fn help_and_refresh_are_pure() {
+        let mut model = Model::from_context(&unknown_context());
+        let selected = model.selected;
+        assert_eq!(model.update(Msg::Help), None);
+        assert!(model.show_help);
+        let screen = render_with(&model, &Theme::color(), 120, 40);
+        assert!(screen.contains(text::KEYS_HELP), "{screen}");
+        assert_eq!(model.update(Msg::Help), None);
+        assert!(!model.show_help);
+        assert_eq!(model.update(Msg::Refresh), None);
+        assert_eq!(model.selected, selected);
+    }
+
+    #[test]
+    fn new_keys_are_mapped() {
+        assert_eq!(msg_for(press(KeyCode::Char('?'))), Some(Msg::Help));
+        assert_eq!(msg_for(press(KeyCode::Char('r'))), Some(Msg::Refresh));
+        assert_eq!(msg_for(press(KeyCode::F(5))), Some(Msg::Refresh));
+    }
+
+    #[test]
+    fn launcher_effects_never_embed_foreign_path() {
+        let ctx = ProjectContext {
+            path: Some("/tmp/foreign-project".into()),
+            ..running_context()
+        };
+        let mut model = Model::from_context(&ctx);
+        for _ in 0..model.entries.len() {
+            if let Some(Effect::Launch(command)) = model.update(Msg::Enter) {
+                assert!(!command.contains("foreign-project"), "{command}");
+            }
+            model.update(Msg::Down);
+        }
+    }
+
+    #[test]
+    fn home_monochrome_running_keeps_pid_and_bind() {
+        let model = Model::from_context(&running_context());
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).expect("terminal");
+        terminal
+            .draw(|frame| view(frame, &model, &Theme::monochrome()))
+            .expect("draw");
+        let buffer = terminal.backend().buffer();
+        for cell in buffer.content() {
+            assert_eq!(cell.fg, Color::Reset);
+            assert_eq!(cell.bg, Color::Reset);
+        }
+        let screen = render_with(&model, &Theme::monochrome(), 120, 40);
+        assert!(screen.contains("4242"), "{screen}");
+        assert!(screen.contains("127.0.0.1:8080"), "{screen}");
+        assert!(screen.contains(text::STATE_RUNNING), "{screen}");
+        for c in screen.chars() {
             let box_drawing = ('\u{2500}'..='\u{257F}').contains(&c);
             assert!(c.is_ascii() || box_drawing, "unexpected glyph {c:?}");
         }

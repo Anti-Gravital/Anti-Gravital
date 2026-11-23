@@ -151,6 +151,26 @@
   `scripts/check-dependency-direction.sh`, so the dependency guard is unchanged.
   The remaining crate in audit A2 (`ag-cli`) is still pending. This note records
   stage progress only; the accepted design above is not modified.
+- Stage B / PR 4 (close, 2026-11-23): PR 4 is **complete for declarable service
+  configuration**. The six service crates listed above (`ag-storage`,
+  `ag-observe`, `ag-workers`, `ag-realtime`, `ag-auth`, `ag-cache`) have migrated
+  their declared keys to `ag_core::EnvLoader` with byte-identical defaults,
+  resolution order, public APIs and feature gates; the evidence per crate is in
+  `docs/audits/rfc0020-pr4-completion.md`. The seventh crate in the A2 order,
+  `ag-cli`, is **not migrated in PR 4 by design**: its six direct environment
+  reads are runtime session/capability detection (`interactive.rs`: `CI`,
+  `AG_NO_TUI`, `NO_COLOR`, `TERM`), the `ag env list` loader's own source report
+  (`commands/env.rs`, part of the already-completed PR 2), and opt-in /
+  feature-gated credentials read where they are used (`commands/workers.rs`
+  `DATABASE_URL` behind `workers-runtime`, `commands/dns/provider.rs`
+  `AG_CLOUDFLARE_TOKEN` on explicit `--provider cloudflare`). None is declarable
+  application configuration; `main.rs` has no global loader and `cmd_dev` takes
+  `--bind` from CLI arguments. Introducing a global declared loader in `main.rs`
+  would be an undocumented architecture change (CLAUDE.md rules 5, 8, 21, 28)
+  and would risk breaking TUI detection (RFC-0018) and feature-gated commands.
+  No production code, public API, default or feature changed in this close, and
+  no new RFC or ADR is required. This note records stage progress only; the
+  accepted design above is not modified.
 
 ## 1. Motivation
 

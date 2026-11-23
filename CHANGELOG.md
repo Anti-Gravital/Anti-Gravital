@@ -8,6 +8,44 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### RFC-0020 PR 4 close: scope decision for `ag-cli` (audit A2)
+
+Added:
+
+- `docs/audits/rfc0020-pr4-completion.md`: evidence-based close of RFC-0020 PR 4.
+  Records the six migrated service crates (`ag-storage`, `ag-observe`,
+  `ag-workers`, `ag-realtime`, `ag-auth`, `ag-cache`) with their declaration,
+  parity-test and dependency-guard evidence, and a per-read classification of
+  the six direct environment reads in `ag-cli`. Decision: PR 4 is complete for
+  declarable service configuration; `ag-cli` is not migrated in PR 4 by design.
+- Additive, dated implementation-status note in
+  `docs/rfc/RFC-0020-environment-and-secrets.md` recording the close. The note
+  is additive: the wave 22-27 notes and the accepted design are unchanged.
+
+Decision (no production code change):
+
+- The six `ag-cli` reads are classified as runtime session/capability detection
+  (`interactive.rs`: `CI`, `AG_NO_TUI`, `NO_COLOR`, `TERM`), the `ag env list`
+  loader's own presence-only source report (`commands/env.rs`, PR 2), and
+  opt-in / feature-gated credentials read where used (`commands/workers.rs`
+  `DATABASE_URL` behind `workers-runtime`, `commands/dns/provider.rs`
+  `AG_CLOUDFLARE_TOKEN` on explicit `--provider cloudflare`). None is declarable
+  application configuration. `main.rs` has no global loader, `cmd_dev` takes
+  `--bind` from CLI arguments, and `DATABASE_URL` is deliberately absent from
+  the migrated `ag-workers` declarations. A global declared loader in `main.rs`
+  would be an undocumented architecture change (CLAUDE.md rules 5, 8, 21, 28),
+  would create a second schema for credentials owned by their service, and
+  would risk breaking TUI detection (RFC-0018) and feature-gated commands. There
+  is no safe subset whose migration improves the architecture, so no code was
+  changed.
+
+Verification: `git diff --check`, content scans (no secrets, no AI attribution,
+no emojis, no new S-10 suppressions, no changes under `crates/`),
+`bash scripts/ag-check`, `bash scripts/kaizen check` and
+`RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps`. Refs
+RFC-0020 PR 4 and audit A2. No public API, default, feature or resolution order
+changed; no new RFC or ADR.
+
 ### Declared environment schema for `ag-cache` (RFC-0020 PR 4, audit A2)
 
 Added:

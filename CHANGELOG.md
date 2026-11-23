@@ -7,6 +7,16 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### ADR-0001: autonomia nivel 3 (registro de decision ya vigente)
+
+Added:
+
+- `docs/kaizen/adr/0001-autonomia-nivel-3.md`: registro documental de la decision ya aprobada sobre el nivel 3 de autonomia (auto-merge de bajo riesgo y bugfix con prueba de regresion), con los limites literales de L-3 y la lista de rutas protegidas de L-4. No introduce cambios de autonomia ni exime al humano de las puertas existentes. Cierra el hallazgo S-11 `kaizen-swarm-adr0001-faltante.md` sin tocar rutas protegidas.
+- Descriptores `docs/kaizen/pr-drafts/community14-f2-adr.md` y su espejo `docs/pr-drafts/community14-f2-adr.md` (tarea F2 de `kaizen-gates-green`).
+
+Refs: LOOP.md L-3/L-4, PROTOCOL.md seccion 7, ADR-0002/0003, CONSENSUS.md:18, `kaizen-swarm:253`.
+
+
 ### Framework selftests runner (task F1, kaizen-gates-green)
 
 Added:

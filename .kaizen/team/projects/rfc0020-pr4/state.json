@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4",
+  "goal": "RFC-0020 PR4: migrar ag-storage de std::env::var directo a EnvLoader declarado",
+  "kpi": "Paridad de valores por defecto verificada; secretos nunca impresos; CI verde",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T16:10:10Z",
+  "updated": "2026-11-23T16:10:10Z"
+}

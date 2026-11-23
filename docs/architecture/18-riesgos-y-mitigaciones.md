@@ -5,6 +5,18 @@
 > Anterior: [17-gobernanza-open-source.md](./17-gobernanza-open-source.md)
 > Siguiente: [19-glosario.md](./19-glosario.md)
 
+Any change that affects the public API, the DSL, the plugin architecture, or the security model requires an RFC. The process is: the proposer opens an issue in `anti-gravital-rfcs/`, the community debates for at least two weeks, the technical committee votes. Once approved, the RFC is moved to the "Accepted" state and is implemented in a specific version.
+
+### 17.4 Compatibility
+
+After version 1.0, the project commits to strict semver in the public API. Breaking changes only in majors. The LTS versions are announced with a public calendar, with at least 18 months of security support.
+
+### 17.5 Economic sustainability
+
+The project is sustained on three legs. The first is Gravital Labs (Nereira Technology and Business Solutions), which finances the initial development as a strategic investment. The second is professional services: adoption consulting, training, and premium support for companies that want an SLA, without this closing product features. The third, in the future, are corporate sponsors (GitHub Sponsors, Open Collective) of companies that depend on the project.
+
+---
+
 ## 18. Risk analysis and mitigations
 
 This section documents the real risks of the project and the planned mitigations. It is deliberately honest; a project that does not enumerate its risks does not deserve trust.
@@ -26,16 +38,4 @@ Spring, .NET, Express, and FastAPI have decades-old ecosystems. Anti-Gravital ca
 The initial project has a worryingly low bus factor (one maintainer). The mitigation is active: complete internal documentation from day one, incorporation of external contributors from phase 1, and transition to a technical committee before 1.0.
 
 ### 18.5 Risk: changes in the Rust ecosystem
-
-The Rust ecosystem continues to evolve rapidly. Axum, Tokio, and sqlx may make breaking changes in future versions. The mitigation is conservative version pinning, exhaustive integration tests against each new version of the core dependencies, and active participation in their communities to anticipate changes.
-
-### 18.6 Risk: community fragmentation
-
-If the Anti-Gravital community fragments (for example, competing forks with divergent features emerge), the ecosystem weakens. The mitigation is an open RFC process that gives a real voice to the community, predictable releases, and a public roadmap.
-
-### 18.7 Risk: post-launch security vulnerabilities
-
-Although Rust eliminates many categories of vulnerabilities, it does not eliminate the logical ones (broken authorization, information leaks, application-level races). The mitigation is the external audit before 1.0, the responsible disclosure program, continuous fuzzing, and CI with static analysis (clippy, cargo-audit, cargo-deny).
-
----
 

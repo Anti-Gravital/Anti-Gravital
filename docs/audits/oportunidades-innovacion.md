@@ -88,7 +88,7 @@ the three changed files. Results are verbatim:
   no output (covers the two new files and the CHANGELOG edit).
 - Content scans using the patterns from `.github/workflows/docs.yml`:
   AI-tool attribution (etiquetas de co-autoria de herramientas) -> no match;
-  AI session URL (`claude.ai/code/session_`) -> no match; emoji ranges in
+  AI session URL (patron de URL de sesion, parafraseado) -> no match; emoji ranges in
   `*.md/*.rs/*.toml/*.yml/*.yaml/*.sh` -> no match; retired third-party brand
   names (ADR-0011) -> no match; descriptor closing keyword present
   (`Closes: none`); prohibited AI descriptor branch prefixes -> no match.

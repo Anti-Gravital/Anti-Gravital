@@ -5,6 +5,18 @@
 > Anterior: [15-seguridad.md](./15-seguridad.md)
 > Siguiente: [17-gobernanza-open-source.md](./17-gobernanza-open-source.md)
 
+The repository maintains a `SECURITY.md` file with contact addresses (primary `anti@gravitalcloud.com`, backup `angelnereira@gravitalcloud.com`) and a clear policy: vulnerabilities are reported privately, the team confirms receipt within 48 hours, publishes a patch within 30 days for critical vulnerabilities, and a CVE with credit to the reporter.
+
+### 15.4 Audits
+
+Before the stable 1.0 version, the Shield component of the framework undergoes an external audit by a company specialized in Rust systems security (Trail of Bits, NCC Group, or equivalent). The audit report is published with the release.
+
+### 15.5 Continuous fuzzing
+
+The DSL parser and the HTTP parser undergo continuous fuzzing with `cargo-fuzz`. The CI runs fuzzing corpora on each PR; before 1.0, at least 72 hours of fuzzing without crashes are completed on each parser.
+
+---
+
 ## 16. Performance objectives and validation methodology
 
 This section replaces the absolute benchmarks of v3.0. The previous figures were presented as facts when in reality they are extrapolations of individual components. This version rephrases them honestly as **design objectives**, against which the project will measure itself publicly.
@@ -31,15 +43,3 @@ Any comparison with competing frameworks is done under the TechEmpower Framework
 ### 16.3 Validation milestones for v1.0
 
 The stable 1.0 version is released only when the following milestones are met:
-
-- Top-10 position in a TechEmpower Round (Plaintext and JSON Serialization categories)
-- External security audit without unresolved critical findings
-- 72 hours of fuzzing of the DSL parser and the HTTP parser without crashes
-- Load test of 500 K req/s sustained for 30 minutes without degradation >5%
-- 24 hours of continuous load without detectable memory growth
-- Binaries verified on Linux x86-64, Linux ARM64, macOS ARM64, Windows x64
-- At least one service in production on Gravital Cloud for 30 days without incidents
-- At least three external projects using Anti-Gravital in production
-
----
-

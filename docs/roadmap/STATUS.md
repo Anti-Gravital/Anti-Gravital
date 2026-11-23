@@ -516,7 +516,10 @@ criterios en `fase-04-8-fundaciones-del-proyecto.md`.
   la ola 4 como plantilla opt-in `ag new <name> --template layered`, con el
   layout de cuatro crates y el manifiesto `ag.toml`. Desviacion documentada:
   el layout no se fuerza por defecto en `realtime`/`fullstack` y faltan el
-  reader de `ag.toml` y `ag generate --check` (RFC-0019 PR 1 y PR 4).
+  reader de `ag.toml` (RFC-0019 PR 1) y la salida por capas de `ag generate`
+  (RFC-0019 PR 4). La guardia de solo lectura `ag generate --check` (PR 4) ya
+  esta entregada: recompila `schema.ag`, compara los artefactos sin escribir
+  nada y sale con codigo distinto de cero ante cualquier deriva.
 - [/] Etapa B: entorno declarado, `Secret<T>`, secretos cifrados, `ag env`.
   Implementados en la ola 4 el loader declarado y `Secret<T>` en `ag-core`
   (14 tests unitarios y 2 doctests). Faltan el archivo cifrado, los comandos

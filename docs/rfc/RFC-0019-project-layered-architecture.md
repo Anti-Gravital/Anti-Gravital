@@ -271,8 +271,9 @@ Delivered in stage A:
 Deferred to later stages (not implemented here):
 
 - The `ag.toml` reader in `ag-cli` (implementation plan PR 1).
-- Layer-aware `ag generate` output and `ag generate --check` (section 4.4,
-  PR 4).
+- Layer-aware `ag generate` output (section 4.4, PR 4). The read-only
+  `ag generate --check` half of PR 4 is delivered as a stage-A follow-up below;
+  it verifies the current output paths, not the future per-layer paths.
 - Compact layout for `rest` and compact-to-layered promotion (section 4.5,
   PR 2 and follow-up RFC).
 - Interoperability deliverables of section 4.6 (their own RFCs and phases).
@@ -295,3 +296,16 @@ that do not generate a manifest, the default scaffold is byte-for-byte
 unchanged, and enabling a module that is already `true` is a no-op. No module
 dependency is wired into the generated crates yet; that remains a later stage
 of section 4.1 and is deliberately not faked.
+
+### Stage A follow-up: `ag generate --check` (PR 4, read-only half)
+
+`ag generate --check` implements the verification promise of section 4.4
+without routing output per layer: the writer and the verifier share the same
+in-memory `ag_dsl::generate` result through one compile path in `ag-cli`, so
+they cannot disagree. The flag is read-only: it never writes, deletes or
+creates files. It compares each expected artifact with the file at
+`--output/<relative path>` and reports `missing`, `changed` or `unexpected`
+entries in a deterministic `path + status` summary, exiting non-zero on any
+drift and zero when every artifact matches. The existing `--output-format`
+selector is unchanged; the report itself is prose. Layer-aware output routing
+remains deferred to the second half of PR 4.

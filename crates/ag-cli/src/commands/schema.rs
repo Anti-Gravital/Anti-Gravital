@@ -1,11 +1,19 @@
-//! DSL commands: `ag generate`, `ag schema lint`, `ag schema diff`.
+//! DSL commands: `ag generate`, `ag generate --check`, `ag schema lint`,
+//! `ag schema diff`.
 
 use super::project::write_file;
 use crate::output::{DiagnosticView, SchemaChangeView, SchemaDiffData, SchemaLintData};
+use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
 
-pub(crate) fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
+/// Compiles `schema.ag` and builds the in-memory artifact set.
+///
+/// Both `ag generate` and `ag generate --check` go through this function, so
+/// the writer and the verifier can never disagree about what the generator
+/// produces (RFC-0019 PR 4).
+fn compile_artifacts(schema_path: &Path) -> Result<ag_dsl::GeneratedFiles, String> {
     let source = read_schema(schema_path)?;
 
     let schema = ag_dsl::compile(&source).map_err(|diags| {
@@ -20,7 +28,115 @@ pub(crate) fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), 
         msg
     })?;
 
-    let files = ag_dsl::generate(&schema);
+    Ok(ag_dsl::generate(&schema))
+}
+
+/// Normalizes a relative artifact path to forward slashes so the check report
+/// is identical on every platform.
+fn normalize_rel(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
+/// Recursively collects every regular file under `dir` as a path relative to
+/// `root`. Symlinks are skipped: the generated tree is made of regular files.
+fn collect_relative_files(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    let entries = fs::read_dir(dir)
+        .map_err(|e| format!("failed to read directory '{}': {e}", dir.display()))?;
+    for entry in entries {
+        let entry =
+            entry.map_err(|e| format!("failed to read an entry in '{}': {e}", dir.display()))?;
+        let path = entry.path();
+        let kind = entry
+            .file_type()
+            .map_err(|e| format!("failed to inspect '{}': {e}", path.display()))?;
+        if kind.is_dir() {
+            collect_relative_files(root, &path, out)?;
+        } else if kind.is_file() {
+            let rel = path.strip_prefix(root).map_err(|e| {
+                format!(
+                    "failed to resolve '{}' against '{}': {e}",
+                    path.display(),
+                    root.display()
+                )
+            })?;
+            out.push(rel.to_path_buf());
+        }
+    }
+    Ok(())
+}
+
+/// Read-only counterpart of [`cmd_generate`] (RFC-0019 PR 4).
+///
+/// Generates the artifacts in memory and compares each one with the file on
+/// disk at `output_dir/<relative path>`. A file that is missing, differs
+/// byte-for-byte, or is not part of the generated set makes the check fail.
+/// Nothing is ever written, deleted, or created; the only side effects are
+/// the deterministic report on stdout and the process exit status.
+pub(crate) fn cmd_generate_check(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
+    let files = compile_artifacts(schema_path)?;
+    let expected: BTreeMap<String, &str> = files
+        .files
+        .iter()
+        .map(|(rel, content)| (normalize_rel(rel), content.as_str()))
+        .collect();
+
+    let mut findings: Vec<(String, &'static str)> = Vec::new();
+
+    for (rel, content) in &expected {
+        let full = output_dir.join(Path::new(rel));
+        match fs::read(&full) {
+            Ok(actual) if actual.as_slice() == content.as_bytes() => {}
+            Ok(_) => findings.push((rel.clone(), "changed")),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                findings.push((rel.clone(), "missing"));
+            }
+            Err(error) => {
+                return Err(format!("failed to read '{}': {error}", full.display()));
+            }
+        }
+    }
+
+    if output_dir.is_dir() {
+        let mut on_disk = Vec::new();
+        collect_relative_files(output_dir, output_dir, &mut on_disk)?;
+        for rel in on_disk {
+            let rel = normalize_rel(&rel);
+            if !expected.contains_key(&rel) {
+                findings.push((rel, "unexpected"));
+            }
+        }
+    }
+
+    if findings.is_empty() {
+        println!(
+            "Check passed: {} artifact(s) from '{}' match '{}'.",
+            expected.len(),
+            schema_path.display(),
+            output_dir.display()
+        );
+        return Ok(());
+    }
+
+    findings.sort();
+    println!(
+        "Check failed: {} artifact(s) from '{}' differ from '{}'.",
+        findings.len(),
+        schema_path.display(),
+        output_dir.display()
+    );
+    for (rel, status) in &findings {
+        println!("  {status:<9} {rel}");
+    }
+    println!("Run 'ag generate' to update the committed artifacts.");
+    Err(format!(
+        "generated code is out of date in '{}' ({} artifact(s))",
+        output_dir.display(),
+        findings.len()
+    ))
+}
+
+pub(crate) fn cmd_generate(schema_path: &Path, output_dir: &Path) -> Result<(), String> {
+    let files = compile_artifacts(schema_path)?;
 
     println!(
         "Generating {} artifacts from '{}'...",

@@ -7,6 +7,7 @@
 //!
 //! Phase 3 commands (DSL):
 //! - `ag generate [--schema schema.ag] [--output ./generated]`
+//! - `ag generate --check [--schema schema.ag] [--output ./generated]` (read-only)
 //! - `ag schema lint [--schema schema.ag]`
 //! - `ag schema diff <ref> [--schema schema.ag]`
 //!

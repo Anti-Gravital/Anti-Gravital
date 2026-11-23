@@ -37,6 +37,9 @@ impl Commands {
     /// directory flag owns the `--output` long name in that subcommand.
     pub(crate) fn effective_output_format(&self, global: OutputFormat) -> OutputFormat {
         match self {
+            // `--check` has no versioned JSON shape and must exit on drift, not
+            // on the format selector. Its report is always prose (RFC-0019 PR 4).
+            Commands::Generate { check: true, .. } => OutputFormat::Prose,
             Commands::Generate { output_format, .. } if global == OutputFormat::Prose => {
                 *output_format
             }
@@ -176,6 +179,15 @@ pub(crate) enum Commands {
             default_value = "prose"
         )]
         output_format: OutputFormat,
+
+        /// Read-only verification (RFC-0019 PR 4). Compiles `schema.ag` and
+        /// compares every generated artifact against the file on disk at
+        /// `--output` without writing anything. Exits non-zero when a file is
+        /// missing, differs byte-for-byte, or is unexpected; exits zero when
+        /// every artifact matches. `--output-format` is kept for selector
+        /// parity but the check report itself is always prose.
+        #[arg(long)]
+        check: bool,
     },
 
     /// Operations on the DSL schema.
@@ -350,6 +362,58 @@ mod tests {
                 .effective_output_format(cli.output),
             OutputFormat::Json
         );
+    }
+
+    #[test]
+    fn generate_check_forces_the_prose_report_even_with_a_json_selector() {
+        for args in [
+            vec!["ag", "generate", "--check", "--output-format", "json"],
+            vec!["ag", "--output", "json", "generate", "--check"],
+        ] {
+            let cli = Cli::try_parse_from(args.clone()).expect("parse");
+            assert_eq!(
+                cli.command
+                    .as_ref()
+                    .expect("command")
+                    .effective_output_format(cli.output),
+                OutputFormat::Prose,
+                "{args:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn generate_check_is_absent_by_default() {
+        let cli = Cli::try_parse_from(["ag", "generate"]).expect("parse");
+        match cli.command {
+            Some(Commands::Generate { check, .. }) => assert!(!check),
+            _ => panic!("expected the generate command"),
+        }
+    }
+
+    #[test]
+    fn generate_check_is_accepted_before_and_after_other_flags() {
+        for args in [
+            vec!["ag", "generate", "--check"],
+            vec!["ag", "generate", "--check", "--output", "out"],
+            vec!["ag", "generate", "--output", "out", "--check"],
+            vec![
+                "ag",
+                "generate",
+                "--schema",
+                "schema.ag",
+                "--check",
+                "--output-format",
+                "prose",
+            ],
+        ] {
+            let cli =
+                Cli::try_parse_from(args.clone()).unwrap_or_else(|e| panic!("parse {args:?}: {e}"));
+            match cli.command {
+                Some(Commands::Generate { check, .. }) => assert!(check, "{args:?}"),
+                _ => panic!("expected the generate command for {args:?}"),
+            }
+        }
     }
 
     #[test]

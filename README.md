@@ -308,6 +308,7 @@ Lint and generate:
 ```bash
 ag schema lint --schema schema.ag
 ag generate --schema schema.ag --output generated
+ag generate --schema schema.ag --output generated --check
 ```
 
 The generator writes a Rust module, SQL migration, TypeScript types and
@@ -317,6 +318,12 @@ validation is executable and caches each compiled pattern; generated projects
 using it must declare `regex = "1"`. Implemented DSL versions: v0.1 (models)
 through v0.8 (`worker` declarations). Full reference:
 [docs/dsl/](docs/dsl/).
+
+`ag generate --check` is the read-only CI guard (RFC-0019 PR 4): it recompiles
+`schema.ag`, compares every generated artifact with the file at `--output`, and
+exits non-zero on drift. Its report lists each differing path with a status of
+`missing`, `changed` or `unexpected`, and nothing is written. It shares the
+generator's in-memory output, so the check and the writer cannot disagree.
 
 ### CLI reference
 
@@ -329,7 +336,7 @@ through v0.8 (`worker` declarations). Full reference:
 | `ag env check [--manifest PATH] [--env NAME]` | Validates the declared environment exactly as startup would, using the process environment and declared defaults. Exits 1 and reports every problem at once; values are never printed. Encrypted secrets and environment-specific files are later stages (RFC-0020) |
 | `ag dev [--bind ADDR]` | Run in development mode on `127.0.0.1:8080` by default; `BIND` is honoured. Use `--bind 0.0.0.0:8080` explicitly for containers or LAN. Uses cargo-watch when installed |
 | `ag build [--target TRIPLE]` | Build a release binary |
-| `ag generate --schema schema.ag --output generated` | Generate DSL artifacts |
+| `ag generate --schema schema.ag --output generated [--check]` | Generate DSL artifacts. With `--check`, read-only CI guard: exits non-zero and names every `missing`, `changed` or `unexpected` artifact; writes nothing |
 | `ag schema lint` | Validate a DSL schema and report diagnostics |
 | `ag schema diff REFERENCE` | Classify schema changes |
 | `ag mail test --to ADDRESS` | Verify SMTP configuration |
@@ -875,6 +882,7 @@ Validar y generar:
 ```bash
 ag schema lint --schema schema.ag
 ag generate --schema schema.ag --output generated
+ag generate --schema schema.ag --output generated --check
 ```
 
 El generador escribe un modulo Rust, una migracion SQL, tipos y cliente
@@ -884,6 +892,13 @@ validacion Rust de `@regex` es ejecutable y cachea cada patron compilado; los
 proyectos generados que la usen deben declarar `regex = "1"`. Versiones del
 DSL implementadas: v0.1 (modelos) hasta v0.8 (declaraciones `worker`).
 Referencia completa: [docs/dsl/](docs/dsl/).
+
+`ag generate --check` es la guardia de CI de solo lectura (RFC-0019 PR 4):
+recompila `schema.ag`, compara cada artefacto generado con el archivo en
+`--output` y sale con codigo distinto de cero ante cualquier deriva. El informe
+lista cada ruta con estado `missing`, `changed` o `unexpected`, y no escribe
+nada. Comparte la salida en memoria del generador, asi que el check y el
+escritor no pueden discrepar.
 
 ### Referencia de la CLI
 
@@ -896,7 +911,7 @@ Referencia completa: [docs/dsl/](docs/dsl/).
 | `ag env check [--manifest RUTA] [--env NOMBRE]` | Valida el entorno declarado igual que lo haria el arranque, usando el entorno de proceso y los defaults declarados. Sale con 1 y reporta todos los problemas a la vez; los valores nunca se imprimen. Los secretos cifrados y los archivos por entorno son etapas posteriores (RFC-0020) |
 | `ag dev [--bind DIR]` | Modo desarrollo en `127.0.0.1:8080` por defecto; `BIND` se respeta. Usa `--bind 0.0.0.0:8080` explícitamente para contenedores o LAN. Usa cargo-watch si esta instalado |
 | `ag build [--target TRIPLE]` | Compilar un binario release |
-| `ag generate --schema schema.ag --output generated` | Generar artefactos del DSL |
+| `ag generate --schema schema.ag --output generated [--check]` | Generar artefactos del DSL. Con `--check`, guardia de CI de solo lectura: sale con codigo distinto de cero y nombra cada artefacto `missing`, `changed` o `unexpected`; no escribe nada |
 | `ag schema lint` | Validar un schema y reportar diagnostics |
 | `ag schema diff REFERENCIA` | Clasificar cambios de schema |
 | `ag mail test --to DIRECCION` | Verificar la configuracion SMTP |

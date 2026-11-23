@@ -52,8 +52,17 @@ pub(crate) fn dispatch(command: Commands, no_interactive: bool) -> Result<(), Cl
         }
         Commands::Dev { bind } => cmd_dev(&bind).map_err(CliError::Failed),
         Commands::Build { target } => cmd_build(target.as_deref()).map_err(CliError::Failed),
-        Commands::Generate { schema, output, .. } => {
-            cmd_generate(&schema, &output).map_err(CliError::Failed)
+        Commands::Generate {
+            schema,
+            output,
+            check,
+            ..
+        } => {
+            if check {
+                cmd_generate_check(&schema, &output).map_err(CliError::Failed)
+            } else {
+                cmd_generate(&schema, &output).map_err(CliError::Failed)
+            }
         }
         Commands::Workers { command } => match command {
             WorkersCommands::List { schema } => cmd_workers_list(&schema).map_err(CliError::Failed),

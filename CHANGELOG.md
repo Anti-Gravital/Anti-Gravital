@@ -7,6 +7,32 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Read-only `ag generate --check` (RFC-0019 PR 4, fase 4.8-A)
+
+Added:
+
+- `ag generate --check`: read-only verification that the committed generated
+  artifacts still match `schema.ag`. It reuses the same in-memory `codegen`
+  output as `ag generate`, reports every mismatch as a deterministic
+  `path + status` summary (`missing`, `changed`, `unexpected`), exits non-zero
+  on drift and zero when all artifacts match. It never writes, deletes or
+  creates files. The existing `--output-format` selector is unchanged.
+- Integration suite `crates/ag-cli/tests/generate_check.rs` (match, drift,
+  missing file, wrong schema, unexpected file, no-write/determinism, custom
+  output directory) and CLI parsing tests for the new flag.
+
+Changed:
+
+- `crates/ag-cli/src/commands/schema.rs`: compile/generate shared by the writer
+  and the verifier through `compile_artifacts`, so the two cannot drift.
+- `README.md` (EN+ES), `docs/roadmap/STATUS.md` and the stage-A status appendix
+  of `docs/rfc/RFC-0019-project-layered-architecture.md`: document the new
+  read-only guard. Layer-aware generation output stays deferred.
+
+Verification: `cargo test -p ag-cli`, workspace all-features tests, fmt,
+clippy `-D warnings`, `bash scripts/ag-check`, `bash tools/check-file-size.sh`,
+`git diff --check` and content scans. Refs RFC-0019 PR 4.
+
 ### Doc-vs-CLI coherence detector (OP-24 / FEAT A1, task P0)
 
 Added:

@@ -35,6 +35,10 @@ scheduler = []
 test-utils = []
 
 [dependencies]
+# RFC-0020 PR 4: declared environment schema (EnvLoader/EnvDeclaration).
+# Internal workspace crate only; no new external dependency and no new
+# dependency direction (workers -> core, Arq-Tecnica 5.3 regla 2).
+ag-core = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 rmp-serde = { workspace = true }

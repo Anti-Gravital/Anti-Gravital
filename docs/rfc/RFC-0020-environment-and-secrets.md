@@ -69,6 +69,27 @@
   5.3 regla 2). The remaining crates in audit A2 (`ag-workers`, `ag-realtime`,
   `ag-auth`, `ag-cache`, `ag-cli`) are still pending. This note records stage
   progress only; the accepted design above is not modified.
+- Stage B / PR 4 (wave 24, 2026-11-23): `ag-workers` is the third crate migrated
+  off direct `std::env::var` reads. `crates/ag-workers/src/config.rs` declares
+  six fixed keys through `EnvDeclaration`/`EnvLoader`, all as `EnvType::String`
+  so the original per-field fallback on unset or malformed values is preserved.
+  Three of them (`AG_WORKERS_MODE`, `AG_WORKERS_BACKEND`,
+  `AG_WORKERS_SHUTDOWN_TIMEOUT`) were the direct reads in `apply_env`; the other
+  three (`AG_WORKERS_ENABLED`, `AG_WORKERS_MAX_PAYLOAD_BYTES`,
+  `AG_WORKERS_POISON_GUARD_ATTEMPTS`) and the per-queue
+  `AG_WORKERS_QUEUE_<NAME>_MIN`/`_MAX` keys were read through the
+  `env_bool`/`env_parse` helpers, so declaring them too completes the crate's
+  migration. None is a secret. `WorkersConfig::apply_env` keeps its signature
+  and uses `load_process`; a test-only injected source removes the `set_var`
+  races (audit A1). Parsing stays in the loader-to-config conversion, so enum
+  validation, `parse_duration` and per-field fallbacks are byte-identical.
+  Parity tests in `crates/ag-workers/src/config_tests.rs` compare the declared
+  path against the previous direct reads for every key. `ag-core` is added as
+  an internal dependency with the dependency-direction allow-list recording
+  workers -> core (Arq-Tecnica 5.3 regla 2). The `postgres` feature and the
+  optional `ag-data` dependency are unchanged. The remaining crates in audit A2
+  (`ag-realtime`, `ag-auth`, `ag-cache`, `ag-cli`) are still pending. This note
+  records stage progress only; the accepted design above is not modified.
 
 ## 1. Motivation
 

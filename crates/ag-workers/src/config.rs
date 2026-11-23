@@ -9,11 +9,16 @@
 //!   loadable from a TOML document and overridable through `AG_WORKERS_*` environment
 //!   variables. The CLI (`ag workers run`/`doctor`) reads this layer and derives a
 //!   [`RuntimeConfig`] from it.
+//!
+//! Environment variables are read through the declared schema below (RFC-0020
+//! PR 4), not through scattered direct reads: [`workers_env_declarations`] is the
+//! single auditable list and [`EnvLoader`] reads only those keys.
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::time::Duration;
 
+use ag_core::{EnvDeclaration, EnvLoader, EnvType, LoadedEnv};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -206,6 +211,85 @@ impl Default for WorkersConfig {
     }
 }
 
+/// Declared environment schema for `ag-workers` (RFC-0020 PR 4, audit A2).
+///
+/// Every fixed key the crate reads is listed once here: name, type and the
+/// fact that it is optional. This is the single auditable answer to "which
+/// variables does this service need"; [`EnvLoader`] reads only these keys.
+/// Per-queue `AG_WORKERS_QUEUE_<NAME>_MIN` / `_MAX` keys are derived from the
+/// queue names present in a config by [`workers_loader`].
+///
+/// No key is a secret: they are placement knobs, ports-equivalent sizes and
+/// timeouts, and the loader never prints a value in an error even for a
+/// non-secret declaration (S-1/S-8).
+///
+/// All keys are declared as [`EnvType::String`] on purpose, matching the
+/// proven `ag-storage` and `ag-observe` migrations. The previous code applied
+/// `std::env::var(k)` and parsed *per field*: an unset or malformed value
+/// either kept the TOML/default value (`env_parse`) or propagated a typed
+/// parse error (`mode`, `backend`, `shutdown timeout`). [`EnvLoader`] validates
+/// the whole set at once and rejects the load if one value fails its declared
+/// type, so a typed declaration (`Int`/`Url`/`Duration`) would silently change
+/// that per-field fallback. Parsing therefore stays in
+/// [`WorkersConfig::apply_from_loaded_env`], mirroring the original expressions
+/// byte for byte; the loader still provides the declared list,
+/// process-environment isolation (only declared keys are read) and value-free
+/// errors.
+pub(crate) fn workers_env_declarations() -> Vec<EnvDeclaration> {
+    vec![
+        EnvDeclaration::new("AG_WORKERS_ENABLED", EnvType::String).required(false),
+        EnvDeclaration::new("AG_WORKERS_MODE", EnvType::String).required(false),
+        EnvDeclaration::new("AG_WORKERS_BACKEND", EnvType::String).required(false),
+        EnvDeclaration::new("AG_WORKERS_SHUTDOWN_TIMEOUT", EnvType::String).required(false),
+        EnvDeclaration::new("AG_WORKERS_MAX_PAYLOAD_BYTES", EnvType::String).required(false),
+        EnvDeclaration::new("AG_WORKERS_POISON_GUARD_ATTEMPTS", EnvType::String).required(false),
+    ]
+}
+
+/// Builds the loader for the declared schema plus the per-queue keys that
+/// correspond to the queues present in a config.
+fn workers_loader<'a>(queue_names: impl Iterator<Item = &'a str>) -> EnvLoader {
+    let mut declarations = workers_env_declarations();
+    for name in queue_names {
+        let upper = name.to_ascii_uppercase();
+        declarations.push(
+            EnvDeclaration::new(format!("AG_WORKERS_QUEUE_{upper}_MIN"), EnvType::String)
+                .required(false),
+        );
+        declarations.push(
+            EnvDeclaration::new(format!("AG_WORKERS_QUEUE_{upper}_MAX"), EnvType::String)
+                .required(false),
+        );
+    }
+    EnvLoader::new(declarations)
+}
+
+/// Resolves the declared schema from the process environment.
+///
+/// All declarations are optional strings with no default, so the only possible
+/// load error is a non-UTF-8 process value. The old `std::env::var(k).ok()`
+/// skipped such a value and kept that field's TOML/default fallback; replaying
+/// the declared keys leniently preserves that byte-identical behavior.
+fn resolve_process_env(loader: &EnvLoader) -> LoadedEnv {
+    match loader.load_process() {
+        Ok(env) => env,
+        Err(_) => {
+            let vars: Vec<(String, String)> = loader
+                .declarations()
+                .iter()
+                .filter_map(|declaration| {
+                    std::env::var(declaration.name())
+                        .ok()
+                        .map(|value| (declaration.name().to_owned(), value))
+                })
+                .collect();
+            loader
+                .load_from(vars)
+                .expect("all declarations are optional strings and always resolve")
+        }
+    }
+}
+
 impl WorkersConfig {
     /// Parses a `[workers]` section from a TOML document.
     ///
@@ -262,33 +346,59 @@ impl WorkersConfig {
     /// `AG_WORKERS_SHUTDOWN_TIMEOUT`, `AG_WORKERS_MAX_PAYLOAD_BYTES`,
     /// `AG_WORKERS_POISON_GUARD_ATTEMPTS`, and per-queue
     /// `AG_WORKERS_QUEUE_<NAME>_MIN` / `_MAX` (name upper-cased).
-    pub fn apply_env(mut self) -> Result<Self, ConfigError> {
-        if let Some(v) = env_bool("AG_WORKERS_ENABLED") {
+    pub fn apply_env(self) -> Result<Self, ConfigError> {
+        let loader = workers_loader(self.queues.keys().map(String::as_str));
+        let env = resolve_process_env(&loader);
+        self.apply_from_loaded_env(&env)
+    }
+
+    /// Test seam: applies the same declared schema from an injected in-memory
+    /// source instead of the process environment. Using this in tests removes
+    /// the `set_var`/`remove_var` global races (audit A1) without a global
+    /// mutex. Scoped to tests so the public API is unchanged.
+    #[cfg(test)]
+    pub(crate) fn apply_env_source<I, K, V>(self, vars: I) -> Result<Self, ConfigError>
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        let loader = workers_loader(self.queues.keys().map(String::as_str));
+        let env = loader
+            .load_from(vars)
+            .expect("all declarations are optional strings and always resolve");
+        self.apply_from_loaded_env(&env)
+    }
+
+    /// Applies overrides from a resolved environment. Parsing and fallbacks are
+    /// identical to the pre-migration direct reads, field by field.
+    fn apply_from_loaded_env(mut self, env: &LoadedEnv) -> Result<Self, ConfigError> {
+        if let Some(v) = loaded_bool(env, "AG_WORKERS_ENABLED") {
             self.enabled = v;
         }
-        if let Ok(v) = std::env::var("AG_WORKERS_MODE") {
+        if let Some(v) = env.string("AG_WORKERS_MODE") {
             self.mode = v.parse()?;
         }
-        if let Ok(v) = std::env::var("AG_WORKERS_BACKEND") {
+        if let Some(v) = env.string("AG_WORKERS_BACKEND") {
             self.backend = v.parse()?;
         }
-        if let Ok(v) = std::env::var("AG_WORKERS_SHUTDOWN_TIMEOUT") {
-            self.shutdown_timeout = parse_duration(&v)?;
+        if let Some(v) = env.string("AG_WORKERS_SHUTDOWN_TIMEOUT") {
+            self.shutdown_timeout = parse_duration(v)?;
         }
-        if let Some(v) = env_parse::<usize>("AG_WORKERS_MAX_PAYLOAD_BYTES") {
+        if let Some(v) = loaded_parse::<usize>(env, "AG_WORKERS_MAX_PAYLOAD_BYTES") {
             self.max_payload_bytes = v;
         }
-        if let Some(v) = env_parse::<u32>("AG_WORKERS_POISON_GUARD_ATTEMPTS") {
+        if let Some(v) = loaded_parse::<u32>(env, "AG_WORKERS_POISON_GUARD_ATTEMPTS") {
             self.poison_guard_attempts = v;
         }
         // Per-queue MIN/MAX overrides for queues already declared in the config.
         let names: Vec<String> = self.queues.keys().cloned().collect();
         for name in names {
             let upper = name.to_ascii_uppercase();
-            if let Some(v) = env_parse::<usize>(&format!("AG_WORKERS_QUEUE_{upper}_MIN")) {
+            if let Some(v) = loaded_parse::<usize>(env, &format!("AG_WORKERS_QUEUE_{upper}_MIN")) {
                 self.queues.get_mut(&name).unwrap().min_workers = v;
             }
-            if let Some(v) = env_parse::<usize>(&format!("AG_WORKERS_QUEUE_{upper}_MAX")) {
+            if let Some(v) = loaded_parse::<usize>(env, &format!("AG_WORKERS_QUEUE_{upper}_MAX")) {
                 self.queues.get_mut(&name).unwrap().max_workers = v;
             }
         }
@@ -355,14 +465,17 @@ fn opt_duration(value: Option<String>, default: Duration) -> Result<Duration, Co
     }
 }
 
-fn env_bool(key: &str) -> Option<bool> {
-    std::env::var(key)
-        .ok()
+/// Mirrors the old `env_bool`, sourcing the raw (untrimmed) value from the
+/// declared loader instead of a direct process read.
+fn loaded_bool(env: &LoadedEnv, key: &str) -> Option<bool> {
+    env.string(key)
         .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
 }
 
-fn env_parse<T: FromStr>(key: &str) -> Option<T> {
-    std::env::var(key).ok().and_then(|v| v.trim().parse().ok())
+/// Mirrors the old `env_parse`, sourcing the raw (untrimmed) value from the
+/// declared loader instead of a direct process read.
+fn loaded_parse<T: FromStr>(env: &LoadedEnv, key: &str) -> Option<T> {
+    env.string(key).and_then(|v| v.trim().parse().ok())
 }
 
 // ---------------------------------------------------------------------------
@@ -396,152 +509,5 @@ struct RawQueue {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_workers_config_is_embedded_memory() {
-        let cfg = WorkersConfig::default();
-        assert!(cfg.enabled);
-        assert_eq!(cfg.mode, WorkerMode::Embedded);
-        assert_eq!(cfg.backend, BackendKind::Memory);
-        assert_eq!(cfg.shutdown_timeout, Duration::from_secs(30));
-        assert_eq!(cfg.max_payload_bytes, 262_144);
-        assert!(cfg.queues.is_empty());
-    }
-
-    #[test]
-    fn empty_toml_yields_default() {
-        let cfg = WorkersConfig::from_toml_str("# nothing here\n").unwrap();
-        assert_eq!(cfg, WorkersConfig::default());
-    }
-
-    #[test]
-    fn full_toml_parses_all_fields() {
-        let src = r#"
-            [workers]
-            enabled = true
-            mode = "distributed"
-            backend = "postgres"
-            shutdown_timeout = "45s"
-            max_payload_bytes = 131072
-            poison_guard_attempts = 5
-
-            [workers.queue.mail]
-            min_workers = 2
-            max_workers = 8
-            max_depth = 5000
-            lease_timeout = "90s"
-            heartbeat_interval = "10s"
-
-            [workers.queue.media]
-            kind = "cpu"
-            max_workers = 4
-        "#;
-        let cfg = WorkersConfig::from_toml_str(src).unwrap();
-        assert_eq!(cfg.mode, WorkerMode::Distributed);
-        assert_eq!(cfg.backend, BackendKind::Postgres);
-        assert_eq!(cfg.shutdown_timeout, Duration::from_secs(45));
-        assert_eq!(cfg.max_payload_bytes, 131_072);
-        assert_eq!(cfg.poison_guard_attempts, 5);
-
-        let mail = &cfg.queues["mail"];
-        assert_eq!(mail.min_workers, 2);
-        assert_eq!(mail.max_workers, 8);
-        assert_eq!(mail.lease_timeout, Duration::from_secs(90));
-        assert_eq!(mail.heartbeat_interval, Duration::from_secs(10));
-        assert!(!mail.cpu_bound);
-
-        let media = &cfg.queues["media"];
-        assert!(media.cpu_bound);
-        assert_eq!(media.max_workers, 4);
-        // Unspecified fields fall back to defaults.
-        assert_eq!(media.max_depth, QueueConfig::default().max_depth);
-    }
-
-    #[test]
-    fn unknown_mode_is_rejected() {
-        let src = "[workers]\nmode = \"galactic\"\n";
-        assert!(matches!(
-            WorkersConfig::from_toml_str(src),
-            Err(ConfigError::Variant { field: "mode", .. })
-        ));
-    }
-
-    #[test]
-    fn parse_duration_units() {
-        assert_eq!(parse_duration("250ms").unwrap(), Duration::from_millis(250));
-        assert_eq!(parse_duration("30s").unwrap(), Duration::from_secs(30));
-        assert_eq!(parse_duration("5m").unwrap(), Duration::from_secs(300));
-        assert_eq!(parse_duration("1h").unwrap(), Duration::from_secs(3600));
-        assert_eq!(parse_duration("12").unwrap(), Duration::from_secs(12));
-        assert!(parse_duration("soon").is_err());
-    }
-
-    #[test]
-    fn runtime_config_carries_poison_guard() {
-        let cfg = WorkersConfig {
-            poison_guard_attempts: 7,
-            ..WorkersConfig::default()
-        };
-        assert_eq!(cfg.runtime_config().poison_guard_attempts, 7);
-    }
-
-    #[test]
-    fn env_overrides_win_over_toml() {
-        std::env::set_var("AG_WORKERS_MODE", "standalone");
-        std::env::set_var("AG_WORKERS_MAX_PAYLOAD_BYTES", "999");
-        std::env::set_var("AG_WORKERS_QUEUE_MAIL_MAX", "16");
-        let src = "[workers]\nmode = \"embedded\"\nmax_payload_bytes = 1\n[workers.queue.mail]\nmax_workers = 8\n";
-        let cfg = WorkersConfig::load(src).unwrap();
-        assert_eq!(cfg.mode, WorkerMode::Standalone);
-        assert_eq!(cfg.max_payload_bytes, 999);
-        assert_eq!(cfg.queues["mail"].max_workers, 16);
-        std::env::remove_var("AG_WORKERS_MODE");
-        std::env::remove_var("AG_WORKERS_MAX_PAYLOAD_BYTES");
-        std::env::remove_var("AG_WORKERS_QUEUE_MAIL_MAX");
-    }
-
-    #[test]
-    fn worker_mode_from_str_all_variants() {
-        assert_eq!(
-            "embedded".parse::<WorkerMode>().unwrap(),
-            WorkerMode::Embedded
-        );
-        assert_eq!(
-            "  Standalone ".parse::<WorkerMode>().unwrap(),
-            WorkerMode::Standalone
-        );
-        assert_eq!(
-            "DISTRIBUTED".parse::<WorkerMode>().unwrap(),
-            WorkerMode::Distributed
-        );
-        assert_eq!(
-            "producer".parse::<WorkerMode>().unwrap(),
-            WorkerMode::Producer
-        );
-        assert!("galactic".parse::<WorkerMode>().is_err());
-    }
-
-    #[test]
-    fn backend_kind_from_str_all_variants() {
-        assert_eq!(
-            "memory".parse::<BackendKind>().unwrap(),
-            BackendKind::Memory
-        );
-        for pg in ["postgres", "postgresql", "PG"] {
-            assert_eq!(pg.parse::<BackendKind>().unwrap(), BackendKind::Postgres);
-        }
-        assert!("sqlite".parse::<BackendKind>().is_err());
-    }
-
-    #[test]
-    fn parse_duration_days_and_weeks() {
-        assert_eq!(
-            parse_duration("2d").unwrap(),
-            Duration::from_secs(2 * 86_400)
-        );
-        assert_eq!(parse_duration("1w").unwrap(), Duration::from_secs(604_800));
-        assert!(parse_duration("5x").is_err());
-    }
-}
+#[path = "config_tests.rs"]
+mod tests;

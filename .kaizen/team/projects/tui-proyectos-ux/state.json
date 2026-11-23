@@ -1,0 +1,19 @@
+{
+  "slug": "tui-proyectos-ux",
+  "goal": "Mejorar la TUI de ag para proyectos ya creados y en ejecucion: contexto real, acciones claras y diseno UX/DX superior, sin duplicar proyectos ni fingir estado",
+  "kpi": "La home TUI muestra en una sola pantalla estado real del proyecto (existe/template, en ejecucion/PID y bind si aplica) y >=4 acciones contextuales; 0 creacion de proyectos duplicados y 0 accion sobre proyecto ajeno; tests con TestBackend en verde y sin regresion en comandos existentes; interactividad y NO_COLOR/headless preservadas; documentacion K-7 actualizada",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "architect",
+    "product",
+    "dx",
+    "dev3-ui",
+    "qa",
+    "security"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T23:25:48Z",
+  "updated": "2026-11-23T23:44:36Z"
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "task": "Disenar modelo de contexto de proyecto: detectar proyecto existente y en ejecucion sin duplicar ni fingir estado",
+    "owner": "architect",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:26:24Z"
+  },
+  {
+    "task": "Redisenar la home TUI para proyectos existentes/en ejecucion con UX/DX superior y modo interactivo preservado",
+    "owner": "dx",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:26:24Z"
+  },
+  {
+    "task": "Definir criterios de aceptacion y plan de tests con TestBackend para el nuevo contexto",
+    "owner": "qa",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:26:24Z"
+  }
+]

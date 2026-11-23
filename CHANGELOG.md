@@ -7,6 +7,43 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
+
+Added / Changed:
+
+- The installer now uses the `release` channel by default: it resolves the
+  versioned tag from `[workspace.package].version` in `Cargo.toml`
+  (`0.1.0-alpha.2`, not the `VERSION` label), downloads the versioned prebuilt
+  binary for the detected platform and verifies its SHA-256 before installing.
+  No toolchain is downloaded and nothing is compiled. `AG_INSTALLER_CHANNEL=source`
+  remains an explicit route (about 21 minutes and two builds on the recorded
+  host) and there is **no automatic fallback** from `release` to `source`.
+- A native six-stage progress view (resolve version, detect platform, download,
+  verify SHA-256, install, done) with a deterministic headless mode for CI via
+  `AG_INSTALLER_PROGRESS=headless`, also selected by `CI`, `TERM=dumb`, `NO_COLOR`
+  or non-TTY stdout: one stable `[ag-install] N/6 ...` line per stage. The
+  fail-closed verification order is unchanged; progress display never hides a
+  verification failure, skips a stage or suppresses the `AG_INSTALLER_CHECKSUMS`
+  warning.
+- Documentation (K-7): `README.md` (EN+ES), `docs/manual/04-instalacion-y-onboarding.md`
+  (EN+ES), `docs/security/INSTALLATION_INTEGRITY.md` and a dated, additive
+  addendum in `docs/releases/0.1.0-alpha.2.md` now describe the fast path. The
+  integrity document corrects the stale `v0.1.0-alpha.1` examples to
+  `v0.1.0-alpha.2`, records version resolution from `Cargo.toml` (not `VERSION`),
+  states that the release `checksums.txt` covers binary assets but **not** the
+  installer scripts (use `checksums/installers.sha256` / `AG_INSTALLER_CHECKSUMS`,
+  and `AG_INSTALLER_BINARY_CHECKSUMS` for the out-of-band binary manifest), and
+  reiterates "integrity, not authenticity" (#141 open, RFC-0030 draft).
+
+Not changed / not claimed:
+
+- No signature, authenticity claim, trust anchor, CDN spend or release-workflow
+  change: #141 stays open and RFC-0030 stays a draft. No issue is closed here —
+  #203, #204 and #206 are referenced but remain open until their fixes are
+  verified (K-2/K-10). The `v0.1.0-alpha.2` release is published with nine
+  assets; publishing is a human action under RFC-0032 §4.4.
+
+Refs #203, #204, #206, #141, RFC-0030, RFC-0032, DEC-001.
 
 ### RFC-0020 PR 4 close: scope decision for `ag-cli` (audit A2)
 

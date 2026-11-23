@@ -10,17 +10,21 @@ This chapter guides you from a blank machine to a running Anti-Gravital project.
 
 | Requirement | Minimum version | Check                    |
 |-------------|-----------------|--------------------------|
-| Rust        | 1.99.1          | `rustc --version`        |
+| Rust        | 1.99.1 (source channel only) | `rustc --version` |
 | Git         | any modern      | `git --version`          |
 
-No other system dependencies are required for the `rest` template.
+Rust is required only for the explicit `AG_INSTALLER_CHANNEL=source` channel;
+the default `release` channel installs a prebuilt binary. No other system
+dependencies are required for the `rest` template.
 
 ## Install the `ag` binary
 
-The alpha (`v0.1.0-alpha.2`) is installed from source: there is no crates.io
-package, and source install is the verified path. A prebuilt binary can also be
-fetched through the opt-in checksum-only alpha channel once it is verified
-end to end (#141). Use one of the methods below, then confirm the version with
+The alpha (`v0.1.0-alpha.2`) has no crates.io package. The installer's default
+`release` channel downloads the versioned prebuilt binary for your platform and
+verifies its SHA-256 before installing; nothing is compiled. The checksum gives
+**integrity, not authenticity**: there is no signature (#141 is open and
+RFC-0030 is a draft). Building from source remains available as an explicit
+channel. Use one of the methods below, then confirm the version with
 `ag --version`. See the
 [alpha release notes](../releases/0.1.0-alpha.2.md) for scope and limitations.
 
@@ -32,9 +36,12 @@ cd Anti-Gravital
 bash install.sh
 ```
 
-The script verifies the Rust toolchain, builds the workspace in release mode,
-and installs `ag` into `~/.cargo/bin`. Security note: the script does not pipe
-untrusted content into a shell. Before running it, follow the canonical
+By default the script downloads the versioned prebuilt binary and verifies its
+SHA-256; it does not compile. On the explicit `source` channel it verifies the
+Rust toolchain, builds the workspace in release mode and installs `ag` into the
+Cargo bin directory (about 21 minutes and two builds on the recorded host).
+Security note: the script does not pipe untrusted content into a shell. Before
+running it, follow the canonical
 [installation integrity procedure](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
@@ -50,6 +57,36 @@ cd Anti-Gravital
 ```bash
 cargo install --path crates/ag-cli --locked
 ```
+
+### Channels and progress display
+
+The default `release` channel resolves the version from `Cargo.toml`
+(`0.1.0-alpha.2`), downloads the prebuilt binary for the detected platform and
+checks its SHA-256 against the release `checksums.txt` before installing.
+Nothing is compiled and no toolchain is downloaded. The checksum is integrity,
+not authenticity (no signature; #141 open, RFC-0030 draft), and there is **no
+automatic fallback** to `source`. To build from source, opt in explicitly:
+
+```bash
+AG_INSTALLER_CHANNEL=source bash install.sh
+```
+
+Progress appears as a native six-stage view: resolve version, detect platform,
+download, verify SHA-256, install and done. In CI or any non-interactive shell,
+use headless mode for one stable `[ag-install] N/6 ...` line per stage:
+
+```bash
+AG_INSTALLER_PROGRESS=headless bash install.sh
+```
+
+Headless is also selected automatically when `CI` is set, `TERM=dumb` or
+`NO_COLOR` is present, or stdout is not a TTY. The fail-closed checksum order is
+identical in both modes: progress display never hides a verification failure,
+skips a stage or suppresses the `AG_INSTALLER_CHECKSUMS` warning. The release
+`checksums.txt` covers the binary assets but **not** the installer scripts;
+see the
+[installation integrity procedure](../security/INSTALLATION_INTEGRITY.md) for
+`AG_INSTALLER_CHECKSUMS` and `AG_INSTALLER_BINARY_CHECKSUMS`.
 
 ### Verify
 
@@ -182,16 +219,21 @@ Anti-Gravital en ejecucion.
 
 | Requisito | Version minima | Verificacion             |
 |-----------|----------------|--------------------------|
-| Rust      | 1.99.1         | `rustc --version`        |
+| Rust      | 1.99.1 (solo canal source) | `rustc --version`  |
 | Git       | cualquier      | `git --version`          |
+
+Rust se requiere solo para el canal explicito `AG_INSTALLER_CHANNEL=source`;
+el canal `release` por defecto instala un binario precompilado.
 
 ## Instalar el binario `ag`
 
-El alpha (`v0.1.0-alpha.2`) se instala desde el codigo fuente: no hay paquete
-en crates.io y la instalacion desde el fuente es la ruta verificada. Tambien
-se puede obtener un binario precompilado mediante el canal opt-in de solo
-checksums una vez verific integralmente (#141). Usa uno de los metodos
-siguientes y confirma la version con `ag --version`. Consulta las
+El alpha (`v0.1.0-alpha.2`) no tiene paquete en crates.io. El canal `release`
+por defecto del instalador descarga el binario precompilado versionado para tu
+plataforma y verifica su SHA-256 antes de instalar; no se compila nada. El
+checksum da **integridad, no autenticidad**: no hay firma (#141 sigue abierto y
+RFC-0030 es borrador). Compilar desde el fuente sigue disponible como canal
+explicito. Usa uno de los metodos siguientes y confirma la version con
+`ag --version`. Consulta las
 [notas de release del alpha](../releases/0.1.0-alpha.2.md) para alcance y
 limitaciones.
 
@@ -203,9 +245,11 @@ cd Anti-Gravital
 bash install.sh
 ```
 
-El script verifica el toolchain Rust, compila el workspace en modo release
-e instala `ag` en `~/.cargo/bin`. Antes de ejecutarlo, sigue el
-[procedimiento canonico de integridad](../security/INSTALLATION_INTEGRITY.md).
+Por defecto el script descarga el binario precompilado versionado y verifica su
+SHA-256; no compila. En el canal explicito `source` verifica el toolchain Rust,
+compila el workspace en modo release e instala `ag` en el directorio binario de
+Cargo (unos 21 minutos y dos builds en el host medido). Antes de ejecutarlo,
+sigue el [procedimiento canonico de integridad](../security/INSTALLATION_INTEGRITY.md).
 
 ### Windows (PowerShell)
 
@@ -220,6 +264,36 @@ cd Anti-Gravital
 ```bash
 cargo install --path crates/ag-cli --locked
 ```
+
+### Canales y visualizacion del progreso
+
+El canal `release` por defecto resuelve la version desde `Cargo.toml`
+(`0.1.0-alpha.2`), descarga el binario precompilado para la plataforma detectada
+y comprueba su SHA-256 contra el `checksums.txt` del release antes de instalar.
+No se compila nada ni se descarga ningun toolchain. El checksum da integridad,
+no autenticidad (sin firma; #141 abierto, RFC-0030 borrador), y **no hay fallback
+automatico** a `source`. Para compilar desde el fuente, hazlo explicito:
+
+```bash
+AG_INSTALLER_CHANNEL=source bash install.sh
+```
+
+El progreso se muestra como una vista nativa de seis etapas: resolver version,
+detectar plataforma, descargar, verificar SHA-256, instalar y listo. En CI o
+cualquier shell no interactivo usa el modo headless para obtener una linea
+estable `[ag-install] N/6 ...` por etapa:
+
+```bash
+AG_INSTALLER_PROGRESS=headless bash install.sh
+```
+
+El modo headless tambien se selecciona automaticamente cuando esta definido
+`CI`, `TERM=dumb` o `NO_COLOR`, o cuando stdout no es una TTY. El orden
+fail-closed de la verificacion es identico en ambos modos: el progreso nunca
+oculta un fallo, salta etapas ni suprime el warning de `AG_INSTALLER_CHECKSUMS`.
+El `checksums.txt` del release cubre los binarios, pero **no** los instaladores;
+consulta el [procedimiento canonico de integridad](../security/INSTALLATION_INTEGRITY.md)
+para `AG_INSTALLER_CHECKSUMS` y `AG_INSTALLER_BINARY_CHECKSUMS`.
 
 ## Verificar
 

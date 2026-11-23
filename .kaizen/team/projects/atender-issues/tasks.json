@@ -1,0 +1,128 @@
+[
+  {
+    "task": "issue-215",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:08Z"
+  },
+  {
+    "task": "issue-214",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:08Z"
+  },
+  {
+    "task": "issue-213",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:08Z"
+  },
+  {
+    "task": "issue-208",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-185",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-180",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-179",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-178",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-157",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-156",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-154",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-152",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-142",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-141",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-112",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-87",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "issue-76",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  },
+  {
+    "task": "fabric-issue-2",
+    "owner": "platform-engineer",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T23:28:09Z"
+  }
+]

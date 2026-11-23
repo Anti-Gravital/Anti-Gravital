@@ -10,7 +10,36 @@ pub(crate) const CONFIGURE_PROJECT: &str = "Configure project";
 pub(crate) const HOME_TITLE: &str = "Home";
 pub(crate) const HOME_IN_PROJECT: &str = "Project detected. What would you like to do?";
 pub(crate) const HOME_OUTSIDE_PROJECT: &str = "No project detected. What would you like to do?";
-pub(crate) const KEYS_HOME: &str = "Up/Down: select    Enter: run command    Esc/q: close";
+pub(crate) const KEYS_HOME: &str =
+    "j/k: move    Enter: run    r: refresh    ?: help    Esc/q: quit    Ctrl-C: close";
+
+// --- Home status panel (context design §2 + home UX design §6) -------------
+// New strings are additive. Frozen tests reference these constants by name,
+// so wording changes here never weaken an assertion in home.rs.
+
+pub(crate) const STATUS_TITLE: &str = "PROJECT STATUS";
+pub(crate) const STATE_NO_PROJECT: &str = ". NO PROJECT";
+pub(crate) const STATE_RUNNING: &str = "* RUNNING";
+pub(crate) const STATE_UNKNOWN: &str = "? UNKNOWN";
+
+pub(crate) const LABEL_PROJECT: &str = "Project";
+pub(crate) const LABEL_TEMPLATE: &str = "Template";
+pub(crate) const LABEL_STATE: &str = "State";
+pub(crate) const LABEL_PID: &str = "PID";
+pub(crate) const LABEL_BIND: &str = "bind";
+
+pub(crate) const NAME_UNKNOWN: &str = "--";
+pub(crate) const TEMPLATE_UNKNOWN: &str = "unknown";
+
+pub(crate) const HINT_NO_PROJECT: &str =
+    "No config.toml found here. Nothing has been created or changed.";
+pub(crate) const HINT_RUNNING: &str = "Instance confirmed. Continue development will reuse it.";
+pub(crate) const HINT_UNKNOWN: &str = "No confirmed active instance. Press r to retry, ? for help.";
+
+pub(crate) const NOTICE_CREATE_DISABLED: &str = "A project is already detected here. Run 'ag new' from outside this directory (cd ..).";
+
+pub(crate) const KEYS_HELP: &str =
+    "? : toggle help    r : refresh    j/k : move    Enter : run    Esc/q : quit";
 
 pub(crate) const STEP_NAME: &str = "Name";
 pub(crate) const STEP_TEMPLATE: &str = "Template";

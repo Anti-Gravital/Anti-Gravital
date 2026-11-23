@@ -36,3 +36,12 @@ human_owner: BDFL
 - **needs-human (ADR-N1..N6):** cambio de default, fuente de versión, topología de TUI, contrato de eventos, extensión de la TUI y reafirmación de "sin firma". K-1: sin ADR no hay decisión de arquitectura.
 - **Pendiente de verificación:** ≤10 s y 0 compilaciones en Linux y Windows con el instalador **modificado** (el plan de QA existe; la columna "después" está vacía). Los criterios TUI y headless tampoco están implementados. No se fabrica evidencia (K-10).
 - **Reglas duras preservadas:** sin firma, sin gasto, sin pagos, sin datos personales, sin `.github/`, `.kaizen/` de reglas ni `scripts/kaizen*` editados por este equipo; ningún push, PR ni publicación por agentes.
+
+## Pos-verificacion (2026-11-23, orquestador)
+`verify-kpi-offline.sh`: `real=0.059` / `0.093` s vs 1282.132 s antes; 0 invocaciones cargo/rustc; salida headless determinista y sin ANSI; checksum invalido y target no publicado -> exit 1 sin binario. Windows y descarga por red quedan pendientes de entorno real (K-10).
+
+## Regeneracion del manifest de instaladores (2026-11-23)
+Tras implementar los instaladores, `checksums/installers.sha256` se regenero:
+`install.sh` = `8a08f28fc10523344126f0d2836952dd5262924e68fb7b5923c51c8f21a4356e`,
+`install.ps1` = `b77ae838a43f4553237ff14d1219fc062c4c89b44c6fd033404aa5da1bbd9e6f`.
+`sha256sum -c checksums/installers.sha256` → ambos OK (antes FAILED: los hashes del audit ya no coincidian). El manifest sigue siendo desarrollo, no trust anchor (S-11/INSTALLA­TION_INTEGRITY).

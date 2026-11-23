@@ -11,6 +11,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Wrap};
 use ratatui::Frame;
 
+use super::project_context::{ProjectContext, StatusSource};
 use super::text;
 use super::theme::Theme;
 
@@ -22,11 +23,20 @@ pub(crate) struct Entry {
     pub(crate) command: String,
 }
 
+/// Plain data only: no file system, no processes, no clock reads.
 #[derive(Debug, Clone)]
 pub(crate) struct Model {
     context: &'static str,
     entries: Vec<Entry>,
     selected: usize,
+    exists: bool,
+    project_name: Option<String>,
+    template: Option<String>,
+    running: bool,
+    pid: Option<u32>,
+    bind: Option<String>,
+    status_source: StatusSource,
+    show_help: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,84 +45,116 @@ pub(crate) enum Msg {
     Down,
     Enter,
     Back,
+    /// Toggle the shortcut legend (pure flag change).
+    Help,
+    /// Ask the event loop to re-resolve the context (no I/O in the view).
+    Refresh,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Effect {
     Launch(String),
     Quit,
+    /// A message for the caller, printed after the alternate screen closes.
+    Notice(String),
+}
+
+/// Builds the exact launcher menu for a context. Entry labels and details are
+/// kept byte-for-byte so the frozen regression tests remain valid (QA plan §1).
+fn launcher_entries(in_project: bool) -> Vec<Entry> {
+    if in_project {
+        let mut entries = vec![
+            Entry {
+                label: "Run the development server".into(),
+                detail: "Hot reload while you edit (requires cargo-watch).".into(),
+                command: "ag dev".into(),
+            },
+            Entry {
+                label: "Generate artifacts from schema.ag".into(),
+                detail: "Rust, SQL, TypeScript and OpenAPI output.".into(),
+                command: "ag generate".into(),
+            },
+            Entry {
+                label: "Lint the DSL schema".into(),
+                detail: "Report best-practice warnings in schema.ag.".into(),
+                command: "ag schema lint".into(),
+            },
+            Entry {
+                label: "Configure this project".into(),
+                detail: "Open the config.toml form.".into(),
+                command: "ag config".into(),
+            },
+            Entry {
+                label: "List attached domains".into(),
+                detail: "Read-only status from the local attachment store.".into(),
+                command: "ag domains list".into(),
+            },
+            Entry {
+                label: "List background workers".into(),
+                detail: "Workers declared in schema.ag, no infrastructure needed.".into(),
+                command: "ag workers list".into(),
+            },
+        ];
+        #[cfg(feature = "workers-runtime")]
+        entries.push(Entry {
+            label: "Check the workers backend".into(),
+            detail: "Connectivity and configuration of the durable queue.".into(),
+            command: "ag workers doctor".into(),
+        });
+        entries
+    } else {
+        vec![
+            Entry {
+                label: "Create a new project".into(),
+                detail: "Guided creation with a name and a starting template.".into(),
+                command: "ag new".into(),
+            },
+            Entry {
+                label: "Help and documentation".into(),
+                detail: "Full command reference and usage.".into(),
+                command: "ag --help".into(),
+            },
+            Entry {
+                label: "Show the version".into(),
+                detail: "Print the installed ag version.".into(),
+                command: "ag --version".into(),
+            },
+        ]
+    }
 }
 
 impl Model {
-    /// Builds the menu for the detected context.
+    /// Compatibility shim: delegates to [`Model::from_project_detected`].
+    /// Kept so the nine frozen tests compile and pass unchanged.
     pub(crate) fn new(in_project: bool) -> Model {
-        let entries = if in_project {
-            let mut entries = vec![
-                Entry {
-                    label: "Run the development server".into(),
-                    detail: "Hot reload while you edit (requires cargo-watch).".into(),
-                    command: "ag dev".into(),
-                },
-                Entry {
-                    label: "Generate artifacts from schema.ag".into(),
-                    detail: "Rust, SQL, TypeScript and OpenAPI output.".into(),
-                    command: "ag generate".into(),
-                },
-                Entry {
-                    label: "Lint the DSL schema".into(),
-                    detail: "Report best-practice warnings in schema.ag.".into(),
-                    command: "ag schema lint".into(),
-                },
-                Entry {
-                    label: "Configure this project".into(),
-                    detail: "Open the config.toml form.".into(),
-                    command: "ag config".into(),
-                },
-                Entry {
-                    label: "List attached domains".into(),
-                    detail: "Read-only status from the local attachment store.".into(),
-                    command: "ag domains list".into(),
-                },
-                Entry {
-                    label: "List background workers".into(),
-                    detail: "Workers declared in schema.ag, no infrastructure needed.".into(),
-                    command: "ag workers list".into(),
-                },
-            ];
-            #[cfg(feature = "workers-runtime")]
-            entries.push(Entry {
-                label: "Check the workers backend".into(),
-                detail: "Connectivity and configuration of the durable queue.".into(),
-                command: "ag workers doctor".into(),
-            });
-            entries
-        } else {
-            vec![
-                Entry {
-                    label: "Create a new project".into(),
-                    detail: "Guided creation with a name and a starting template.".into(),
-                    command: "ag new".into(),
-                },
-                Entry {
-                    label: "Help and documentation".into(),
-                    detail: "Full command reference and usage.".into(),
-                    command: "ag --help".into(),
-                },
-                Entry {
-                    label: "Show the version".into(),
-                    detail: "Print the installed ag version.".into(),
-                    command: "ag --version".into(),
-                },
-            ]
-        };
+        Self::from_project_detected(in_project)
+    }
+
+    /// Explicit constructor for callers that only know the markers. The
+    /// execution status is always `Unknown` — never assumed running.
+    pub(crate) fn from_project_detected(in_project: bool) -> Model {
+        Self::from_context(&ProjectContext::detected(in_project))
+    }
+
+    /// Real constructor. Consumes a resolved context; no I/O is performed.
+    /// Inside a project the `ag new` entry is never offered (D-1).
+    pub(crate) fn from_context(ctx: &ProjectContext) -> Model {
         Model {
-            context: if in_project {
+            context: if ctx.exists {
                 text::HOME_IN_PROJECT
             } else {
                 text::HOME_OUTSIDE_PROJECT
             },
-            entries,
+            entries: launcher_entries(ctx.exists),
             selected: 0,
+            exists: ctx.exists,
+            project_name: ctx.path.clone(),
+            template: ctx.template.clone(),
+            running: ctx.running,
+            pid: ctx.pid,
+            bind: ctx.bind.clone(),
+            status_source: ctx.status_source,
+            show_help: false,
         }
     }
 
@@ -125,12 +167,19 @@ impl Model {
                 }
             }
             Msg::Enter => {
-                return self
-                    .entries
-                    .get(self.selected)
-                    .map(|entry| Effect::Launch(entry.command.clone()));
+                let entry = self.entries.get(self.selected)?;
+                // Defense in depth (D-1): even if a create entry reached the
+                // menu inside a project, Enter yields a Notice, never Launch.
+                if self.exists && entry.command == "ag new" {
+                    return Some(Effect::Notice(text::NOTICE_CREATE_DISABLED.to_owned()));
+                }
+                return Some(Effect::Launch(entry.command.clone()));
             }
             Msg::Back => return Some(Effect::Quit),
+            Msg::Help => {
+                self.show_help = !self.show_help;
+            }
+            Msg::Refresh => {}
         }
         None
     }
@@ -152,15 +201,77 @@ pub(crate) fn msg_for(key: KeyEvent) -> Option<Msg> {
         KeyCode::Down | KeyCode::Char('j') => Some(Msg::Down),
         KeyCode::Enter => Some(Msg::Enter),
         KeyCode::Esc | KeyCode::Char('q') => Some(Msg::Back),
+        KeyCode::Char('?') => Some(Msg::Help),
+        KeyCode::Char('r') | KeyCode::F(5) => Some(Msg::Refresh),
         _ => None,
     }
 }
 
-/// Draws the menu. Reads the model and nothing else.
+/// One-line status summary. PID and bind appear ONLY for a verified real
+/// state; `Unknown` never prints a PID or a bind (anti-faking, K-10).
+fn status_summary(model: &Model) -> String {
+    let name = model.project_name.as_deref().unwrap_or(text::NAME_UNKNOWN);
+    let template = model.template.as_deref().unwrap_or(text::TEMPLATE_UNKNOWN);
+    let identity = format!(
+        "{}: {}   {}: {}",
+        text::LABEL_PROJECT,
+        name,
+        text::LABEL_TEMPLATE,
+        template
+    );
+
+    if !model.exists {
+        return format!(
+            "{}   {}: {}",
+            identity,
+            text::LABEL_STATE,
+            text::STATE_NO_PROJECT
+        );
+    }
+    if model.running && model.status_source == StatusSource::Real {
+        let pid = model
+            .pid
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| text::NAME_UNKNOWN.to_owned());
+        let bind = model.bind.as_deref().unwrap_or(text::NAME_UNKNOWN);
+        return format!(
+            "{}   {}: {}   {}: {}   {}: {}",
+            identity,
+            text::LABEL_STATE,
+            text::STATE_RUNNING,
+            text::LABEL_PID,
+            pid,
+            text::LABEL_BIND,
+            bind
+        );
+    }
+    format!(
+        "{}   {}: {}",
+        identity,
+        text::LABEL_STATE,
+        text::STATE_UNKNOWN
+    )
+}
+
+/// State-specific, actionable hint. No string here contains "running" for
+/// the Unknown state, so the anti-faking test can assert its absence.
+fn status_hint(model: &Model) -> &'static str {
+    if !model.exists {
+        text::HINT_NO_PROJECT
+    } else if model.running {
+        text::HINT_RUNNING
+    } else {
+        text::HINT_UNKNOWN
+    }
+}
+
+/// Draws the home screen. Reads the model and nothing else (INV-4).
+/// Layout: header, one-line status panel, launcher menu, help footer.
 pub(crate) fn view(frame: &mut Frame, model: &Model, theme: &Theme) {
-    let [header, body, footer] = Layout::vertical([
+    let [header, status, menu, footer] = Layout::vertical([
         Constraint::Length(3),
-        Constraint::Min(5),
+        Constraint::Length(5),
+        Constraint::Min(9),
         Constraint::Length(3),
     ])
     .areas(frame.area());
@@ -168,17 +279,32 @@ pub(crate) fn view(frame: &mut Frame, model: &Model, theme: &Theme) {
     frame.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled(text::PRODUCT, theme.title),
-            Span::raw("  |  "),
-            Span::raw(text::HOME_TITLE),
+            Span::raw(format!("  v{}  |  ", env!("CARGO_PKG_VERSION"))),
+            Span::styled(text::HOME_TITLE, theme.title),
         ]))
         .block(Block::bordered().border_style(theme.border)),
         header,
     );
 
-    let mut lines = vec![
+    let status_lines = vec![
         Line::from(Span::styled(model.context, theme.label)),
-        Line::raw(""),
+        Line::from(vec![
+            Span::styled(text::STATUS_TITLE, theme.label),
+            Span::raw("  "),
+            Span::styled(status_summary(model), theme.label),
+        ]),
+        Line::from(Span::styled(status_hint(model), theme.hint)),
     ];
+    frame.render_widget(
+        Paragraph::new(status_lines)
+            .wrap(Wrap { trim: false })
+            .block(Block::bordered().border_style(theme.border)),
+        status,
+    );
+
+    // The `> ` marker stays directly attached to the label so the frozen
+    // rendering test ("> Run the development server") keeps passing.
+    let mut lines = Vec::new();
     for (index, entry) in model.entries.iter().enumerate() {
         let chosen = index == model.selected;
         let marker = if chosen { "> " } else { "  " };
@@ -200,11 +326,16 @@ pub(crate) fn view(frame: &mut Frame, model: &Model, theme: &Theme) {
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
             .block(Block::bordered().border_style(theme.border)),
-        body,
+        menu,
     );
 
+    let keys = if model.show_help {
+        text::KEYS_HELP
+    } else {
+        text::KEYS_HOME
+    };
     frame.render_widget(
-        Paragraph::new(Span::styled(text::KEYS_HOME, theme.hint))
+        Paragraph::new(Span::styled(keys, theme.hint))
             .block(Block::bordered().border_style(theme.border)),
         footer,
     );

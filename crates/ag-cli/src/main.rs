@@ -26,6 +26,7 @@ mod commands;
 mod config;
 mod interactive;
 mod output;
+mod project_state;
 mod request;
 mod scaffold;
 #[cfg(feature = "tui")]

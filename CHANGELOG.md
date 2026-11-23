@@ -7,6 +7,19 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Honest roadmap progress audit (task E1)
+
+Added:
+
+- `docs/audits/estado-honesto-roadmap.md`: measured the real, verifiable
+  roadmap progress with an explicit reproducible counting rule. Global
+  progress of the full 0-10 roadmap is 143/335 = 42.6% (started phases
+  0-4.8: 143/195 = 73.3%); 0 of 16 phases formally complete and the
+  pre-Phase-5 gate still open (3 pending rows). Includes a per-phase table,
+  the not-done list, and why the figure is not higher. Evidence is
+  file:line, verified commits and reproducible commands; no source_ids
+  needed (no normative/compliance decision).
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

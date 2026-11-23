@@ -7,6 +7,25 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Audit/Deny documentation reconciliation (task D1, roadmap-avance)
+
+Added:
+
+- `docs/audits/PRE_FASE5_RELEASE_GATE.md`: "Wave 18 / D1 reconciliation addendum"
+  resolves the honest-status finding by naming the stale text.
+  `docs/roadmap/STATUS.md:27-29` is the dated 2026-11-21 alpha.1 snapshot
+  (Audit `fail`, Deny `pending`, issues #173/#174); the authoritative rows 28-29
+  are `pass` on merged commit `800b671` (`Closes #198`, `url` 2.5.9). Re-verified
+  2026-11-22 with `cargo audit` (exit 0, 0 vulnerabilities, 4 allowed warnings,
+  no RUSTSEC-2026-0592) and `cargo deny check` (exit 0, advisories/bans/licenses/
+  sources ok). Additive: no gate row flipped, no issue closed, no snapshot removed.
+- `docs/roadmap/STATUS.md`: end-of-file D1 addendum points at the live truth
+  without shifting the existing `path:linea` citations used by other audits.
+- Descriptors `docs/kaizen/pr-drafts/community18-doc-reconcile.md` and its mirror
+  `docs/pr-drafts/community18-doc-reconcile.md`.
+
+Changed: none. `Closes: none`. Refs #173, #174, #198 as context only.
+
 ### ADR-0001: autonomia nivel 3 (registro de decision ya vigente)
 
 Added:

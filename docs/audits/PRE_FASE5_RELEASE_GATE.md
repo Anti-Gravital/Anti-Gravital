@@ -120,3 +120,58 @@ gate rows are unchanged — only the execution sequence is:
 | 9 | `docs/audits/pre-fase5-examples.md` | done (PR 6) |
 | 10 | `docs/audits/pre-fase5-docs-reconciliation.md` | done (issue #71) |
 | 11 | `docs/audits/PRE_FASE5_RELEASE_GATE.md` | this file |
+
+## Wave 18 / D1 reconciliation addendum (2026-11-22)
+
+Scope: resolve the single live contradiction reported by the honest-status team
+between this gate and the roadmap board. This section is additive. It rewrites
+no dated snapshot, flips no gate row and closes no issue.
+
+### Which text is stale
+
+- Authoritative: the Audit and Deny rows above (lines 28-29), dated 2026-11-22,
+  are `pass` on merged commit
+  `800b671900d765897ff28a581ae5b92cb81b698b`
+  ("fix(security): upgrade url to 2.5.9 and refresh gate evidence (Closes #198)").
+  `Cargo.lock` pins `url` 2.5.9. The commit is an ancestor of `main`:
+  `git merge-base --is-ancestor 800b671 HEAD` -> exit 0.
+- Stale: `docs/roadmap/STATUS.md:27-29` is the dated "Hito alpha (ola 5,
+  2026-11-21)" snapshot. It lists Audit as `fail` and Deny as `pending`, naming
+  issues #173 and #174 as the reasons. That text predates `800b671` and is kept
+  verbatim as a historical snapshot; it is not the live state. The issue board
+  records #173 and #174 as CLOSED (wave-9 addendum of
+  `docs/audits/issue-board-reconciliation.md`); this addendum does not change
+  their status.
+- Gate header (line 10, "Status: OPEN - gate not yet evaluated") describes the
+  gate as a whole: Fuzz 24h, Benchmarks and Open debt are still `pending`, so
+  Phase 5 stays blocked. It does not mean the `pass` rows lack evidence. The
+  header text is left unchanged (additive change; L-4 caution preserved).
+
+### Verified evidence (re-run in this worktree, 2026-11-22)
+
+Worktree `worktrees18/doc-reconcile`, branch `community18/doc-reconcile`,
+HEAD `f86433726e140f693ff36265e7be86e5dae80af0` (== `origin/main`),
+`rustc`/`cargo` 1.99.1.
+
+- `cargo audit` -> exit 0, "warning: 4 allowed warnings found", 0 vulnerabilities.
+  Warnings: RUSTSEC-2026-0440 (astral-tokio-tar 0.6.4), RUSTSEC-2026-0543
+  (chrono 0.4.45), RUSTSEC-2026-0542 (humantime 2.4.0), RUSTSEC-2024-0436
+  (paste 1.0.15). RUSTSEC-2026-0592 (`url` 2.5.8) is absent from the report.
+- `cargo deny check advisories` -> exit 0, `advisories ok` (four dated ignores
+  reported as `advisory-not-detected` warnings, all exit 0).
+- `cargo deny check` -> exit 0,
+  `advisories ok, bans ok, licenses ok, sources ok`.
+
+Verdict: Audit/Deny are `pass` on merged `main` with a reproducible command,
+a date and a commit. No gate row was moved and no issue was closed. Fuzz 24h,
+Benchmarks and Open debt remain `pending`; the gate remains OPEN and Phase 5
+remains blocked.
+
+### Scope boundary
+
+The separate S-11 findings about the gate header wording and the alpha.1
+release QA table (`docs/releases/0.1.0-alpha.1.md` still `PENDING` while
+`docs/audits/alpha-smoke-evidence.md` records 10/10 PASS on commit `a041479`)
+are left for the orchestrator. D1 edits neither file, flips no row and uses no
+`Closes #NNN` keyword. No `source_id` applies: this is engineering evidence
+(file:line, commit, command output), not a normative/compliance decision.

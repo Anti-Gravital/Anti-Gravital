@@ -572,3 +572,20 @@ Estado: Pendiente. Vease `docs/roadmap/fase-09-plugins-wasi.md`.
 ## Fase 10 - Endurecimiento y 1.0
 
 Estado: Pendiente. Vease `docs/roadmap/fase-10-endurecimiento-y-1.0.md`.
+
+---
+
+## Addendum de reconciliacion D1 (2026-11-22)
+
+Este addendum es aditivo y no modifica ninguna casilla ni el estado de ningun
+issue. El parrafo "Hito alpha (ola 5, 2026-11-21)" (lineas 18-30) es un snapshot
+fechado: en ese momento las filas Audit y Deny se llamaban `fail`/`pending` y
+citaban los issues #173 y #174. Estado vivo: ambas filas estan en `pass` desde
+el 2026-11-22, commit mergeado `800b671` (`Closes #198`, `url` 2.5.9 en
+`Cargo.lock`); #173 y #174 estan CLOSED en el tablero. Evidencia verificada el
+2026-11-22 sobre `main`: `cargo audit` exit 0 (0 vulnerabilidades, 4 avisos
+permitidos) y `cargo deny check` exit 0 (`advisories ok, bans ok, licenses ok,
+sources ok`). Fuente autoritativa: `docs/audits/PRE_FASE5_RELEASE_GATE.md:28-29`
+y su "Wave 18 / D1 reconciliation addendum". Esta nota no cierra la puerta:
+Fuzz 24h, Benchmarks y Open debt siguen `pending` y la puerta pre-Fase 5 sigue
+ABIERTA.

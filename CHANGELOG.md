@@ -9,6 +9,7 @@ aun no etiquetados.
 
 
 
+
 ### Honest product status (task E4, estado-honesto)
 
 Added:
@@ -3087,6 +3088,28 @@ Changed:
 
 Refs #76, #87, #112, #141, #142, #152, #154, #156, #157, #178, #179,
 #180, #185, #208 and Fabric #2 as context only.
+
+### Innovation and tooling opportunities (task O3)
+
+Added:
+
+- `docs/audits/oportunidades-innovacion.md`: catalog of nine component,
+  tooling and process opportunities, each with a description, potential value,
+  concrete evidence (documented spike, measured number or labelled hypothesis),
+  dependency risk (S-9), a decision (adopt-pilot / keep-watching / reject) and a
+  reason. Includes a `Hipos a rechazar` section against rules 10/12/21.
+- Decisions: adopt-pilot for the tracked DSL benchmark, golden diagnostics
+  tests, the scheduled 24 h fuzz runner, the benchmark reference-host run and
+  the deterministic hooks test; keep-watching for the chumsky, chrono/object_store
+  and instant-acme upgrades; reject the unmeasured ACME polling rewrite and the
+  five hype items.
+
+Changed:
+
+- No source, manifest, lockfile, CI or release-gate change; no gate row moved
+  and no issue closed. This is an evaluation, not an implementation.
+
+Refs: board task `oportunidades` O3. Closes: none.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

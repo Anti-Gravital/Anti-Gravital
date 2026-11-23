@@ -7,6 +7,21 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Honest release-gate status audit (estado-honesto E2)
+
+Added:
+
+- `docs/audits/estado-honesto-puertas.md`: gate-by-gate evidence matrix for
+  Fuzz 24h, Benchmarks, Audit/Deny, Coverage, signing, real-mailbox DKIM,
+  open debt and CI, with exact commands, commits, hashes and unblock
+  conditions. Explicitly flags the four prepared-but-not-executed gates and
+  records the last green CI commit (`c3105cf8`) and the four workflows that
+  are red on `main` HEAD (`kaizen-gates`, `guardrails`, `docs`,
+  `kaizen-loop.yml`). No gate row was flipped and no issue was closed.
+
+Refs #156, #157, #141, #178, #142, #208. Documentation-only; no runtime
+behaviour, protected path or external service involved.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

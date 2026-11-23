@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4-workers",
+  "goal": "RFC-0020 PR4: migrar ag-workers de std::env::var directo a EnvLoader declarado",
+  "kpi": "Paridad de defaults verificada; 3 claves declaradas; CI verde; allow-list actualizada",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T18:24:56Z",
+  "updated": "2026-11-23T18:24:56Z"
+}

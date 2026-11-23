@@ -71,8 +71,8 @@ tardar)` y el KPI de tiempo no se aplica; se muestra honestamente.
 | --- | --- | --- | --- |
 | pendiente | `○` | `[ ]` | `PENDIENTE` |
 | activo | `◉` + spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` | `[>]` + `|/-\` | `INICIO` |
-| ok | `✓` | `[x]` | `OK` |
-| error | `✗` | `[!]` | `FALLO` |
+| ok | `OK` | `[x]` | `OK` |
+| error | `ERR` | `[!]` | `FALLO` |
 | omitido | `–` | `[-]` | `OMITIDO` |
 
 Cada símbolo va acompañado de la palabra (`OK`, `FALLO`, `PENDIENTE`). En
@@ -98,7 +98,7 @@ Cada símbolo va acompañado de la palabra (`OK`, `FALLO`, `PENDIENTE`). En
 | Anti-Gravital · instalación rápida                    v0.1.0-alpha.2  |
 +----------------------------------------------------------------------+
 | Etapas                                                               |
-|  1 ✓ Resolver versión       OK (v0.1.0-alpha.2 desde releases)       |
+|  1 OK Resolver versión       OK (v0.1.0-alpha.2 desde releases)       |
 |  2 ◉ Detectar plataforma    linux-x86_64 · glibc            ⠙         |
 |  3 ○ Descargar              PENDIENTE                                 |
 |  4 ○ Verificar SHA-256      PENDIENTE                                 |
@@ -116,7 +116,7 @@ Cada símbolo va acompañado de la palabra (`OK`, `FALLO`, `PENDIENTE`). En
 **Frame B — descarga (progreso con total conocido):**
 
 ```
-|  2 ✓ Detectar plataforma    OK (linux-x86_64 · glibc)                 |
+|  2 OK Detectar plataforma    OK (linux-x86_64 · glibc)                 |
 |  3 ◉ Descargar       [████████████░░░░░░░░] 58% 5.4/9.3 MiB ETA 2s 2.1 MiB/s |
 |  4 ○ Verificar SHA-256      PENDIENTE                                 |
 +----------------------------------------------------------------------+
@@ -126,12 +126,12 @@ Cada símbolo va acompañado de la palabra (`OK`, `FALLO`, `PENDIENTE`). En
 **Frame C — verificación y éxito (estado final):**
 
 ```
-|  3 ✓ Descargar              OK (9.3/9.3 MiB)                          |
+|  3 OK Descargar              OK (9.3/9.3 MiB)                          |
 |  4 ◉ Verificar SHA-256      comparando 64 hex…               ⠹         |
 ...
-|  4 ✓ Verificar SHA-256      OK (digest coincide, fail-closed)         |
-|  5 ✓ Instalar               OK (/home/.../.cargo/bin/ag)              |
-|  6 ✓ Listo                  ag 0.1.0-alpha.2 · 6.8s · 0 compilaciones |
+|  4 OK Verificar SHA-256      OK (digest coincide, fail-closed)         |
+|  5 OK Instalar               OK (/home/.../.cargo/bin/ag)              |
+|  6 OK Listo                  ag 0.1.0-alpha.2 · 6.8s · 0 compilaciones |
 +----------------------------------------------------------------------+
 | Estado   Listo. Ejecuta: ag --version                                 |
 +----------------------------------------------------------------------+
@@ -141,8 +141,8 @@ Cada símbolo va acompañado de la palabra (`OK`, `FALLO`, `PENDIENTE`). En
 
 ```
 +----------------------------------------------------------------------+
-|  3 ✓ Descargar              OK (9.3/9.3 MiB)                          |
-|  4 ✗ Verificar SHA-256      FALLO (digest no coincide)                |
+|  3 OK Descargar              OK (9.3/9.3 MiB)                          |
+|  4 ERR Verificar SHA-256      FALLO (digest no coincide)                |
 |  5 – Instalar               OMITIDO (verificación fallida)            |
 |  6 – Listo                  OMITIDO                                   |
 +----------------------------------------------------------------------+
@@ -303,7 +303,7 @@ Cada criterio indica qué aparece y qué NO aparece en stdout.
 | # | Comando / escenario | Debe aparecer en stdout | No debe aparecer |
 | --- | --- | --- | --- |
 | CA-1 | `script -qec 'bash install.sh' /dev/null` con TTY | Las 6 etiquetas de etapa, un indicador de etapa activa, 1 línea de estado, `Listo`, `0 compilaciones` | Más de 25 filas visibles a la vez; una línea nueva por evento; chistes |
-| CA-2 | `NO_COLOR=1 TERM=xterm-256color bash install.sh </dev/null >out.txt` | Símbolos `✓/✗/○` + palabras `OK/FALLO/PENDIENTE` | Secuencias `\033[` (comprobar `grep -q $'\033' out.txt` -> falso) |
+| CA-2 | `NO_COLOR=1 TERM=xterm-256color bash install.sh </dev/null >out.txt` | Símbolos `OK/ERR/○` + palabras `OK/FALLO/PENDIENTE` | Secuencias `\033[` (comprobar `grep -q $'\033' out.txt` -> falso) |
 | CA-3 | `CI=true bash install.sh >out.txt 2>&1` (y equivalente PS) | Exactamente el formato `[ag-install] N/6 ...` de 3.2; `6/6 Listo` | Spinner, `\r`, redibujado, color |
 | CA-4 | Asset con SHA-256 modificado en entorno sintético | `4/6 Verificar SHA-256: FALLO`, `no se escribió ningún binario`, `exit=3`, "OMITIDO" en etapas 5-6 | `Listo`, ruta de binario instalado |
 | CA-5 | Enviar `q` en etapa 3 | Overlay `¿Cancelar la instalación? [s/N]`; con `n` continúa | Cancelación sin confirmación |

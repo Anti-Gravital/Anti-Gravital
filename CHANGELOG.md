@@ -8,6 +8,47 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-workers` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-workers/src/config.rs`: `workers_env_declarations()` lists the six
+  fixed environment keys the crate reads (`AG_WORKERS_ENABLED`,
+  `AG_WORKERS_MODE`, `AG_WORKERS_BACKEND`, `AG_WORKERS_SHUTDOWN_TIMEOUT`,
+  `AG_WORKERS_MAX_PAYLOAD_BYTES`, `AG_WORKERS_POISON_GUARD_ATTEMPTS`) plus the
+  per-queue `AG_WORKERS_QUEUE_<NAME>_MIN`/`_MAX` keys derived from the queues
+  present in a config. None is a secret and all are declared `EnvType::String`:
+  the previous code parsed each value per field, so a typed declaration would
+  change the fallback. `WorkersConfig::apply_env` keeps its signature and
+  resolves through `ag_core::EnvLoader` with `load_process()`; a test-only
+  injected source removes the `set_var` races (audit A1).
+- `crates/ag-workers/src/config_tests.rs`: a parity oracle that compares the
+  old direct-read behavior with the declared loader for every key (defaults
+  when unset, mode/backend variant handling, `parse_duration` reuse,
+  `1`/`true`/`yes` boolean semantics, per-field numeric fallback and
+  per-queue overrides), plus schema, isolation and loader-shape assertions.
+- `ag-core` added as an internal workspace dependency of `ag-workers`; the
+  `check-dependency-direction.sh` allow-list records the workers -> core edge
+  (Arq-Tecnica 5.3 regla 2, RFC-0020 PR4). No new external dependency (S-9).
+
+Changed:
+
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the third PR 4 crate.
+
+Verification: `cargo test -p ag-workers` (88 lib/integration/doctest green),
+all-features crate tests (89 lib green, `postgres` compiles), workspace
+all-features tests (exit 0, 90 green result lines), `cargo fmt --all -- --check`,
+`cargo clippy -p ag-workers --all-targets --all-features -- -D warnings`,
+`bash scripts/kaizen check` (green), `bash scripts/ag-check` (green, PASS=8/8
+after warming the local advisory cache; an intermediate run failed only
+`audit`/`deny` with no network, and both passed offline via `cargo audit
+--no-fetch` / `cargo deny --offline check`),
+`bash scripts/check-dependency-direction.sh` (green, forbidden edges still
+detected), `bash tools/check-file-size.sh`, `git diff --check` and content
+scans. Refs RFC-0020 PR 4 and audit A2. No default value, resolution order,
+validation rule, public API signature or `postgres` feature changed.
+
 ### Declared environment schema for `ag-observe` (RFC-0020 PR 4, audit A2)
 
 Added:

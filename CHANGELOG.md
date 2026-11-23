@@ -7,6 +7,27 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Catalogo de oportunidades de funciones (O2 / oportunidades)
+
+Added:
+
+- `docs/audits/oportunidades-funciones.md`: catalogo priorizado de 15
+  oportunidades con valor, coste, riesgo, RFC requerida y criterio de
+  exclusion. Separa small wins de la fase actual (doc-vs-CLI, `ag generate
+  --check`, `--output json`, `ag describe`, `ag doctor`), candidatos bloqueados
+  por dependencia no verificada o decision humana (archivo cifrado de
+  secretos, completions), items ya documentados en Fase 5+ que no deben
+  reproponerse, y propuestas rechazadas con razon.
+- Cada oportunidad cita evidencia repositorio-local (`EV-xx`) y verifica
+  dependencias contra `Cargo.toml`/`Cargo.lock` (S-9). `clap_complete`, `age` y
+  `age-core` estan marcadas como NO VERIFICADAS.
+
+Changed:
+
+- Sin cambios de codigo, manifiestos ni lockfiles. Sin rutas protegidas (L-4).
+
+Refs: tarea `O2-features` del proyecto `oportunidades`. Autonomia `propose`.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

@@ -8,6 +8,48 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-auth` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-auth/src/config.rs`: `auth_env_declarations()` lists the eight
+  environment keys the crate reads (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`,
+  `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`, `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`). Four are
+  secrets and are declared `secret(true)`: both JWT keys and both OAuth client
+  secrets. All are declared `EnvType::String` so the original per-field
+  fallback on unset or non-UTF-8 values is preserved. `AuthConfig::from_env`
+  keeps its signature (`Result<Self, AuthConfigError>`) and resolves through
+  `ag_core::EnvLoader` with `load_process()`; absence of a JWT key still maps to
+  `AuthConfigError::MissingVar`. A test-only injected source removes the
+  `set_var` races (audit A1). Secret bytes are read only through `expose()` in
+  `from_loaded_env`; the public `AuthConfig` fields and all defaults are
+  unchanged.
+- `crates/ag-auth/src/config_tests.rs`: a parity oracle that compares the old
+  direct-read behavior with the declared loader for every key (defaults when
+  unset, exact JWT error mapping, empty-value preservation, independent OAuth
+  Option fields, undeclared-key isolation), plus schema assertions for secret
+  classification, key count and redaction. A canary test proves a secret is
+  never emitted through `Debug`, `Display` or error output.
+- `ag-core` added as an internal workspace dependency of `ag-auth`; the
+  `check-dependency-direction.sh` allow-list records the auth -> core edge
+  (Arq-Tecnica 5.3 regla 2, RFC-0020 PR4). No new external dependency (S-9).
+
+Changed:
+
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the fifth PR 4 crate.
+
+Verification: `cargo test -p ag-auth` and `--all-features`, workspace
+all-features tests, `cargo fmt --all -- --check`, `cargo clippy -p ag-auth
+--all-targets --all-features -- -D warnings`,
+`RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps`,
+`bash scripts/ag-check`, `bash scripts/kaizen check`,
+`bash scripts/check-dependency-direction.sh` (green, forbidden edges still
+detected), `bash tools/check-file-size.sh`, `git diff --check` and content
+scans. Refs RFC-0020 PR 4 and audit A2. No default value, resolution order,
+error type, public API signature or feature (`persistent`, `mail`) changed.
+
 ### Declared environment schema for `ag-realtime` (RFC-0020 PR 4, audit A2)
 
 Added:

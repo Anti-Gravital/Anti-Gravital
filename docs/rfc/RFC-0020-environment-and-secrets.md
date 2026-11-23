@@ -110,6 +110,26 @@
   regla 2). The remaining crates in audit A2 (`ag-auth`, `ag-cache`, `ag-cli`)
   are still pending. This note records stage progress only; the accepted design
   above is not modified.
+- Stage B / PR 4 (wave 26, 2026-11-23): `ag-auth` is the fifth crate migrated
+  off direct `std::env::var` reads. `crates/ag-auth/src/config.rs` declares its
+  eight keys through `EnvDeclaration`/`EnvLoader`, all as `EnvType::String` so
+  the original per-field fallback on unset or non-UTF-8 values is preserved.
+  Four are secrets and are declared `secret(true)`: `JWT_PRIVATE_KEY`,
+  `JWT_PUBLIC_KEY`, `GOOGLE_CLIENT_SECRET` and `GITHUB_CLIENT_SECRET`; their
+  bytes are read only through an explicit `expose()` call in `from_loaded_env`
+  and never appear in a value-free error or a redacted `Debug`/`Display`.
+  `AuthConfig::from_env` keeps its `Result<Self, AuthConfigError>` signature and
+  uses `load_process`; absence of a JWT key still maps to
+  `AuthConfigError::MissingVar` with the same message. A test-only injected
+  source removes the `set_var` races (audit A1). Parsing and defaults stay in
+  `from_loaded_env`, so the `localhost` / `http://localhost:8080` WebAuthn
+  defaults and independent OAuth `Option` fields are byte-identical. Parity
+  tests in `crates/ag-auth/src/config_tests.rs` compare the declared path
+  against the previous direct reads for every key. `ag-core` is added as an
+  internal dependency with the dependency-direction allow-list recording
+  auth -> core (Arq-Tecnica 5.3 regla 2). The remaining crates in audit A2
+  (`ag-cache`, `ag-cli`) are still pending. This note records stage progress
+  only; the accepted design above is not modified.
 
 ## 1. Motivation
 

@@ -16,6 +16,7 @@ version = "0.1.0-alpha.2"
 name = "ag-auth"
 version = "0.1.0-alpha.2"
 dependencies = [
+ "ag-core",
  "ag-data",
  "ag-mail",
  "base64ct",

@@ -61,6 +61,7 @@ ROSTER=(
 )
 
 ALLOWED=(
+    'ag-auth|ag-core|Arq-Tecnica 5.3 regla 2 (auth -> core); RFC-0020 PR4'
     'ag-auth|ag-data|Arq-Tecnica 5.3 regla 2'
     'ag-auth|ag-mail|CLAUDE.md:347 y Arq-Tecnica 5.3 regla 6'
     'ag-cache|ag-core|Arq-Tecnica 5.3 regla 2'

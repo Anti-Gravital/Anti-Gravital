@@ -552,6 +552,7 @@ technical constitution, and documentation takes precedence over code.
 | [`docs/releases/0.1.0-alpha.2.md`](docs/releases/0.1.0-alpha.2.md) | Scope, known limitations and verification evidence for the alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Live checkbox-level status of every phase |
 | [`docs/architecture/`](docs/architecture/) | Architecture chapters derived from the masters |
+| [Dependency-direction guard](docs/architecture/dependency-direction-guard.md) | Opt-in local check for crate dependency direction (rule 15): run `scripts/check-dependency-direction.sh`, offline and toolchain-free |
 | [`docs/rfc/`](docs/rfc/) and [`docs/adr/`](docs/adr/) | Design proposals and accepted decisions |
 | [`docs/manual/`](docs/manual/) | User manual chapters (Shield as library, first API, domains/TLS/mail) |
 | [`docs/dns/`](docs/dns/README.md) | Bilingual domain-to-deploy guide: attach, verify, environments, public/private, troubleshooting |
@@ -1086,6 +1087,7 @@ sobre el codigo.
 | [`docs/releases/0.1.0-alpha.2.md`](docs/releases/0.1.0-alpha.2.md) | Alcance, limitaciones conocidas y evidencia de verificacion del alpha |
 | [`docs/roadmap/STATUS.md`](docs/roadmap/STATUS.md) | Estado vivo a nivel de casilla de cada fase |
 | [`docs/architecture/`](docs/architecture/) | Capitulos de arquitectura derivados de los maestros |
+| [Guarda de direccion de dependencias](docs/architecture/dependency-direction-guard.md) | Comprobacion local opt-in de la direccion de dependencias (regla 15): ejecuta `scripts/check-dependency-direction.sh`, sin red ni toolchain |
 | [`docs/rfc/`](docs/rfc/) y [`docs/adr/`](docs/adr/) | Propuestas de diseno y decisiones aceptadas |
 | [`docs/manual/`](docs/manual/) | Capitulos del manual de usuario (Shield como libreria, primera API, dominios/TLS/correo) |
 | [`docs/dns/`](docs/dns/README.md) | Guia bilingue del circulo dominio-despliegue: adjunto, verificacion, entornos, publico/privado, resolucion de problemas |

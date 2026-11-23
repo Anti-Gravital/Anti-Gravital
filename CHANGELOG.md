@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Audit/Deny documentation reconciliation (task D1, roadmap-avance)
 
 Added:
@@ -34,7 +35,6 @@ Added:
 - Descriptores `docs/kaizen/pr-drafts/community14-f2-adr.md` y su espejo `docs/pr-drafts/community14-f2-adr.md` (tarea F2 de `kaizen-gates-green`).
 
 Refs: LOOP.md L-3/L-4, PROTOCOL.md seccion 7, ADR-0002/0003, CONSENSUS.md:18, `kaizen-swarm:253`.
-
 
 ### Framework selftests runner (task F1, kaizen-gates-green)
 
@@ -3221,6 +3221,18 @@ Changed:
 
 No se cierra ningun gate ni se aprueba ninguna oportunidad: el documento es una
 propuesta de ordenacion. Refs #156, #157, #112, #70, #113.
+
+### Guarda automatica de direccion de dependencias (task A5, roadmap-avance)
+
+Added:
+
+- `scripts/check-dependency-direction.sh`: comprobacion local opt-in que lee los 19 `crates/*/Cargo.toml` y afirma roster, aislamiento de `ag-core`, lista blanca de aristas internas, direcciones prohibidas, arista obligatoria `ag-edge -> ag-domains` y ausencia de ciclos. Falla cerrado nombrando el par de crates y la linea del manifiesto; sin toolchain, sin red, sin secretos y sin dependencias nuevas.
+- `docs/architecture/dependency-direction-guard.md`: politica verificada, fuentes in-repo, tablas de aristas permitidas/prohibidas, uso, limites y mantenimiento. Puntero anadido a las secciones English y Espanol del README.
+- Descriptor `docs/kaizen/pr-drafts/community18-dep-guard.md` y su espejo `docs/pr-drafts/community18-dep-guard.md` (tarea A5 del tablero `roadmap-avance`, sin issue de GitHub).
+
+No cambia: `.github/`, `scripts/ag-check`, ningun manifiesto Cargo ni ninguna regla de dependencias. Verificacion: guarda en verde en el workspace real (19 crates, 17 aristas declaradas, 1 autodependencia de test excluida) y cinco escenarios de violacion simulados mas dos de uso, todos con el comportamiento esperado; salida exacta en el descriptor.
+
+Refs: CLAUDE.md reglas 14/15, `ANTI-GRAVITAL-Arquitectura-Tecnica` seccion 5.3, ADR-0007/0012, RFC-0011/0012, `docs/audits/oportunidades-arquitectura.md` A5.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

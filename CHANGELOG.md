@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Honest product status (task E4, estado-honesto)
 
 Added:
@@ -3046,6 +3047,19 @@ Added:
   deferred to actionable (gate rows Fuzz 24h/Benchmarks/Open debt, Phase 5,
   a separate implementation PR). No production code, phase or API changed;
   #154 stays open with `Refs #154`.
+
+### Honest roadmap progress audit (task E1)
+
+Added:
+
+- `docs/audits/estado-honesto-roadmap.md`: measured the real, verifiable
+  roadmap progress with an explicit reproducible counting rule. Global
+  progress of the full 0-10 roadmap is 143/335 = 42.6% (started phases
+  0-4.8: 143/195 = 73.3%); 0 of 16 phases formally complete and the
+  pre-Phase-5 gate still open (3 pending rows). Includes a per-phase table,
+  the not-done list, and why the figure is not higher. Evidence is
+  file:line, verified commits and reproducible commands; no source_ids
+  needed (no normative/compliance decision).
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

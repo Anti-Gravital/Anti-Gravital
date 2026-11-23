@@ -9,7 +9,7 @@
     "dev2-api",
     "qa"
   ],
-  "stage": "execute",
+  "stage": "closed",
   "created": "2026-11-23T09:53:29Z",
-  "updated": "2026-11-23T09:53:30Z"
+  "updated": "2026-11-23T10:26:57Z"
 }

@@ -12,6 +12,7 @@ aun no etiquetados.
 
 
 
+
 ### Honest product status (task E4, estado-honesto)
 
 Added:
@@ -3148,6 +3149,21 @@ Changed:
 - Sin cambios de codigo, manifiestos ni lockfiles. Sin rutas protegidas (L-4).
 
 Refs: tarea `O2-features` del proyecto `oportunidades`. Autonomia `propose`.
+
+### Honest release-gate status audit (estado-honesto E2)
+
+Added:
+
+- `docs/audits/estado-honesto-puertas.md`: gate-by-gate evidence matrix for
+  Fuzz 24h, Benchmarks, Audit/Deny, Coverage, signing, real-mailbox DKIM,
+  open debt and CI, with exact commands, commits, hashes and unblock
+  conditions. Explicitly flags the four prepared-but-not-executed gates and
+  records the last green CI commit (`c3105cf8`) and the four workflows that
+  are red on `main` HEAD (`kaizen-gates`, `guardrails`, `docs`,
+  `kaizen-loop.yml`). No gate row was flipped and no issue was closed.
+
+Refs #156, #157, #141, #178, #142, #208. Documentation-only; no runtime
+behaviour, protected path or external service involved.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

@@ -113,3 +113,65 @@ pub(crate) fn cmd_describe(root: &Path) -> Result<(), String> {
     println!("Read-only: no files were written.");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_root(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("ag-describe-{}-{}", name, std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("fixture dir");
+        dir
+    }
+
+    #[test]
+    fn empty_directory_is_valid_data_not_an_error() {
+        let dir = temp_root("empty");
+        let data = describe_report(&dir).expect("empty dir describes cleanly");
+        assert!(data.layout.is_empty());
+        assert!(data.artifacts.is_empty());
+        assert!(!data.generated);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn recognized_markers_are_reported_in_fixed_order() {
+        let dir = temp_root("markers");
+        for marker in ["Cargo.toml", "schema.ag", "src"] {
+            let path = dir.join(marker);
+            if marker == "src" {
+                std::fs::create_dir_all(&path).expect("dir marker");
+            } else {
+                std::fs::write(&path, "").expect("file marker");
+            }
+        }
+        let data = describe_report(&dir).expect("markers describe cleanly");
+        assert_eq!(data.layout, vec!["Cargo.toml", "schema.ag", "src"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn project_label_never_contains_an_absolute_path() {
+        let dir = temp_root("label");
+        let data = describe_report(&dir).expect("label describes cleanly");
+        assert!(!data.project.contains('/'));
+        assert!(!data.project.contains('\\'));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn artifacts_are_sorted_by_target_then_path() {
+        let dir = temp_root("sorted");
+        let data = describe_report(&dir).expect("sorted describes cleanly");
+        let keys: Vec<_> = data
+            .artifacts
+            .iter()
+            .map(|a| (a.target, a.path.as_str()))
+            .collect();
+        let mut expected = keys.clone();
+        expected.sort();
+        assert_eq!(keys, expected);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

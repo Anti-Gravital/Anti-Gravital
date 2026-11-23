@@ -11,7 +11,7 @@
 //!   [`RuntimeConfig`] from it.
 //!
 //! Environment variables are read through the declared schema below (RFC-0020
-//! PR 4), not through scattered direct reads: [`workers_env_declarations`] is the
+//! PR 4), not through scattered direct reads: `workers_env_declarations` is the
 //! single auditable list and [`EnvLoader`] reads only those keys.
 
 use std::collections::BTreeMap;

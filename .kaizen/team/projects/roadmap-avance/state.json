@@ -1,0 +1,15 @@
+{
+  "slug": "roadmap-avance",
+  "goal": "Avanzar la hoja de ruta en la fase actual: guarda de dependencias, --output json y reconciliacion documental",
+  "kpi": "3 cambios con test/CI real, sin saltar Fase 5 ni relajar gates",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "architect",
+    "dev2-api"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T03:42:54Z",
+  "updated": "2026-11-23T03:58:10Z"
+}

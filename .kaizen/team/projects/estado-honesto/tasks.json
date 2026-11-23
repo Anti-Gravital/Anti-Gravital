@@ -1,0 +1,30 @@
+[
+  {
+    "task": "E1-fases-y-porcentaje",
+    "owner": "facilitador-equipo",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:43Z"
+  },
+  {
+    "task": "E2-puertas-y-gates",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  },
+  {
+    "task": "E3-deuda-y-issues",
+    "owner": "qa",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  },
+  {
+    "task": "E4-producto-entregable",
+    "owner": "analista-negocios",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  }
+]

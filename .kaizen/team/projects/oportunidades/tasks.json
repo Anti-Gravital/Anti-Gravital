@@ -1,0 +1,30 @@
+[
+  {
+    "task": "O1-arquitectura",
+    "owner": "architect",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  },
+  {
+    "task": "O2-features",
+    "owner": "innovation",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  },
+  {
+    "task": "O3-innovacion",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  },
+  {
+    "task": "O4-consolidacion",
+    "owner": "facilitador-equipo",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T01:55:44Z"
+  }
+]

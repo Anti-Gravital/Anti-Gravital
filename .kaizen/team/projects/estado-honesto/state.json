@@ -1,0 +1,15 @@
+{
+  "slug": "estado-honesto",
+  "goal": "Medir con evidencia el avance real de la hoja de ruta, deuda y producto, en porcentaje verificable",
+  "kpi": "Informe con % por fase y global, cada cifra con source_ids/comandos reproducibles; 0 afirmaciones sin evidencia",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "qa",
+    "analista-negocios"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T01:55:13Z",
+  "updated": "2026-11-23T01:55:44Z"
+}

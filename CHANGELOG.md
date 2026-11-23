@@ -7,6 +7,25 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Honest product status (task E4, estado-honesto)
+
+Added:
+
+- `docs/audits/estado-honesto-producto.md`: evidence-backed statement of what a
+  user can actually do today with the installed `0.1.0-alpha.2` (real terminal
+  evidence: source/alpha install, scaffold, generate, offline build, loopback
+  HTTP 200, local DNS/deploy, TUI, read-only JSON), what is not available yet,
+  and a verifiable definition of "producto completo y consistente" (G1-G10) tied
+  to the pre-Phase-5 release gate and the roadmap.
+- Honest gap: 12 of 15 gate rows pass and 3 remain pending (Fuzz 24h #156,
+  Benchmarks #157, Open debt); release gate must be re-evaluated on the final
+  consolidation commit. No aspirational feature is reported as done.
+- Descriptor `docs/kaizen/pr-drafts/community15-status-producto.md` with
+  `Closes: none` (E4 is a board task with no GitHub issue).
+
+Refs: estado-honesto/E4. Documentation only; no code, protected path or gate
+state was changed.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

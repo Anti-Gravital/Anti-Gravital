@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://anti-gravital.dev/mcp/cli-json-0.2.0.schema.json",
   "title": "Anti-Gravital CLI versioned JSON output",
-  "description": "Shape of `ag --output json` for read-only commands. RFC-0021 section 4.3, RFC-0020 (env), RFC-0033 (domain loop), RFC-0034 (local deploy) and RFC-0018 (config). Pre-0.5 contract: unstable; an incompatible shape change bumps contract_version. The config.get, env.list and env.check shapes are additive and defined in this version; see the contract document for their CLI dispatch status.",
+  "description": "Shape of `ag --output json` for read-only commands. RFC-0021 section 4.3, RFC-0020 (env), RFC-0033 (domain loop), RFC-0034 (local deploy), RFC-0018 (config) and RFC-0024 (project.describe). Pre-0.5 contract: unstable; an incompatible shape change bumps contract_version. The config.get, env.list, env.check and project.describe shapes are additive and defined in this version; see the contract document for their CLI dispatch status.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -26,7 +26,8 @@
         "dns.status",
         "config.get",
         "env.list",
-        "env.check"
+        "env.check",
+        "project.describe"
       ]
     },
     "status": {
@@ -66,6 +67,9 @@
         },
         {
           "$ref": "#/$defs/envCheckData"
+        },
+        {
+          "$ref": "#/$defs/describeData"
         }
       ]
     },
@@ -773,6 +777,89 @@
           "items": {
             "$ref": "#/$defs/envProblemView"
           }
+        }
+      }
+    },
+    "describeArtifactView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "path",
+        "source",
+        "bytes",
+        "fingerprint",
+        "generated"
+      ],
+      "properties": {
+        "target": {
+          "enum": [
+            "docker",
+            "k8s"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "generated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "describeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "layout",
+        "artifacts",
+        "generated",
+        "in_sync"
+      ],
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Cargo.toml",
+              "ag.toml",
+              "schema.ag",
+              "config.toml",
+              "src",
+              "crates",
+              "deploy",
+              "templates"
+            ]
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/describeArtifactView"
+          }
+        },
+        "generated": {
+          "type": "boolean"
+        },
+        "in_sync": {
+          "type": "boolean"
         }
       }
     }

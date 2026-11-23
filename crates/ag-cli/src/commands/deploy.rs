@@ -23,7 +23,7 @@ mod tests;
 #[allow(unused_imports)]
 pub(crate) use apply::cmd_deploy_apply;
 #[allow(unused_imports)]
-pub(crate) use model::{DeployError, DeployPlan, DeployTarget};
+pub(crate) use model::{project_label, DeployError, DeployPlan, DeployTarget};
 #[allow(unused_imports)]
 pub(crate) use plan::{build_plan, cmd_deploy_plan, parse_plan_id, plan_report};
 #[allow(unused_imports)]

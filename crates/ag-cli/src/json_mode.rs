@@ -5,6 +5,7 @@
 use crate::cli::*;
 use crate::commands::config::get_data;
 use crate::commands::deploy::{plan_report, status_report, DeployTarget};
+use crate::commands::describe::describe_report;
 use crate::commands::dns::{load_plan, resolve_status};
 use crate::commands::env::{check_data, list_data, EnvRequest};
 use crate::commands::schema::{diff_report, lint_report};
@@ -76,7 +77,7 @@ pub(crate) fn run_json_command(command: &Commands) -> i32 {
                 "--output json is not supported by this command in contract version \
                  {CONTRACT_VERSION}; supported commands: config.get, schema.lint, \
                  schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, \
-                 dns.status, env.list, env.check"
+                 dns.status, env.list, env.check, project.describe"
             ),
         );
         return 2;
@@ -219,6 +220,16 @@ pub(crate) fn run_json_command(command: &Commands) -> i32 {
         Commands::Deploy {
             command: DeployCommands::Status,
         } => match status_report(&project_root()) {
+            Ok(data) => {
+                output::emit(name, data);
+                0
+            }
+            Err(message) => {
+                output::emit_error(name, "read_failed", message);
+                1
+            }
+        },
+        Commands::Describe => match describe_report(&project_root()) {
             Ok(data) => {
                 output::emit(name, data);
                 0

@@ -166,6 +166,45 @@ impl DeployStatusData {
     }
 }
 
+/// One artifact in a `project.describe` result (RFC-0024 section 4.2).
+///
+/// `path` is the generated destination and `source` the authored input; both
+/// are slash-separated and relative to the project root. No absolute path,
+/// secret or file content is emitted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DescribeArtifactView {
+    /// `docker` or `k8s`.
+    pub(crate) target: &'static str,
+    /// Destination under `deploy/generated/`.
+    pub(crate) path: String,
+    /// Authored source path under the project.
+    pub(crate) source: String,
+    /// Size of the authored file in bytes.
+    pub(crate) bytes: u64,
+    /// 16-hex-digit FNV-1a fingerprint of the source bytes.
+    pub(crate) fingerprint: String,
+    /// Whether the generated destination currently exists on disk.
+    pub(crate) generated: bool,
+}
+
+/// Data of `project.describe` (read-only, RFC-0024).
+///
+/// New additive shape in contract 0.2.0: no existing shape changes, so the
+/// version is not bumped (RFC-0021 section 4, rule 3).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct DescribeData {
+    /// Project label from `Cargo.toml` or the current directory name.
+    pub(crate) project: String,
+    /// Recognized project markers present, in a fixed order.
+    pub(crate) layout: Vec<String>,
+    /// Artifacts from every available source set, sorted by (target, path).
+    pub(crate) artifacts: Vec<DescribeArtifactView>,
+    /// Whether any generated destination exists on disk.
+    pub(crate) generated: bool,
+    /// Whether the recorded deployment state matches current sources.
+    pub(crate) in_sync: bool,
+}
+
 /// Writes one compact, deterministic JSON line to stdout.
 fn write_json<T: Serialize>(value: &T) {
     let text = serde_json::to_string(value).expect("versioned JSON shapes are serializable");
@@ -390,5 +429,73 @@ mod tests {
         assert_eq!(object["value"].as_str(), Some("CANARY-SECRET-9f3a"));
         assert_eq!(object["key"].as_str(), Some("tls.key_path"));
         assert_eq!(object["source"].as_str(), Some("default"));
+    }
+
+    #[test]
+    fn project_describe_shape_serializes_to_the_versioned_envelope() {
+        let value = Envelope {
+            contract_version: CONTRACT_VERSION,
+            command: "project.describe",
+            outcome: Outcome::Ok {
+                data: DescribeData {
+                    project: "demo".to_owned(),
+                    layout: vec!["Cargo.toml".to_owned(), "deploy".to_owned()],
+                    artifacts: vec![DescribeArtifactView {
+                        target: "docker",
+                        path: "deploy/generated/docker/Dockerfile".to_owned(),
+                        source: "deploy/docker/Dockerfile".to_owned(),
+                        bytes: 13,
+                        fingerprint: "9a1b2c3d4e5f6071".to_owned(),
+                        generated: false,
+                    }],
+                    generated: false,
+                    in_sync: false,
+                },
+            },
+        };
+        assert_eq!(
+            serde_json::to_string(&value).expect("serialize"),
+            r#"{"contract_version":"0.2.0","command":"project.describe","status":"ok","data":{"project":"demo","layout":["Cargo.toml","deploy"],"artifacts":[{"target":"docker","path":"deploy/generated/docker/Dockerfile","source":"deploy/docker/Dockerfile","bytes":13,"fingerprint":"9a1b2c3d4e5f6071","generated":false}],"generated":false,"in_sync":false}}"#
+        );
+    }
+
+    #[test]
+    fn project_describe_shape_has_a_closed_field_set() {
+        let data = DescribeData {
+            project: "demo".to_owned(),
+            layout: vec![],
+            artifacts: vec![DescribeArtifactView {
+                target: "k8s",
+                path: "CANARY-PATH".to_owned(),
+                source: "CANARY-SOURCE".to_owned(),
+                bytes: 0,
+                fingerprint: "0000000000000000".to_owned(),
+                generated: true,
+            }],
+            generated: true,
+            in_sync: true,
+        };
+        let json = serde_json::to_value(&data).expect("serialize");
+        let object = json.as_object().expect("object");
+        let mut fields: Vec<&str> = object.keys().map(String::as_str).collect();
+        fields.sort_unstable();
+        assert_eq!(
+            fields,
+            ["artifacts", "generated", "in_sync", "layout", "project"]
+        );
+        let artifact = object["artifacts"][0].as_object().expect("artifact object");
+        let mut artifact_fields: Vec<&str> = artifact.keys().map(String::as_str).collect();
+        artifact_fields.sort_unstable();
+        assert_eq!(
+            artifact_fields,
+            [
+                "bytes",
+                "fingerprint",
+                "generated",
+                "path",
+                "source",
+                "target"
+            ]
+        );
     }
 }

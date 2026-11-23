@@ -312,6 +312,7 @@ fn snapshots_are_valid_json_with_a_matching_version() {
         "config.get",
         "env.list",
         "env.check",
+        "project.describe",
         "unsupported_command",
     ] {
         let value: serde_json::Value =
@@ -415,6 +416,7 @@ fn snapshots_are_valid_json_with_a_matching_version_deploy() {
         "config.get",
         "env.list",
         "env.check",
+        "project.describe",
         "unsupported_command",
     ] {
         let value: serde_json::Value =

@@ -81,6 +81,7 @@ impl Commands {
             Commands::Env {
                 command: EnvCommands::Check { .. },
             } => Some("env.check"),
+            Commands::Describe => Some("project.describe"),
             _ => None,
         }
     }
@@ -229,6 +230,12 @@ pub(crate) enum Commands {
         #[command(subcommand)]
         command: DeployCommands,
     },
+
+    /// Describes the current project without changing it (RFC-0024).
+    ///
+    /// Read-only summary of recognized layout, artifact destinations, source
+    /// paths, sizes and generated-vs-authoured state. No secret is emitted.
+    Describe,
 }
 
 mod subcommands;
@@ -311,6 +318,7 @@ mod tests {
             ),
             (vec!["ag", "env", "list"], Some("env.list")),
             (vec!["ag", "env", "check"], Some("env.check")),
+            (vec!["ag", "describe"], Some("project.describe")),
             (vec!["ag", "new", "demo"], None),
             (vec!["ag", "domains", "list"], None),
             (vec!["ag", "mail", "test", "--to", "a@example.com"], None),

@@ -41,6 +41,9 @@ pub(crate) fn snapshot(name: &str) -> &'static str {
         "config.get" => include_str!("../../../../docs/mcp/snapshots/config.get.json"),
         "env.list" => include_str!("../../../../docs/mcp/snapshots/env.list.json"),
         "env.check" => include_str!("../../../../docs/mcp/snapshots/env.check.json"),
+        "project.describe" => {
+            include_str!("../../../../docs/mcp/snapshots/project.describe.json")
+        }
         "unsupported_command" => {
             include_str!("../../../../docs/mcp/snapshots/unsupported_command.json")
         }

@@ -113,6 +113,20 @@ sources and the `set`/`unset`/`keygen`/`recipients`/`export` commands are later
 stages. Both commands support the global `--output json` flag with the versioned
 `env.list` / `env.check` envelopes of the `0.2.0` contract.
 
+### `ag describe` (RFC-0024, section 4.2)
+
+```bash
+ag describe
+ag --output json describe
+```
+
+Read-only description of the current directory as a project: recognized layout
+markers, artifact destinations, authored source paths, sizes and fingerprints,
+and whether generated output is in sync with the sources. It writes no file and
+makes no network call. All paths are relative; no secret, environment value or
+absolute path is emitted. Prose and JSON share one builder, so they cannot
+drift. The JSON shape is `project.describe` in contract `0.2.0`.
+
 ### `ag` with no arguments (RFC-0018, stage C)
 
 In an interactive terminal it opens a home screen that lists the commands
@@ -273,8 +287,9 @@ the address with the flag; `BIND` is not read as CLI configuration.
 ## Machine-readable output
 
 `ag --output json` (or `--output json` after a read subcommand) emits one
-versioned JSON line for `ag schema lint`, `ag schema diff`, `ag workers list`,
-`ag dns plan` and `ag dns status`. The flag is refused with a versioned
+versioned JSON line for `ag config get`, `ag schema lint`, `ag schema diff`,
+`ag workers list`, `ag deploy plan`, `ag deploy status`, `ag dns plan`,
+`ag dns status`, `ag env list`, `ag env check` and `ag describe`. The flag is refused with a versioned
 `unsupported_command` error before any mutating command does work. Prose output
 is unchanged when the flag is absent. The contract, its JSON Schema and
 byte-exact snapshots live in

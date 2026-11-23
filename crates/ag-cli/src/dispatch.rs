@@ -5,6 +5,7 @@
 use crate::cli::*;
 use crate::commands::config::*;
 use crate::commands::deploy::*;
+use crate::commands::describe::*;
 use crate::commands::dns::*;
 use crate::commands::domains::*;
 use crate::commands::env::*;
@@ -227,5 +228,6 @@ pub(crate) fn dispatch(command: Commands, no_interactive: bool) -> Result<(), Cl
             DeployError::Usage(message) => CliError::Usage(message),
             DeployError::Failed(message) => CliError::Failed(message),
         }),
+        Commands::Describe => cmd_describe(&project_root()).map_err(CliError::Failed),
     }
 }

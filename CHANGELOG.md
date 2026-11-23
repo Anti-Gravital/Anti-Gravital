@@ -7,6 +7,7 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
 ### Read-only `ag generate --check` (RFC-0019 PR 4, fase 4.8-A)
 
 Added:
@@ -3333,6 +3334,37 @@ Added:
 
 Refs: RFC-0021 section 4.3, RFC-0024 section 9 prerequisite 3, RFC-0018,
 ADR-0008, `docs/mcp/cli-json-contract-0.2.0.md`, board task roadmap-avance/P1.
+
+### `ag describe` read-only project description (phase 4.8-E, RFC-0024)
+
+Added:
+
+- `ag describe`, a read-only command describing the current project: recognized
+  layout markers, artifact destinations, authored source paths, sizes and
+  fingerprints, and generated-vs-authoured state. Writes no file and makes no
+  network call. Prose and JSON share one builder (`commands/describe.rs`), so
+  they cannot drift. No secret, value or absolute path is emitted (S-1/S-8).
+- Additive `project.describe` JSON shape in contract `0.2.0`: command enum,
+  schema `$defs`, contract section 3.11 and a byte-exact snapshot under
+  `docs/mcp/snapshots/`. No existing shape changes, so `contract_version` stays
+  `0.2.0` under the pre-0.5 additive rule (RFC-0021 section 4, rule 3).
+- `crates/ag-cli/tests/describe_cli.rs`: snapshot and contract-version
+  assertions, closed field set, canary secret/absolute-path redaction, stable
+  prose, read-only verification, generated-vs-authoured state and a regression
+  that mutating commands still refuse JSON.
+
+Changed:
+
+- The `unsupported_command` refusal now names the eleven emitted shapes,
+  including `project.describe` (code, schema, contract and snapshot together).
+- README (EN+ES), `crates/ag-cli/README.md`, `docs/mcp/README.md` and
+  `docs/mcp/cli-json-contract-0.2.0.md` document the new command and shape.
+
+Verified: `cargo test -p ag-cli` (170 unit + all integration tests, 9 new),
+`cargo test --workspace --all-features`, `cargo fmt --check`,
+`cargo clippy -D warnings`, `bash scripts/ag-check`,
+`bash tools/check-file-size.sh`, `git diff --check` and content scans.
+Refs RFC-0024 section 4.2.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

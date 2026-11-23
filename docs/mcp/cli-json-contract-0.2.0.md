@@ -16,7 +16,7 @@
 The flag is global and may appear before or after the subcommand. Without it,
 every command keeps its existing prose output byte-for-byte.
 
-This contract version declares ten shapes. All ten are emitted by the CLI:
+This contract version declares eleven shapes. All eleven are emitted by the CLI:
 
 | Command | Name in `command` | Reads |
 | --- | --- | --- |
@@ -30,6 +30,7 @@ This contract version declares ten shapes. All ten are emitted by the CLI:
 | `ag dns status [--manifest PATH] [--state PATH] [--env ENV]` | `dns.status` | local state and manifest |
 | `ag env list [--manifest PATH] [--env ENV]` | `env.list` | declared env variables in `ag.toml` and process presence |
 | `ag env check [--manifest PATH] [--env ENV]` | `env.check` | declared env variables and their parseability |
+| `ag describe` | `project.describe` | current project layout and artifact destinations, sources, sizes and generated state |
 
 `config.get`, `env.list` and `env.check` were published as additive fixtures in
 0.2.0 and are now wired into the dispatch layer. They introduce no new CLI
@@ -41,15 +42,24 @@ required only wiring in `json_command_name()` (`cli.rs`) and `run_json_command()
 are now captured CLI output, asserted byte-for-byte by
 `crates/ag-cli/tests/json_output.rs`.
 
+`project.describe` is a new command shape added to 0.2.0 for phase 4.8-E
+(RFC-0024 section 4.2). It adds a new `command` value and a new `data` definition
+without changing any existing shape, so `contract_version` stays `0.2.0` under
+the pre-0.5 additive rule (RFC-0021 section 4, rule 3; section 4 rule 3 below).
+It is emitted by `ag describe`, a read-only command authorized by the accepted
+RFC-0024. The prose path and the JSON path share one builder
+(`commands/describe.rs::describe_report`), so they cannot drift.
+
 Commands with no shape at all are refused with `unsupported_command` before
 dispatch; no file, database or network operation is performed. In particular
 `ag deploy apply`, `ag dns apply` and `ag config set` are mutating and always
 refuse the flag. `ag config validate` is read-only but has no published shape,
 so it is also refused until a shape is published and reviewed.
-`project.list`, `project.describe`, `schema.describe` and all `debug.*`,
-`domains.*`, `mail.*` and `workers.*` runtime shapes remain undefined: they
-have no CLI counterpart or require an RFC decision (RFC-0024 Q4, audit section
-12.3). This is not an implicit promise of future tools.
+`project.list`, `schema.describe` and all `debug.*`, `domains.*`, `mail.*` and
+`workers.*` runtime shapes remain undefined: they have no CLI counterpart or
+require an RFC decision (RFC-0024 Q4, audit section 12.3). This is not an
+implicit promise of future tools. `project.describe` is now defined in section
+3.11 below.
 
 ## 2. Envelope
 
@@ -239,16 +249,43 @@ loading a secret into the output path (RFC-0020, RFC-0024 section 4.1.5).
 Problem reasons are stable codes with no interpolated text, so an invalid
 value can never enter a message (RFC-0024 prompt-injection risk).
 
-### 3.11 Refusal
+### 3.11 `project.describe`
 
 ```json
-{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: config.get, schema.lint, schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, dns.status, env.list, env.check"}}
+{"contract_version":"0.2.0","command":"project.describe","status":"ok","data":{"project":"demo","layout":["Cargo.toml","schema.ag","deploy"],"artifacts":[{"target":"docker","path":"deploy/generated/docker/Dockerfile","source":"deploy/docker/Dockerfile","bytes":13,"fingerprint":"52d7794eabea69c3","generated":false},{"target":"k8s","path":"deploy/generated/k8s/kustomization.yaml","source":"deploy/k8s/kustomization.yaml","bytes":14,"fingerprint":"8eea98afe6256fe2","generated":false}],"generated":false,"in_sync":false}}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `project` | Project label from `Cargo.toml` `[package].name`, or the directory name when no manifest declares one. The same label `deploy.plan` uses. |
+| `layout` | Recognized project markers that are present, in a fixed order, drawn from the closed set `Cargo.toml`, `ag.toml`, `schema.ag`, `config.toml`, `src`, `crates`, `deploy`, `templates`. Arbitrary file names never enter this field. |
+| `artifacts` | One entry per file in every available source set, sorted by `(target, path)`. Empty when no source set is available. |
+| `artifacts[].target` | `docker` or `k8s`. |
+| `artifacts[].path` | Generated destination under `deploy/generated/`, slash-separated and relative to the project. |
+| `artifacts[].source` | Authored (committed) source path, slash-separated and relative to the project. |
+| `artifacts[].bytes` | Size of the authored file in bytes. |
+| `artifacts[].fingerprint` | 16-hex-digit FNV-1a fingerprint of the source bytes, computed by the same `deploy` builder as `deploy.plan`. An identity, not a security primitive. |
+| `artifacts[].generated` | Whether that generated destination currently exists on disk. This is the generated-vs-authoured state of each artifact. |
+| `generated` | `true` when any listed destination exists. |
+| `in_sync` | `true` only when the recorded `deploy` state matches the plan recomputed from current sources; `false` when nothing has been applied. |
+
+This shape contains no secret, file content, environment value or absolute
+filesystem path. `bytes` and `fingerprint` are derived from source bytes, never
+the bytes themselves. An absent or incomplete source set is reported as data
+(no artifacts for that target), never fabricated and never an error; a
+malformed recorded deployment state is a versioned `read_failed` error (exit 1).
+`ag describe` writes no file and makes no network call.
+
+### 3.12 Refusal
+
+```json
+{"contract_version":"0.2.0","command":"unknown","status":"error","error":{"code":"unsupported_command","message":"--output json is not supported by this command in contract version 0.2.0; supported commands: config.get, schema.lint, schema.diff, workers.list, deploy.plan, deploy.status, dns.plan, dns.status, env.list, env.check, project.describe"}}
 ```
 
 The message is a closed, constant string. It never includes arguments, paths,
 environment values or secret material, even when the refused command would
 have accepted them (RFC-0020 redaction, RFC-0024 section 4.1.5). The list names
-exactly the ten emitted commands; it is asserted byte-for-byte by the
+exactly the eleven emitted commands; it is asserted byte-for-byte by the
 `unsupported_command` snapshot.
 
 ## 4. Stability and change policy
@@ -264,7 +301,9 @@ exactly the ten emitted commands; it is asserted byte-for-byte by the
    is pre-0.5, provided no existing shape changes. The new `command` value and
    its `data` definition are added to the same versioned schema and the
    snapshots are updated in the same commit. From 0.5 onward, new command
-   shapes bump the minor version.
+   shapes bump the minor version. `project.describe` was added under this rule:
+   it introduces a new `command` value and a new `data` definition and changes
+   no existing field, enum or shape, so `contract_version` remains `0.2.0`.
 4. A shape that is documented but not emitted is a contract fixture, not a
    supported command. It must be labelled as such in this document and in the
    schema description, and it must not appear in the refusal message's

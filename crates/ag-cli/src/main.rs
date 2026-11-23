@@ -178,7 +178,7 @@ mod tests {
             root_commands,
             [
                 "new", "dev", "build", "config", "env", "generate", "schema", "dns", "domains",
-                "mail", "workers", "deploy",
+                "mail", "workers", "deploy", "describe",
             ]
         );
         assert!(!root_commands.contains(&"migrate"));

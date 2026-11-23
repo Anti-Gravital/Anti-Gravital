@@ -2,6 +2,7 @@
 
 pub(crate) mod config;
 pub(crate) mod deploy;
+pub(crate) mod describe;
 pub(crate) mod dns;
 pub(crate) mod domains;
 pub(crate) mod env;

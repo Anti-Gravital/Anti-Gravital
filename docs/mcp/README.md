@@ -13,10 +13,10 @@ This directory holds the versioned contract data for machine consumers of the
 ## Current state
 
 RFC-0021 stage E is being implemented incrementally. This directory covers
-`ag --output json` for ten emitted read-only commands: `config.get`,
+`ag --output json` for eleven emitted read-only commands: `config.get`,
 `schema.lint`, `schema.diff`, `workers.list`, `deploy.plan`, `deploy.status`,
-`dns.plan`, `dns.status`, `env.list` and `env.check`. The contract version is
-`0.2.0` and is unstable until Anti-Gravital 0.5. The `deploy.*` shapes are
+`dns.plan`, `dns.status`, `env.list`, `env.check` and `project.describe`. The
+contract version is `0.2.0` and is unstable until Anti-Gravital 0.5. The `deploy.*` shapes are
 local artifact rendering only (RFC-0034) and the `dns.*` shapes are offline
 manifest reads (RFC-0033). `config.get` resolves keys from `config.toml` and
 compiled-in defaults; the env shapes contain no value or default value, only
@@ -28,6 +28,10 @@ have no JSON shape and are refused with exit 2 before any executor runs.
 refused too. `config.get`, `env.list` and `env.check` were published as
 additive 0.2.0 fixtures and are now emitted: no new command and no change to an
 existing shape, so there is no version bump (contract section 4, rule 3).
+`project.describe` is a new command shape added for phase 4.8-E (RFC-0024
+section 4.2): it changes no existing shape, so the pre-0.5 additive rule keeps
+`contract_version` at `0.2.0`. It describes the current project (layout,
+artifact destinations, source paths, sizes and generated state) read-only.
 
 The following RFC-0024 section 9 prerequisites are **not** satisfied by this
 contract alone and remain tracked in `docs/audits/mcp-readiness-review.md`:

@@ -352,11 +352,12 @@ generator's in-memory output, so the check and the writer cannot disagree.
 | `ag deploy plan --target docker\|k8s` | Print a deterministic, read-only plan (file list, sizes, fingerprints and plan id) from authored artifacts (alpha, local only) |
 | `ag deploy apply --plan ID` | Write that exact plan under `deploy/generated/`; refuses malformed or stale plan ids |
 | `ag deploy status` | Report generated files and whether the applied plan is still current |
+| `ag describe` | Read-only description of the current project: recognized layout, artifact destinations, source paths, sizes and generated-vs-authoured state. No secret or absolute path is emitted (RFC-0024) |
 
 The global `--output json` flag produces versioned machine-readable output for
 the read-only commands `ag schema lint`, `ag schema diff`, `ag workers list`,
 `ag deploy plan`, `ag deploy status`, `ag dns plan`, `ag dns status`,
-`ag env list` and `ag env check` (contract `0.2.0`, documented in
+`ag env list`, `ag env check` and `ag describe` (contract `0.2.0`, documented in
 [docs/mcp/](docs/mcp/)). Other commands, including `ag deploy apply`, refuse it
 before doing any work; prose output is unchanged when the flag is absent.
 
@@ -927,11 +928,12 @@ escritor no pueden discrepar.
 | `ag deploy plan --target docker\|k8s` | Imprimir un plan determinista de solo lectura (archivos, tamanos, huellas e id) a partir de los artefactos autorizados (alpha, solo local) |
 | `ag deploy apply --plan ID` | Escribir ese plan exacto en `deploy/generated/`; rechaza ids mal formados o obsoletos |
 | `ag deploy status` | Informar de los archivos generados y de si el plan aplicado sigue vigente |
+| `ag describe` | Descripcion de solo lectura del proyecto actual: layout reconocido, destinos de artefactos, rutas de origen, tamanos y estado generado frente a autorizado. No emite secretos ni rutas absolutas (RFC-0024) |
 
 El flag global `--output json` produce salida versionada legible por maquinas
 para los comandos de solo lectura `ag schema lint`, `ag schema diff`,
 `ag workers list`, `ag deploy plan`, `ag deploy status`, `ag dns plan`,
-`ag dns status`, `ag env list` y `ag env check` (contrato `0.2.0`,
+`ag dns status`, `ag env list`, `ag env check` y `ag describe` (contrato `0.2.0`,
 documentado en [docs/mcp/](docs/mcp/)). Los demas comandos, incluido
 `ag deploy apply`, lo rechazan antes de actuar; la salida en prosa no cambia
 cuando el flag esta ausente.
@@ -1134,7 +1136,7 @@ Project initiated by Angel Nereira under Gravital Labs / Nereira Technology and 
 | `ag dns apply --plan ID [--env ENV] [--provider NAME]` | Apply a reviewed plan to local state; a provider adapter runs only when explicitly named |
 | `ag dns status [--env ENV]` | Read-only report of the last applied plan and whether it is still in sync |
 | `ag domains attach [--manifest PATH] [--allow-wildcard]` | Attach a domain to a project from the manifest or flags, printing exact records (no credentials) |
-`ag dns plan` and `ag dns status` (contract `0.2.0`, documented in
+`ag dns plan`, `ag dns status` and `ag describe` (contract `0.2.0`, documented in
 [docs/mcp/](docs/mcp/)). Other commands refuse it before doing any work; prose
 output is unchanged when the flag is absent.
 `ag deploy`, `ag migrate` and `ag plugin` are future commands and are not in
@@ -1148,7 +1150,7 @@ and [domain CLI reference](docs/ag-domains/reference/cli.md).
 | `ag dns apply --plan ID [--env ENV] [--provider NOMBRE]` | Aplica un plan revisado al estado local; el adaptador solo se ejecuta si se nombra explicitamente |
 | `ag dns status [--env ENV]` | Informe de solo lectura del ultimo plan aplicado y de si sigue sincronizado |
 | `ag domains attach [--manifest RUTA] [--allow-wildcard]` | Adjunta un dominio al proyecto desde el manifest o flags e imprime los registros exactos (sin credenciales) |
-`ag workers list`, `ag dns plan` y `ag dns status` (contrato `0.2.0`,
+`ag workers list`, `ag dns plan`, `ag dns status` y `ag describe` (contrato `0.2.0`,
 documentado en [docs/mcp/](docs/mcp/)). Los demas comandos lo rechazan antes
 de actuar; la salida en prosa no cambia cuando el flag esta ausente.
 autoritativos. `ag deploy`, `ag migrate` y `ag plugin` son comandos futuros y

@@ -10,6 +10,7 @@ aun no etiquetados.
 
 
 
+
 ### Honest product status (task E4, estado-honesto)
 
 Added:
@@ -3110,6 +3111,21 @@ Changed:
   and no issue closed. This is an evaluation, not an implementation.
 
 Refs: board task `oportunidades` O3. Closes: none.
+
+### Architecture opportunity catalog (O1 / oportunidades)
+
+Added:
+
+- `docs/audits/oportunidades-arquitectura.md`: prioritized catalog of 7 architecture
+  and engineering opportunities. Each entry records the problem, a concrete design
+  sketch, value, estimated cost, risk, the RFC/ADR required and a `descartar si`
+  criterion, plus an execution status (`implementable now`, `needs RFC`,
+  `needs human (protected path)`, `defer to Phase 5+`).
+- No source code, crate, dependency or CI change. The catalog proposes, it does not
+  implement: the 19-crate roster and the dependency-direction rules remain intact.
+
+Refs CLAUDE.md rules 5/8/14/15/21/22/28/31, RFC-0012 section 4, RFC-0020 section 5.
+No external service, cost or protected path is involved.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

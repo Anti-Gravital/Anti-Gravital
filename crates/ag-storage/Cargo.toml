@@ -31,6 +31,10 @@ avif = ["image/avif"]
 
 [dependencies]
 ag-auth       = { path = "../ag-auth", version = "0.1.0-alpha.1", optional = true }
+# RFC-0020 PR 4: declared environment schema (EnvLoader/EnvDeclaration).
+# Internal workspace crate only; no new external dependency and no new
+# dependency direction (standard -> core).
+ag-core       = { workspace = true }
 axum          = { workspace = true }
 blake3        = { workspace = true }
 bytes         = { workspace = true }

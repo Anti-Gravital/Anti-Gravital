@@ -334,6 +334,7 @@ name = "ag-storage"
 version = "0.1.0-alpha.2"
 dependencies = [
  "ag-auth",
+ "ag-core",
  "axum",
  "base64ct",
  "blake3",

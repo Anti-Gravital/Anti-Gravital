@@ -8,6 +8,42 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-storage` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-storage/src/config.rs`: `storage_env_declarations()` lists the 17
+  environment keys the crate reads, classifying `STORE_TOKEN`,
+  `STORAGE_JWT_PUBLIC_KEY`, `AWS_SECRET_ACCESS_KEY` and `STORAGE_SIGN_SECRET`
+  as secrets. `StorageConfig::from_env` now resolves through
+  `ag_core::EnvLoader`: production uses `load_process()` and tests use an
+  injected in-memory source, which removes the `set_var`/`remove_var` global
+  races (audit A1) without a global mutex.
+- `crates/ag-storage/src/config_tests.rs`: a parity oracle that compares the
+  old direct-read behavior with the declared loader for every key (defaults
+  when unset, per-field fallback on malformed values, bool-literal handling,
+  JWT inline/path fallback and secret redaction).
+- `ag-core` added as an internal workspace dependency of `ag-storage`: no new
+  external dependency (S-9) and no new dependency direction (standard -> core).
+
+Changed:
+
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the first PR 4 crate.
+
+Verification: `cargo test -p ag-storage` (79 passed), all-features crate tests
+(87 passed), workspace all-features tests (exit 0, 90 green result lines),
+`cargo fmt --all -- --check`, `cargo clippy -p ag-storage --all-targets
+--all-features -- -D warnings`, `bash scripts/kaizen check` (green, exit 0),
+`bash scripts/ag-check` (green, PASS=8/8; an initial run had transient advisory
+database fetch errors, resolved by warming the local cache; `audit` and `deny`
+were also verified explicitly with `cargo audit --no-fetch` and
+`cargo deny --offline check`), `bash tools/check-file-size.sh`,
+`git diff --check` and content scans.
+Refs RFC-0020 PR 4 and audit A2. No default value, resolution order, backend
+selection rule or public API signature changed; external S3/MinIO backends
+remain opt-in behind the existing `s3` feature (ADR-0009).
+
 ### Read-only `ag generate --check` (RFC-0019 PR 4, fase 4.8-A)
 
 Added:

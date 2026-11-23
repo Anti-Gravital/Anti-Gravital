@@ -1,6 +1,7 @@
 //! Storage store configuration.
 
 use crate::StorageError;
+use ag_core::{EnvDeclaration, EnvLoader, EnvType, LoadedEnv};
 use std::{net::IpAddr, path::PathBuf};
 
 /// Active storage backend.
@@ -83,11 +84,118 @@ impl Default for StorageConfig {
     }
 }
 
+/// Declared environment schema for `ag-storage` (RFC-0020 PR 4, audit A2).
+///
+/// Every key the crate reads is listed once here: name, secret classification
+/// and, where the raw variable has one, its default. This is the single
+/// auditable answer to "which variables does this service need".
+///
+/// All keys are declared as [`EnvType::String`] on purpose. The previous
+/// `from_env` used `var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(DEFAULT)`
+/// *per field*: an unset or malformed value fell back independently of every
+/// other field. [`EnvLoader`] validates the whole set at once and rejects the
+/// load if a single value fails its declared type, so a typed declaration
+/// (`Int`/`Bool`/...) would silently change that per-field fallback (for
+/// example `STORAGE_PORT=abc` plus a valid `STORAGE_ROOT` would lose the root).
+/// Parsing therefore stays in [`StorageConfig::from_loaded_env`], mirroring the
+/// original expressions byte for byte; the loader still provides the declared
+/// list, per-field defaults, secret redaction and process-environment
+/// isolation (only declared keys are read).
+pub(crate) fn storage_env_declarations() -> Vec<EnvDeclaration> {
+    vec![
+        EnvDeclaration::new("STORAGE_BACKEND", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_ROOT", EnvType::String)
+            .required(false)
+            .with_default("./ag-store-data"),
+        EnvDeclaration::new("STORAGE_SERVER", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_BIND", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_PORT", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_ALLOW_INSECURE_PUBLIC", EnvType::String).required(false),
+        EnvDeclaration::new("STORE_TOKEN", EnvType::String)
+            .required(false)
+            .secret(true)
+            .with_default(""),
+        EnvDeclaration::new("STORAGE_JWT_PUBLIC_KEY", EnvType::String)
+            .required(false)
+            .secret(true),
+        EnvDeclaration::new("STORAGE_JWT_PUBLIC_KEY_PATH", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_MAX_OBJECT_SIZE_MB", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_RATE_LIMIT_RPS", EnvType::String).required(false),
+        EnvDeclaration::new("STORAGE_REGION", EnvType::String)
+            .required(false)
+            .with_default("us-east-1"),
+        EnvDeclaration::new("STORAGE_ENDPOINT", EnvType::String).required(false),
+        EnvDeclaration::new("AWS_ACCESS_KEY_ID", EnvType::String).required(false),
+        EnvDeclaration::new("AWS_SECRET_ACCESS_KEY", EnvType::String)
+            .required(false)
+            .secret(true),
+        EnvDeclaration::new("STORAGE_BUCKET", EnvType::String)
+            .required(false)
+            .with_default("ag-storage"),
+        EnvDeclaration::new("STORAGE_SIGN_SECRET", EnvType::String)
+            .required(false)
+            .secret(true)
+            .with_default(""),
+    ]
+}
+
+pub(crate) fn storage_loader() -> EnvLoader {
+    EnvLoader::new(storage_env_declarations())
+}
+
 impl StorageConfig {
     /// Reads the configuration from environment variables.
     /// Undefined values use the defaults from [`StorageConfig::default`].
+    ///
+    /// Production path: resolves the declared schema through
+    /// [`EnvLoader::load_process`], which reads only declared keys and never
+    /// prints a value. A non-UTF-8 process value is the only possible load
+    /// error for this all-string schema; it is handled below by replaying the
+    /// declared keys leniently so that field keeps its previous fallback.
     pub fn from_env() -> Self {
-        let backend = match std::env::var("STORAGE_BACKEND")
+        let loader = storage_loader();
+        let env = match loader.load_process() {
+            Ok(env) => env,
+            Err(_) => {
+                let vars: Vec<(String, String)> = loader
+                    .declarations()
+                    .iter()
+                    .filter_map(|declaration| {
+                        std::env::var(declaration.name())
+                            .ok()
+                            .map(|value| (declaration.name().to_owned(), value))
+                    })
+                    .collect();
+                loader
+                    .load_from(vars)
+                    .expect("all declarations are optional strings and always resolve")
+            }
+        };
+        Self::from_loaded_env(&env)
+    }
+
+    /// Test seam: resolves the same declared schema from an injected in-memory
+    /// source instead of the process environment. Using this in tests removes
+    /// the `set_var`/`remove_var` global races (audit A1) without a global
+    /// mutex. Scoped to tests so the public API is unchanged.
+    #[cfg(test)]
+    pub(crate) fn from_env_source<I, K, V>(vars: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        let env = storage_loader()
+            .load_from(vars)
+            .expect("all declarations are optional strings and always resolve");
+        Self::from_loaded_env(&env)
+    }
+
+    /// Builds a config from a resolved environment. Parsing and fallbacks are
+    /// identical to the pre-migration direct reads, field by field.
+    fn from_loaded_env(env: &LoadedEnv) -> Self {
+        let backend = match env
+            .string("STORAGE_BACKEND")
             .unwrap_or_default()
             .to_lowercase()
             .as_str()
@@ -123,43 +231,62 @@ impl StorageConfig {
 
         Self {
             backend,
-            root_path: std::env::var("STORAGE_ROOT")
+            root_path: env
+                .string("STORAGE_ROOT")
                 .map(PathBuf::from)
-                .unwrap_or_else(|_| PathBuf::from("./ag-store-data")),
-            server_mode: std::env::var("STORAGE_SERVER")
+                .unwrap_or_else(|| PathBuf::from("./ag-store-data")),
+            server_mode: env
+                .string("STORAGE_SERVER")
                 .map(|v| v.eq_ignore_ascii_case("true"))
                 .unwrap_or(false),
-            server_bind: std::env::var("STORAGE_BIND")
-                .ok()
+            server_bind: env
+                .string("STORAGE_BIND")
                 .and_then(|value| value.parse().ok())
                 .unwrap_or_else(|| IpAddr::from([127, 0, 0, 1])),
-            server_port: std::env::var("STORAGE_PORT")
-                .ok()
+            server_port: env
+                .string("STORAGE_PORT")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(4280),
-            allow_insecure_public: std::env::var("STORAGE_ALLOW_INSECURE_PUBLIC")
+            allow_insecure_public: env
+                .string("STORAGE_ALLOW_INSECURE_PUBLIC")
                 .map(|value| value.eq_ignore_ascii_case("true"))
                 .unwrap_or(false),
-            store_token: std::env::var("STORE_TOKEN").unwrap_or_default(),
-            jwt_public_key_pem: std::env::var("STORAGE_JWT_PUBLIC_KEY").ok().or_else(|| {
-                std::env::var("STORAGE_JWT_PUBLIC_KEY_PATH")
-                    .ok()
-                    .and_then(|path| std::fs::read_to_string(path).ok())
-            }),
-            max_object_size_mb: std::env::var("STORAGE_MAX_OBJECT_SIZE_MB")
-                .ok()
+            store_token: env
+                .secret("STORE_TOKEN")
+                .map(|v| v.expose().to_owned())
+                .unwrap_or_default(),
+            jwt_public_key_pem: env
+                .secret("STORAGE_JWT_PUBLIC_KEY")
+                .map(|v| v.expose().to_owned())
+                .or_else(|| {
+                    env.string("STORAGE_JWT_PUBLIC_KEY_PATH")
+                        .and_then(|path| std::fs::read_to_string(path).ok())
+                }),
+            max_object_size_mb: env
+                .string("STORAGE_MAX_OBJECT_SIZE_MB")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(100),
-            rate_limit_rps: std::env::var("STORAGE_RATE_LIMIT_RPS")
-                .ok()
+            rate_limit_rps: env
+                .string("STORAGE_RATE_LIMIT_RPS")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(100),
-            region: std::env::var("STORAGE_REGION").unwrap_or_else(|_| "us-east-1".into()),
-            endpoint: std::env::var("STORAGE_ENDPOINT").ok(),
-            access_key: std::env::var("AWS_ACCESS_KEY_ID").ok(),
-            secret_key: std::env::var("AWS_SECRET_ACCESS_KEY").ok(),
-            bucket: std::env::var("STORAGE_BUCKET").unwrap_or_else(|_| "ag-storage".into()),
-            sign_secret: std::env::var("STORAGE_SIGN_SECRET").unwrap_or_default(),
+            region: env
+                .string("STORAGE_REGION")
+                .map(str::to_owned)
+                .unwrap_or_else(|| "us-east-1".into()),
+            endpoint: env.string("STORAGE_ENDPOINT").map(str::to_owned),
+            access_key: env.string("AWS_ACCESS_KEY_ID").map(str::to_owned),
+            secret_key: env
+                .secret("AWS_SECRET_ACCESS_KEY")
+                .map(|v| v.expose().to_owned()),
+            bucket: env
+                .string("STORAGE_BUCKET")
+                .map(str::to_owned)
+                .unwrap_or_else(|| "ag-storage".into()),
+            sign_secret: env
+                .secret("STORAGE_SIGN_SECRET")
+                .map(|v| v.expose().to_owned())
+                .unwrap_or_default(),
         }
     }
 
@@ -196,106 +323,5 @@ impl StorageConfig {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn config_defaults_are_native() {
-        let cfg = StorageConfig::default();
-        assert_eq!(cfg.backend, StorageBackend::Native);
-        assert_eq!(cfg.root_path, PathBuf::from("./ag-store-data"));
-    }
-
-    #[test]
-    fn config_server_mode_off_by_default() {
-        let cfg = StorageConfig::default();
-        assert!(!cfg.server_mode);
-        assert_eq!(cfg.server_port, 4280);
-    }
-
-    #[test]
-    fn config_from_env_reads_port() {
-        let prev = std::env::var("STORAGE_PORT").ok();
-        std::env::set_var("STORAGE_PORT", "9000");
-        let cfg = StorageConfig::from_env();
-        match prev {
-            Some(v) => std::env::set_var("STORAGE_PORT", v),
-            None => std::env::remove_var("STORAGE_PORT"),
-        }
-        assert_eq!(cfg.server_port, 9000);
-    }
-
-    #[test]
-    fn config_from_env_reads_server_mode() {
-        let prev = std::env::var("STORAGE_SERVER").ok();
-        std::env::set_var("STORAGE_SERVER", "true");
-        let cfg = StorageConfig::from_env();
-        match prev {
-            Some(v) => std::env::set_var("STORAGE_SERVER", v),
-            None => std::env::remove_var("STORAGE_SERVER"),
-        }
-        assert!(cfg.server_mode);
-    }
-
-    #[test]
-    fn public_bind_without_token_is_rejected() {
-        let config = StorageConfig {
-            server_mode: true,
-            server_bind: IpAddr::from([0, 0, 0, 0]),
-            ..StorageConfig::default()
-        };
-
-        assert!(matches!(
-            config.validate_server_security(),
-            Err(StorageError::Config(_))
-        ));
-    }
-
-    #[test]
-    fn loopback_bind_without_token_is_allowed() {
-        let config = StorageConfig {
-            server_mode: true,
-            ..StorageConfig::default()
-        };
-
-        assert!(config.validate_server_security().is_ok());
-    }
-
-    #[test]
-    fn explicit_insecure_public_bind_is_allowed() {
-        let config = StorageConfig {
-            server_mode: true,
-            server_bind: IpAddr::from([0, 0, 0, 0]),
-            allow_insecure_public: true,
-            ..StorageConfig::default()
-        };
-
-        assert!(config.validate_server_security().is_ok());
-    }
-
-    #[test]
-    fn public_bind_with_token_is_allowed() {
-        let config = StorageConfig {
-            server_mode: true,
-            server_bind: IpAddr::from([0, 0, 0, 0]),
-            store_token: "secret".into(),
-            ..StorageConfig::default()
-        };
-
-        assert!(config.validate_server_security().is_ok());
-    }
-
-    #[test]
-    fn config_sign_secret_default_empty() {
-        let cfg = StorageConfig::default();
-        assert!(cfg.sign_secret.is_empty());
-    }
-
-    #[test]
-    fn config_from_env_reads_sign_secret() {
-        std::env::set_var("STORAGE_SIGN_SECRET", "my-secret-key");
-        let cfg = StorageConfig::from_env();
-        std::env::remove_var("STORAGE_SIGN_SECRET");
-        assert_eq!(cfg.sign_secret, "my-secret-key");
-    }
-}
+#[path = "config_tests.rs"]
+mod tests;

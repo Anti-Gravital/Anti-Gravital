@@ -36,6 +36,21 @@
   `set`/`unset`, `keygen`, `recipients` and `export` remain future stages and
   are not faked. No `[env]` parser was added to `ag-core`; the CLI owns the
   manifest parsing and uses only the public loader API.
+- Stage B / PR 4 (wave 22, 2026-11-23): `ag-storage` is the first crate migrated
+  off direct `std::env::var` reads. `crates/ag-storage/src/config.rs` declares
+  its 17 keys through `EnvDeclaration`/`EnvLoader`, with secret classification
+  (`STORE_TOKEN`, `STORAGE_JWT_PUBLIC_KEY`, `AWS_SECRET_ACCESS_KEY`,
+  `STORAGE_SIGN_SECRET`), per-field declared defaults and process-environment
+  isolation (only declared keys are read). `StorageConfig::from_env` keeps its
+  signature and resolves through `load_process`; a test-only injected source
+  removes the `set_var` races (audit A1). Parity tests in
+  `crates/ag-storage/src/config_tests.rs` compare the declared path against the
+  previous direct reads for every key. Defaults, resolution order and backend
+  selection are unchanged; external S3/MinIO backends stay opt-in behind the
+  `s3` feature (`ADR-0009`). The remaining crates in audit A2 (`ag-observe`,
+  `ag-workers`, `ag-realtime`, `ag-auth`, `ag-cache`, `ag-cli`) are still
+  pending. This note records stage progress only; the accepted design above
+  is not modified.
 
 ## 1. Motivation
 

@@ -4,6 +4,12 @@
 //! `docs/mcp/snapshots/`. The comparison is byte-exact: field order, spacing
 //! and version are part of the contract. A change in emitted JSON must change
 //! the snapshot and `contract_version` in the same commit.
+//!
+//! Test-only scaffolding shared by two test binaries (`json_output` and
+//! `json_output_config`); some helpers are used by only one binary, which
+//! clippy flags as dead_code. Allowed here because it is test support, not
+//! production code -- #213 tracks a per-binary feature-gated cleanup.
+#![allow(dead_code)] // #213 shared test module compiled into sibling binaries; cleanup tracked
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};

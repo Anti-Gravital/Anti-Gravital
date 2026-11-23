@@ -18,6 +18,10 @@ publish = false
 workspace = true
 
 [dependencies]
+# RFC-0020 PR 4: declared environment schema (EnvLoader/EnvDeclaration).
+# Internal workspace crate only; no new external dependency and no new
+# dependency direction (realtime -> core, Arq-Tecnica 5.3 regla 2).
+ag-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

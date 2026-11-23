@@ -8,6 +8,49 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-realtime` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-realtime/src/config.rs`: `realtime_env_declarations()` lists the
+  eleven environment keys the crate reads (`NATS_MODE`, `NATS_URL`,
+  `RT_BROADCAST_CAPACITY`, `NATS_TLS`, `NATS_TLS_CA`, `NATS_TLS_CERT`,
+  `NATS_TLS_KEY`, `NATS_JETSTREAM`, `NATS_JS_STREAM`, `NATS_JS_MAX_MSGS`,
+  `NATS_JS_MAX_BYTES`). None is a secret: the TLS cert/key entries are *paths*,
+  not credential bytes, so they are not marked secret. All are declared
+  `EnvType::String` so the original per-field fallback on unset or malformed
+  values is preserved. `RealtimeConfig::from_env` keeps its signature and
+  resolves through `ag_core::EnvLoader` with `load_process()`; a test-only
+  injected source removes the `set_var` races (audit A1). The three
+  `NATS_URL` reads in `external.rs::tests` are integration gates for a real
+  NATS server and are intentionally left untouched.
+- `crates/ag-realtime/src/config_tests.rs`: a parity oracle that compares the
+  old direct-read behavior with the declared loader for every key (defaults
+  when unset, exact-lowercase `external` mode, case-insensitive `true` flags,
+  per-field numeric fallback, optional TLS paths including the empty string,
+  undeclared-key isolation), plus schema/default assertions. The 14 original
+  inline tests were converted to the injected source (no `set_var`/mutex).
+- `ag-core` added as an internal workspace dependency of `ag-realtime`; the
+  `check-dependency-direction.sh` allow-list records the realtime -> core edge
+  (Arq-Tecnica 5.3 regla 2, RFC-0020 PR4). No new external dependency (S-9).
+
+Changed:
+
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the fourth PR 4 crate.
+
+Verification: `cargo test -p ag-realtime` (41 lib green, 1 ignored, 1 doctest),
+all-features crate tests (60 lib green), workspace all-features tests (exit 0,
+90 green result lines), `cargo fmt --all -- --check`, `cargo clippy -p
+ag-realtime --all-targets --all-features -- -D warnings`,
+`RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps`,
+`bash scripts/ag-check` (green), `bash scripts/kaizen check` (green),
+`bash scripts/check-dependency-direction.sh` (green, forbidden edges still
+detected), `bash tools/check-file-size.sh`, `git diff --check` and content
+scans. Refs RFC-0020 PR 4 and audit A2. No default value, resolution order,
+validation rule, public API signature or feature (`nats-external`,
+`event-persistence`) changed.
+
 ### Declared environment schema for `ag-workers` (RFC-0020 PR 4, audit A2)
 
 Added:

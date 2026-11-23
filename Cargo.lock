@@ -315,6 +315,7 @@ dependencies = [
 name = "ag-realtime"
 version = "0.1.0-alpha.2"
 dependencies = [
+ "ag-core",
  "async-nats",
  "axum",
  "futures-util",

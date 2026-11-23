@@ -90,6 +90,26 @@
   optional `ag-data` dependency are unchanged. The remaining crates in audit A2
   (`ag-realtime`, `ag-auth`, `ag-cache`, `ag-cli`) are still pending. This note
   records stage progress only; the accepted design above is not modified.
+- Stage B / PR 4 (wave 25, 2026-11-23): `ag-realtime` is the fourth crate migrated
+  off direct `std::env::var` reads. `crates/ag-realtime/src/config.rs` declares
+  its eleven keys through `EnvDeclaration`/`EnvLoader`, all as `EnvType::String`
+  so the original per-field fallback on unset or malformed values is preserved.
+  None is a secret: `NATS_TLS_CERT` and `NATS_TLS_KEY` are paths to a client
+  certificate and private key, not credential bytes, so they are not marked
+  secret; the loader never prints a value. `RealtimeConfig::from_env` keeps its
+  signature and uses `load_process`; a test-only injected source removes the
+  `set_var` races (audit A1). Parsing stays in `from_loaded_env`, so exact
+  lowercase `external` mode, case-insensitive `true` flags, numeric fallbacks
+  and optional TLS paths (including the empty string) are byte-identical.
+  Parity tests in `crates/ag-realtime/src/config_tests.rs` compare the declared
+  path against the previous direct reads for every key. The three `NATS_URL`
+  reads inside `#[cfg(test)] mod tests` in `external.rs` are integration gates
+  for a real NATS server and are intentionally untouched, like the S3/MinIO
+  gates in `ag-storage`. `ag-core` is added as an internal dependency with the
+  dependency-direction allow-list recording realtime -> core (Arq-Tecnica 5.3
+  regla 2). The remaining crates in audit A2 (`ag-auth`, `ag-cache`, `ag-cli`)
+  are still pending. This note records stage progress only; the accepted design
+  above is not modified.
 
 ## 1. Motivation
 

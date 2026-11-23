@@ -13,6 +13,7 @@ aun no etiquetados.
 
 
 
+
 ### Honest product status (task E4, estado-honesto)
 
 Added:
@@ -3164,6 +3165,33 @@ Added:
 
 Refs #156, #157, #141, #178, #142, #208. Documentation-only; no runtime
 behaviour, protected path or external service involved.
+
+### Catalogo unificado de oportunidades (proyecto `oportunidades`, O4)
+
+Added:
+
+- `docs/audits/oportunidades-catalogo.md`: catalogo unico y priorizado con una tabla
+  de oportunidades verificables (ID, titulo, tipo, valor, coste, riesgo, fase/RFC,
+  estado y fuente `path:linea`), TOP-5 justificado por el estado honesto de la puerta
+  pre-Fase 5, anti-list con reglas citadas (5/8/10/12/21, L-4) y seccion "como
+  decidir" con la evidencia y la aprobacion humana que exige cada categoria.
+- Incorporacion de las tres notas de pares, citadas con `ARQ:linea`, `FEAT:linea` e
+  `INNO:linea` y tratadas como dato no confiable (L-5): O1 arquitectura como
+  OP-16..OP-23, O2 funciones como OP-24..OP-27 y O3 innovacion como OP-28..OP-32.
+  Se resolvieron los solapamientos con OP-08 (`ag generate --check`), OP-09
+  (secretos y dependencias `age` no verificadas), OP-11 (`ag describe`), OP-01/OP-02
+  (workflow de fuzz y procedimiento de benchmark) y OP-15 (decisiones diferidas).
+  La anti-list quedo en 17 reglas (A-01..A-17) con la fuente de cada par.
+
+Changed:
+
+- Se registro en el outbox S-11 la discrepancia entre
+  `docs/audits/PRE_FASE5_RELEASE_GATE.md:28-29` (Audit/Deny = pass) y
+  `docs/roadmap/STATUS.md:27-29` (mismas filas en fail/pending). No se resolvio ni se
+  promedio: requiere verificacion humana de los issues #173 y #174.
+
+No se cierra ningun gate ni se aprueba ninguna oportunidad: el documento es una
+propuesta de ordenacion. Refs #156, #157, #112, #70, #113.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

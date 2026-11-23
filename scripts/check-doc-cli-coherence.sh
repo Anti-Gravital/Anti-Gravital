@@ -88,7 +88,7 @@ assert_absent CHANGELOG.md 'dispatch wiring is owned by the clidev role and is' 
 echo
 
 echo "[docs] replacement truth (must be present)"
-assert_present docs/mcp/cli-json-contract-0.2.0.md 'All ten are emitted by the CLI' 'MCP contract emitted count'
+assert_present docs/mcp/cli-json-contract-0.2.0.md 'All eleven are emitted by the CLI' 'MCP contract emitted count'
 assert_present docs/mcp/cli-json-contract-0.2.0.md 'now wired into the dispatch layer' 'MCP contract wiring'
 assert_present docs/mcp/README.md 'are now emitted' 'MCP README emitted'
 assert_present README.md 'scaffolds bind `127\.0\.0\.1:8080` by default and honour `BIND`' 'README EN bind truth'

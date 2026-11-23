@@ -7,6 +7,32 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Honest debt and issue-board audit (estado-honesto E3)
+
+Added:
+
+- `docs/audits/estado-honesto-deuda.md`: evidence-cited inventory of the 15
+  live open issues (14 in Anti-Gravital/Anti-Gravital, 1 in Gravital-Fabric),
+  grouped as externally blocked (8), deferred by decision (4), actionable
+  now (1) and tracking parents (2); each with type, blocked reason, exact
+  closure condition and owner.
+- Documented the frozen `docs/DEBT.md` state (25 entries), the 4 `mktemp
+  XXXXXXX` lines counted as debt by the ratchet, the 14 file-size allowlist
+  exceptions, the chrono ignore (RUSTSEC-2026-0543, issue #185), and the
+  absence of live `TECH-DEBT` markers in `crates/`.
+- Recorded test health: 40 Cargo test targets, coverage gate `pass`
+  (80.05%, cited from the release gate, not re-run) and the 4 pre-existing
+  `kaizen check` failures with their S-11 outbox references.
+- Added the section "Deuda que probablemente nunca se cerrara sin humano o
+  externo" with the evidence behind each case.
+
+Changed:
+
+- No code, gate, issue state or baseline changed. `Closes: none`.
+
+Refs #76, #87, #112, #141, #142, #152, #154, #156, #157, #178, #179,
+#180, #185, #208 and Fabric #2 as context only.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

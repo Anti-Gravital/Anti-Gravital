@@ -7,6 +7,28 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Innovation and tooling opportunities (task O3)
+
+Added:
+
+- `docs/audits/oportunidades-innovacion.md`: catalog of nine component,
+  tooling and process opportunities, each with a description, potential value,
+  concrete evidence (documented spike, measured number or labelled hypothesis),
+  dependency risk (S-9), a decision (adopt-pilot / keep-watching / reject) and a
+  reason. Includes a `Hipos a rechazar` section against rules 10/12/21.
+- Decisions: adopt-pilot for the tracked DSL benchmark, golden diagnostics
+  tests, the scheduled 24 h fuzz runner, the benchmark reference-host run and
+  the deterministic hooks test; keep-watching for the chumsky, chrono/object_store
+  and instant-acme upgrades; reject the unmeasured ACME polling rewrite and the
+  five hype items.
+
+Changed:
+
+- No source, manifest, lockfile, CI or release-gate change; no gate row moved
+  and no issue closed. This is an evaluation, not an implementation.
+
+Refs: board task `oportunidades` O3. Closes: none.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

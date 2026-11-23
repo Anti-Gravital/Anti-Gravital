@@ -7,6 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Framework Kaizen: selftests deterministicos (kaizen-gates-green F1)
+
+Added:
+
+- `tests/run.sh`: runner de selftests deterministico del framework, sin red,
+  sin secretos y sin toolchain de Rust. Verifica la presencia de archivos
+  canonicos, la sintaxis de los scripts del gate, el parseo del modulo Python
+  y la honestidad de `scripts/ag-check` (exit 1 ante un test que falla, exit 0
+  ante uno que pasa, exit 2 ante argumento desconocido y checks omitidos
+  reportados como SKIP y nunca como PASS). Desbloquea el job
+  `kaizen-gates/framework`, que ejecutaba un `tests/run.sh` inexistente.
+
+Nota: el selftest heredado `tests/hooks/test-hooks.sh` queda sin cambios; dos
+de sus casos dependen del entorno local (`core.hooksPath` y una desviacion de
+hash en `docs/master`) y se documentan por separado. Refs: kaizen-gates-green/F1.
+
 ### Observability scopes and component health (RFC-0038)
 
 Added:

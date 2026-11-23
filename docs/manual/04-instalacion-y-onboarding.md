@@ -84,11 +84,11 @@ cd my-api
 ag dev
 ```
 
-The server listens on `0.0.0.0:8080` by default. Note that `ag dev` passes
-`BIND=127.0.0.1:8080` by default but the generated templates currently ignore
-that variable and hardcode `0.0.0.0:8080` (issue #191). Treat the development
-server as network-exposed; do not run it on untrusted networks until this is
-fixed. Install `cargo-watch` for automatic reloading on file changes:
+The server listens on `127.0.0.1:8080` by default. `ag dev` passes
+`BIND=127.0.0.1:8080` unless you set `--bind`; the generated templates use the
+same loopback default and honour `BIND`. To expose the server in a container or
+on a LAN, pass `--bind 0.0.0.0:8080` explicitly and treat it as network-exposed.
+Install `cargo-watch` for automatic reloading on file changes:
 
 ```bash
 cargo install cargo-watch
@@ -248,10 +248,10 @@ cd mi-api
 ag dev
 ```
 
-El servidor escucha en `0.0.0.0:8080` por defecto. `ag dev` pasa
-`BIND=127.0.0.1:8080`, pero los templates generados ignoran esa variable y
-fijan `0.0.0.0:8080` (issue #191). Trata el servidor de desarrollo como
-expuesto a la red; no lo ejecutes en redes no confiables hasta corregirlo.
+El servidor escucha en `127.0.0.1:8080` por defecto. `ag dev` pasa
+`BIND=127.0.0.1:8080` salvo que uses `--bind`; los templates generados usan el
+mismo default de loopback y respetan `BIND`. Para exponerlo en un contenedor o
+LAN, pasa `--bind 0.0.0.0:8080` explicitamente y tratalo como expuesto a la red.
 
 ## Operar dominios adjuntos
 

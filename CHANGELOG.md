@@ -7,7 +7,31 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Doc-vs-CLI coherence detector (OP-24 / FEAT A1, task P0)
 
+Added:
+
+- `scripts/check-doc-cli-coherence.sh`: opt-in, offline, deterministic detector
+  for documentation-vs-CLI drift. It asserts that a curated list of confirmed
+  drift markers is absent from the docs and that the matching CLI behaviour is
+  present; it fails closed with `file:line` evidence. It never edits files and
+  is not wired into `.github/` (L-4 protected): run it manually. No auto-fix,
+  no network, no secrets.
+- Descriptors `docs/kaizen/pr-drafts/community20-doc-cli-guard.md` and mirror
+  `docs/pr-drafts/community20-doc-cli-guard.md`.
+
+Changed:
+
+- `docs/manual/04-instalacion-y-onboarding.md` (EN+ES): removed the stale #191
+  bind caveat; documented the loopback default and the opt-in
+  `--bind 0.0.0.0:8080`. Ground truth: `crates/ag-cli/src/cli.rs:119` and every
+  `templates/*/src/main.rs.tmpl` (`BIND` honoured, `127.0.0.1:8080` default).
+- `CHANGELOG.md`: annotated the historical "Versioned config.get JSON shape"
+  entry so its superseded dispatch-wiring claim no longer contradicts the code.
+
+Verification: detector green on the live tree; one simulated drift fails closed
+in a scratch copy; `bash -n`, `git diff --check`, content scans. Refs FEAT:99,
+FEAT:109-132.
 
 ### S6 producer readiness audit (task S6, top5-roadmap)
 
@@ -452,11 +476,12 @@ Changed:
 Not changed:
 
 - `contract_version` remains `0.2.0`: no existing shape changed incompatibly.
-- No prose output, mutating behaviour or CLI dispatch changed. `config.get`,
-  `env.list` and `env.check` are defined fixtures, not emitted commands:
-  `cli.rs` and `main.rs` dispatch wiring is owned by the clidev role and is
-  still pending. Mutating commands still refuse `--output json` before
-  dispatch, and no secret is echoed.
+- At the time of this entry no prose output, mutating behaviour or CLI dispatch
+  changed: `config.get`, `env.list` and `env.check` were defined fixtures, not
+  emitted commands. Superseded: `b81ce3b` wired `config.get` and `a65e3e9` wired
+  `env.list`/`env.check` into `cli.rs`/`json_mode.rs`; all ten 0.2.0 shapes are
+  now emitted (see `docs/mcp/cli-json-contract-0.2.0.md`). Mutating commands
+  still refuse `--output json` before dispatch, and no secret is echoed.
 
 ### Wave 9 host benchmark evidence (issue #157)
 

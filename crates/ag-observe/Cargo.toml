@@ -21,6 +21,10 @@ dev-console = ["dep:console-subscriber"]
 otlp = ["dep:opentelemetry-otlp", "dep:rustls"]
 
 [dependencies]
+# RFC-0020 PR 4: declared environment schema (EnvLoader/EnvDeclaration).
+# Internal workspace crate only; no new external dependency and no new
+# dependency direction (observability -> core, Arq-Tecnica 5.3 regla 2).
+ag-core                     = { workspace = true }
 tracing                     = { workspace = true }
 tracing-subscriber          = { workspace = true }
 tracing-opentelemetry       = { workspace = true }

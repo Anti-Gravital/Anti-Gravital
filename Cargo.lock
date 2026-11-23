@@ -294,6 +294,7 @@ version = "0.1.0-alpha.2"
 name = "ag-observe"
 version = "0.1.0-alpha.2"
 dependencies = [
+ "ag-core",
  "axum",
  "console-subscriber",
  "metrics",

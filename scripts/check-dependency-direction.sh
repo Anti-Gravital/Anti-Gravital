@@ -75,6 +75,7 @@ ALLOWED=(
     'ag-lsp|ag-dsl|CLAUDE.md:331 y docs/graph/crates.md:22'
     'ag-mail|ag-core|Arq-Tecnica 5.3 regla 2'
     'ag-mail|ag-workers|CLAUDE.md:353 y RFC-0012 seccion 4'
+    'ag-observe|ag-core|Arq-Tecnica 5.3 regla 2 (observabilidad -> core); RFC-0020 PR4'
     'ag-storage|ag-auth|docs/graph/crates.md:30 y spec ag-storage:348'
     'ag-storage|ag-core|Arq-Tecnica 5.3 regla 2 (estandar -> core); RFC-0020 PR4'
     'ag-workers|ag-data|CLAUDE.md:352 y RFC-0012 seccion 4'

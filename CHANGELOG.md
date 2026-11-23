@@ -8,6 +8,47 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-observe` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-observe/src/config.rs`: `observe_env_declarations()` lists the six
+  environment keys the crate reads (`OTEL_EXPORTER_OTLP_ENDPOINT`,
+  `PROMETHEUS_PORT`, `LOG_FORMAT`, `AG_DEV_CONSOLE`, `AG_PROJECT_ID` and
+  `SERVICE_NAME`). None is a secret; `AG_PROJECT_ID` is an opaque bounded label
+  and the loader never prints a value in an error. `ObserveConfig::from_env`
+  keeps its signature and resolves through `ag_core::EnvLoader` with
+  `load_process()`; a test-only injected source removes the `set_var` races
+  (audit A1) without a global mutex.
+- `crates/ag-observe/src/config_tests.rs`: a parity oracle that compares the
+  old direct-read behavior with the declared loader for every key (defaults
+  when unset, per-field fallback on malformed values, lowercase-`json` only,
+  `true`/`1` dev-console semantics, empty-string preservation and
+  declared-key isolation), plus schema and default assertions.
+- `ag-core` added as an internal workspace dependency of `ag-observe`; the
+  `check-dependency-direction.sh` allow-list records the observability -> core
+  edge (Arq-Tecnica 5.3 regla 2, RFC-0020 PR4). No new external dependency
+  (S-9).
+
+Changed:
+
+- `crates/ag-observe/src/layer.rs`: documents why `SERVICE_NAME` keeps its
+  direct `std::env::var` read in the `otlp`-gated resource builder: routing it
+  through `ObserveConfig` would add a public field to a public struct (public
+  API change forbidden by this PR). Its `ag-service` fallback
+  is unchanged and is declared in the schema for auditability.
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the second PR 4 crate.
+
+Verification: `cargo test -p ag-observe` (30 passed), all-features crate tests
+(32 passed), workspace all-features tests (exit 0, 90 green result lines),
+`cargo fmt --all -- --check`, `cargo clippy -p ag-observe --all-targets
+--all-features -- -D warnings`, `bash scripts/kaizen check` (green),
+`bash scripts/ag-check` (green, PASS=8/8), `bash scripts/check-dependency-direction.sh`
+(green), `bash tools/check-file-size.sh`, `git diff --check` and content scans.
+Refs RFC-0020 PR 4 and audit A2. No default value, resolution order, validation
+rule or public API signature changed.
+
 ### Declared environment schema for `ag-storage` (RFC-0020 PR 4, audit A2)
 
 Added:

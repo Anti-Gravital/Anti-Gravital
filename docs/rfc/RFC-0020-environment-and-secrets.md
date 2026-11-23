@@ -51,6 +51,24 @@
   `ag-workers`, `ag-realtime`, `ag-auth`, `ag-cache`, `ag-cli`) are still
   pending. This note records stage progress only; the accepted design above
   is not modified.
+- Stage B / PR 4 (wave 23, 2026-11-23): `ag-observe` is the second crate migrated
+  off direct `std::env::var` reads. `crates/ag-observe/src/config.rs` declares
+  its six keys through `EnvDeclaration`/`EnvLoader`, all as `EnvType::String`
+  so the original per-field fallback on unset or malformed values is preserved.
+  None is a secret (`AG_PROJECT_ID` is an opaque bounded label and the loader
+  never prints a value). `ObserveConfig::from_env` keeps its signature and uses
+  `load_process`; a test-only injected source removes the `set_var` races (audit
+  A1). Parity tests in `crates/ag-observe/src/config_tests.rs` compare the
+  declared path against the previous direct reads for every key. `SERVICE_NAME`
+  is declared with its `ag-service` default but its read stays direct in the
+  `otlp`-gated `layer::build_resource`: adding a public `ObserveConfig` field
+  would be a public API change forbidden by this PR. Defaults, resolution order,
+  log-format and dev-console semantics, project-scope validation and OTLP
+  behavior are unchanged. `ag-core` is added as an internal dependency with the
+  dependency-direction allow-list recording observability -> core (Arq-Tecnica
+  5.3 regla 2). The remaining crates in audit A2 (`ag-workers`, `ag-realtime`,
+  `ag-auth`, `ag-cache`, `ag-cli`) are still pending. This note records stage
+  progress only; the accepted design above is not modified.
 
 ## 1. Motivation
 

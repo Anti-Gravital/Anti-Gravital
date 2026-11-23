@@ -36,6 +36,15 @@ impl std::error::Error for ObserveError {}
 /// Builds the OpenTelemetry resource with the optional project scope.
 #[cfg(feature = "otlp")]
 fn build_resource(project_id: Option<&str>) -> opentelemetry_sdk::Resource {
+    // RFC-0020 PR 4: this is the only direct env read left in ag-observe and
+    // it is intentional. SERVICE_NAME is consumed here, while building the
+    // OpenTelemetry resource inside init(), and not on the ObserveConfig::
+    // from_env path (the `otlp` feature gates this whole function). Routing
+    // it through the declared schema would require a new public field on the
+    // public ObserveConfig struct, i.e. a public API change forbidden by this
+    // PR. The key and its fallback are declared in
+    // config::observe_env_declarations() for auditability; this fallback is
+    // kept byte-identical to that declared default ("ag-service").
     let service_name = std::env::var("SERVICE_NAME").unwrap_or_else(|_| "ag-service".to_string());
     let mut builder = opentelemetry_sdk::Resource::builder().with_service_name(service_name);
     if let Some(project) = project_id {

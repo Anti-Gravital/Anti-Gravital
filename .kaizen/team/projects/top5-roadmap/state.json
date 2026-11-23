@@ -1,0 +1,15 @@
+{
+  "slug": "top5-roadmap",
+  "goal": "Avanzar TOP-5: guarda de coherencia doc-vs-CLI (P0) y S6 ag-workers (#112) sin inventar emisores",
+  "kpi": "Detector de derivas con evidencia real; #112 avanzado o caracterizado sin closure falso",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "architect",
+    "dev1-core"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T08:57:15Z",
+  "updated": "2026-11-23T08:57:15Z"
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "task": "P0-doc-cli-coherence",
+    "owner": "verificador-evidencias",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T08:57:15Z"
+  },
+  {
+    "task": "S6-workers-producer",
+    "owner": "dev1-core",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T08:57:15Z"
+  }
+]

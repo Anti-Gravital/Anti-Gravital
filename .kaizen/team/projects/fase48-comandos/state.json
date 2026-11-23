@@ -1,0 +1,15 @@
+{
+  "slug": "fase48-comandos",
+  "goal": "Construir ag generate --check (RFC-0019 PR4) y ag describe (RFC-0024) como producto real verificable",
+  "kpi": "2 comandos implementados con tests, contrato JSON y CI verde; sin saltar Fase 5",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "dev2-api",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T09:53:29Z",
+  "updated": "2026-11-23T09:53:30Z"
+}

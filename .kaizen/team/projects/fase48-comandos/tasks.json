@@ -1,0 +1,16 @@
+[
+  {
+    "task": "G1-generate-check",
+    "owner": "dev1-core",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T09:53:30Z"
+  },
+  {
+    "task": "G2-describe",
+    "owner": "dev2-api",
+    "due": "2026-11-30",
+    "status": "assigned",
+    "created": "2026-11-23T09:53:30Z"
+  }
+]

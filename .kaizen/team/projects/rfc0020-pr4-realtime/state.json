@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4-realtime",
+  "goal": "RFC-0020 PR4: migrar ag-realtime (config.rs) de std::env::var a EnvLoader declarado",
+  "kpi": "11 claves config declaradas; lecturas #[cfg(test)] de external.rs preservadas; CI verde",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T19:31:57Z",
+  "updated": "2026-11-23T19:31:57Z"
+}

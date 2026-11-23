@@ -36,3 +36,19 @@ Rol: gate auditor. Modo: solo lectura; NO se ejecuto ninguna regeneracion ni se 
 ### Verificacion del auditor
 - `git diff --check` y escaneo de contenido: ver commit de entrega (sin secretos, sin emojis, sin atribucion a herramientas de IA).
 - `scripts/kaizen-org check` ejecutado SOLO en modo validacion; `git status --short` limpio de cambios versionados antes de anadir estos dos artefactos.
+
+## CIERRE HONESTO (2026-11-23) - KPI PARCIALMENTE CUMPLIDO
+
+KPI: `kaizen check FAIL=0 y kaizen-gates framework+ratchet success`.
+Resultado real: NO cumplido. Progreso:
+- F1 (merge 1139dfc): `tests/run.sh` creado -> `ok: tests` (antes fallaba 127).
+  `kaizen-gates/framework` debe pasar en el proximo CI.
+- F2/F3/F4: escalados needs-human (ADR-0001, catalogo .kaizen/, deuda
+  count_debt en scripts/kaizen*) — rutas protegidas L-4, agente no autorizado.
+- `kaizen check` final: FALLO en 3 (swarm, gobernanza, deuda 4>0).
+- `docs.yml:50` hash hardcodeado viejo -> workflow docs rojo (needs-human).
+- `guardrails/derived`: corregido (b44c9b0), 39 derivados coinciden.
+El proyecto se marco `closed` por el orquestador antes de tiempo; el KPI real
+sigue abierto. Reabrir cuando haya autorizacion humana para los 4 items
+protegidos (ver outbox S-11: docs-yml-hash, kaizen-f3-catalogo,
+kaizen-ratchet-deuda, kaizen-swarm-adr0001, kaizen-gov).

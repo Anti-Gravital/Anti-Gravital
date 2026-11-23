@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4-auth",
+  "goal": "RFC-0020 PR4: migrar ag-auth de std::env::var a EnvLoader declarado (4 secretos)",
+  "kpi": "8 claves declaradas con secret(true) en 4; secretos nunca impresos; CI verde",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "dev1-core",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T20:20:10Z",
+  "updated": "2026-11-23T20:20:10Z"
+}

@@ -130,6 +130,27 @@
   auth -> core (Arq-Tecnica 5.3 regla 2). The remaining crates in audit A2
   (`ag-cache`, `ag-cli`) are still pending. This note records stage progress
   only; the accepted design above is not modified.
+- Stage B / PR 4 (wave 27, 2026-11-23): `ag-cache` is the sixth crate migrated
+  off direct `std::env::var` reads. `crates/ag-cache/src/config.rs` declares its
+  six keys through `EnvDeclaration`/`EnvLoader`, all as `EnvType::String` so the
+  original per-field fallback on unset, non-UTF-8 or malformed values is
+  preserved. `REDIS_URL` is declared `secret(true)` because a Redis URL can
+  embed `user:pass@host` credentials; it is delivered as `Secret<String>` whose
+  `Debug`/`Display` redact and whose bytes are copied into the public
+  `Option<String>` field only through an explicit `expose()` call, so the value
+  is never printed in a loader error or a redacted state (S-1/S-8). The other
+  five keys are operational knobs and are not secrets. `CacheConfig::from_env`
+  keeps its `Self` signature and uses `load_process`; a test-only injected
+  source removes the `set_var` races (audit A1). Parsing and defaults stay in
+  `from_loaded_env`, so the numeric fallbacks, the `false` flag default, the
+  `None` Redis default and the "1"/"true" case-insensitive bool semantics are
+  byte-identical. Parity tests in `crates/ag-cache/src/config_tests.rs` compare
+  the declared path against the previous direct reads for every key, with a
+  canary proving the secret is never disclosed. `ag-cache` already depended on
+  `ag-core` and the `ag-cache -> ag-core` edge was already present in
+  `scripts/check-dependency-direction.sh`, so the dependency guard is unchanged.
+  The remaining crate in audit A2 (`ag-cli`) is still pending. This note records
+  stage progress only; the accepted design above is not modified.
 
 ## 1. Motivation
 

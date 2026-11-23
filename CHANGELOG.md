@@ -8,6 +8,51 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+### Declared environment schema for `ag-cache` (RFC-0020 PR 4, audit A2)
+
+Added:
+
+- `crates/ag-cache/src/config.rs`: `cache_env_declarations()` lists the six
+  environment keys the crate reads (`CACHE_L1_MAX_CAPACITY`,
+  `CACHE_L1_TTL_SECS`, `REDIS_URL`, `REDIS_POOL_SIZE`, `CACHE_NATIVE_SERVER`,
+  `CACHE_NATIVE_PORT`). All are declared `EnvType::String` so the original
+  per-field fallback on unset, non-UTF-8 or malformed values is preserved.
+  `REDIS_URL` is declared `secret(true)` because a Redis URL can embed
+  `user:pass@host` credentials; the loader wraps it in `Secret<String>` whose
+  `Debug`/`Display` redact and which requires an explicit `expose()`, so the
+  value is never printed in an error or a redacted state. `CacheConfig::from_env`
+  keeps its signature (`Self`) and resolves through `ag_core::EnvLoader` with
+  `load_process()`. A test-only injected source removes the `set_var` races
+  (audit A1). Parsing and defaults stay in `from_loaded_env`, so the numeric
+  fallbacks (10_000, 300, 10, 6379), the `false` flag default, the `None` Redis
+  default and the "1"/"true" case-insensitive bool semantics are byte-identical.
+  No change to the public `CacheConfig` fields or to the `native-server` /
+  `redis-l2` features. `ag-cache` already depended on `ag-core` and the
+  `ag-cache -> ag-core` edge was already in the dependency-direction allow-list,
+  so the guard is untouched (S-9, Arq-Tecnica 5.3 regla 2).
+- `crates/ag-cache/src/config_tests.rs`: a parity oracle that compares the old
+  direct-read behavior with the declared loader for every key (defaults when
+  unset, per-field malformed fallbacks, empty values, bool semantics,
+  undeclared-key isolation), plus schema assertions for the six-key list and
+  the `REDIS_URL`-only secret classification. A canary test proves the secret
+  is never emitted through `Debug` or `Display` and is reachable only through
+  `expose()`.
+
+Changed:
+
+- `docs/rfc/RFC-0020-environment-and-secrets.md`: additive implementation-status
+  note recording the sixth PR 4 crate.
+
+Verification: `cargo test -p ag-cache` and `--all-features`, workspace
+all-features tests, `cargo fmt --all -- --check`, `cargo clippy -p ag-cache
+--all-targets --all-features -- -D warnings`,
+`RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps`,
+`bash scripts/ag-check`, `bash scripts/kaizen check`,
+`bash scripts/check-dependency-direction.sh` (green, unchanged; forbidden edges
+still detected), `bash tools/check-file-size.sh`, `git diff --check` and content
+scans. Refs RFC-0020 PR 4 and audit A2. No default value, resolution order,
+error behavior, public API signature or feature changed.
+
 ### Declared environment schema for `ag-auth` (RFC-0020 PR 4, audit A2)
 
 Added:

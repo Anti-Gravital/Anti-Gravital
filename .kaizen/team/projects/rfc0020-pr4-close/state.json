@@ -1,0 +1,14 @@
+{
+  "slug": "rfc0020-pr4-close",
+  "goal": "Cerrar RFC-0020 PR4: 6 crates migrados + decision documentada sobre ag-cli",
+  "kpi": "Decision de ag-cli con evidencia; RFC-0020 status actualizado; sin cambio de arquitectura",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "verificador-evidencias",
+    "architect",
+    "qa"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T22:01:04Z",
+  "updated": "2026-11-23T22:01:05Z"
+}

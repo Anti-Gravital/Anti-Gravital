@@ -47,7 +47,9 @@ jobs:
           # los maestros markdown gobiernan (VERSION.md politica #4).
           expected_blueprint_pdf="59a1df26bd24e96067c58c142709e3cb55fc33efbb1c8f3739d9473598dfb660"
           expected_blueprint_md="36ea6d46ffe61694dec9be0eaaa1b4a82affebbb67654e2ad612aa5afe494a82"
-          expected_arch="7c1c7d0cd21057ef66ec4826a6e7bf5bb46d451287a06776769b8f333f17bd1e"
+          # Single source of truth: docs/master/VERSION.md hash table.
+          # Keep these literals in sync with that table (RFC-0038 updated Arquitectura to ed89854f on 2026-11-22).
+          expected_arch="ed89854fffd1ce7dc6f25d8955a60ee54fb871396ff726ad27a2db06a46347fb"
           expected_road="210a8b8720659393fa0b5439586e7f7e56ea534eb813a36392adefe26ec062af"
           got_blueprint_pdf="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.0.pdf | awk '{print $1}')"
           got_blueprint_md="$(sha256sum docs/master/ANTI-GRAVITAL-Blueprint-v4.1.md | awk '{print $1}')"

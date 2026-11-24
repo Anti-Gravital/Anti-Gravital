@@ -40,7 +40,8 @@ pub(crate) fn write(state: &DevState) -> Result<(), String> {
     let dir = Path::new(".ag");
     fs::create_dir_all(dir).map_err(|e| format!("failed to create .ag directory: {e}"))?;
     let temp = dir.join("dev.json.tmp");
-    let bytes = serde_json::to_vec(state).map_err(|e| format!("failed to encode dev state: {e}"))?;
+    let bytes =
+        serde_json::to_vec(state).map_err(|e| format!("failed to encode dev state: {e}"))?;
     fs::write(&temp, &bytes).map_err(|e| format!("failed to write dev state: {e}"))?;
     fs::rename(&temp, path()).map_err(|e| format!("failed to publish dev state: {e}"))?;
     Ok(())
@@ -99,6 +100,9 @@ mod tests {
         s.started_at = now + 10;
         // Inversion is rejected by read_fresh; tested via the pure predicate.
         assert!(s.heartbeat_at < s.started_at);
-        assert_eq!((s.heartbeat_at <= now && s.heartbeat_at >= s.started_at), false);
+        assert_eq!(
+            (s.heartbeat_at <= now && s.heartbeat_at >= s.started_at),
+            false
+        );
     }
 }

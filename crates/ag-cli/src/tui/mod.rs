@@ -6,9 +6,9 @@
 
 mod config_form;
 mod home;
-mod project_context;
 mod line;
 mod new_wizard;
+mod project_context;
 mod terminal;
 pub(crate) mod text;
 mod theme;
@@ -146,6 +146,7 @@ fn run_home_loop(mut model: HomeModel, no_color: bool) -> io::Result<Option<Stri
     let theme = Theme::for_session(no_color);
     let _guard = Guard::enter(CrosstermOps)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+    let mut notice = None;
     loop {
         terminal.draw(|frame| home_view(frame, &model, &theme))?;
         let Event::Key(key) = event::read()? else {
@@ -157,9 +158,19 @@ fn run_home_loop(mut model: HomeModel, no_color: bool) -> io::Result<Option<Stri
         match model.update(msg) {
             Some(HomeEffect::Launch(command)) => return Ok(Some(command)),
             Some(HomeEffect::Quit) => return Ok(None),
+            Some(HomeEffect::Notice(message)) => {
+                notice = Some(message);
+                break;
+            }
             None => {}
         }
     }
+    drop(terminal);
+    drop(_guard);
+    if let Some(message) = notice {
+        println!("{message}");
+    }
+    Ok(None)
 }
 
 #[cfg(test)]

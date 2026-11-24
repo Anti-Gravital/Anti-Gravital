@@ -36,7 +36,8 @@ pub(crate) const HINT_NO_PROJECT: &str =
 pub(crate) const HINT_RUNNING: &str = "Instance confirmed. Continue development will reuse it.";
 pub(crate) const HINT_UNKNOWN: &str = "No confirmed active instance. Press r to retry, ? for help.";
 
-pub(crate) const NOTICE_CREATE_DISABLED: &str = "A project is already detected here. Run 'ag new' from outside this directory (cd ..).";
+pub(crate) const NOTICE_CREATE_DISABLED: &str =
+    "A project is already detected here. Run 'ag new' from outside this directory (cd ..).";
 
 pub(crate) const KEYS_HELP: &str =
     "? : toggle help    r : refresh    j/k : move    Enter : run    Esc/q : quit";

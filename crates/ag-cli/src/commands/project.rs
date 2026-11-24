@@ -3,13 +3,8 @@
 use std::fs;
 use std::path::Path;
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 
 use crate::interactive::Session;
-use crate::project_state::{self, DevState, HEARTBEAT_SECS, SCHEMA};
 use crate::request::{Module, NewProjectRequest, Template};
 
 // Template files are discovered and embedded by `build.rs` (see
@@ -89,51 +84,27 @@ pub(crate) fn resolve_new_request(
     }
 }
 
-/// D-1 (ADR-0014): mirrors `tui::in_project` — `config.toml` is a file and
-/// `Cargo.toml` contains `ag-core`. The executor is the authority for both the
-/// flags and the TUI paths, so the guard lives here before any scaffolding.
-fn current_dir_has_project() -> bool {
-    Path::new("config.toml").is_file()
-        && fs::read_to_string("Cargo.toml").is_ok_and(|manifest| manifest.contains("ag-core"))
-}
-
-fn guard_create_in_project() -> Result<(), NewError> {
-    if current_dir_has_project() {
-        return Err(NewError::Usage(
-            "a project already exists in the current directory; run 'cd ..' \
-             and repeat 'ag new <NAME>' (ADR-0014 D-1)"
-                .to_owned(),
-        ));
-    }
-    Ok(())
-}
-
 /// Creates the project described by the request. The single executor behind
 /// both the flags and the interactive interface.
-pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), NewError> {
-    // Fail before creating anything: D-1 forbids nesting a project in a project.
-    guard_create_in_project()?;
-
+pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), String> {
     let name = request.name.as_str();
-    validate_project_name(name).map_err(NewError::Failed)?;
+    validate_project_name(name)?;
 
     // Fail before creating anything: --with is only meaningful for a template
     // that actually generates the ag.toml manifest (RFC-0019 section 4.3).
     if !request.modules.is_empty()
         && !crate::scaffold::files_for(request.template.as_str()).contains(&"ag.toml")
     {
-        return Err(NewError::Failed(format!(
+        return Err(format!(
             "--with requires a template that generates ag.toml (for example \
              --template layered); template '{}' has no manifest",
             request.template
-        )));
+        ));
     }
 
     let project_dir = Path::new(name);
     if project_dir.exists() {
-        return Err(NewError::Failed(format!(
-            "directory '{name}' already exists"
-        )));
+        return Err(format!("directory '{name}' already exists"));
     }
 
     println!(
@@ -141,18 +112,16 @@ pub(crate) fn execute_new(request: &NewProjectRequest) -> Result<(), NewError> {
         request.template
     );
 
-    crate::scaffold::scaffold(name, request.template.as_str(), project_dir)
-        .map_err(NewError::Failed)?;
+    crate::scaffold::scaffold(name, request.template.as_str(), project_dir)?;
 
     // The default scaffold is byte-for-byte unchanged: the manifest is only
     // rewritten when the caller explicitly enabled modules.
     if !request.modules.is_empty() {
         let manifest = project_dir.join("ag.toml");
         let original = fs::read_to_string(&manifest)
-            .map_err(|e| NewError::Failed(format!("failed to read generated ag.toml: {e}")))?;
-        let updated =
-            enable_modules_in_manifest(&original, &request.modules).map_err(NewError::Failed)?;
-        write_file(&manifest, &updated).map_err(NewError::Failed)?;
+            .map_err(|e| format!("failed to read generated ag.toml: {e}"))?;
+        let updated = enable_modules_in_manifest(&original, &request.modules)?;
+        write_file(&manifest, &updated)?;
     }
 
     println!();
@@ -191,9 +160,9 @@ pub(crate) fn cmd_new(
     match resolve_new_request(name, template, modules, &session, |name, template| {
         ask_new_project(name, template, &session)
     })? {
-        Resolved::FromFlags(request) => execute_new(&request),
+        Resolved::FromFlags(request) => execute_new(&request).map_err(NewError::Failed),
         Resolved::Asked(request) => {
-            execute_new(&request)?;
+            execute_new(&request).map_err(NewError::Failed)?;
             println!();
             println!("{EQUIVALENT_COMMAND_LABEL}");
             println!("  {}", request.equivalent_command());
@@ -233,92 +202,8 @@ fn ask_new_project(
     Err("this build of ag has no interactive interface".to_owned())
 }
 
-/// Validates a `host:port` bind before it reaches the state file or the child
-/// process. Rejects credentials, schemes, paths, queries, whitespace and
-/// non-numeric ports so the state never carries a secret (S-1/S-3/S-4/S-8).
-/// The offending value is deliberately not echoed in the error (S-8).
-fn validate_bind(bind: &str) -> Result<(), String> {
-    if bind.contains('@')
-        || bind.contains('/')
-        || bind.contains('?')
-        || bind.contains(char::is_whitespace)
-    {
-        return Err(
-            "invalid bind: expected host:port without credentials, path or whitespace".to_owned(),
-        );
-    }
-    let (host, port) = bind
-        .split_once(':')
-        .ok_or_else(|| "invalid bind: expected host:port".to_owned())?;
-    let host_valid =
-        !host.is_empty() && (!host.contains(':') || (host.starts_with('[') && host.ends_with(']')));
-    if !host_valid || port.is_empty() || port.parse::<u16>().is_err() {
-        return Err("invalid bind: expected host:port with a numeric port".to_owned());
-    }
-    Ok(())
-}
-
-/// Stops and joins the heartbeat thread from `Drop`, so every return path
-/// (including `?` propagation) is clean without a duplicated join call.
-struct HeartbeatGuard {
-    stop: Arc<AtomicBool>,
-    handle: Option<thread::JoinHandle<()>>,
-}
-
-impl Drop for HeartbeatGuard {
-    fn drop(&mut self) {
-        self.stop.store(true, Ordering::Relaxed);
-        if let Some(handle) = self.handle.take() {
-            if handle.join().is_err() {
-                eprintln!("warning: heartbeat thread panicked");
-            }
-        }
-    }
-}
-
-fn run_dev(bind: &str) -> Result<(), String> {
-    validate_bind(bind)?;
+pub(crate) fn cmd_dev(bind: &str) -> Result<(), String> {
     println!("Starting development server (bind: {bind})...");
-
-    // Publish the state before any cargo child is spawned (ADR-0014 §1). A
-    // failure here is returned, never swallowed (S-7).
-    let started_at = project_state::now_secs();
-    let state = DevState {
-        schema: SCHEMA,
-        pid: process::id(),
-        bind: bind.to_owned(),
-        started_at,
-        heartbeat_at: started_at,
-    };
-    project_state::write(&state).map_err(|e| format!("failed to record development state: {e}"))?;
-
-    // Refresh the heartbeat while the child is alive. `Arc<AtomicBool>` is the
-    // stop signal; `HeartbeatGuard` joins before this function returns.
-    let stop = Arc::new(AtomicBool::new(false));
-    let heartbeat_stop = Arc::clone(&stop);
-    let heartbeat_bind = bind.to_owned();
-    let handle = thread::spawn(move || {
-        while !heartbeat_stop.load(Ordering::Relaxed) {
-            thread::sleep(Duration::from_secs(HEARTBEAT_SECS));
-            if heartbeat_stop.load(Ordering::Relaxed) {
-                break;
-            }
-            let refreshed = DevState {
-                schema: SCHEMA,
-                pid: process::id(),
-                bind: heartbeat_bind.clone(),
-                started_at,
-                heartbeat_at: project_state::now_secs(),
-            };
-            if let Err(e) = project_state::write(&refreshed) {
-                eprintln!("warning: failed to refresh development state: {e}");
-            }
-        }
-    });
-    let _heartbeat = HeartbeatGuard {
-        stop,
-        handle: Some(handle),
-    };
 
     let watch_available = process::Command::new("cargo")
         .args(["watch", "--version"])
@@ -349,16 +234,6 @@ fn run_dev(bind: &str) -> Result<(), String> {
         return Err("the server exited with an error".into());
     }
     Ok(())
-}
-
-pub(crate) fn cmd_dev(bind: &str) -> Result<(), String> {
-    let result = run_dev(bind);
-    // Always clear the state on exit: success, error or `?` propagation (S-7).
-    // Never leave a file claiming `running` after this function returns.
-    if let Err(e) = project_state::remove() {
-        eprintln!("warning: failed to clear development state: {e}");
-    }
-    result
 }
 
 pub(crate) fn cmd_build(target: Option<&str>) -> Result<(), String> {
@@ -510,89 +385,5 @@ mod tests {
         )
         .expect_err("no modules table");
         assert!(error.contains("[modules]"), "{error}");
-    }
-
-    use std::env;
-    use std::path::PathBuf;
-    use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
-    use std::sync::Mutex;
-
-    // The tests below change the process-wide cwd; serialise them so they do
-    // not interfere with each other or with other modules' tests.
-    static CWD_LOCK: Mutex<()> = Mutex::new(());
-    static NEXT_TEMP_DIR: AtomicU64 = AtomicU64::new(0);
-
-    fn make_temp_dir(tag: &str) -> PathBuf {
-        let dir = env::temp_dir().join(format!(
-            "ag-cli-{tag}-{}-{}",
-            process::id(),
-            NEXT_TEMP_DIR.fetch_add(1, AtomicOrdering::Relaxed)
-        ));
-        fs::create_dir_all(&dir).expect("create temp dir");
-        dir
-    }
-
-    struct CwdGuard(PathBuf);
-    impl Drop for CwdGuard {
-        fn drop(&mut self) {
-            let _ = env::set_current_dir(&self.0);
-        }
-    }
-
-    fn enter_dir(dir: &Path) -> CwdGuard {
-        let original = env::current_dir().expect("current dir");
-        env::set_current_dir(dir).expect("enter temp dir");
-        CwdGuard(original)
-    }
-
-    #[test]
-    fn guard_rejects_new_project_inside_existing_project() {
-        let _serial = CWD_LOCK.lock().expect("cwd lock");
-        let dir = make_temp_dir("guard");
-        {
-            let _cwd = enter_dir(&dir);
-            fs::write("config.toml", "").expect("config.toml marker");
-            fs::write(
-                "Cargo.toml",
-                "[package]\nname = \"host\"\n[dependencies]\nag-core = \"1\"\n",
-            )
-            .expect("Cargo.toml marker");
-
-            let request = NewProjectRequest {
-                name: "nested".to_owned(),
-                template: Template::DEFAULT,
-                modules: vec![],
-            };
-            match execute_new(&request).expect_err("D-1 must reject") {
-                NewError::Usage(message) => {
-                    assert!(message.contains("cd .."), "{message}");
-                }
-                other => panic!("expected NewError::Usage, got {other:?}"),
-            }
-            assert!(!Path::new("nested").exists(), "nothing must be scaffolded");
-        }
-        fs::remove_dir_all(&dir).expect("cleanup temp dir");
-    }
-
-    #[test]
-    fn cmd_dev_does_not_write_state_when_state_write_fails() {
-        let _serial = CWD_LOCK.lock().expect("cwd lock");
-        let dir = make_temp_dir("dev-state-fail");
-        {
-            let _cwd = enter_dir(&dir);
-            // A regular file at `.ag` makes project_state::write fail (S-7).
-            fs::write(".ag", "not a directory").expect(".ag file");
-
-            let error = cmd_dev("127.0.0.1:8080").expect_err("write must fail");
-            assert!(
-                error.contains("failed to record development state"),
-                "{error}"
-            );
-            assert!(
-                !Path::new(".ag/dev.json").exists(),
-                "no state file must claim running"
-            );
-        }
-        fs::remove_dir_all(&dir).expect("cleanup temp dir");
     }
 }

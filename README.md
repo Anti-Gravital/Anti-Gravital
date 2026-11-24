@@ -44,7 +44,7 @@ language (ADR-0008). A full Spanish version follows the English one.
 | --- | --- |
 | Language and runtime | Rust (MSRV 1.99.1) on Tokio, Axum, Tower and rustls |
 | License | Apache-2.0 |
-| Released version | Alpha `v0.1.0-alpha.2`, available for testing via the default prebuilt `release` channel (SHA-256 integrity check) or the explicit `source` channel ([release notes](docs/releases/0.1.0-alpha.2.md)); no crates.io package |
+| Released version | Alpha `v0.1.0-alpha.2`, available for testing from source ([release notes](docs/releases/0.1.0-alpha.2.md)); no crates.io package, source install is the verified path |
 | Workspace | 19 `ag-*` crates plus the `ag` developer CLI (5 of them are reserved placeholders for later phases) |
 | Current position | Phases 0-4.5 implemented with their exit gates still open; additive Phase 4.6 in progress |
 | Production-ready | No. This is a testing alpha; the formal pre-Phase-5 release gate is OPEN ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
@@ -87,7 +87,7 @@ from source, scaffold a project, run it locally and generate code from a
 schema:
 
 ```bash
-# 1. Install (Git required; Rust 1.99.1+ only for the explicit source channel)
+# 1. Install (Git and Rust 1.99.1+ required)
 git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
 
 # 2. Scaffold a project (Windows: install with .\install.ps1, then use the same ag commands)
@@ -108,30 +108,11 @@ Full walkthrough: [Your first API](docs/manual/02-primera-api.md). Runnable
 prototypes: [`examples/`](examples/). Release notes:
 [`v0.1.0-alpha.2`](docs/releases/0.1.0-alpha.2.md).
 
-By default the installer uses the `release` channel: it resolves the versioned
-tag from `Cargo.toml`, downloads the matching prebuilt binary for your platform
-and verifies its SHA-256 against the release `checksums.txt` before installing.
-No toolchain is downloaded and nothing is compiled. This is **integrity, not
-authenticity**: there is no signature or authenticity claim and #141 remains
-open (RFC-0030 is a draft). The source path is still available explicitly as
-`AG_INSTALLER_CHANNEL=source bash install.sh` (it builds the workspace twice and
-took about 21 minutes on the recorded host); there is **no automatic fallback**
-from `release` to `source`.
-
-The installer shows a native six-stage progress view (resolve version, detect
-platform, download, verify SHA-256, install, done). In CI or other non-interactive
-shells set `AG_INSTALLER_PROGRESS=headless` for stable one-line-per-stage
-`[ag-install] N/6 ...` output with no animation; headless mode is also selected
-automatically when `CI` is set, `TERM=dumb` or `NO_COLOR` is present, or stdout
-is not a TTY. The fail-closed checksum checks are identical in both modes.
-
 ### Alpha: what works and what does not yet work
 
 Works in `v0.1.0-alpha.2`:
 
-- Install the versioned prebuilt binary with `install.sh` / `install.ps1`
-  (default `release` channel, SHA-256 integrity check), or build from source
-  with `AG_INSTALLER_CHANNEL=source` or `cargo install --path`.
+- Install from source with `install.sh`, `install.ps1` or `cargo install --path`.
 - Scaffold `rest`, `realtime` and `fullstack` projects with `ag new`.
 - Run a local development server with `ag dev`. Both the CLI and generated
   scaffolds bind `127.0.0.1:8080` by default and honour `BIND`.
@@ -145,13 +126,11 @@ Works in `v0.1.0-alpha.2`:
 
 Does not yet work in the alpha:
 
-- No crates.io package and no signed release. The default `release` channel
-  downloads a versioned prebuilt binary for four targets and checks its SHA-256
-  against the release `checksums.txt`; that is integrity, not authenticity, and
-  #141 remains open (RFC-0030 is a draft). `AG_INSTALLER_CHANNEL=source` is an
-  explicit route (about 21 minutes, two builds); there is no automatic fallback
-  from `release` to `source`. See the
-  [installation integrity procedure](docs/security/INSTALLATION_INTEGRITY.md).
+- No crates.io package. Prebuilt binaries are produced for four targets and an
+  opt-in alpha channel (`AG_INSTALLER_CHANNEL=alpha`) downloads one with a
+  SHA-256 check only; it makes no signature or authenticity claim and its
+  end-to-end verification is still pending (#141 remains open). Source install
+  is the verified path.
 - Do not expose the `ag dev` server on untrusted networks: the CLI default
   bind and the generated scaffolds both default to loopback; `BIND` is honoured.
 - `ag deploy` only renders local artifacts; cluster deployment with
@@ -211,9 +190,8 @@ Be aware of these boundaries before adopting the project:
   and makes no API call. Secrets, live deployment, logs and rollback arrive
   with `ag-cloud` in Phase 5. `ag migrate` (Phase 7) and `ag plugin`
   (Phase 9) are also future commands.
-- **No package-manager install.** Nothing is published to crates.io yet; the
-  installer downloads a versioned prebuilt binary (default `release` channel) or
-  builds from source with the audited installer scripts.
+- **No package-manager install.** Nothing is published to crates.io yet;
+  you build from source with the audited installer scripts.
 - **No stable-API promise.** Public APIs can still change until Phase 10
   (1.0). SemVer discipline starts with the first tagged release.
 - **No production certification.** The pre-Phase-5 release gate is open;
@@ -237,8 +215,7 @@ framework never hides your business logic.
 
 ### Quick start
 
-Prerequisites: Git. Rust 1.99.1 or newer is required only for the explicit
-`AG_INSTALLER_CHANNEL=source` channel.
+Prerequisites: Git and Rust 1.99.1 or newer.
 
 Linux or macOS:
 
@@ -252,15 +229,9 @@ Windows PowerShell:
 git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-Gravital; .\install.ps1
 ```
 
-By default the installer uses the `release` channel: it resolves the version
-from `Cargo.toml`, downloads the matching prebuilt `ag` binary and verifies its
-SHA-256 before installing — nothing is compiled. The explicit
-`AG_INSTALLER_CHANNEL=source` route builds the workspace twice and took about 21
-minutes on the recorded host; there is no automatic fallback. Progress is a
-native six-stage view; in CI set `AG_INSTALLER_PROGRESS=headless` (or rely on
-`CI`, `TERM=dumb`, `NO_COLOR` or non-TTY detection) for stable one-line-per-stage
-output. No privileged system changes are made. Before running it, verify the
-checkout with the canonical
+The installer verifies the Rust version, builds the workspace in release mode
+and installs `ag` into the Cargo bin directory. It performs no privileged
+system changes. Before running it, verify the checkout with the canonical
 [installation integrity procedure](docs/security/INSTALLATION_INTEGRITY.md).
 
 Then create and run a project. In a terminal, `ag new` with no arguments
@@ -637,7 +608,7 @@ public issues.
 | --- | --- |
 | Lenguaje y runtime | Rust (MSRV 1.99.1) sobre Tokio, Axum, Tower y rustls |
 | Licencia | Apache-2.0 |
-| Version publicada | Alpha `v0.1.0-alpha.2` disponible para pruebas mediante el canal precompilado `release` por defecto (verificacion SHA-256) o el canal explicito `source` ([notas de release](docs/releases/0.1.0-alpha.2.md)); sin paquete en crates.io |
+| Version publicada | Alpha `v0.1.0-alpha.2` disponible para pruebas desde el codigo fuente ([notas de release](docs/releases/0.1.0-alpha.2.md)); sin paquete en crates.io; la instalacion desde el fuente es la ruta verificada |
 | Workspace | 19 crates `ag-*` mas la CLI de desarrollo `ag` (5 de ellos son placeholders reservados para fases posteriores) |
 | Posicion actual | Fases 0-4.5 implementadas con sus puertas de salida aun abiertas; Fase aditiva 4.6 en curso |
 | Listo para produccion | No. Es un alpha de prueba; la puerta formal de release pre-Fase 5 esta ABIERTA ([release gate](docs/audits/PRE_FASE5_RELEASE_GATE.md)) |
@@ -682,7 +653,7 @@ codigo fuente, crea un proyecto, ejecutalo localmente y genera codigo desde un
 schema:
 
 ```bash
-# 1. Instalar (se requiere Git; Rust 1.99.1+ solo para el canal source explicito)
+# 1. Instalar (se requieren Git y Rust 1.99.1+)
 git clone https://github.com/Anti-Gravital/Anti-Gravital.git && cd Anti-Gravital && bash install.sh
 
 # 2. Crear un proyecto
@@ -703,31 +674,11 @@ Guia completa: [Tu primera API](docs/manual/02-primera-api.md). Prototipos
 ejecutables: [`examples/`](examples/). Notas de release:
 [`v0.1.0-alpha.2`](docs/releases/0.1.0-alpha.2.md).
 
-Por defecto el instalador usa el canal `release`: resuelve la version etiquetada
-desde `Cargo.toml`, descarga el binario precompilado correspondiente a tu
-plataforma y verifica su SHA-256 contra el `checksums.txt` del release antes de
-instalar. No se descarga ningun toolchain ni se compila nada. Esto es
-**integridad, no autenticidad**: no hay firma ni afirmacion de autenticidad y
-#141 sigue abierto (RFC-0030 es borrador). La ruta desde el fuente sigue
-disponible de forma explicita como `AG_INSTALLER_CHANNEL=source bash install.sh`
-(compila el workspace dos veces y tardo unos 21 minutos en el host medido); **no
-hay fallback automatico** de `release` a `source`.
-
-El instalador muestra una vista nativa de progreso de seis etapas (resolver
-version, detectar plataforma, descargar, verificar SHA-256, instalar, listo). En
-CI u otros shells no interactivos usa `AG_INSTALLER_PROGRESS=headless` para
-obtener una linea estable `[ag-install] N/6 ...` por etapa sin animacion; el modo
-headless tambien se selecciona automaticamente cuando esta definido `CI`,
-`TERM=dumb` o `NO_COLOR`, o cuando stdout no es una TTY. Las comprobaciones
-fail-closed de checksum son identicas en ambos modos.
-
 ### Alpha: que funciona y que aun no funciona
 
 Funciona en `v0.1.0-alpha.2`:
 
-- Instalar el binario precompilado versionado con `install.sh` / `install.ps1`
-  (canal `release` por defecto, verificacion SHA-256), o compilar desde el
-  fuente con `AG_INSTALLER_CHANNEL=source` o `cargo install --path`.
+- Instalar desde el fuente con `install.sh`, `install.ps1` o `cargo install --path`.
 - Crear proyectos `rest`, `realtime` y `fullstack` con `ag new`.
 - Ejecutar un servidor de desarrollo local con `ag dev`. La CLI y los templates
   generados usan `127.0.0.1:8080` por defecto y respetan `BIND`.
@@ -742,13 +693,11 @@ Funciona en `v0.1.0-alpha.2`:
 
 Aun no funciona en el alpha:
 
-- No hay paquete en crates.io ni releases firmados. El canal `release` por
-  defecto descarga un binario precompilado versionado para cuatro targets y
-  comprueba su SHA-256 contra el `checksums.txt` del release; eso es integridad,
-  no autenticidad, y #141 sigue abierto (RFC-0030 es borrador).
-  `AG_INSTALLER_CHANNEL=source` es una ruta explicita (unos 21 minutos, dos
-  builds); no hay fallback automatico de `release` a `source`. Consulta el
-  [procedimiento canonico de integridad](docs/security/INSTALLATION_INTEGRITY.md).
+- No hay paquete en crates.io. Se producen binarios para cuatro targets y un
+  canal opt-in (`AG_INSTALLER_CHANNEL=alpha`) descarga uno con verificacion
+  SHA-256 unicamente; no afirma firma ni autenticidad y su verificacion
+  integral aun esta pendiente (#141 sigue abierto). La ruta verificada es la
+  instalacion desde el fuente.
 - No expongas el servidor de `ag dev` a redes no confiables: el default de la
   CLI y los templates generados usan loopback por defecto; `BIND` se respeta.
 - `ag deploy` solo renderiza artefactos locales; el despliegue en cluster con
@@ -813,9 +762,9 @@ Limites a tener en cuenta antes de adoptar el proyecto:
   ni hace llamadas API. Secretos, despliegue real, logs y rollback llegan con
   `ag-cloud` en la Fase 5. `ag migrate` (Fase 7) y `ag plugin` (Fase 9)
   tambien son comandos futuros.
-- **Sin instalacion via gestor de paquetes.** Nada esta publicado en crates.io
-  todavia; el instalador descarga un binario versionado (canal `release` por
-  defecto) o compila desde el fuente con los instaladores auditables.
+- **Sin instalacion via gestor de paquetes.** Nada esta publicado en
+  crates.io todavia; se compila desde el fuente con los instaladores
+  auditables.
 - **Sin promesa de API estable.** Las APIs publicas pueden cambiar hasta la
   Fase 10 (1.0). La disciplina SemVer comienza con el primer release
   etiquetado.
@@ -840,8 +789,7 @@ Los handlers Rust generados son stubs deliberados propiedad de cada aplicacion
 
 ### Inicio rapido
 
-Requisitos: Git. Rust 1.99.1 o superior solo se requiere para el canal explicito
-`AG_INSTALLER_CHANNEL=source`.
+Requisitos: Git y Rust 1.99.1 o superior.
 
 Linux o macOS:
 
@@ -855,15 +803,9 @@ Windows PowerShell:
 git clone https://github.com/Anti-Gravital/Anti-Gravital.git; Set-Location Anti-Gravital; .\install.ps1
 ```
 
-Por defecto el instalador usa el canal `release`: resuelve la version desde
-`Cargo.toml`, descarga el binario precompilado `ag` correspondiente y verifica su
-SHA-256 antes de instalar; no se compila nada. La ruta explicita
-`AG_INSTALLER_CHANNEL=source` compila el workspace dos veces y tardo unos 21
-minutos en el host medido; no hay fallback automatico. El progreso es una vista
-nativa de seis etapas; en CI usa `AG_INSTALLER_PROGRESS=headless` (o aprovecha la
-deteccion automatica de `CI`, `TERM=dumb`, `NO_COLOR` o salida no TTY) para
-obtener una linea estable por etapa. No se realizan cambios privilegiados del
-sistema. Antes de ejecutarlo, verifica el checkout con el
+El instalador verifica la version de Rust, compila el workspace en release e
+instala `ag` en el directorio binario de Cargo. No realiza cambios
+privilegiados del sistema. Antes de ejecutarlo, verifica el checkout con el
 [procedimiento canonico de integridad](docs/security/INSTALLATION_INTEGRITY.md).
 
 Despues, crear y ejecutar un proyecto. En una terminal, `ag new` sin

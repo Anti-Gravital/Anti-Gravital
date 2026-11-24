@@ -1,22 +1,19 @@
-//! Snapshot tests for `ag --output json` (RFC-0021 section 4.3).
+//! Shared test-only scaffolding for the `ag --output json` snapshot tests
+//! (RFC-0021 section 4.3).
 //!
-//! Every supported read command has a checked-in golden document under
-//! `docs/mcp/snapshots/`. The comparison is byte-exact: field order, spacing
-//! and version are part of the contract. A change in emitted JSON must change
-//! the snapshot and `contract_version` in the same commit.
+//! This module holds only the helpers used by BOTH sibling test binaries
+//! (`json_output` and `json_output_config`). Keeping it to the shared surface
+//! means neither binary compiles dead code. Scenario fixtures used by a single
+//! binary live in their own module (e.g. `json_output_scenarios`, included only
+//! by `json_output`).
 //!
-//! Test-only scaffolding shared by two test binaries (`json_output` and
-//! `json_output_config`); some helpers are used by only one binary, which
-//! clippy flags as dead_code. Allowed here because it is test support, not
-//! production code -- #213 tracks a per-binary feature-gated cleanup.
-#![allow(dead_code)] // #213 shared test module compiled into sibling binaries; cleanup tracked
+//! The golden documents are checked in under `docs/mcp/snapshots/`. Comparison
+//! is byte-exact: field order, spacing and version are part of the contract. A
+//! change in emitted JSON must change the snapshot and `contract_version` in
+//! the same commit.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-
-// Relative to CARGO_MANIFEST_DIR (crates/ag-cli); include_str! paths below are
-// relative to this source file, hence one extra `..` there.
-pub(crate) const SNAPSHOT_DIR: &str = "../../docs/mcp/snapshots";
 
 pub(crate) fn snapshot(name: &str) -> &'static str {
     match name {
@@ -97,52 +94,6 @@ pub(crate) fn assert_snapshot(output: &Output, name: &str) {
     );
 }
 
-pub(crate) fn clean_schema() -> &'static str {
-    "model User {\n  id UUID @primary\n  name String\n}\n"
-}
-
-pub(crate) fn warning_schema() -> &'static str {
-    "model Tag {\n  name String\n}\n"
-}
-
-pub(crate) fn invalid_schema() -> &'static str {
-    "model { broken\n"
-}
-
-pub(crate) fn reference_schema() -> &'static str {
-    "model Old {\n  id UUID @primary\n  name String\n}\n"
-}
-
-pub(crate) fn current_schema() -> &'static str {
-    "model Old {\n  id UUID @primary\n  title String\n}\nmodel New {\n  id UUID @primary\n}\n"
-}
-
-pub(crate) fn dns_manifest() -> &'static str {
-    "[project]\nname = \"demo\"\n\n[domain]\ndomain = \"api.example.com\"\nenvironment = \
-     \"production\"\nvisibility = \"public\"\ntls = \"managed_http01\"\ntarget = { kind = \
-     \"service\", ref = \"api\" }\n\n[domain.dns]\nCNAME = [{ name = \"api.example.com\", \
-     value = \"edge.example-cloud.net\" }]\n"
-}
-
 pub(crate) fn config_toml() -> &'static str {
     "bind = \"127.0.0.1:8080\"\n"
-}
-
-pub(crate) fn workers_schema() -> &'static str {
-    "worker SendWelcomeEmail {\n  queue \"mail\"\n  mode static\n  concurrency 4\n  retry {\n    max_attempts 5\n  }\n  input {\n    user_id UUID\n    email String @email\n  }\n}\n"
-}
-
-pub(crate) fn docker_project() -> PathBuf {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    static NEXT_DOCKER: AtomicUsize = AtomicUsize::new(0);
-    let dir = scratch_dir(&format!(
-        "deploy-json-{}",
-        NEXT_DOCKER.fetch_add(1, Ordering::Relaxed)
-    ));
-    write(&dir, "Cargo.toml", "[package]\nname = \"demo\"\n");
-    let docker = dir.join("deploy/docker");
-    std::fs::create_dir_all(&docker).expect("docker source directory");
-    std::fs::write(docker.join("Dockerfile"), "FROM scratch\n").expect("Dockerfile");
-    std::fs::write(docker.join("compose.yml"), "services: {}\n").expect("compose file");
-    dir
 }

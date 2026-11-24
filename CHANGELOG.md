@@ -8,6 +8,7 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+
 ### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
 
 Added / Changed:
@@ -3706,6 +3707,29 @@ Added:
 
 Issue #185 remains open and `blocked`; closure requires the full conjunction in
 `docs/audits/chrono-unblock-analysis.md` section 4. Refs #185.
+
+### Split shared JSON snapshot test support to remove dead_code suppression (#213)
+
+Changed:
+
+- Split `crates/ag-cli/tests/json_output_support/mod.rs` into the helpers shared
+  by both JSON snapshot test binaries and a new `json_output_scenarios` module
+  (`crates/ag-cli/tests/json_output_scenarios/mod.rs`) included only by
+  `json_output.rs`. The nine scenario helpers that only `json_output` uses
+  (`SNAPSHOT_DIR`, `clean_schema`, `warning_schema`, `invalid_schema`,
+  `reference_schema`, `current_schema`, `dns_manifest`, `workers_schema`,
+  `docker_project`) previously forced a crate-level `#![allow(dead_code)]`
+  because the `json_output_config` binary compiled them without calling them.
+- Removed the `#![allow(dead_code)] // #213` suppression from the shared module.
+  Both test binaries now compile with `-D warnings` and zero suppressions; all
+  JSON snapshot tests and their byte-exact golden comparisons are unchanged.
+
+Verification: reproduced the nine dead_code errors with `-D warnings` after
+removing the suppression; `cargo clippy -p ag-cli --tests -- -D warnings`,
+`cargo test -p ag-cli` (50 tests), `cargo check --workspace --all-features`,
+`cargo clippy --workspace --all-targets -- -D warnings`, `bash scripts/ag-check`,
+`bash tools/check-file-size.sh`, `git diff --check` and content scans all green.
+Refs #213. No production code, public API, default or feature changed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

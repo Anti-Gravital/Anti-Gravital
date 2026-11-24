@@ -5,7 +5,9 @@
 //! and version are part of the contract. A change in emitted JSON must change
 //! the snapshot and `contract_version` in the same commit.
 
+mod json_output_scenarios;
 mod json_output_support;
+use json_output_scenarios::*;
 use json_output_support::*;
 use std::path::PathBuf;
 

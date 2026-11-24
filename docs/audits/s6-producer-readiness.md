@@ -234,3 +234,62 @@ as `s6-rfc-section-drift.md`. This audit cites the actual RFC locations.
 - `docs/roadmap/STATUS.md` S6 checkbox stays `[/]`; no issue was closed.
 - No dependency on `ag-workers` was introduced in `ag-edge` in either direction.
 - No production-readiness or GA claim is made; the pre-Phase-5 gate remains open.
+
+## 10. Revalidation 2026-11-23 (wave 29, issue #112)
+
+- Date: 2026-11-23T23:56Z
+- Scope: re-check the single condition that could flip the verdict of section 1:
+  whether any real `ag-edge` event now needs to defer a job through the port.
+- Verdict: UNCHANGED. No real emitter exists, so no code was added. This is an
+  additive note only. Issue #112 stays OPEN with `Refs #112`.
+
+### What was re-checked
+
+| Candidate emitter point | Result |
+| --- | --- |
+| Background tasks in `crates/ag-edge/src/` | The only `tokio::spawn` is at `server.rs:268`, the per-connection task inside the TLS accept loop. It serves one request and enqueues nothing. |
+| On-demand TLS / ACME issuance trigger | `tls.rs:68` `allow_on_demand` is a pure `bool` predicate over an SNI string and an `is_known_verified` callback. No production caller defers work; only its own unit tests reference it. |
+| Config reload | `grep -rni reload crates/ag-edge --include=*.rs` has no match. No reload path exists to attach an enqueue to. |
+| Port call sites | `grep -rnE 'emit\(|\.enqueue\(|DeferredJobProducer' crates/ag-edge/src --include=*.rs` matches only `producer.rs` (definition and its own unit test). No runnable production path emits. |
+| Dependency direction | `cargo tree -p ag-edge --features producer` and `-e features` show no `ag-workers`; `cargo tree -p ag-workers --features producer` shows no `ag-edge`. |
+
+No real trigger, queue name, handler kind, payload schema or consumer exists, so
+adding an emitter would still violate CLAUDE.md rules 5, 8, 21, 28 and 30 and
+would close #112 on a self-invented producer. Section 5 (contract for a future
+emitter) and section 6 (exact closure conditions) are unchanged.
+
+### Verification evidence (commands actually run)
+
+Environment: cargo 1.99.1, rustc 1.99.1;
+`CARGO_TARGET_DIR=/home/angel-nereira/Github-local-angelnereira/shared-cargo-target`,
+`CARGO_INCREMENTAL=0`, `CARGO_PROFILE_TEST_DEBUG=0`.
+
+```
+$ cargo test -p ag-edge --features producer
+running 24 tests
+test producer::tests::emit_forwards_request_to_adapter ... ok
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+Doc-tests ag_edge: 0 passed
+TEST_RC=0
+
+$ cargo clippy -p ag-edge --features producer --all-targets -- -D warnings
+Finished `dev` profile
+CLIPPY_RC=0
+
+$ cargo tree -p ag-edge --features producer | grep -i ag-workers
+NO ag-workers (expected)
+$ cargo tree -p ag-edge --features producer -e features | grep -i ag-workers
+NO ag-workers (expected)
+$ cargo tree -p ag-workers --features producer | grep -i ag-edge
+NO ag-edge (expected)
+```
+
+Repository gates and the full command log on branch `community29/i112` are
+recorded in the descriptor `docs/kaizen/pr-drafts/community29-i112.md` and its
+mirror `docs/pr-drafts/community29-i112.md`.
+
+### Non-claims
+
+- No emitter, event, dependency, integration test or production code was added.
+- `docs/roadmap/STATUS.md` S6 checkbox stays `[/]`; #112 is not closed.
+- No GA claim is made; the pre-Phase-5 release gate remains open.

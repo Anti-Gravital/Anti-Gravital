@@ -94,8 +94,8 @@ mod tests {
 
     #[test]
     fn inverted_clock_is_not_fresh() {
+        let now: u64 = 100;
         assert!(now.checked_sub(0).is_some());
-        let now = 100;
         let mut s = state(now);
         s.started_at = now + 10;
         // Inversion is rejected by read_fresh; tested via the pure predicate.

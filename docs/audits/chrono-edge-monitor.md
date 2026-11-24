@@ -76,9 +76,9 @@ The SHA-256 is compared with line 1 of
 | Result | Exit | Meaning |
 | --- | --- | --- |
 | `PASS` | 0 | Current hash equals the baseline. The chrono edge is still present. **PASS is not a closure signal.** |
-| `FAIL` | 1 | Drift: the edge or the deny outcome changed. Inspect the report and re-examine before updating the baseline. |
+| `FAIL` | 1 | Real drift: a policy verdict changed the deny outcome. Inspect the report and re-examine before updating the baseline. |
 | `SKIP` | 0 | A required tool is missing. A SKIP is never reported as verification. |
-| `ERROR` | 2 | Baseline file missing or malformed, or an unknown argument. |
+| `ERROR` | 2 | Baseline file missing or malformed, an unknown argument, OR `cargo deny` exited non-zero without producing a policy verdict (a tool/fetch error such as a cold advisory-cache fetch). An ERROR is neither a PASS nor a drift FAIL. |
 
 `chrono.tree.empty=false` in the report is expected while #185 is open. The
 unblock condition is the conjunction of an empty tree, an accepted upstream or
@@ -199,3 +199,48 @@ is empty; the chrono-free graph comes from an upstream chrono-free
 `cargo deny --all-features check` passes with the `RUSTSEC-2026-0543` ignore
 removed; `cargo audit` shows no chrono warning; and test, fmt and clippy gates
 are green. Until then the ignore stays and the keyword remains `Refs #185`.
+
+## 8. Cold-cache false FAIL fix (wave 30, branch `community30/chronomonitor`)
+
+Section 7.3 recorded a tool-reliability finding (S-11 outbox
+`chrono-monitor-cold-cache-false-fail.md`): on a cold advisory cache `cargo deny`
+exited non-zero with an empty `deny.status`, and the monitor reported a drift
+`FAIL`. That conflated two different causes. `cargo deny` exits non-zero both for
+a REAL policy verdict (an advisory/bans/licenses/sources violation, which always
+emits a recognizable verdict line: a per-section status, an `error[...]` line or
+a `N allowed` warning) and for a tool/fetch failure that happens BEFORE any
+verdict (no verdict line, empty signal). A network hiccup must not be presented
+as dependency drift.
+
+`scripts/check-chrono-edge.sh` now classifies the outcome before hashing:
+
+- non-zero `deny` exit AND empty `deny.status` -> `RESULT: ERROR
+  reason=deny-tool-error-no-verdict`, exit 2. This also applies to
+  `--print-baseline`, so a broken run can never be baked into a new baseline.
+- non-zero exit WITH a verdict, or exit 0 -> unchanged hash comparison; a hash
+  mismatch is still `FAIL` (real drift) and a match is still `PASS`.
+
+Fail-closed is preserved: an ERROR is not a PASS, and real drift detection is
+not weakened. The baseline hash (`dd4fb95d...`) is unchanged. Issue #185 stays
+OPEN and `blocked`; this change uses `Refs #185`, never `Closes #185`.
+
+Verification (commands run 2026-11-23 in this worktree):
+
+```
+$ bash -n scripts/check-chrono-edge.sh                    -> exit 0
+$ git diff --check                                        -> exit 0
+$ bash scripts/check-chrono-edge.sh                       -> RESULT: PASS, exit 0
+    hash.current = hash.baseline = dd4fb95d... (real run, warm cache)
+
+Controlled stub `cargo` on PATH (no real network), three scenarios:
+  cold fetch error  -> deny.exit=1, deny.status=none, deny.verdict=absent
+                       RESULT: ERROR reason=deny-tool-error-no-verdict, exit 2
+  real drift        -> deny.exit=1, deny.status=advisories fail;...,
+                       deny.verdict=present, hashes differ -> RESULT: FAIL, exit 1
+  clean             -> deny.exit=0, hashes match -> RESULT: PASS, exit 0
+  cold + --print-baseline -> RESULT: ERROR, exit 2, NO hash emitted
+  unknown argument  -> RESULT: ERROR reason=unknown-argument, exit 2
+```
+
+The cold-cache FAIL is fixed at the monitor layer only; the upstream blocker in
+section 7.4 is unchanged, so #185 remains open.

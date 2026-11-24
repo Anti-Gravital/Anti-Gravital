@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 env:
-  # El responsable resuelve la version estable vigente (sin 'v') y verifica el checksum.
-  GITLEAKS_VERSION: ""
+  # Version estable verificada 8.30.1 (tag v8.30.1, sin 'v' aqui). Checksum verificado en el paso de instalacion.
+  GITLEAKS_VERSION: "8.30.1"
 
 jobs:
   secrets-and-silence:

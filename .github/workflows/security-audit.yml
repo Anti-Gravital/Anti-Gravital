@@ -41,7 +41,7 @@ jobs:
           audit_status=0
           deny_status=0
           cargo audit > "$RUNNER_TEMP/ag-audit.out" 2>&1 || audit_status=$?
-          cargo deny check --all-features > "$RUNNER_TEMP/ag-deny.out" 2>&1 || deny_status=$?
+          cargo deny check > "$RUNNER_TEMP/ag-deny.out" 2>&1 || deny_status=$?
           printf 'cargo audit exit: %s\ncargo deny exit: %s\n' "$audit_status" "$deny_status"
           if [ "$audit_status" -ne 0 ]; then
             echo "::warning::cargo audit failed; details in the security tracking issue"

@@ -12,10 +12,14 @@
 #
 # Result lines:
 #   PASS  current hash equals the baseline: no drift, edge still present.
-#   FAIL  drift detected: inspect the report, then update the baseline only
-#         after an intentional and fully verified change.
+#   FAIL  drift detected: a REAL policy violation changed the deny outcome;
+#         inspect the report, then update the baseline only after an intentional
+#         and fully verified change.
 #   SKIP  a required tool is missing; never reported as PASS.
-#   ERROR baseline file missing or malformed, or an unknown argument.
+#   ERROR baseline file missing or malformed, an unknown argument, OR cargo deny
+#         failed without producing a policy verdict (a tool/fetch error such as a
+#         cold advisory-cache fetch). A tool error is never PASS and never a
+#         drift FAIL.
 #
 # Exit statuses: PASS=0, SKIP=0, FAIL=1, ERROR=2. A SKIP is not a pass.
 #
@@ -91,6 +95,33 @@ deny_signal="$(printf '%s\n' "$deny_raw" \
     | grep -aE '^(advisories|bans|licenses|sources) |^error\[|^warning: [0-9]+ allowed' \
     | sort -u | tr '\n' ';' || true)"
 
+# --- classify the deny outcome -------------------------------------------------
+# cargo deny exits non-zero for two very different reasons:
+#   (1) a REAL policy verdict (an advisory/bans/licenses/sources violation),
+#       which always emits at least one recognizable verdict line into deny_signal
+#       (a per-section status, an error[...] line or a "N allowed" warning);
+#   (2) a tool/fetch failure BEFORE any verdict (e.g. a cold advisory-cache fetch
+#       or a network error), which emits no verdict line and leaves deny_signal
+#       empty.
+# Conflating the two turns an infrastructure hiccup into a false drift FAIL.
+# Fail closed: a tool error is reported as ERROR (exit 2), never PASS and never a
+# drift FAIL. Reject it in --print-baseline mode too, so a broken run can never be
+# baked into a new baseline. Real drift (non-zero exit WITH a verdict) still flows
+# into the hash comparison below and produces FAIL when the hash changes.
+if [ "$deny_rc" -ne 0 ] && [ -z "$deny_signal" ]; then
+    report "tool.cargo=$cargo_version"
+    report "tool.cargo-deny=$deny_version"
+    report "tool.sha256sum=$sha_version"
+    report "command.tree=$tree_cmd"
+    report "command.deny=$deny_cmd"
+    report "chrono.tree.empty=$tree_empty"
+    report "deny.exit=$deny_rc"
+    report "deny.status=none"
+    report "deny.verdict=absent"
+    report "RESULT: ERROR reason=deny-tool-error-no-verdict detail=cargo deny exited $deny_rc without a policy verdict (likely advisory database fetch/network failure); a tool error is neither PASS nor a drift FAIL; re-run on a warm cache and confirm with a direct 'cargo deny --all-features check' before trusting any result"
+    exit 2
+fi
+
 # --- hash ---------------------------------------------------------------------
 hash_input="$(printf 'tree:\n%s\ndeny.exit=%s\ndeny.status=%s\n' \
     "$tree_norm" "$deny_rc" "$deny_signal")"
@@ -123,6 +154,11 @@ printf '%s\n' "$tree_norm"
 report "--- cargo tree -i chrono (end) ---"
 report "deny.exit=$deny_rc"
 report "deny.status=${deny_signal:-none}"
+if [ -n "$deny_signal" ]; then
+    report "deny.verdict=present"
+else
+    report "deny.verdict=absent-but-exit-zero"
+fi
 report "hash.algorithm=sha256"
 report "hash.current=$current_hash"
 report "hash.baseline=$baseline_hash"

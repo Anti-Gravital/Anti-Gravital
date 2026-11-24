@@ -64,7 +64,7 @@ trap 'rm -f "$body_file"' EXIT
     append_output 'cargo audit' "$AUDIT_STATUS" "$AUDIT_OUTPUT"
   fi
   if [[ "$DENY_STATUS" != "0" ]]; then
-    append_output 'cargo deny check --all-features' "$DENY_STATUS" "$DENY_OUTPUT"
+    append_output 'cargo deny check' "$DENY_STATUS" "$DENY_OUTPUT"
   fi
   printf 'The issue is updated in place on the next weekly run and closed automatically when both checks pass.\n'
 } > "$body_file"

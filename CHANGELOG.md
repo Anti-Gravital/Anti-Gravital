@@ -7,6 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+
+
+
+### Fix CI: pin gitleaks version for the scheduled secret scan (#214)
+
+Fixed:
+
+- Pin `GITLEAKS_VERSION` to `8.30.1` in `.github/workflows/kaizen-security.yml`.
+  It was empty, so the "Instalar gitleaks con checksum verificado" step of the
+  `full-history` job aborted on every scheduled run and the weekly history scan
+  never executed. The bare version matches the workflow URL pattern
+  (`download/v${VERSION}` and `gitleaks_${VERSION}_linux_x64.tar.gz`); the
+  upstream release tag `v8.30.1` publishes assets `gitleaks_8.30.1_linux_x64.tar.gz`
+  and `gitleaks_8.30.1_checksums.txt`. The existing `sha256sum -c` integrity check
+  is unchanged (S-5). Verified read-only via the GitHub Releases API on 2026-11-23.
+
 ### Issue-board reconciliation: wave-29 audit of parents #76 and #142
 
 Added:
@@ -23,8 +39,6 @@ Added:
   `docs/pr-drafts/community29-i142.md`, the path expected by `scripts/ag-check`
   and the PR-autofill workflow (K-4 names the `docs/kaizen/` path; the tooling
   reads `docs/pr-drafts/`).
-
-
 
 ### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
 
@@ -3774,6 +3788,73 @@ Decision (documentation only):
 Verification: read-only crates.io metadata, `cargo audit --file Cargo.lock`
 (exit 0), `gh api` issue state, `git diff --check`, `bash scripts/ag-check`,
 `bash scripts/kaizen check` and content scans. Refs #180, #179.
+
+### Weekly security audit: remove invalid cargo-deny flag (issue #215)
+
+Fixed:
+
+- The `security-audit` workflow invoked `cargo deny check --all-features`, an
+  unsupported flag in cargo-deny 0.20.2 (deterministic exit 2 every Monday).
+  Removed the flag in `.github/workflows/security-audit.yml` and in the
+  issue-body label emitted by `tools/security-report.sh`. The weekly tracking
+  issue can now close when both checks pass. No failure is silenced and no
+  suppression was added (S-10).
+- Updated the two `CONTRIBUTING.md` references (EN/ES) that documented the same
+  invalid command, so user documentation and the workflow agree (K-1/K-7).
+- `deny.toml` is unchanged: `all-features = false` remains the supported way to
+  scope the graph. If auditing all features is ever wanted, use
+  `all-features = true` or the global-position `cargo deny --all-features check`
+  (both verified exit 0 locally); this change does not alter that behavior.
+
+Verification: cargo-deny 0.20.2 / cargo 1.99.1. `cargo deny check --all-features`
+-> exit 2 (`unexpected argument`); `cargo deny check` -> exit 0 (`advisories ok,
+bans ok, licenses ok, sources ok`); YAML parse, `bash -n
+tools/security-report.sh`, `bash tools/test-guardrails.sh` and `git diff --check`
+all green. GitHub Actions itself cannot be run locally; the live weekly run is
+verified after merge. Descriptor `docs/kaizen/pr-drafts/community30-denyflag.md`.
+Closes #215.
+
+### Hardening of the `metrics` CI job against push races (`community30/metricsrace`)
+
+Changed:
+
+- `.github/workflows/kaizen-gates.yml`: added workflow-level
+  `concurrency: { group: kaizen-metrics, cancel-in-progress: false }` so
+  concurrent pushes to `main` serialize instead of racing to push
+  `docs/kaizen/data/metrics.jsonl`. No run is cancelled, so no metrics are lost.
+- Replaced the bare `git push` in the `metrics` job with a bounded retry loop
+  (5 attempts): on rejection it does `git pull --rebase origin main` and retries;
+  a failed rebase or exhausted retries returns exit 1 (fail-closed, S-10). No
+  `|| true`, skip or suppression was added; the `framework`, `ratchet` and
+  `content-policy` gates are unchanged.
+- Descriptor `docs/kaizen/pr-drafts/community30-metricsrace.md` (`Refs #208`,
+  `Closes: none`) plus its `docs/pr-drafts/` copy for the tooling.
+
+Follow-up to the latent risk recorded in
+`docs/audits/issue-208-ci-failure-kaizen-gates-verification.md` (#208 already
+closed). No issue is closed here.
+
+### Chrono drift monitor: honest tool-error classification (issue #185, wave 30)
+
+Fixed:
+
+- `scripts/check-chrono-edge.sh` no longer reports a false drift `FAIL` when
+  `cargo deny` exits non-zero without a policy verdict (for example a cold
+  advisory-cache fetch or a network error). Such a run now returns
+  `RESULT: ERROR reason=deny-tool-error-no-verdict` with exit 2, also in
+  `--print-baseline` mode, so a broken run cannot be baked into a new baseline.
+  A non-zero exit WITH a verdict still flows into the hash comparison and yields
+  `FAIL` on real drift; exit 0 with a matching hash still yields `PASS`.
+  Fail-closed is preserved: an ERROR is never a PASS and never a drift FAIL.
+- Documentation (K-7): `docs/audits/chrono-edge-monitor.md` result-semantics
+  table and a new wave-30 section record the three outcomes and the verification
+  evidence. The baseline hash `dd4fb95d...` is unchanged.
+
+Not changed / not claimed:
+
+- Issue #185 remains OPEN and blocked by upstream; this change uses `Refs #185`,
+  never `Closes #185`. No baseline, manifest, lockfile, Rust source, RFC status
+  or CI workflow was changed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

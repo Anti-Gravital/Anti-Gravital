@@ -211,7 +211,7 @@ message that says what to fix; their behavior is covered by
 `bash tools/test-guardrails.sh`.
 
 - **Weekly security audit.** The `security-audit` workflow runs `cargo audit`
-  and `cargo deny check --all-features` on `main` every Monday and on demand.
+  and `cargo deny check` on `main` every Monday and on demand.
   On failure it opens or updates exactly one issue labelled `security` with the
   captured output; when both checks pass it closes that issue and reopens it if
   a later run fails. The issue carries
@@ -243,7 +243,7 @@ falla con un mensaje que indica como corregirla; su comportamiento se prueba con
 `bash tools/test-guardrails.sh`.
 
 - **Auditoria semanal.** El workflow `security-audit` ejecuta `cargo audit` y
-  `cargo deny check --all-features` en `main` cada lunes y bajo demanda. Si falla,
+  `cargo deny check` en `main` cada lunes y bajo demanda. Si falla,
   abre o actualiza un unico issue etiquetado `security` con la salida capturada;
   cuando ambas verificaciones pasan, cierra ese issue y lo reabre si una
   ejecucion posterior falla. El issue lleva un marcador

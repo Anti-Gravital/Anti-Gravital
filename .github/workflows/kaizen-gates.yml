@@ -7,6 +7,13 @@ on:
 permissions:
   contents: write
 
+# Serializa las ejecuciones del workflow para que el job `metrics` (que hace
+# commit y push de docs/kaizen/data/metrics.jsonl) no compita con otro push a
+# main: cancel-in-progress=false encola, no descarta, para no perder metricas.
+concurrency:
+  group: kaizen-metrics
+  cancel-in-progress: false
+
 jobs:
   framework:
     runs-on: ubuntu-latest
@@ -52,4 +59,18 @@ jobs:
           git config user.email "kaizen-bot@users.noreply.github.com"
           git add docs/kaizen/data/metrics.jsonl
           git diff --cached --quiet || git commit -m "Registrar metricas de calidad"
-          git push
+          # La concurrencia de arriba evita la carrera habitual; el reintento
+          # cubre pushes externos que avancen origin/main entre checkout y push.
+          # Falla en abierto (S-10): ningun rechazo ni error de rebase se oculta.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "metrics: push rechazado (intento $attempt); rebase y reintento" >&2
+            if ! git pull --rebase origin main; then
+              echo "metrics: rebase fallo; error real, no se silencia" >&2
+              exit 1
+            fi
+          done
+          echo "metrics: no se pudo publicar tras 5 intentos" >&2
+          exit 1

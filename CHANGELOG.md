@@ -7,6 +7,22 @@ aun no etiquetados.
 
 ## [Unreleased]
 
+### Issue-board reconciliation: wave-29 audit of parents #76 and #142
+
+Added:
+
+- Additive, dated wave-29 addendum in `docs/audits/issue-board-reconciliation.md`.
+  Re-verifies both tracking parents against the live board child by child:
+  #76 has 16 children (15 CLOSED, #87 OPEN) and #142 has 31 children
+  (26 CLOSED, #141/#152/#154/#156/#157 OPEN). Records the exact condition to
+  close each parent (all children verified CLOSED with evidence merged on
+  `main`) and confirms neither parent is closed by this change. No status
+  comment was posted because board, bodies and prior addenda agree.
+- Descriptor `docs/kaizen/pr-drafts/community29-i142.md` (`Refs #76`,
+  `Refs #142`; `Closes: none`). An identical copy is placed at
+  `docs/pr-drafts/community29-i142.md`, the path expected by `scripts/ag-check`
+  and the PR-autofill workflow (K-4 names the `docs/kaizen/` path; the tooling
+  reads `docs/pr-drafts/`).
 
 
 

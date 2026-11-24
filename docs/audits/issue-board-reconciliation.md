@@ -513,3 +513,148 @@ is recorded at https://github.com/Anti-Gravital/Anti-Gravital/issues/142#issueco
 - Parent progress recomputed from the parent body checklist: 26 + 5 = 31.
 - No issue closed, no label changed, no parent body edited, no gate row flipped.
 - `git diff --check`, link check and prohibited-content scans run on this branch.
+
+## Wave 29 addendum (2026-11-23) - live re-reconciliation of parents #76 and #142
+
+Scope: re-verify the two tracking parents against the LIVE issue board, child by
+child, and restate the exact condition under which each parent may be closed.
+This addendum is additive and closes nothing: no issue was closed, no label or
+parent body was edited, no gate row was flipped and no `Closes #NNN` keyword was
+used. The wave-4 matrix and the wave-9/11/12 addenda remain the authority for why
+each child is blocked or deferred. Verification date 2026-11-23, branch
+`community29/i142`; no push, PR or merge.
+
+### Method and live-board snapshot
+
+- Child states read individually with `gh issue view <n> --json number,state`
+  and cross-checked against `gh issue list --state all --limit 500 --json
+  number,state`. `gh issue view` without `--json` is still broken by the
+  Projects classic sunset; the JSON form works.
+- The full open+closed board now holds 122 issues (wave 12 recorded 114). The
+  new OPEN issues #208, #213, #214 and #215 are not children of either parent;
+  neither parent's checklist is affected by them.
+- "Closed with evidence" means the live board reports CLOSED and a merged commit
+  on `origin/main` implements the feature (checked with
+  `git merge-base --is-ancestor <commit> origin/main`). A docs-only or mock-only
+  commit is not gate evidence for a blocked child.
+
+### #76 - ag-domains remaining work (RFC-0011 E/F)
+
+Recomputed count: 16 children (#78-#93), 15 CLOSED, 1 OPEN (#87). This matches
+the prior snapshots (wave-12: 16/15); no arithmetic correction is needed.
+
+| Child | Short title | Board state | Closed with evidence | Stale text |
+| --- | --- | --- | --- | --- |
+| #78 | eTLD+1 via PSL | CLOSED | Yes; `9e0d525` on main | none live |
+| #79 | provider adapter SDK seam | CLOSED | Yes; `ccbb3ab` on main | none live |
+| #80 | Route 53 adapter | CLOSED | Yes; `759f92f` on main | none live |
+| #81 | Google Cloud DNS adapter | CLOSED | Yes; `f81b4f8` on main | none live |
+| #82 | Azure DNS adapter | CLOSED | Yes; `0a6d6a5` on main | none live |
+| #83 | Namecheap adapter | CLOSED | Yes; `ea14237` on main | none live |
+| #84 | Domain Connect support | CLOSED | Yes; `8b99e7d` on main | none live |
+| #85 | DNS-01 wildcard issuance automation | CLOSED | Yes; `bd4dbe0` on main | none live |
+| #86 | ARI-aware renewal scheduling | CLOSED | Yes; `993a50d` on main | none live |
+| #87 | live ACME staging E2E | OPEN, `blocked` | No; gate unmet | none live |
+| #88 | remaining control-plane metrics | CLOSED | Yes; `3affbda` on main | none live |
+| #89 | dangling-DNS detection worker | CLOSED | Yes; `afb5253` on main | none live |
+| #90 | abuse controls | CLOSED | Yes; `2ee43de` on main | none live |
+| #91 | HTTP-to-HTTPS upgrade at listener | CLOSED | Yes; `b8c141b` on main | none live |
+| #92 | documentation gaps | CLOSED | Yes; `1708c0c` on main | none live |
+| #93 | ag-registrars design RFC | CLOSED | Yes; `6dfbe9f` on main | none live |
+
+All 15 CLOSED children have their cited merged commit verified as an ancestor of
+`origin/main`. #87's ignored target
+`tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` is still absent in the
+working tree, so the external gate is genuinely unmet. #179 remains OPEN and
+blocked by #87.
+
+### #142 - repository audit through Phase 4.6
+
+Recomputed count: 31 children, 26 CLOSED, 5 OPEN (#141, #152, #154, #156, #157).
+This matches the prior snapshots (wave-12: 31/26); no arithmetic correction is
+needed.
+
+| Child | Group (parent body) | Short title | Board state | Closed with evidence | Stale text |
+| --- | --- | --- | --- | --- | --- |
+| #125 | Documentation | manual chapters bilingual | CLOSED | Yes; closed on main (wave 4) | none live |
+| #126 | Documentation | DEBT.md freeze vs Issues | CLOSED | Yes; closed on main (wave 4) | none live |
+| #127 | Documentation | RFC-0003 / RFC-0004 | CLOSED | Yes; closed on main (wave 4) | none live |
+| #128 | Documentation | canonical Blueprint ambiguity | CLOSED | Yes; closed on main (wave 4) | none live |
+| #129 | Documentation | docs/graph and diagrams placeholders | CLOSED | Yes; closed on main (wave 4) | none live |
+| #130 | Documentation | docs/audits status under rule 29 | CLOSED | Yes; closed on main (wave 4) | none live |
+| #131 | Code | ag-mail Spanish error strings | CLOSED | Yes; closed on main (wave 4) | none live |
+| #132 | Code | ag-auth Spanish comments | CLOSED | Yes; closed on main (wave 4) | none live |
+| #133 | Code | ag-storage signed.rs Spanish docs | CLOSED | Yes; closed on main (wave 4) | none live |
+| #134 | Code | ag-auth panic paths | CLOSED | Yes; closed on main (wave 4) | none live |
+| #135 | Code | TECH-DEBT markers without issue refs | CLOSED | Yes; closed on main (wave 4) | none live |
+| #136 | Code | `#[non_exhaustive]` policy | CLOSED | Yes; closed on main (wave 4) | none live |
+| #137 | Code | ag-data thin test coverage | CLOSED | Yes; closed on main (wave 4) | none live |
+| #138 | Tooling/CI/governance | pr-drafts cleanup policy | CLOSED | Yes; closed on main (wave 4) | none live |
+| #139 | Tooling/CI/governance | templates pin ag-* deps | CLOSED | Yes; closed on main (wave 4) | none live |
+| #140 | Tooling/CI/governance | pin actions to SHAs | CLOSED | Yes; PR #163 on main | none live |
+| #141 | Tooling/CI/governance | installer integrity trust anchor | OPEN, `blocked` | No; six RFC-0030 section 11 conditions unmet | none live |
+| #144 | Spawned from #135 | Redis L2 deferred | CLOSED | Yes; closed on main (wave 4) | none live |
+| #145 | Spawned from #135 | AVIF support | CLOSED | Yes; closed on main (wave 4) | none live |
+| #146 | Spawned from #135 | lossy WebP encoding | CLOSED | Yes; closed on main (wave 4) | none live |
+| #147 | Spawned from #135 | strong ETag truncation | CLOSED | Yes; closed on main (wave 4) | none live |
+| #148 | Spawned from #135 | ag-storage auth feature | CLOSED | Yes; closed on main (wave 4) | none live |
+| #149 | Spawned from #135 | OTLP exporter deferred | CLOSED | Yes; community2/otlp merge on main | first #142 comment is stale, corrected by wave-12 comment |
+| #150 | Spawned from #135 | ag-dsl unwrap removal | CLOSED | Yes; closed on main (wave 4) | none live |
+| #151 | Spawned from #126 | MTA durable spool | CLOSED | Yes; closed on main (wave 4) | none live |
+| #152 | Spawned from #126 | managed REST API and marketing objects | OPEN, deferred | No; RFC-0009 Mail A evidence absent | none live |
+| #153 | Spawned from #126 | MTA live-delivery test | CLOSED | Yes; closed on main (wave 4) | none live |
+| #154 | Spawned from #126 | typed ORM, RLS, tenancy | OPEN, deferred | No; Phase 5 and release gate not met | none live |
+| #155 | Spawned from #126 | broaden fuzz/property coverage | CLOSED | Yes; closed on main (wave 4) | none live |
+| #156 | Spawned from #126 | 24h fuzz manual gate | OPEN, `blocked` | No; 24h logs for seven targets absent | none live |
+| #157 | Spawned from #130 | final benchmark evidence | OPEN, `blocked` | No; rule-17 numbers on reference hardware absent | none live |
+
+The five OPEN children are genuinely unresolved: the release gate still shows
+Fuzz 24h, Benchmarks and Open debt as `pending` (Audit and Deny are `pass` on
+merged commit `800b671`). Local test keys, scheduled runners, opt-in CI checks
+and reduced samples remain capability, not gate evidence.
+
+### Stale text and board comments
+
+- Parent bodies are accurate: #76 states "16 children, 15 CLOSED and 1 OPEN"
+  and #142 states "Of 31 children, 26 are CLOSED and 5 remain OPEN: #141,
+  #152, #154, #156, #157". Live board, bodies and prior addenda all agree;
+  there is no current-state contradiction.
+- The only stale passage is the first #142 comment ("six children still open",
+  listing the now-CLOSED #149). It is a dated 2026-11-21 snapshot already
+  corrected by the wave-12 comment and the parent body; it is not a live
+  inconsistency requiring a new comment.
+- No status comment was posted on either parent in this wave, per the rule that
+  a comment is posted only when a real inconsistency exists.
+
+### Exact closure condition for each parent (all children verified CLOSED)
+
+- **#76** may be closed with `Closes #76` only after all 16 children (#78-#93)
+  are CLOSED. #87 must be closed first: the ignored target
+  `tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` must exist and pass
+  against Let's Encrypt staging on a credentialed runner (controlled domain, DNS
+  write access, outbound HTTPS), with the evidence template in
+  `docs/ag-domains/how-to/acme-staging-test.md` filled without secrets, and that
+  closure merged to `main`. Until then both #76 and dependent #179 stay OPEN.
+- **#142** may be closed with `Closes #142` only after all 31 children are CLOSED
+  with evidence merged on `main`, specifically the five still-OPEN ones: #141
+  (all six RFC-0030 section 11 conditions), #152 (RFC-0009 Mail A evidence or an
+  amendment moving C/D out, REST/marketing surface tested), #154 (Phase 5 open,
+  blocking release-gate rows `pass`, generated ORM/RLS/tenancy tested), #156
+  (24h logs for all seven fuzz targets archived with no unresolved crashes and
+  triage reviewed), #157 (rule-17 benchmark evidence on reference hardware,
+  `pre-fase5-performance.md` written, gate row and README reconciled). Never
+  close the parent while any child is open.
+
+This branch uses `Refs #76` and `Refs #142` only and posts no closure keyword.
+
+### Verification performed
+
+- All 16 #76 children and all 31 #142 children read individually via
+  `gh issue view <n> --json number,state`; counts recomputed: 16/15 and 31/26.
+- Full open+closed board (122 issues) cross-checked; new OPEN issues #208,
+  #213, #214, #215 confirmed not to be children of either parent.
+- All 15 cited #76 merged-evidence commits confirmed ancestors of `origin/main`.
+- #87 staging test target confirmed absent; release gate rows confirmed still
+  `pending` for Fuzz 24h, Benchmarks and Open debt.
+- No issue closed, no label changed, no parent body edited, no gate row flipped,
+  no status comment posted, no `Closes #NNN` used.

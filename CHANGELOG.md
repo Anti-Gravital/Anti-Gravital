@@ -8,6 +8,45 @@ aun no etiquetados.
 ## [Unreleased]
 
 
+
+### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
+
+Added / Changed:
+
+- The installer now uses the `release` channel by default: it resolves the
+  versioned tag from `[workspace.package].version` in `Cargo.toml`
+  (`0.1.0-alpha.2`, not the `VERSION` label), downloads the versioned prebuilt
+  binary for the detected platform and verifies its SHA-256 before installing.
+  No toolchain is downloaded and nothing is compiled. `AG_INSTALLER_CHANNEL=source`
+  remains an explicit route (about 21 minutes and two builds on the recorded
+  host) and there is **no automatic fallback** from `release` to `source`.
+- A native six-stage progress view (resolve version, detect platform, download,
+  verify SHA-256, install, done) with a deterministic headless mode for CI via
+  `AG_INSTALLER_PROGRESS=headless`, also selected by `CI`, `TERM=dumb`, `NO_COLOR`
+  or non-TTY stdout: one stable `[ag-install] N/6 ...` line per stage. The
+  fail-closed verification order is unchanged; progress display never hides a
+  verification failure, skips a stage or suppresses the `AG_INSTALLER_CHECKSUMS`
+  warning.
+- Documentation (K-7): `README.md` (EN+ES), `docs/manual/04-instalacion-y-onboarding.md`
+  (EN+ES), `docs/security/INSTALLATION_INTEGRITY.md` and a dated, additive
+  addendum in `docs/releases/0.1.0-alpha.2.md` now describe the fast path. The
+  integrity document corrects the stale `v0.1.0-alpha.1` examples to
+  `v0.1.0-alpha.2`, records version resolution from `Cargo.toml` (not `VERSION`),
+  states that the release `checksums.txt` covers binary assets but **not** the
+  installer scripts (use `checksums/installers.sha256` / `AG_INSTALLER_CHECKSUMS`,
+  and `AG_INSTALLER_BINARY_CHECKSUMS` for the out-of-band binary manifest), and
+  reiterates "integrity, not authenticity" (#141 open, RFC-0030 draft).
+
+Not changed / not claimed:
+
+- No signature, authenticity claim, trust anchor, CDN spend or release-workflow
+  change: #141 stays open and RFC-0030 stays a draft. No issue is closed here —
+  #203, #204 and #206 are referenced but remain open until their fixes are
+  verified (K-2/K-10). The `v0.1.0-alpha.2` release is published with nine
+  assets; publishing is a human action under RFC-0032 §4.4.
+
+Refs #203, #204, #206, #141, RFC-0030, RFC-0032, DEC-001.
+
 ### RFC-0020 PR 4 close: scope decision for `ag-cli` (audit A2)
 
 Added:
@@ -3651,6 +3690,46 @@ Verified: `cargo test -p ag-cli` (170 unit + all integration tests, 9 new),
 `cargo clippy -D warnings`, `bash scripts/ag-check`,
 `bash tools/check-file-size.sh`, `git diff --check` and content scans.
 Refs RFC-0024 section 4.2.
+
+### Chrono edge revalidation 2026-11-23 (issue #185, wave 29)
+
+Added:
+
+- Additive dated section 7 in `docs/audits/chrono-edge-monitor.md`: re-ran
+  `cargo tree -i chrono`, the drift monitor and live read-only upstream probes.
+  The single `object_store 0.14.2 -> chrono 0.4.45` edge is unchanged; object_store
+  is still 0.14.2, upstream issue #909 is still open with no fix PR. The monitor
+  returns PASS with the unchanged baseline hash. No manifest, lockfile, source,
+  `deny.toml` ignore or CI change.
+- Honest finding: a cold-advisory-cache first run produced a false monitor FAIL;
+  reported to the S-11 outbox (`chrono-monitor-cold-cache-false-fail.md`) and in
+  the PR descriptor, with a proposal to separate tool errors from policy drift.
+
+Issue #185 remains open and `blocked`; closure requires the full conjunction in
+`docs/audits/chrono-unblock-analysis.md` section 4. Refs #185.
+
+### Split shared JSON snapshot test support to remove dead_code suppression (#213)
+
+Changed:
+
+- Split `crates/ag-cli/tests/json_output_support/mod.rs` into the helpers shared
+  by both JSON snapshot test binaries and a new `json_output_scenarios` module
+  (`crates/ag-cli/tests/json_output_scenarios/mod.rs`) included only by
+  `json_output.rs`. The nine scenario helpers that only `json_output` uses
+  (`SNAPSHOT_DIR`, `clean_schema`, `warning_schema`, `invalid_schema`,
+  `reference_schema`, `current_schema`, `dns_manifest`, `workers_schema`,
+  `docker_project`) previously forced a crate-level `#![allow(dead_code)]`
+  because the `json_output_config` binary compiled them without calling them.
+- Removed the `#![allow(dead_code)] // #213` suppression from the shared module.
+  Both test binaries now compile with `-D warnings` and zero suppressions; all
+  JSON snapshot tests and their byte-exact golden comparisons are unchanged.
+
+Verification: reproduced the nine dead_code errors with `-D warnings` after
+removing the suppression; `cargo clippy -p ag-cli --tests -- -D warnings`,
+`cargo test -p ag-cli` (50 tests), `cargo check --workspace --all-features`,
+`cargo clippy --workspace --all-targets -- -D warnings`, `bash scripts/ag-check`,
+`bash tools/check-file-size.sh`, `git diff --check` and content scans all green.
+Refs #213. No production code, public API, default or feature changed.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 

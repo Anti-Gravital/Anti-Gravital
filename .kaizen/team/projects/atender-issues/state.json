@@ -1,0 +1,17 @@
+{
+  "slug": "atender-issues",
+  "goal": "Un agente por issue abierto: cerrar los verificables, escalar los bloqueados con evidencia",
+  "kpi": "Cada issue con accion real verificada o escal needs-human documentado; 0 cierres falsos",
+  "facilitator": "facilitador-equipo",
+  "members": [
+    "facilitador-equipo",
+    "verificador-evidencias",
+    "qa",
+    "security",
+    "architect",
+    "platform-engineer"
+  ],
+  "stage": "execute",
+  "created": "2026-11-23T23:28:08Z",
+  "updated": "2026-11-23T23:28:09Z"
+}

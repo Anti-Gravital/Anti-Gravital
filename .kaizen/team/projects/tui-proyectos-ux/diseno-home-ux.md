@@ -344,7 +344,7 @@ Ningún error se traga: se muestra en el panel con prefijo de texto, no solo con
    lleva texto, no solo `theme.error`. La fila activa lleva `>` además de inversión [S5].
 2. **NO_COLOR / monocromo.** Se mantiene `Theme::for_session(no_color)` [S5]. Todos los glyphs
    nuevos son ASCII (`* o ? ! . > [ ] / - :`), dentro del rango permitido por el test
-   `monochrome_theme_uses_no_color_and_glyphs_are_ascii` [S3]. No se introducen `✔`, `✖`,
+   `monochrome_theme_uses_no_color_and_glyphs_are_ascii` [S3]. No se introducen `OK`, `ERR`,
    `→`, `↑` ni otros caracteres fuera de ASCII/box-drawing.
 3. **Contraste.** Estado y acción principal usan `theme.label` (bold); `theme.hint` solo para
    atajos. En color, `selected` usa fg negro/bg cian ya existente [S5]; en monocromo, `REVERSED`

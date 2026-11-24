@@ -91,9 +91,13 @@ rama de herramienta IA (`claude-`, `gpt-`, `ai-`, `copilot-`): el job
 
 ## Indice
 
-No hay descriptores activos en este momento. Las ramas de trabajo se integran
-directamente en `main` y su descriptor se elimina al fusionarse; la trazabilidad
-del trabajo fusionado vive en el historial de git, el CHANGELOG y los Issues.
+Descriptor activo:
+
+- `community29/i180`: `docs/pr-drafts/community29-i180.md` (revalidacion de
+  #180 y #179; ambos issues quedan abiertos, `Closes: none`).
+
+Al fusionarse, se elimina el descriptor y esta fila; la trazabilidad del trabajo
+fusionado vive en el historial de git, el CHANGELOG y los Issues.
 
 Cuando una rama vaya a producir una pull request, anada aqui su fila con el
 formato `\`rama\`: \`docs/pr-drafts/rama.md\` (descripcion)` y retirela cuando la

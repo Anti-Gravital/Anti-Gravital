@@ -323,3 +323,56 @@ Once #87 provides a real staging run, the exact sequence to close #179 is:
    update the README if the observable dependency/feature state changes.
 6. Only then open a PR with `Closes #179` (and `Closes #87` only if #87's own
    evidence criteria are met) and the descriptor in `docs/pr-drafts/`.
+
+## Revalidation note (2026-11-23, issue #179)
+
+Additive only. This section re-checks the two external premises behind the
+2026-11-22 compile spike: whether a newer `instant-acme` release exists and
+whether #87 now has staging evidence. It changes no code, no dependency pin,
+no gate row and no issue state. #179 stays OPEN with `blocked` and `Refs #179`;
+no `Closes #179` or `Closes #87` keyword is used here.
+
+### Premise-by-premise re-check
+
+| Premise | Spike state (2026-11-22) | Re-checked 2026-11-23 | Changed? |
+| --- | --- | --- | --- |
+| Target release | 0.8.5 current stable; 0.8.0 fails identically | Read-only `https://crates.io/api/v1/crates/instant-acme`: `default_version`, `newest_version`, `max_version` and `max_stable_version` are all `0.8.5`; `crate.updated_at` and the 0.8.5 `created_at` are `2026-02-24T09:47:58Z`. 0.8.0 is dated 2025-07-09 and is not yanked. No release newer than 0.8.5 exists. | No |
+| Production pin | `instant-acme = "0.7"`; lockfile 0.7.2 | `crates/ag-domains/Cargo.toml:86` still `instant-acme = { version = "0.7", optional = true }`; `Cargo.lock` resolves 0.7.2. No commit between `72b97ad` and this branch HEAD `97b9402` touches `crates/ag-domains/src/acme/renewal.rs` or that manifest line. | No |
+| #87 staging evidence | None; offline mock only, handoff template empty | `gh api` reports issue #87 `open`, labels include `blocked`, `updated_at` 2026-11-22T17:04:22Z; its five comments end at 2026-11-22T17:03:59Z (wave 12 handoff, explicitly "no CA evidence"). No `crates/ag-domains/tests/acme_staging.rs` target and no `staging-before.log` / `staging-after.log` exist in this tree. | No |
+| Nine migration points | All eight compiler errors plus one behavioral item | The reference document is unchanged in this branch; no merged change to the order-flow code was found, so the verified patch plan in the section above still describes the current tree. | No |
+
+### Method and honest limits
+
+Registry metadata and the issue board were read live and read-only on
+2026-11-23. `cargo audit --file Cargo.lock` also exited 0 with no
+`instant-acme` advisory (four allowed unmaintained warnings unrelated to ACME).
+No credential, private key, ACME token or environment variable was read or
+printed. The credentialed staging run cannot be attempted from this worktree:
+it requires a controlled registered domain, external DNS write access,
+outbound HTTPS to `https://acme-staging-v02.api.letsencrypt.org/directory` and
+runner-held credentials. The conclusion "no staging evidence" is therefore
+based on the repository and board state, not on a failed staging attempt. No
+speculative upgrade was applied; this is a documentation-only revalidation
+(S-9).
+
+### Exact condition to close #179 (unchanged)
+
+#87 must first be genuinely CLOSED: the ignored target
+`tests/acme_staging.rs::staging_dns01_issue_and_serve_sni` must exist and pass
+against the Let's Encrypt staging directory with external DNS-01 validation,
+a staging-signed chain, SNI check and TXT teardown, with the evidence template
+of `docs/ag-domains/how-to/acme-staging-test.md` filled and `staging-before.log`
+retained. Only then, in order: (1) implement that target on the current 0.7
+tree and save `staging-before.log`; (2) apply the `0.8` pin and the verified
+`renewal.rs` patch, updating `Cargo.lock` with
+`cargo update -p instant-acme --precise 0.8.5`; (3) run `cargo fmt --all -- --check`,
+`cargo clippy -p ag-domains --all-targets --all-features -- -D warnings` and
+`cargo test -p ag-domains --all-features`, all exit 0; (4) re-run
+the same credentialed command on the 0.8 tree and save `staging-after.log`,
+with a staging issuer, matching SNI subject/issuer and no leftover
+`_acme-challenge` TXT record in either log; (5) update the migration reference,
+`acme-mock-evidence.md` and the README if observable dependency state changes;
+(6) only then open a PR with `Closes #179` and the descriptor. `Closes #87`
+requires #87's own evidence criteria independently. Until every step is
+verified and merged, the dependency stays at 0.7 and no renewal rewrite is
+applied.

@@ -271,3 +271,49 @@ requires. Any one of the following is sufficient grounds to open it:
 - `crates/ag-dsl/src/parser.rs` (lines 24-43, 108-143, 151-181, 864-899)
 - `fuzz/fuzz_targets/fuzz_parser.rs`, `fuzz/fuzz_targets/fuzz_lexer.rs`
 - crates.io registry API (max stable version 0.14.2, fetched 2026-11-22)
+
+## 10. Revalidation note (2026-11-23, issue #180)
+
+Additive only. This section re-checks the factual premises of the 2026-11-22
+spike. It does not reopen RFC-0027, amend ADR-0021, change the workspace pin,
+change the parser or claim any closure. Issue #180 stays OPEN, deferred, with
+`Refs #180` and no `Closes #180` keyword.
+
+### 10.1 Premise-by-premise re-check
+
+| Premise | Spike state (2026-11-22) | Re-checked 2026-11-23 | Changed? |
+| --- | --- | --- | --- |
+| Maintained stable release | 0.14.2, published 2026-11-17 | Read-only `https://crates.io/api/v1/crates/chumsky`: `default_version`, `newest_version` and `max_stable_version` all `0.14.2`; `crate.updated_at` and the 0.14.2 `created_at` are `2026-11-17T16:52:46Z`. `max_version` remains the alpha `1.0.0-alpha.8`. No release newer than 0.14.2 exists. | No |
+| Issue title's target | 0.13.0 (2026-05-06) is not the right target | 0.13.0 still published 2026-05-06; RFC-0027 section 9 and ADR-0021 decision 3 still require the newest stable 0.14.x, not 0.13.0. | No |
+| Production pin | `chumsky = "0.9"`, lockfile 0.9.3 | `Cargo.toml:68` is `chumsky = "0.9"`; `Cargo.lock` resolves 0.9.3; 0.9.3 is not yanked in the registry metadata. | No |
+| Advisory trigger (b) | No RUSTSEC advisory on 0.9.x | `cargo audit --file Cargo.lock`: exit 0, 1563 advisories loaded, 787 dependencies scanned, 4 allowed unmaintained warnings (`astral-tokio-tar` 0.6.4, `chrono` 0.4.45, `humantime` 2.4.0, `paste` 1.0.15). No advisory entry for chumsky at any version. | No |
+| Triggers (a), (c), (d) | No grammar freeze, no filed DX defect, no tracked `ag_dsl::compile()` benchmark | No commit between the spike base `72b97ad` and this branch HEAD `97b9402` touches `crates/ag-dsl/src/parser.rs`, adds `crates/ag-dsl/benches/` or adds golden diagnostics tests. The `Cargo.lock` diff in that range is seven unrelated `ag-core`/`ag-edge` dependency edges. The microbenchmark in section 5 remains the only local measurement and is explicitly not trigger (d). | No |
+| Board state | OPEN, deferred by ADR-0021 | `gh api repos/Anti-Gravital/Anti-Gravital/issues/180`: `open`, labels `ag-dsl`, `tech-debt`, `p3` (no `blocked`), `updated_at` 2026-11-22T02:53:31Z; all four comments are dated 2026-11-22 or earlier. No new comment or evidence since the spike. | No |
+
+### 10.2 Method and honest limits
+
+Registry and issue state were read live and read-only on 2026-11-23. No
+credential or private data was accessed; no dependency was added or bumped
+(S-9), no source, manifest, lockfile, fuzz target or CI file was changed, and
+no speculative migration was implemented. The deferred decision is a
+governance choice: this revalidation can confirm that no new release or
+advisory exists, but it cannot by itself detect a grammar freeze, a new DX
+defect or a benchmark result that someone has not produced and filed.
+
+### 10.3 Exact condition to close #180 (unchanged)
+
+Issue #180 closes only after a successor RFC supersedes RFC-0027 and ADR-0021
+by deciding to migrate. One of the four review triggers must first be real and
+evidenced: (a) DSL v1.0 grammar freeze, (b) a RUSTSEC advisory on chumsky 0.9.x
+(any such advisory voids the deferral immediately), (c) a concrete, filed DX
+defect in `ag-dsl` that 0.9 cannot express, reproduced by a failing test on
+real DSL source, or (d) a tracked `crates/ag-dsl/benches/` benchmark of
+`ag_dsl::compile()` on a quiet reference host with full rule 17 metadata that
+shows a parser-attributable bottleneck. Migration then follows RFC-0027
+sections 4.2 and 5: golden diagnostics tests added first on 0.9, a rule-17
+before/after benchmark on the real parser, all existing parser tests unchanged,
+fuzz smoke plus the 24-hour gate (#156) re-run after the port, and
+`examples/ecommerce-api/generated` byte-identical. The target is the newest
+stable 0.14.x at implementation time (0.14.2 on 2026-11-23), not the 0.13.0 in
+the issue title. Until that evidence exists and is merged, this branch uses
+only `Refs #180`.

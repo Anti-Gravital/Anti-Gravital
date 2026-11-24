@@ -9,6 +9,7 @@ aun no etiquetados.
 
 
 
+
 ### Fast installer path by default, native progress UI and documentation coherence (`instalacion-rapida-releases`)
 
 Added / Changed:
@@ -3730,6 +3731,33 @@ removing the suppression; `cargo clippy -p ag-cli --tests -- -D warnings`,
 `cargo clippy --workspace --all-targets -- -D warnings`, `bash scripts/ag-check`,
 `bash tools/check-file-size.sh`, `git diff --check` and content scans all green.
 Refs #213. No production code, public API, default or feature changed.
+
+### Dependency revalidation: chumsky (#180) and instant-acme (#179)
+
+Added:
+
+- Additive dated revalidation note in `docs/audits/chumsky-migration-spike.md`
+  (section 10). crates.io metadata on 2026-11-23 still reports 0.14.2 as the
+  newest stable chumsky release (published 2026-11-17); `cargo audit` reports
+  no chumsky advisory; the pin stays `chumsky = "0.9"` / lock 0.9.3.
+- Additive dated revalidation note in
+  `docs/audits/instant-acme-08-compile-spike.md`. crates.io still reports 0.8.5
+  as the newest instant-acme release (published 2026-02-24); the pin stays
+  `0.7` / lock 0.7.2; #87 has no live staging evidence, the ignored
+  `acme_staging` target and both staging logs are absent.
+
+Decision (documentation only):
+
+- ADR-0021 (defer chumsky, target the newest stable 0.14.x) and the #87 gate
+  for the instant-acme port are unchanged. No dependency was added or bumped,
+  no parser or ACME code was changed, and no speculative upgrade was applied.
+  Both issues stay OPEN: #180 deferred, #179 blocked by #87. Exact closure
+  conditions are restated in the two new sections; no `Closes #180` or
+  `Closes #179` keyword was used.
+
+Verification: read-only crates.io metadata, `cargo audit --file Cargo.lock`
+(exit 0), `gh api` issue state, `git diff --check`, `bash scripts/ag-check`,
+`bash scripts/kaizen check` and content scans. Refs #180, #179.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 
